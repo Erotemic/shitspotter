@@ -106,8 +106,8 @@ def main():
     img_locs = gpd.GeoDataFrame(rows, crs='crs84')
 
     # ip_pt = ip_loc.iloc[0].geometry
-    from pyproj import CRS
-    utm_crs = CRS.from_epsg(utm_epsg_from_latlon(ip_pt.y, ip_pt.x))  # NOQA
+    # from pyproj import CRS
+    utm_crs = CRS.from_epsg(utm_epsg_from_latlon(img_locs.iloc[0].geometry.y, img_locs.iloc[0].geometry.x))  # NOQA
     img_utm_loc = img_locs.to_crs(utm_crs)
 
     import numpy as np

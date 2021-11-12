@@ -55,7 +55,7 @@ For now I'll post this teaser analytic:
 
 
 .. The large version wont work because github strips rst image rescaling. 
-.. image:: https://i.imgur.com/amLDlpY.png
+.. image:: https://i.imgur.com/LXvcqGW.png
 
 ..  ..   :height: 100px
 ..  ..   :align: left
