@@ -1,15 +1,14 @@
-The shitspotter Module
-======================
+💩 The shitspotter Module 💩
+============================
 
-|CircleCI| |Codecov| |Pypi| |Downloads| |ReadTheDocs|
-
-+------------------+----------------------------------------------+
-| Read the docs    | https://shitspotter.readthedocs.io           |
-+------------------+----------------------------------------------+
-| Github           | https://github.com/Erotemic/shitspotter      |
-+------------------+----------------------------------------------+
-| Pypi             | https://pypi.org/project/shitspotter         |
-+------------------+----------------------------------------------+
+.. .. |CircleCI| |Codecov| |Pypi| |Downloads| |ReadTheDocs|
+.. .. +------------------+----------------------------------------------+
+.. .. | Read the docs    | https://shitspotter.readthedocs.io           |
+.. .. +------------------+----------------------------------------------+
+.. .. | Github           | https://github.com/Erotemic/shitspotter      |
+.. .. +------------------+----------------------------------------------+
+.. .. | Pypi             | https://pypi.org/project/shitspotter         |
+.. .. +------------------+----------------------------------------------+
 
 
 The ``shitspotter`` module is where I will start public work on the
@@ -49,6 +48,17 @@ doing that.
 
 As of 2021-11-11 I've collected 1935 pictures with "798" before/after/(maybe
 negative) groups of images.
+
+I started writing scripts to get all of the data ingested. 
+For now I'll post this teaser analytic:
+
+
+
+.. The large version wont work because github strips rst image rescaling. 
+.. image:: https://i.imgur.com/amLDlpY.png
+
+..  ..   :height: 100px
+..  ..   :align: left
 
 
 Check back for updates, but because this is a personal project, it might take
