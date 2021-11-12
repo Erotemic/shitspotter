@@ -1,0 +1,656 @@
+# Abuse YAML notation to make a heredoc. This will be ignored by the CI.
+.__heredoc__: &__heredoc__
+    - | 
+
+        NOTE: INSTRUCTION HAVE BEEN MOVED TO ./dev/setup_secrets.sh
+        This file should need minimal modification.
+
+        Template for this files is from
+        ~/misc/templates/shitspotter/.gitlab-ci.yml
+
+        Templates used in:
+
+        ~/code/kwplot/.gitlab-ci.yml
+        ~/code/kwimage/.gitlab-ci.yml
+        ~/code/kwarray/.gitlab-ci.yml
+        ~/code/kwcoco/.gitlab-ci.yml
+
+
+        Enable the opencv-hack if needed, and turn on/off the desired versions
+        of Python.
+
+
+stages:
+  - build
+  - test
+  - gpgsign
+  - deploy
+
+
+### TEMPLATES ###
+# Define common templates using YAML anchors
+
+.common_template: &common_template
+    tags:
+        # Tags define which runners will accept which jobs
+        - docker
+        - linux
+        - build
+
+    variables:
+        # Change pip's cache directory to be inside the project directory since we can
+        # only cache local items.
+        PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+    except:
+        # Don't run the pipeline for new tags
+        - tags
+
+    cache:
+        paths:
+            - .cache/pip
+
+
+.build_template: &build_template
+    # Tags define which runners will accept which jobs
+    <<: 
+        - *common_template
+
+    stage: 
+        build
+    
+    before_script:
+        - python -V  # Print out python version for debugging
+
+    script: 
+        - python setup.py bdist_wheel --universal
+
+    artifacts:
+        paths:
+            - dist/*.whl
+
+
+.common_test_template: &common_test_template
+    # Tags define which runners will accept which jobs
+    <<: 
+        - *common_template
+
+    variables:
+        # Change pip's cache directory to be inside the project directory since we can
+        # only cache local items.
+        PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+    stage: 
+        test
+    
+    script: 
+        - ./run_tests.py
+
+    # Coverage is a regex that will parse the coverage from the test stdout
+    coverage: '/TOTAL.+ ([0-9]{1,3}%)/'
+
+    #except:
+    #    refs:
+    #      - release 
+    #      - tags
+    #    changes:
+    #        - README.rst
+    #        - CHANGELOG.md
+
+
+# Define anchors to be used in "before_script" parts
+._setup_virtualenv_template: &_setup_virtualenv_template |-
+    python -V  # Print out python version for debugging
+    export PYVER=$(python -c "import sys; print('{}{}'.format(*sys.version_info[0:2]))")
+    pip install virtualenv
+    virtualenv venv$PYVER
+    source venv$PYVER/bin/activate
+    pip install pip -U
+    pip install pip setuptools -U
+    python -V  # Print out python version for debugging
+
+._install_strict_minimal_requirements: &_install_strict_minimal_requirements |-
+    ./dev/make_strict_req.sh
+    pip install -r requirements-strict/runtime.txt -r requirements-strict/tests.txt
+
+
+._install_strict_full_requirements: &_install_strict_full_requirements |-
+    ./dev/make_strict_req.sh
+    pip install -r requirements-strict/optional.txt -r requirements-strict/runtime.txt -r requirements-strict/tests.txt
+
+
+.test_minimal_strict_template: &test_minimal_strict_template
+    # Tags define which runners will accept which jobs
+    <<: 
+        - *common_test_template
+
+    before_script:
+        - *_setup_virtualenv_template
+        - *_install_strict_minimal_requirements
+        - pip install .[tests]  
+        #- pip install opencv-python-headless==4.5.3.56
+
+
+.test_full_strict_template: &test_full_strict_template
+    # Tags define which runners will accept which jobs
+    <<: 
+        - *common_test_template
+
+    before_script:
+        - *_setup_virtualenv_template
+        - *_install_strict_full_requirements
+        - pip install .[all]  
+        #- pip install opencv-python-headless==4.5.3.56
+
+.test_minimal_loose_template: &test_minimal_loose_template
+    # Tags define which runners will accept which jobs
+    <<: 
+        - *common_test_template
+
+    before_script:
+        - *_setup_virtualenv_template
+        - pip install .[tests]
+        #- pip install .[tests,headless]
+
+
+.test_full_loose_template: &test_full_loose_template
+    # Tags define which runners will accept which jobs
+    <<: 
+        - *common_test_template
+
+    before_script:
+        - *_setup_virtualenv_template
+        - pip install .[all]  
+        #- pip install .[all,headless]  
+
+
+
+.gpgsign_template: &gpgsign_template
+    <<: 
+        - *common_template
+
+    stage: 
+        gpgsign
+
+    script: 
+        - export GPG_EXECUTABLE=gpg
+        - export GPG_KEYID=$(cat dev/public_gpg_key)
+        - echo "GPG_KEYID = $GPG_KEYID"
+        - source dev/secrets_configuration.sh
+        # note the variable pointed to by VARNAME_CI_SECRET is a protected variables only available on main and release branch
+        - CI_SECRET=${!VARNAME_CI_SECRET}
+        - $GPG_EXECUTABLE --version
+        - openssl version
+        - $GPG_EXECUTABLE --list-keys
+        - $GPG_EXECUTABLE --list-keys
+        # Decrypt and import GPG Keys / trust
+        - GLKWS=$CI_SECRET openssl enc -aes-256-cbc -pbkdf2 -md SHA512 -pass env:GLKWS -d -a -in dev/ci_public_gpg_key.pgp.enc | $GPG_EXECUTABLE --import 
+        - GLKWS=$CI_SECRET openssl enc -aes-256-cbc -pbkdf2 -md SHA512 -pass env:GLKWS -d -a -in dev/gpg_owner_trust.enc | $GPG_EXECUTABLE --import-ownertrust
+        - GLKWS=$CI_SECRET openssl enc -aes-256-cbc -pbkdf2 -md SHA512 -pass env:GLKWS -d -a -in dev/ci_secret_gpg_subkeys.pgp.enc | $GPG_EXECUTABLE --import 
+        - $GPG_EXECUTABLE --list-keys  || echo "first one fails for some reason"
+        - $GPG_EXECUTABLE --list-keys  
+        # The publish script only builds wheels and does gpg signing if DO_UPLOAD is no
+        - pip install requests[security] twine 
+        - MB_PYTHON_TAG=$MB_PYTHON_TAG DO_GPG=True GPG_KEYID=$GPG_KEYID TWINE_PASSWORD=$TWINE_PASSWORD TWINE_USERNAME=$TWINE_USERNAME GPG_EXECUTABLE=$GPG_EXECUTABLE DEPLOY_BRANCH=release DO_TAG=False DO_UPLOAD=False ./publish.sh 
+
+    artifacts:
+        paths:
+            - dist/*.asc
+            - dist/*.tar.gz
+            - dist/*.whl
+
+    only:
+        refs:
+            # Gitlab will only expose protected variables on protected branches
+            # (which I've set to be main and release), so only run this stage
+            # there.
+            - main
+            - master
+            - release
+
+
+.deploy_template: &deploy_template
+    <<: 
+        - *common_template
+
+    stage: 
+        deploy
+
+    script: 
+        - export GPG_EXECUTABLE=gpg
+        - export GPG_KEYID=$(cat dev/public_gpg_key)
+        - echo "GPG_KEYID = $GPG_KEYID"
+        # source repo-specific secrets
+        # VARNAME_CI_SECRET points to a protected variable only available on main and release branch
+        - source dev/secrets_configuration.sh
+        - CI_SECRET=${!VARNAME_CI_SECRET}
+        - PUSH_TOKEN=${!VARNAME_PUSH_TOKEN}
+        - $GPG_EXECUTABLE --version
+        - openssl version
+        - $GPG_EXECUTABLE --list-keys
+        - $GPG_EXECUTABLE --list-keys
+        # Decrypt and import GPG Keys / trust
+        - GLKWS=$CI_SECRET openssl enc -aes-256-cbc -pbkdf2 -md SHA512 -pass env:GLKWS -d -a -in dev/ci_public_gpg_key.pgp.enc | $GPG_EXECUTABLE --import 
+        - GLKWS=$CI_SECRET openssl enc -aes-256-cbc -pbkdf2 -md SHA512 -pass env:GLKWS -d -a -in dev/gpg_owner_trust.enc | $GPG_EXECUTABLE --import-ownertrust
+        - GLKWS=$CI_SECRET openssl enc -aes-256-cbc -pbkdf2 -md SHA512 -pass env:GLKWS -d -a -in dev/ci_secret_gpg_subkeys.pgp.enc | $GPG_EXECUTABLE --import 
+        - $GPG_EXECUTABLE --list-keys  || echo "first one fails for some reason"
+        - $GPG_EXECUTABLE --list-keys  
+        # Install twine
+        - pip install six pyopenssl ndg-httpsclient pyasn1 -U 
+        - pip install requests[security] twine 
+        # Execute the publish script for real this time
+        - MB_PYTHON_TAG=$MB_PYTHON_TAG DO_GPG=True GPG_KEYID=$GPG_KEYID TWINE_PASSWORD=$TWINE_PASSWORD TWINE_USERNAME=$TWINE_USERNAME GPG_EXECUTABLE=$GPG_EXECUTABLE CURRENT_BRANCH=release DEPLOY_BRANCH=release DO_TAG=True DO_UPLOAD=True ./publish.sh || echo "upload already exists"
+        # Have the server git-tag the release and push the tags
+        - VERSION=$(python -c "import setup; print(setup.VERSION)")
+        # do sed twice to handle the case of https clone with and without a read token
+        - | 
+            URL_HOST=$(git remote get-url origin | sed -e 's|https\?://.*@||g' | sed -e 's|https\?://||g' | sed -e 's|git@||g' | sed -e 's|:|/|g')
+            git push --tags $DEPLOY_REMOTE
+            echo "URL_HOST = $URL_HOST"
+            # A git config user name and email is required. Set if needed.
+            if [[ "$(git config user.email)" == "" ]]; then
+                git config user.email "ci@gitlab.org.com"
+                git config user.name "Gitlab-CI"
+            fi
+            TAG_NAME="v${VERSION}"
+            if [ $(git tag -l "$TAG_NAME") ]; then
+                echo "Tag already exists"
+            else
+                # if we messed up we can delete the tag
+                # git push origin :refs/tags/$TAG_NAME
+                # and then tag with -f
+                git tag $TAG_NAME -m "tarball tag $VERSION"
+                git tag $VERSION -m "tarball tag $VERSION"
+                git push --tags "https://${PUSH_TOKEN}@${URL_HOST}"
+            fi
+
+            
+    only:
+        refs:
+            - release
+
+
+# Aliases for the images that run the tests
+.image_python3_10: &image_python3_10
+    #gitlab.kitware.com:4567/computer-vision/ci-docker/gl-python:3.10
+    python:3.10
+.image_python39: &image_python39
+    #gitlab.kitware.com:4567/computer-vision/ci-docker/gl-python:3.9
+    python:3.9
+.image_python38: &image_python38
+    #gitlab.kitware.com:4567/computer-vision/ci-docker/gl-python:3.8
+    python:3.8
+.image_python37: &image_python37
+    #gitlab.kitware.com:4567/computer-vision/ci-docker/gl-python:3.7
+    python:3.7
+.image_python36: &image_python36
+    #gitlab.kitware.com:4567/computer-vision/ci-docker/gl-python:3.6
+    python:3.6
+.image_python35: &image_python35
+    #gitlab.kitware.com:4567/computer-vision/ci-docker/gl-python:3.5
+    python:3.5
+.image_python27: &image_python27
+    #gitlab.kitware.com:4567/computer-vision/ci-docker/gl-python:2.7
+    python:2.7
+    
+
+
+### JOBS ###
+# Define the actual jobs
+
+
+# ---------------
+# Python 3.10 Jobs
+
+
+build/cp3_10-cp3_10-linux:
+    <<: 
+        - *build_template
+    image:
+        *image_python3_10
+
+test_full_loose/cp3_10-cp3_10-linux:
+    <<: 
+        - *test_full_loose_template
+    image:
+        *image_python3_10
+    needs: 
+        -  build/cp3_10-cp3_10-linux
+
+test_minimal_loose/cp3_10-cp3_10-linux:
+    <<: 
+        - *test_minimal_loose_template
+    image:
+        *image_python3_10
+    needs: 
+        -  build/cp3_10-cp3_10-linux
+
+test_full_strict/cp3_10-cp3_10-linux:
+    <<: 
+        - *test_full_strict_template
+    image:
+        *image_python3_10
+    needs: 
+        -  build/cp3_10-cp3_10-linux
+
+test_minimal_strict/cp3_10-cp3_10-linux:
+    <<: 
+        - *test_minimal_strict_template
+    image:
+        *image_python3_10
+    needs: 
+        -  build/cp3_10-cp3_10-linux
+
+# ---------------
+# Python 3.9 Jobs
+
+
+build/cp39-cp39-linux:
+    <<: 
+        - *build_template
+    image:
+        *image_python39
+
+test_full_loose/cp39-cp39-linux:
+    <<: 
+        - *test_full_loose_template
+    image:
+        *image_python39
+    needs: 
+        -  build/cp39-cp39-linux
+
+test_minimal_loose/cp39-cp39-linux:
+    <<: 
+        - *test_minimal_loose_template
+    image:
+        *image_python39
+    needs: 
+        -  build/cp39-cp39-linux
+
+test_full_strict/cp39-cp39-linux:
+    <<: 
+        - *test_full_strict_template
+    image:
+        *image_python39
+    needs: 
+        -  build/cp39-cp39-linux
+
+test_minimal_strict/cp39-cp39-linux:
+    <<: 
+        - *test_minimal_strict_template
+    image:
+        *image_python39
+    needs: 
+        -  build/cp39-cp39-linux
+
+# ---------------
+# Python 3.8 Jobs
+
+build/cp38-cp38-linux:
+    <<: 
+        - *build_template
+    image:
+        *image_python38
+
+test_full_loose/cp38-cp38-linux:
+    <<: 
+        - *test_full_loose_template
+    image:
+        *image_python38
+    needs: 
+        -  build/cp38-cp38-linux
+
+test_minimal_loose/cp38-cp38-linux:
+    <<: 
+        - *test_minimal_loose_template
+    image:
+        *image_python38
+    needs: 
+        -  build/cp38-cp38-linux
+
+test_full_strict/cp38-cp38-linux:
+    <<: 
+        - *test_full_strict_template
+    image:
+        *image_python38
+    needs: 
+        -  build/cp38-cp38-linux
+
+test_minimal_strict/cp38-cp38-linux:
+    <<: 
+        - *test_minimal_strict_template
+    image:
+        *image_python38
+    needs: 
+        -  build/cp38-cp38-linux
+
+# for universal builds we only need to gpg sign once
+gpgsign/cp38-cp38-linux:
+    <<: 
+        - *gpgsign_template
+    image:
+        *image_python38
+
+deploy/cp38-cp38-linux:
+    <<: 
+        - *deploy_template
+    image:
+        *image_python38
+      
+
+# ---------------
+# Python 3.7 Jobs
+
+
+build/cp37-cp37-linux:
+    <<: 
+        - *build_template
+    image:
+        *image_python37
+
+test_full_loose/cp37-cp37-linux:
+    <<: 
+        - *test_full_loose_template
+    image:
+        *image_python37
+    needs: 
+        -  build/cp37-cp37-linux
+
+test_minimal_loose/cp37-cp37-linux:
+    <<: 
+        - *test_minimal_loose_template
+    image:
+        *image_python37
+    needs: 
+        -  build/cp37-cp37-linux
+
+test_full_strict/cp37-cp37-linux:
+    <<: 
+        - *test_full_strict_template
+    image:
+        *image_python37
+    needs: 
+        -  build/cp37-cp37-linux
+
+test_minimal_strict/cp37-cp37-linux:
+    <<: 
+        - *test_minimal_strict_template
+    image:
+        *image_python37
+    needs: 
+        -  build/cp37-cp37-linux
+
+
+# ---------------
+# Python 3.6 Jobs
+
+
+build/cp36-cp36m-linux:
+    <<: 
+        - *build_template
+    image:
+        *image_python36
+
+test_full_loose/cp36-cp36m-linux:
+    <<: 
+        - *test_full_loose_template
+    image:
+        *image_python36
+    needs: 
+        -  build/cp36-cp36m-linux
+
+test_minimal_loose/cp36-cp36m-linux:
+    <<: 
+        - *test_minimal_loose_template
+    image:
+        *image_python36
+    needs: 
+        -  build/cp36-cp36m-linux
+
+test_full_strict/cp36-cp36m-linux:
+    <<: 
+        - *test_full_strict_template
+    image:
+        *image_python36
+    needs: 
+        -  build/cp36-cp36m-linux
+
+test_minimal_strict/cp36-cp36m-linux:
+    <<: 
+        - *test_minimal_strict_template
+    image:
+        *image_python36
+    needs: 
+        -  build/cp36-cp36m-linux
+
+
+
+# ---------------
+# Python 3.5 Jobs
+
+
+build/cp35-cp35m-linux:
+    <<: 
+        - *build_template
+    image:
+        *image_python35
+
+test_full_loose/cp35-cp35m-linux:
+    <<: 
+        - *test_full_loose_template
+    image:
+        *image_python35
+    needs: 
+        -  build/cp35-cp35m-linux
+
+test_minimal_loose/cp35-cp35m-linux:
+    <<: 
+        - *test_minimal_loose_template
+    image:
+        *image_python35
+    needs: 
+        -  build/cp35-cp35m-linux
+
+test_full_strict/cp35-cp35m-linux:
+    <<: 
+        - *test_full_strict_template
+    image:
+        *image_python35
+    needs: 
+        -  build/cp35-cp35m-linux
+
+test_minimal_strict/cp35-cp35m-linux:
+    <<: 
+        - *test_minimal_strict_template
+    image:
+        *image_python35
+    needs: 
+        -  build/cp35-cp35m-linux
+
+
+
+# ---------------
+# Python 2.7 Jobs
+
+
+build/cp27-cp27m-linux:
+    <<: 
+        - *build_template
+    image:
+        *image_python27
+
+test_full_loose/cp27-cp27m-linux:
+    <<: 
+        - *test_full_loose_template
+    image:
+        *image_python27
+    needs: 
+        -  build/cp27-cp27m-linux
+
+test_minimal_loose/cp27-cp27m-linux:
+    <<: 
+        - *test_minimal_loose_template
+    image:
+        *image_python27
+    needs: 
+        -  build/cp27-cp27m-linux
+
+test_full_strict/cp27-cp27m-linux:
+    <<: 
+        - *test_full_strict_template
+    image:
+        *image_python27
+    needs: 
+        -  build/cp27-cp27m-linux
+
+test_minimal_strict/cp27-cp27m-linux:
+    <<: 
+        - *test_minimal_strict_template
+    image:
+        *image_python27
+    needs: 
+        -  build/cp27-cp27m-linux
+
+
+
+.__local_docker_heredoc__:
+        - | 
+
+            # Commands to help developers debug pipelines on their local machine
+            # Grab the base docker image, (forwarding your ssh credentials), clone
+            # the watch repo, create the environment, and run the tests. 
+            #docker login gitlab.kitware.com:4567
+
+            IMAGE_NAME=gitlab.kitware.com:4567/computer-vision/ci-docker/gl-python:3.8
+            docker run -v $PWD:/io:ro -v $HOME/.cache/pip:/pip_cache -it $IMAGE_NAME bash
+            # Will need to chmod things afterwords
+            export PIP_CACHE_DIR=/pip_cache
+            echo $PIP_CACHE_DIR
+            chmod -R o+rw $PIP_CACHE_DIR
+            chmod -R o+rw $PIP_CACHE_DIR
+            chmod -R g+rw $PIP_CACHE_DIR
+            USER=$(whoami)
+            chown -R $USER $PIP_CACHE_DIR
+            cd $HOME
+            git clone /io ./repo
+
+            cd $HOME/repo
+
+            # Make a virtualenv
+            export PYVER=$(python -c "import sys; print('{}{}'.format(*sys.version_info[0:2]))")
+            pip install virtualenv
+            virtualenv venv$PYVER
+            source venv$PYVER/bin/activate
+            #pip install pip -U
+            #pip install pip setuptools -U
+
+            # STRICT VARIANT
+            ./dev/make_strict_req.sh
+            pip install -r requirements-strict.txt -r requirements-strict/headless.txt
+            pip install -e .
+            ./run_tests.py
+
+            # LOOSE VARIANT
+            pip install -r requirements.txt
+            pip install -e .
+            ./run_tests.py
