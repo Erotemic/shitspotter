@@ -11,17 +11,19 @@
 .. .. +------------------+----------------------------------------------+
 
 
-The ``shitspotter`` module is where I will start public work on the
+The ``shitspotter`` module is where I've started public work on the
 "shitspotter" algorithm. The data will be made public as soon as I figure out a
-hosting situation. Likely this will be done via IPFS.
+hosting situation (likely IPFS).
 
-For now this is mostly a placeholder module where I will put scripts that will
+I will incrementally populate this module with scripts that will
 help me ingest the data into the kwcoco format, which will be suitable for
-learning on a soon-to-exist module (maybe kwai, kwlearn, kwdetect, something
-like that).
+learning.
 
-For context, I'll write a bit about what this project is and what my plans are.
-First, let me start with the modivation.
+Check back for updates, but because this is a personal project, it might take
+some time for it to fully drop.
+
+Modivation
+==========
 
 In Fall 2019, I was at the local dog park, and I found myself in a situation
 where my dog pooped, but I had forgotten to bring bags with me. I walked to the
@@ -45,13 +47,14 @@ Then in 2021-05-11, one of my co-workers suggested that I take a 3rd unrelated
 picture to use as negative examples, so I took that suggestion and started
 doing that.
 
+Dataset Status
+==============
 
 As of 2021-11-11 I've collected 1935 pictures with "798" before/after/(maybe
 negative) groups of images.
 
 I started writing scripts to get all of the data ingested. 
-For now I'll post this teaser analytic:
-
+For now I'll post this teaser scatterplot:
 
 
 .. The large version wont work because github strips rst image rescaling. 
@@ -61,9 +64,20 @@ For now I'll post this teaser analytic:
 ..  ..   :align: left
 
 
-Check back for updates, but because this is a personal project, it might take
-some time for it to fully drop.
+Annotation Process
+==================
 
+Update 2021-11-23 - To make annotation easier, I've taken before a picture before and after I clean up the poop. 
+The idea is that I can align these images and use image-differencing to more quickly find the objects of interest in the image.
+As you can see, it's not so easy to spot the shit, especially when there are leaves in the image.
+
+.. image:: https://i.imgur.com/lZ8J0vD.png
+
+But with a little patience and image processing, it's not to hard to narrow down the search.
+
+.. image:: https://i.imgur.com/A6qlcNk.jpg
+
+Scripts to produce these visualizations have been checked into the repo.
 
 
 .. |Pypi| image:: https://img.shields.io/pypi/v/shitspotter.svg
