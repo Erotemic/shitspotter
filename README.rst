@@ -22,6 +22,14 @@ learning.
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+Updates
+=======
+
+* 2021-11-23 - Added annotation process overview and dataset sample.
+* 2021-11-11 - Initial upload of data munging scripts.
+* 2020-12-18 - Took the first picture.
+
+
 Modivation
 ==========
 
@@ -63,11 +71,21 @@ For now I'll post this teaser scatterplot:
 ..  ..   :height: 100px
 ..  ..   :align: left
 
+Dataset Sample
+==============
+
+The following images illustrates a sample of 9 images from the dataset. Each of these images has poop in it. In some cases it's easy to spot. In other cases, it can be quite difficult.
+
+.. image:: https://i.imgur.com/QwFpxD1.jpg
+
+
+The dataset contains a wide variety of image and background conditions that occur in update New York, including: seasonal changes, snow, rain, daytime, nighttime (some taken with flash, others taken with my phone's *night mode*), grass, concrete, etc...  
+
 
 Annotation Process
 ==================
 
-Update 2021-11-23 - To make annotation easier, I've taken before a picture before and after I clean up the poop. 
+To make annotation easier, I've taken before a picture before and after I clean up the poop. 
 The idea is that I can align these images and use image-differencing to more quickly find the objects of interest in the image.
 As you can see, it's not so easy to spot the shit, especially when there are leaves in the image.
 
