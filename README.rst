@@ -47,7 +47,8 @@ doing that.
 
 
 As of 2021-11-11 I've collected 1935 pictures with "798" before/after/(maybe
-negative) groups of images.
+negative) groups of images. There are roughtly 457 paired-groups and 333
+triple-groups. (Based only on counts, grouping has not happened yet).
 
 I started writing scripts to get all of the data ingested. 
 For now I'll post this teaser analytic:

@@ -7,15 +7,23 @@ def main():
     import os
     import dateutil.parser
     from os.path import join
+    import xdev
+    import pandas as pd
+    import kwcoco
+    import ubelt as ub
+    # import math
+    import pathlib
+    from dateutil.parser import parse as parse_datetime
+    import datetime
     dpath = '/data/store/data/shit-pics/'
 
     total_items = 0
     num_images = 0
 
-    gpath_list = []
-
+    rows = []
+    seen = set()
+    duplicates = []
     change_point = dateutil.parser.parse('2021-05-11T120000')
-
     for r, ds, fs in os.walk(dpath):
         to_remove = []
         for idx, d in enumerate(ds):
@@ -28,16 +36,25 @@ def main():
         dname = os.path.relpath(r, dpath)
         if dname.startswith('poop-'):
             timestr = dname.split('poop-')[1]
-            timestamp = dateutil.parser.parse(timestr)
+            datestamp = dateutil.parser.parse(timestr)
 
-            is_double = timestamp < change_point
+            is_double = datestamp < change_point
             is_triple = not is_double
 
             for fname in fs:
                 if fname.endswith('.mp4'):
                     continue
+                if fname in seen:
+                    print('SEEN fname = {!r}'.format(fname))
+                    duplicates.append(fname)
+                    continue
+                seen.add(fname)
                 gpath = join(r, fname)
-                gpath_list.append(gpath)
+                rows.append({
+                    'gpath': gpath,
+                    'name': pathlib.Path(fname).name,
+                    'datestamp': datestamp,
+                })
 
             num_files = len(fs)
             num_images += num_files
@@ -45,44 +62,30 @@ def main():
                 num_items = num_files // 3
             else:
                 num_items = num_files // 2
-            print('num_items = {!r}'.format(num_items))
             total_items += num_items
 
     print('num_images = {!r}'.format(num_images))
     print('total_items = {!r}'.format(total_items))
 
-    import kwcoco
-    import ubelt as ub
-    coco_dset = kwcoco.CocoDataset.from_image_paths(gpath_list)
-
-    for gid in ub.ProgIter(list(coco_dset.images())):
-        coco_img = coco_dset.coco_image(gid)
-        extract_metadata(coco_img)
-
-    # from dateutil import parser as date_parser
-    from dateutil.parser import parse as parse_datetime
-    import datetime
-    for gid in ub.ProgIter(list(coco_dset.images())):
-        coco_img = coco_dset.coco_image(gid)
-        img = coco_img.img
-        exif = img['exif']
-
+    for row in ub.ProgIter(rows):
+        gpath = row['gpath']
+        row['nbytes'] = os.stat(gpath).st_size
+        row['nbytes_str'] = xdev.byte_str(row['nbytes'])
+        exif = extract_image_metadata(gpath)
+        if 'ImageWidth' in row:
+            row['width'] = row['ImageWidth']
+            row['height'] = row['ImageHeight']
         try:
             # parse_datetime(exif['DateTime'])
             exif_datetime = exif['DateTime']
             dt = datetime.datetime.strptime(exif_datetime, '%Y:%m:%d %H:%M:%S')
         except Exception:
             # dt = date_parser.parse(exif['DateTime'])
-            # img['date_captured'] = dt.isoformat()
+            # row['datetime'] = dt.isoformat()
             raise
-        print(exif_datetime)
-        print(dt.isoformat())
-        img['date_captured'] = dt.isoformat()
-
+        row['datetime'] = dt.isoformat()
         geos_point = exif.get('GPSInfo', None)
         if geos_point is not None and 'GPSLatitude' in geos_point:
-            def rat_to_frac(rat):
-                return Rational(rat.numerator, rat.denominator)
             lat_degrees, lat_minutes, lat_seconds = map(rat_to_frac, geos_point['GPSLatitude'])
             lon_degrees, lon_minutes, lon_seconds = map(rat_to_frac, geos_point['GPSLongitude'])
             lat_sign = {'N': 1, 'S': -1}[geos_point['GPSLatitudeRef']]
@@ -90,27 +93,47 @@ def main():
             lat = lat_sign * lat_degrees + lat_minutes / 60 + lat_seconds / 3600
             lon = lon_sign * lon_degrees + lon_minutes / 60 + lon_seconds / 3600
             # Can geojson handle rationals?
-            img['geos_point'] = {'type': 'Point', 'coordinates': (lon, lat), 'properties': {'crs': 'CRS84'}}
+            row['geos_point'] = {'type': 'Point', 'coordinates': (lon.__json__(), lat.__json__()), 'properties': {'crs': 'CRS84'}}
+
+    img_info_df = pd.DataFrame(rows)
+    img_info_df = img_info_df.sort_values('datetime')
+    print(img_info_df)
+    print(xdev.byte_str(sum(img_info_df.nbytes)))
+
+    coco_dset = kwcoco.CocoDataset()
+    for row in img_info_df.to_dict('records'):
+        row = row.copy()
+        row['file_name'] = row.pop('gpath')
+        row.pop('datestamp', None)
+        coco_dset.add_image(**row)
+
+    coco_dset.conform(workers=8)
+    coco_dset.validate()
+
+    coco_dset.fpath = str(pathlib.Path(dpath) / 'data.kwcoco.json')
+    coco_dset._check_json_serializable()
+    coco_dset._ensure_json_serializable()
+    print('coco_dset.fpath = {!r}'.format(coco_dset.fpath))
+    coco_dset.dump(coco_dset.fpath, newlines=True)
 
     import geopandas as gpd
     from shapely import geometry
+    from pyproj import CRS
+    import numpy as np
 
     # image_locs
     rows = []
     for gid, img in coco_dset.index.imgs.items():
         row = {}
-        row['date_captured'] = img['date_captured']
         if 'geos_point' in img:
             row['geometry'] = geometry.Point(img['geos_point']['coordinates'])
             rows.append(row)
+
     img_locs = gpd.GeoDataFrame(rows, crs='crs84')
 
     # ip_pt = ip_loc.iloc[0].geometry
-    # from pyproj import CRS
     utm_crs = CRS.from_epsg(utm_epsg_from_latlon(img_locs.iloc[0].geometry.y, img_locs.iloc[0].geometry.x))  # NOQA
     img_utm_loc = img_locs.to_crs(utm_crs)
-
-    import numpy as np
     img_utm_xy = np.array([(p.x, p.y) for p in img_utm_loc.geometry.values])
 
     # import requests
@@ -124,20 +147,34 @@ def main():
     distances = ((img_utm_xy - center_utm_xy) ** 2).sum(axis=1) ** 0.5
     distances = np.array(distances)
     img_locs['distance'] = distances
-    datetimes = [parse_datetime(x) for x in img_locs['date_captured']]
+    datetimes = [parse_datetime(x) for x in img_locs['datetime']]
     img_locs['datetime'] = datetimes
     img_locs['timestamp'] = [x.timestamp() for x in datetimes]
     img_locs['date'] = [x.date() for x in datetimes]
     img_locs['time'] = [x.time() for x in datetimes]
     img_locs['year_month'] = [x.strftime('%Y-%m') for x in datetimes]
-    img_locs['hour_of_day'] = (img_locs['timestamp'] / (60 * 60)) % (24)
+    img_locs['hour_of_day'] = [z.hour + z.minute / 60 + z.second / 3600 for z in img_locs['time']]
+    # (img_locs['timestamp'] / (60 * 60)) % (24)
     hue_labels = sorted(img_locs['year_month'].unique())
     # dt = img_locs['datetime'].iloc[0]
     # date = dt.date()
     # time = dt.time()
 
+    img_locs['only_paired'] = img_locs['datetime'] < change_point
+
+    num_pair_images = img_locs['only_paired'].sum()
+    num_triple_images = (~img_locs['only_paired']).sum()
+    num_trip_groups = num_triple_images // 3
+    pair_groups = num_pair_images // 2
+    print('num_trip_groups = {!r}'.format(num_trip_groups))
+    print('pair_groups = {!r}'.format(pair_groups))
+
     import kwplot
     sns = kwplot.autosns()
+
+    kwplot.figure(fnum=3, doclf=1)
+    sns.histplot(data=img_locs, x='datetime', kde=True, bins=24, stat='count')
+
     kwplot.figure(fnum=1, doclf=1)
     ax = sns.scatterplot(data=img_locs, x='distance', y='hour_of_day', facecolor=(0, 0, 0, 0), edgecolor=(0, 0, 0, 0))
     # hue='year_month')
@@ -183,6 +220,169 @@ def main():
 
     import kwimage
     kwplot.imshow(kwimage.stack_images([g.image._A for g in label_to_img.values()]), fnum=2, doclf=True)
+
+
+def show_data_diversity(coco_dset):
+    names = ['PXL_20210209_150443866.jpg',
+             'PXL_20211106_172807114.jpg',
+             'PXL_20210603_215310039.jpg',
+             'IMG_20201112_112429442.jpg',
+             'PXL_20210823_041957725.jpg',
+             'PXL_20210321_201238147.jpg',
+             'PXL_20210125_140106674.jpg',
+             'PXL_20201116_141610597.jpg',
+             'PXL_20210228_040756340.jpg',
+            ]
+
+    images = []
+    import kwimage
+    import numpy as np
+    for name in names:
+        img = coco_dset.index.name_to_img[name]
+        gpath = coco_dset.get_image_fpath(img['id'])
+        imdata1 = kwimage.imread(gpath)
+        rchip1, sf_info1 = kwimage.imresize(imdata1, max_dim=800, return_info=True)
+        if rchip1.shape[0] > rchip1.shape[1]:
+            rchip1 = np.rot90(rchip1)
+        # coco_img = coco_dset.coco_image(img['id'])
+        # imdata1 = coco_img.delay().finalize()
+        images.append(rchip1)
+
+    canvas = kwimage.stack_images_grid(images, pad=10)
+    kwimage.imwrite('viz_shit_dataset_sample.jpg')
+    import kwplot
+    kwplot.autompl()
+    kwplot.imshow(canvas, fnum=1)
+
+
+def demo_warp(coco_dset):
+    """
+    import kwcoco
+    coco_dset = kwcoco.CocoDataset('/data/store/data/shit-pics/data.kwcoco.json')
+    """
+    import numpy as np
+
+    img1 = coco_dset.coco_image(3)
+    img2 = coco_dset.coco_image(4)
+
+    imdata1 = img1.delay().finalize()
+    imdata2 = img2.delay().finalize()
+
+    imdata1 = np.rot90(imdata1)
+    imdata2 = np.rot90(imdata2)
+
+    import kwimage
+    rchip1, sf_info1 = kwimage.imresize(imdata1, max_dim=800, return_info=True)
+    rchip2, sf_info2 = kwimage.imresize(imdata2, max_dim=800, return_info=True)
+
+    undo_scale = kwimage.Affine.coerce(sf_info1).inv()
+
+    # import kwplot
+    # kwplot.autompl()
+    # kwplot.imshow(imdata1, fnum=1, pnum=(1, 2, 1))
+    # kwplot.imshow(imdata2, fnum=1, pnum=(1, 2, 2))
+
+    from vtool_ibeis import PairwiseMatch
+    # from vtool_ibeis.inspect_matches import MatchInspector
+
+    annot1 = {'rchip': rchip1}
+    annot2 = {'rchip': rchip2}
+
+    match_cfg = {
+        'symetric': False,
+        'K': 1,
+        'ratio_thresh': 0.625,
+        'refine_method': 'homog',
+    }
+    match = PairwiseMatch(annot1, annot2)
+    match.apply_all(cfgdict=match_cfg)
+
+    rchip1 = kwimage.ensure_float01(match.annot1['rchip'])
+    rchip2 = kwimage.ensure_float01(match.annot2['rchip'])
+
+    import cv2
+    dims = rchip2.shape[0:2]
+    dsize = dims[::-1]
+    M = match.H_12
+
+    rchip1_align = cv2.warpPerspective(rchip1, M, dsize)
+
+    rchip1_bounds = kwimage.Boxes([[0, 0, dsize[0], dsize[1]]], 'xywh').to_polygons()[0]
+    warp_bounds = rchip1_bounds.warp(M)
+    # warp_bounds.draw()
+    valid_mask = warp_bounds.to_mask(dims=dims).data
+    rchip2_align = rchip2 * valid_mask[:, :, None]
+
+    diff_img = np.abs(rchip1_align - rchip2_align)
+    diff_img = np.linalg.norm(diff_img, axis=2)
+    mask = kwimage.gaussian_blur(diff_img, sigma=3.0)
+    mask = kwimage.morphology(mask, 'close')
+    mask = kwimage.morphology((mask > 0.4).astype(np.float32), 'dilate', kernel=10)
+    mask = kwimage.gaussian_blur(mask, sigma=3.0)
+    mask = (mask > 0.2).astype(np.float32)
+    mask = kwimage.morphology(mask, 'close', kernel=30)
+    mask = kwimage.morphology((mask).astype(np.float32), 'dilate', kernel=30)
+
+    # Warp mask back onto original image
+    tf_orig_from_align = np.asarray(undo_scale @ np.linalg.inv(M))
+    orig_dsize = imdata1.shape[0:2][::-1]
+    mask1_orig = cv2.warpPerspective(mask, tf_orig_from_align, orig_dsize)
+    attention_imdata1 = imdata1 * mask1_orig[..., None]
+
+    import kwplot
+    kwplot.autompl()
+    rstack = kwimage.stack_images([rchip1, rchip2], pad=10, axis=1)
+    align_stack = kwimage.stack_images([rchip1_align, rchip2_align], pad=10, axis=1)
+    diff_stack = kwimage.stack_images([diff_img, mask], pad=10, axis=1)
+
+    fig = kwplot.figure(fnum=3)
+
+    pnum_a = kwplot.PlotNums(nRows=4, nCols=1)
+
+    kwplot.imshow(rstack, fnum=3, pnum=pnum_a[0], title='Raw Before / After Image Pair')
+
+    ax = kwplot.figure(fnum=3, pnum=pnum_a[1]).gca()
+    ax.set_title('SIFT Features Matches (used to align the images)')
+    match.show(ax=ax, show_ell=1, show_lines=False, ell_alpha=0.2, vert=False)
+
+    kwplot.imshow(align_stack, fnum=3, pnum=pnum_a[2], title='Aligned Images')
+
+    kwplot.imshow(diff_stack, fnum=3, pnum=pnum_a[3], title='Difference Image -> Binary Mask')
+
+    # kwplot.imshow(attention_rchip1, fnum=3, pnum=pnum_a[4], title='Candidate Annotation Regions')
+
+    fig2 = kwplot.figure(fnum=4)
+    kwplot.imshow(attention_imdata1, fnum=4, title='Candidate Annotation Regions')
+    # fig2.set_size_inches(25.6 , 13.37)
+    fig2.set_size_inches(25.6 / 2, 13.37 / 2)
+    fig2.tight_layout()
+
+    fig.set_size_inches(14.4 / 2, 24.84 / 2)
+    fig.tight_layout()
+    toshow_im1 = kwplot.render_figure_to_image(fig)
+    tosave_im1 = kwplot.mpl_make.crop_border_by_color(toshow_im1)
+    toshow_im2 = kwplot.render_figure_to_image(fig2)
+    tosave_im2 = kwplot.mpl_make.crop_border_by_color(toshow_im2)
+
+    kwimage.imwrite('viz_candidate_ann.png', tosave_im1)
+    kwimage.imwrite('viz_align_process.png', tosave_im2)
+
+    # insepctor = match.ishow()
+    # print('insepctor = {!r}'.format(insepctor))
+
+    # display_cfg = {
+    #     'overlay': False,
+    #     'with_homog': True,
+    # }
+    # insepctor = MatchInspector(match=match)
+    # insepctor.initialize(match=match, cfgdict=display_cfg)
+    # insepctor.show()
+    # match.ishow()
+
+
+
+def rat_to_frac(rat):
+    return Rational(rat.numerator, rat.denominator)
 
 
 def utm_epsg_from_latlon(lat, lon):
@@ -236,6 +436,13 @@ class Rational(fractions.Fraction):
             return '{}'.format(self.numerator / self.denominator)
             # return '({}/{})'.format(self.numerator, self.denominator)
 
+    def __json__(self):
+        return {
+            'type': 'rational',
+            'numerator': self.numerator,
+            'denominator': self.denominator,
+        }
+
     def __repr__(self):
         return str(self)
 
@@ -262,15 +469,6 @@ class Rational(fractions.Fraction):
 
     def __floordiv__(self, other):
         return Rational(super().__floordiv__(other))
-
-
-def extract_metadata(coco_img):
-    import pathlib
-    bundle_dpath = pathlib.Path(coco_img.dset.bundle_dpath)
-    for obj in coco_img.iter_asset_objs():
-        fpath = bundle_dpath / obj['file_name']
-        exif = extract_image_metadata(fpath)
-        obj['exif'] = exif
 
 
 def extract_image_metadata(fpath):
