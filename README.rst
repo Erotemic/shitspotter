@@ -59,7 +59,10 @@ annotation process.
 
 Then in 2021-05-11, one of my colleague suggested that I take a 3rd unrelated
 picture to use as negative examples, so I took that suggestion and started
-doing that.
+doing that. This is the process currently being used. The following figure
+illustrates an example of one of these "triples".
+
+.. image:: https://i.imgur.com/NnEC8XZ.jpg
 
 Related Work
 ============
