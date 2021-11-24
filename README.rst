@@ -11,10 +11,18 @@
 .. .. +------------------+----------------------------------------------+
 
 
-The ``shitspotter`` module is where I will be publishing my work on the "shitspotter" poop-detection algorithm.
-The data will be made public as soon as I figure out a hosting situation.
+The ``shitspotter`` module is where I will be work on the "shitspotter" poop-detection algorithm and dataset.
+The primary goal of this work is to allow for the creation of a phone app that finds where your dog pooped,
+because you ran to grab the doggy-bags you forgot, and now you can't find the damn thing.
+Other applications can be envisioned, such as VR glasses that lets you know if you are about to walk into a steamer, 
+or perhaps city governments could use this to more efficiently clean public areas. 
 
+This module will contain an algorithm for training a pytorch network to detect poop in images, and a script
+for detecting poop in unseen images given a pretrained model. 
 
+The dataset currently contains 20GB of outdoor images taken with a phone. The general process of aquring the dataset has been: 1. My dog poops or I see a rogue poop, 2. I take a "before" picture of the poop. 3. I pick up the poop, 4. I take an "after" picture as a high-correlation negative, and 5. I take a 3rd image of a different nearby area to get a lower-correlation-negative. The dataset is currently unannotated, but but before/after pairs will help with bootstrapping. Annotations and the data manifest will be managed using kwcoco.
+
+Both the code and the dataset will be open source. The code will be published as it is written to this repo. The data and pretrained models will be made public on IPFS.
 
 
 Recent Updates
@@ -52,6 +60,40 @@ annotation process.
 Then in 2021-05-11, one of my colleague suggested that I take a 3rd unrelated
 picture to use as negative examples, so I took that suggestion and started
 doing that.
+
+Related Work
+============
+
+I was suprised to find that there does not seem to be much work on this problem in the outdoor setting.
+Because none of the related work exactly meets my needs, I haven't looked too in depth into much of it,
+it could be that some of these are more relevant than I've given them credit for. As time moves on
+I'll continue to refine this section.
+
+Apparently Roomba has an indoor poop dataset: https://www.engadget.com/irobot-roomba-j-7-object-poop-detection-040152887.html It would be interesting to combine the indoor / outdoor datasets, but we are more concerned about outdoor detection. Maybe Boston Dynamics and Roomba can take this dataset and do something interesting.
+
+The MSHIT fake doog poop dataset: https://www.kaggle.com/mikian/dog-poop is similar to this domain, but not the real-deal. This may be relevant, but I have not looked too deeply into it yet.
+
+There is Human Poop Classification: https://seed.com/poop/ and https://www.theverge.com/2019/10/29/20937108/poop-database-ai-training-photo-upload-first-mit but this is not our domain.
+
+Detect Images of Dogs Pooping: https://colab.research.google.com/github/matthewchung74/blogs/blob/dev/Dog_Pooping_Dectron.ipynb Unfortuantely, this
+is detecting the action, and not the consequence.
+
+A Dog Poop DNA database could be used in conjunction with this work: https://www.bbc.com/news/uk-england-somerset-56324906
+
+A 2019 Project by Neeraj Madan: https://www.youtube.com/watch?v=qGNbHwp0jM8 is the most similar thing to 
+this project that I've seen so far. I have not watched his entire video yet, but I may contact him
+so see if they're interested in collaberating.
+
+TACO: http://tacodataset.org/ - The TACO dataset is Trash Annotations in Context. It could be the case that this data could be incorporated into the TACO dataset, although it does not currently contain a category for feces.
+
+Other related links I haven't gone through well enough yet:
+
+* https://getdiglabs.com/blogs/the-dig-labs-dish/computer-vision-and-dog-poop
+* https://www.wired.co.uk/article/dog-poo-bin-cleanup
+* https://www.reddit.com/r/robotics/comments/6p0rf0/can_i_use_opencv_to_get_my_robot_to_detect_dog/
+* https://www.housebeautiful.com/lifestyle/kids-pets/a31289426/robot-picks-up-dog-poop/
+
+
 
 Dataset Description
 ===================
