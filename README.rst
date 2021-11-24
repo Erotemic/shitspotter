@@ -1,5 +1,5 @@
-💩 The shitspotter Module 💩
-============================
+💩💩💩 ShitSpotter 💩💩💩
+=========================
 
 .. .. |CircleCI| |Codecov| |Pypi| |Downloads| |ReadTheDocs|
 .. .. +------------------+----------------------------------------------+
@@ -11,9 +11,8 @@
 .. .. +------------------+----------------------------------------------+
 
 
-The ``shitspotter`` module is where I've started public work on the
-"shitspotter" algorithm. The data will be made public as soon as I figure out a
-hosting situation (likely IPFS).
+The ``shitspotter`` module is where I will be publishing my work on the "shitspotter" poop-detection algorithm.
+The data will be made public as soon as I figure out a hosting situation.
 
 I will incrementally populate this module with scripts that will
 help me ingest the data into the kwcoco format, which will be suitable for
@@ -22,16 +21,16 @@ learning.
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
-Updates
-=======
+Recent Updates
+==============
 
 * 2021-11-23 - Added annotation process overview and dataset sample.
 * 2021-11-11 - Initial upload of data munging scripts.
 * 2020-12-18 - Took the first picture.
 
 
-Modivation
-==========
+Introduction
+============
 
 In Fall 2019, I was at the local dog park, and I found myself in a situation
 where my dog pooped, but I had forgotten to bring bags with me. I walked to the
@@ -51,36 +50,36 @@ deep variant and then estimating an affine/projective transform) and then take
 a difference image. That should let me seed some sort of semi-automated
 annotation process.
 
-Then in 2021-05-11, one of my co-workers suggested that I take a 3rd unrelated
+Then in 2021-05-11, one of my colleague suggested that I take a 3rd unrelated
 picture to use as negative examples, so I took that suggestion and started
 doing that.
 
-Dataset Status
-==============
+Dataset Description
+===================
 
-As of 2021-11-11 I've collected 1935 pictures with "798" before/after/(maybe
-negative) groups of images. There are roughtly 457 paired-groups and 333
-triple-groups. (Based only on counts, grouping has not happened yet).
+The dataset contains a wide variety of image and background conditions that occur in update New York, including: seasonal changes, snow, rain, daytime, nighttime (some taken with flash, others taken with my phone's *night mode*), grass, concrete, etc...
 
-I started writing scripts to get all of the data ingested. 
-For now I'll post this teaser scatterplot:
+Known dataset biases are:
 
+* Geographic region: Most images were taken in Upstate New York climate.
+* Sensor: Most images were taken with my Pixel 5. A few images were from my old Motorola Droid.
+* Coordinate: Humans unconciously center "objects of interest" in images they take. In some instances I tried to mitigate this bias, either by explicitly changing the center of the poop, or not looking at the screen when taking a snapshot.
+* Me: I'm the only one taking pictures. I'm also fairly tall, so the images are all from my viewpoint. There are other "me" biases I may not be aware of.
+* My Dogs: My two poop machines are fairly regular, and they have their own methods for times and places to make a dookie.
+* Freshness: The shit I deal with is often fresh out of the oven. Although, I have picked up a decent number of abandoned stools from other dog owners in the area, some of these are quite old. And age of the sample does seem to have an impact on its appearance. New poops have a shine, while old ones are quite dull, and will start to break down. 
 
-.. The large version wont work because github strips rst image rescaling. 
+The following scatterplot illustrates trends in the space / time distribution of the images.
+
 .. image:: https://i.imgur.com/LXvcqGW.png
 
-..  ..   :height: 100px
-..  ..   :align: left
-
-Dataset Sample
-==============
-
-The following images illustrates a sample of 9 images from the dataset. Each of these images has poop in it. In some cases it's easy to spot. In other cases, it can be quite difficult.
+The following figure is a hand-picked sample of 9 images from the dataset. Each of these images has poop in it. In some cases it's easy to spot. In other cases, it can be quite difficult. 
 
 .. image:: https://i.imgur.com/QwFpxD1.jpg
 
+Dataset Statistics:
 
-The dataset contains a wide variety of image and background conditions that occur in update New York, including: seasonal changes, snow, rain, daytime, nighttime (some taken with flash, others taken with my phone's *night mode*), grass, concrete, etc...  
+* Most images only show a single poop, but other images 
+* As of 2021-11-11 I've collected 1935 pictures with "798" before/after/(maybe negative) groups of images. There are roughtly 457 paired-groups and 333 triple-groups. (Based only on counts, grouping has not happened yet).
 
 
 Annotation Process
@@ -97,6 +96,34 @@ But with a little patience and image processing, it's not to hard to narrow down
 .. image:: https://i.imgur.com/A6qlcNk.jpg
 
 Scripts to produce these visualizations have been checked into the repo.
+
+
+Downloading the Data
+====================
+
+This dataset will be made public once I figure out a way to host and manage it.
+Currently the raw images live on my hard drive, and are backed up across 2 machines, each running RAID-10.
+Lower res copies of the photos live on the cloud, but I'm planning on sharing the originals.
+
+The dataset is currently 20+GB, so I'm planning to use IPFS (or some P2P solution) to handle data distribution.
+Curently the data does not have any annotations, although I've started to build scripts to make that process
+easier. 
+
+Eventually I would like to host the data via DVC + IPFS, but fsspec needs an IPFS filesystem implementation first.
+
+If you are in urgent need of any of the data, feel free to contact me (make an issue or email me).
+I can pin what I have on IPFS, but I was planning on organizing the data a bit before I did that,
+but I'm willing 
+
+Officially the licence will be Apache 2 because that's what I use for everything.
+It annoys me that I have to put licenses on things. These are the terms I care about:
+
+* Cite my work if you use it.
+* If you annotate any of the images, contribute the annotations back. Picking up shit is a team effort.
+* When asked to build something, particularly ML systems, think about the ethical implications, and act ethically.
+* Pin the dataset on IPFS if you can.
+
+Otherwise the data is free to use commercially or otherwise. 
 
 
 .. |Pypi| image:: https://img.shields.io/pypi/v/shitspotter.svg
