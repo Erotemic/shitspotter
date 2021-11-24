@@ -14,15 +14,14 @@
 The ``shitspotter`` module is where I will be publishing my work on the "shitspotter" poop-detection algorithm.
 The data will be made public as soon as I figure out a hosting situation.
 
-I will incrementally populate this module with scripts that will
-help me ingest the data into the kwcoco format, which will be suitable for
-learning.
 
-Check back for updates, but because this is a personal project, it might take
-some time for it to fully drop.
+
 
 Recent Updates
 ==============
+
+Check back for updates, but because this is a personal project, it might take
+some time for it to fully drop.
 
 * 2021-11-23 - Added annotation process overview and dataset sample.
 * 2021-11-11 - Initial upload of data munging scripts.
@@ -95,7 +94,8 @@ But with a little patience and image processing, it's not to hard to narrow down
 
 .. image:: https://i.imgur.com/A6qlcNk.jpg
 
-Scripts to produce these visualizations have been checked into the repo.
+Scripts to produce these visualizations have been checked into the repo. Annotations and the image manifest will
+be stored in the kwcoco json format.
 
 
 Downloading the Data
