@@ -22,7 +22,7 @@ or perhaps city governments could use this to more efficiently clean public area
 This module will contain an algorithm for training a pytorch network to detect poop in images, and a script
 for detecting poop in unseen images given a pretrained model. 
 
-The dataset currently contains 20GB of outdoor images taken with a phone. The general process of aquring the dataset has been: 
+The dataset currently contains 20GB of outdoor images taken with a phone. The general process of acquiring the dataset has been: 
 1. My dog poops or I see a rogue poop, 
 2. I take a "before" picture of the poop,
 3. I pick up the poop, 
@@ -52,7 +52,7 @@ Introduction
 
 In Fall 2019, I was at the local dog park, and I found myself in a situation
 where my dog pooped, but I had forgotten to bring bags with me. I walked to the
-local bag station (thank you DGS), grabed one, but then I couldn't find where
+local bag station (thank you DGS), grabbed one, but then I couldn't find where
 the poop was. The brown fallen leaves made it very difficult to find the poop.
 
 This happened every so often. Often I would be able to find it, but I'm afraid
@@ -78,27 +78,30 @@ illustrates an example of one of these "triples".
 Related Work
 ============
 
-I was suprised to find that there does not seem to be much work on this problem in the outdoor setting.
+I was surprised to find that there does not seem to be much work on this problem in the outdoor setting.
 Because none of the related work exactly meets my needs, I haven't looked too in depth into much of it,
 it could be that some of these are more relevant than I've given them credit for. As time moves on
 I'll continue to refine this section.
 
 Apparently Roomba has an indoor poop dataset: https://www.engadget.com/irobot-roomba-j-7-object-poop-detection-040152887.html It would be interesting to combine the indoor / outdoor datasets, but we are more concerned about outdoor detection. Maybe Boston Dynamics and Roomba can take this dataset and do something interesting.
 
-The MSHIT fake doog poop dataset: https://www.kaggle.com/mikian/dog-poop is similar to this domain, but not the real-deal. This may be relevant, but I have not looked too deeply into it yet.
+The MSHIT fake dog poop dataset: https://www.kaggle.com/mikian/dog-poop is similar to this domain, but not the real-deal. 
+This may be relevant, but I have not looked too deeply into it yet.
 
 There is Human Poop Classification: https://seed.com/poop/ and https://www.theverge.com/2019/10/29/20937108/poop-database-ai-training-photo-upload-first-mit but this is not our domain.
 
-Detect Images of Dogs Pooping: https://colab.research.google.com/github/matthewchung74/blogs/blob/dev/Dog_Pooping_Dectron.ipynb Unfortuantely, this
-is detecting the action, and not the consequence.
+Detect Images of Dogs Pooping: https://colab.research.google.com/github/matthewchung74/blogs/blob/dev/Dog_Pooping_Dectron.ipynb 
+Unfortunately, this is detecting the action, and not the consequence.
 
 A Dog Poop DNA database could be used in conjunction with this work: https://www.bbc.com/news/uk-england-somerset-56324906
 
-A 2019 Project by Neeraj Madan: https://www.youtube.com/watch?v=qGNbHwp0jM8 is the most similar thing to 
-this project that I've seen so far. I have not watched his entire video yet, but I may contact him
-so see if they're interested in collaberating.
+A 2019 Project by Neeraj Madan: https://www.youtube.com/watch?v=qGNbHwp0jM8 
+This is the most similar thing to this project that I've seen so far. I have
+not watched his entire video yet, but I may contact him so see if they're
+interested in collaborating.
 
-TACO: http://tacodataset.org/ - The TACO dataset is Trash Annotations in Context. It could be the case that this data could be incorporated into the TACO dataset, although it does not currently contain a category for feces.
+TACO: http://tacodataset.org/ 
+The TACO dataset is Trash Annotations in Context. It could be the case that this data could be incorporated into the TACO dataset, although it does not currently contain a category for feces.
 
 Other related links I haven't gone through well enough yet:
 
@@ -118,7 +121,7 @@ Known dataset biases are:
 
 * Geographic region: Most images were taken in Upstate New York climate.
 * Sensor: Most images were taken with my Pixel 5. A few images were from my old Motorola Droid.
-* Coordinate: Humans unconciously center "objects of interest" in images they take. In some instances I tried to mitigate this bias, either by explicitly changing the center of the poop, or not looking at the screen when taking a snapshot.
+* Coordinate: Humans unconsciously center "objects of interest" in images they take. In some instances I tried to mitigate this bias, either by explicitly changing the center of the poop, or not looking at the screen when taking a snapshot.
 * Me: I'm the only one taking pictures. I'm also fairly tall, so the images are all from my viewpoint. There are other "me" biases I may not be aware of.
 * My Dogs: My two poop machines are fairly regular, and they have their own methods for times and places to make a dookie.
 * Freshness: The shit I deal with is often fresh out of the oven. Although, I have picked up a decent number of abandoned stools from other dog owners in the area, some of these are quite old. And age of the sample does seem to have an impact on its appearance. New poops have a shine, while old ones are quite dull, and will start to break down. 
@@ -133,8 +136,9 @@ The following figure is a hand-picked sample of 9 images from the dataset. Each 
 
 Dataset Statistics:
 
-* Most images only show a single poop, but other images 
-* As of 2021-11-11 I've collected 1935 pictures with "798" before/after/(maybe negative) groups of images. There are roughtly 457 paired-groups and 333 triple-groups. (Based only on counts, grouping has not happened yet).
+* Most images only show a single poop, but other images have multiple.
+* As of 2021-11-11 I've collected 1935 pictures with "798" before/after/(maybe negative) groups of images. 
+* There are roughly 457 paired-groups and 333 triple-groups. (Based only on counts, grouping has not happened yet).
 
 
 Annotation Process
@@ -162,7 +166,7 @@ Currently the raw images live on my hard drive, and are backed up across 2 machi
 Lower res copies of the photos live on the cloud, but I'm planning on sharing the originals.
 
 The dataset is currently 20+GB, so I'm planning to use IPFS (or some P2P solution) to handle data distribution.
-Curently the data does not have any annotations, although I've started to build scripts to make that process
+Currently the data does not have any annotations, although I've started to build scripts to make that process
 easier. 
 
 Eventually I would like to host the data via DVC + IPFS, but fsspec needs an IPFS filesystem implementation first.
@@ -185,7 +189,10 @@ Otherwise the data is free to use commercially or otherwise.
 Acknowledgements
 ================
 
-I want to give thanks to the people and animals-that-think-they-are-people who contributed to this project. My colleagues at Kitware have provided valuable help / insight into project direction, dataset collection, problem formulation, related research, discussion, and memes.
+I want to give thanks to the people and animals-that-think-they-are-people who
+contributed to this project. My colleagues at Kitware have provided valuable
+help / insight into project direction, dataset collection, problem formulation,
+related research, discussion, and memes.
 
 I want to give special thanks to my two poop machines, without whom this project would not be possible.
 
