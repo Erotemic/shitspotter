@@ -222,17 +222,43 @@ def main():
     kwplot.imshow(kwimage.stack_images([g.image._A for g in label_to_img.values()]), fnum=2, doclf=True)
 
 
+def doggos():
+    import kwimage
+    from skimage import exposure  # NOQA
+    from skimage.exposure import match_histograms
+    raw_images = [
+        kwimage.imread('/home/joncrall/Pictures/PXL_20210721_131129724.jpg'),
+        kwimage.imread('/home/joncrall/Pictures/PXL_20210724_160822858.jpg'),
+        kwimage.imread('/home/joncrall/Pictures/dogos-with-cookies.jpg'),
+        kwimage.imread('/home/joncrall/Pictures/IMG_20201112_111841954.jpg'),
+
+        kwimage.imread('/home/joncrall/Pictures/IMG_20190804_172127271_HDR.jpg'),
+        kwimage.imread('/home/joncrall/Pictures/PXL_20210622_172920627.jpg'),
+        kwimage.imread('/home/joncrall/Pictures/PXL_20210223_022651672.jpg'),
+        kwimage.imread('/home/joncrall/Pictures/PXL_20210301_011213537.jpg'),
+    ]
+
+    images2 = [kwimage.imresize(kwimage.ensure_float01(img), max_dim=1024) for img in raw_images]
+    # ref = images2[1]
+    # ref = kwimage.stack_images_grid(images2[0:1], chunksize=4)
+    # images2 = [match_histograms(img, ref, multichannel=False) for img in images2]
+    canvas = kwimage.stack_images_grid(images2, chunksize=4)
+    kwimage.imwrite('dogos.jpg', kwimage.ensure_uint255(canvas))
+
+
 def show_data_diversity(coco_dset):
-    names = ['PXL_20210209_150443866.jpg',
-             'PXL_20211106_172807114.jpg',
-             'PXL_20210603_215310039.jpg',
-             'IMG_20201112_112429442.jpg',
-             'PXL_20210823_041957725.jpg',
-             'PXL_20210321_201238147.jpg',
-             'PXL_20210125_140106674.jpg',
-             'PXL_20201116_141610597.jpg',
-             'PXL_20210228_040756340.jpg',
-            ]
+    names = [
+        'PXL_20211106_172807114.jpg',
+        'PXL_20210603_215310039.jpg',
+        'IMG_20201112_112429442.jpg',
+        'PXL_20210228_040756340.jpg',
+        'PXL_20210209_150443866.jpg',
+
+        'PXL_20210321_201238147.jpg',
+        'PXL_20210125_140106674.jpg',
+        'PXL_20201116_141610597.jpg',
+        'PXL_20210823_041957725.jpg',
+    ]
 
     images = []
     import kwimage
@@ -249,10 +275,121 @@ def show_data_diversity(coco_dset):
         images.append(rchip1)
 
     canvas = kwimage.stack_images_grid(images, pad=10)
-    kwimage.imwrite('viz_shit_dataset_sample.jpg')
+    kwimage.imwrite('viz_shit_dataset_sample.jpg', canvas)
     import kwplot
     kwplot.autompl()
     kwplot.imshow(canvas, fnum=1)
+
+
+def show_3_images(coco_dset):
+    import kwimage
+    import kwplot
+    kwplot.autompl()
+
+    all_gids = list(coco_dset.images())
+    n = 0
+    n += 3
+    gids = all_gids[943 + n:]
+    chosen_gids = gids[0:3]
+
+    images = []
+    import numpy as np
+    for coco_img in coco_dset.images(chosen_gids).coco_images:
+        imdata = coco_img.delay().finalize()
+        rchip, sf_info = kwimage.imresize(imdata, max_dim=800, return_info=True)
+        rchip = np.rot90(rchip, k=3)
+        images.append(rchip)
+
+    images[0] = kwimage.draw_header_text(images[0], 'Before')
+    images[1] = kwimage.draw_header_text(images[1], 'After')
+    images[2] = kwimage.draw_header_text(images[2], 'Negative')
+
+    canvas = kwimage.stack_images(images, pad=10, axis=1)
+    kwplot.imshow(canvas, fnum=1)
+
+    kwimage.imwrite('viz_three_images.jpg', canvas)
+
+
+def autofind_pair_hueristic(coco_dset):
+    import pandas as pd
+    import dateutil
+    import dateutil.parser
+    import ubelt as ub
+    import functools
+    import kwimage
+    import vtool_ibeis
+    from vtool_ibeis import PairwiseMatch
+    # from vtool_ibeis.matching import VSONE_FEAT_CONFIG
+
+    image_df = pd.DataFrame(coco_dset.dataset['images'])
+    ordered_gids = image_df.sort_values('datetime').id.tolist()
+    feat_cfg = {
+        'rotation_invariance': True,
+        'affine_invariance': True,
+    }
+
+    # Fails on 31, 32
+
+    @functools.lru_cache(maxsize=32)
+    def cache_imread(gid):
+        img = coco_dset.imgs[gid1]
+        imdata = kwimage.imread(img['file_name'])
+        rchip, sf_info = kwimage.imresize(imdata, max_dim=416,
+                                          return_info=True)
+        return rchip
+
+    @functools.lru_cache(maxsize=32)
+    def matchable_image(gid):
+        import utool as ut
+        img = coco_dset.imgs[gid1]
+        dt = dateutil.parser.parse(img['datetime'])
+        imdata = kwimage.imread(img['file_name'])
+        rchip, sf_info = kwimage.imresize(imdata, max_dim=416,
+                                          return_info=True)
+        annot = ut.LazyDict({'rchip': rchip, 'dt': dt})
+        vtool_ibeis.matching.ensure_metadata_feats(annot, feat_cfg)
+        return annot
+
+    scores = {}
+    pairs = list(ub.iter_window(ordered_gids, 2))
+
+    for gid1, gid2 in ub.ProgIter(pairs, verbose=3):
+        pair = (gid1, gid2)
+        if pair in scores:
+            continue
+        annot1 = matchable_image(gid1)
+        annot2 = matchable_image(gid2)
+        delta = (annot2['dt'] - annot1['dt'])
+        delta_seconds = delta.total_seconds()
+        if delta_seconds < 60 * 60:
+            match_cfg = {
+                'symetric': False,
+                'K': 1,
+                # 'ratio_thresh': 0.625,
+                'ratio_thresh': 0.7,
+                'refine_method': 'homog',
+                'symmetric': True,
+            }
+            match = PairwiseMatch(annot1, annot2)
+            match.apply_all(cfgdict=match_cfg)
+            score = match.fs.sum()
+            scores[pair] = (score, delta_seconds)
+            print('score = {!r}'.format(score))
+
+    import kwplot
+    kwplot.autompl()
+    import xdev
+    matches = {k: v for k, v in scores.items() if v[0] >= 0}
+    iiter = xdev.InteractiveIter(list(matches.items()))
+    for pair, compatability in iiter:
+        gid1, gid2 = pair
+        score, delta = compatability
+        imdata1 = cache_imread(gid1)
+        imdata2 = cache_imread(gid2)
+        canvas = kwimage.stack_images([imdata1, imdata2], axis=1)
+        kwplot.imshow(canvas, title='pair={}, score={:0.2f}, delta={}'.format(pair, score, delta))
+        print('pair = {!r}'.format(pair))
+        xdev.InteractiveIter.draw()
 
 
 def demo_warp(coco_dset):
@@ -262,18 +399,22 @@ def demo_warp(coco_dset):
     """
     import numpy as np
 
-    img1 = coco_dset.coco_image(3)
-    img2 = coco_dset.coco_image(4)
+    gid1, gid2 = (3, 4)
+    gid1, gid2 = (30, 31)
+    gid1, gid2 = (34, 35)
+
+    img1 = coco_dset.coco_image(gid1)
+    img2 = coco_dset.coco_image(gid2)
 
     imdata1 = img1.delay().finalize()
     imdata2 = img2.delay().finalize()
 
-    imdata1 = np.rot90(imdata1)
-    imdata2 = np.rot90(imdata2)
+    # imdata1 = np.rot90(imdata1)
+    # imdata2 = np.rot90(imdata2)
 
     import kwimage
-    rchip1, sf_info1 = kwimage.imresize(imdata1, max_dim=800, return_info=True)
-    rchip2, sf_info2 = kwimage.imresize(imdata2, max_dim=800, return_info=True)
+    rchip1, sf_info1 = kwimage.imresize(imdata1, max_dim=416, return_info=True)
+    rchip2, sf_info2 = kwimage.imresize(imdata2, max_dim=416, return_info=True)
 
     undo_scale = kwimage.Affine.coerce(sf_info1).inv()
 
@@ -293,9 +434,14 @@ def demo_warp(coco_dset):
         'K': 1,
         'ratio_thresh': 0.625,
         'refine_method': 'homog',
+        'rotation_invariance': True,
+        'affine_invariance': True,
     }
     match = PairwiseMatch(annot1, annot2)
     match.apply_all(cfgdict=match_cfg)
+
+    if 0:
+        match.ishow()
 
     rchip1 = kwimage.ensure_float01(match.annot1['rchip'])
     rchip2 = kwimage.ensure_float01(match.annot2['rchip'])
@@ -378,7 +524,6 @@ def demo_warp(coco_dset):
     # insepctor.initialize(match=match, cfgdict=display_cfg)
     # insepctor.show()
     # match.ishow()
-
 
 
 def rat_to_frac(rat):
