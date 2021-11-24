@@ -16,15 +16,24 @@
 The ``shitspotter`` module is where I will be work on the "shitspotter" poop-detection algorithm and dataset.
 The primary goal of this work is to allow for the creation of a phone app that finds where your dog pooped,
 because you ran to grab the doggy-bags you forgot, and now you can't find the damn thing.
-Other applications can be envisioned, such as VR glasses that lets you know if you are about to walk into a steamer, 
+Other applications can be envisioned, such as AR glasses that lets you know if you are about to walk into a steamer, 
 or perhaps city governments could use this to more efficiently clean public areas. 
 
 This module will contain an algorithm for training a pytorch network to detect poop in images, and a script
 for detecting poop in unseen images given a pretrained model. 
 
-The dataset currently contains 20GB of outdoor images taken with a phone. The general process of aquring the dataset has been: 1. My dog poops or I see a rogue poop, 2. I take a "before" picture of the poop. 3. I pick up the poop, 4. I take an "after" picture as a high-correlation negative, and 5. I take a 3rd image of a different nearby area to get a lower-correlation-negative. The dataset is currently unannotated, but but before/after pairs will help with bootstrapping. Annotations and the data manifest will be managed using kwcoco.
+The dataset currently contains 20GB of outdoor images taken with a phone. The general process of aquring the dataset has been: 
+1. My dog poops or I see a rogue poop, 
+2. I take a "before" picture of the poop,
+3. I pick up the poop, 
+4. I take an "after" picture as a high-correlation negative, and 
+5. I take a 3rd image of a different nearby area to get a lower-correlation-negative. 
+The dataset is currently unannotated, but but before/after pairs will help with bootstrapping. 
+Annotations and the data manifest will be managed using kwcoco.
 
-Both the code and the dataset will be open source. The code will be published as it is written to this repo. The data and pretrained models will be made public on IPFS.
+Both the code and the dataset will be open source. 
+The code will be published as it is written to this repo. 
+The data and pretrained models will be made public on IPFS.
 
 
 Recent Updates
