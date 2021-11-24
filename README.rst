@@ -173,6 +173,17 @@ It annoys me that I have to put licenses on things. These are the terms I care a
 Otherwise the data is free to use commercially or otherwise. 
 
 
+Acknowledgements
+================
+
+I want to give thanks to the people and animals-that-think-they-are-people who contributed to this project. My colleagues at Kitware have provided valuable help / insight into project direction, dataset collection, problem formulation, related research, discussion, and memes.
+
+I want to give special thanks two my two poop machines, without whom this project would not be possible.
+
+.. image:: https://i.imgur.com/MWQVs0w.jpg
+
+.. image:: https://i.imgur.com/YUJjWoh.jpg
+
 .. |Pypi| image:: https://img.shields.io/pypi/v/shitspotter.svg
    :target: https://pypi.python.org/pypi/shitspotter
 
