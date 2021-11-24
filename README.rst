@@ -178,7 +178,7 @@ Acknowledgements
 
 I want to give thanks to the people and animals-that-think-they-are-people who contributed to this project. My colleagues at Kitware have provided valuable help / insight into project direction, dataset collection, problem formulation, related research, discussion, and memes.
 
-I want to give special thanks two my two poop machines, without whom this project would not be possible.
+I want to give special thanks to my two poop machines, without whom this project would not be possible.
 
 .. image:: https://i.imgur.com/MWQVs0w.jpg
 
