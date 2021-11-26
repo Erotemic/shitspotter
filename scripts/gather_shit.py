@@ -1,20 +1,20 @@
 import fractions
+from dateutil.parser import parse as parse_datetime
+import os
+import dateutil.parser
+from os.path import join
+import xdev
+import pandas as pd
+import kwcoco
+import ubelt as ub
+# import math
+import pathlib
+import datetime
 
 
 def main():
     """
     """
-    import os
-    import dateutil.parser
-    from os.path import join
-    import xdev
-    import pandas as pd
-    import kwcoco
-    import ubelt as ub
-    # import math
-    import pathlib
-    from dateutil.parser import parse as parse_datetime
-    import datetime
     dpath = '/data/store/data/shit-pics/'
 
     total_items = 0
@@ -22,7 +22,7 @@ def main():
 
     rows = []
     seen = set()
-    duplicates = []
+    all_fpaths = []
     change_point = dateutil.parser.parse('2021-05-11T120000')
     for r, ds, fs in os.walk(dpath):
         to_remove = []
@@ -42,14 +42,14 @@ def main():
             is_triple = not is_double
 
             for fname in fs:
+                gpath = join(r, fname)
+                all_fpaths.append(gpath)
                 if fname.endswith('.mp4'):
                     continue
                 if fname in seen:
                     print('SEEN fname = {!r}'.format(fname))
-                    duplicates.append(fname)
                     continue
                 seen.add(fname)
-                gpath = join(r, fname)
                 rows.append({
                     'gpath': gpath,
                     'name': pathlib.Path(fname).name,
@@ -64,8 +64,29 @@ def main():
                 num_items = num_files // 2
             total_items += num_items
 
+    if 0:
+        # Test to make sure we didn't mess up
+        # TODO: clean up duplicate files
+        dupidxs = ub.find_duplicates(all_fpaths, key=lambda x: pathlib.Path(x).name)
+        for idxs in dupidxs.values():
+            dups = list(ub.take(all_fpaths, idxs))
+            hashes = [ub.hash_file(d) for d in dups]
+            assert ub.allsame(hashes)
+            print('dups = {!r}'.format(dups))
+
     print('num_images = {!r}'.format(num_images))
     print('total_items = {!r}'.format(total_items))
+
+    if 0:
+        import kwimage
+        # Test we can read overviews
+        fpath = rows[-1]['gpath']
+        with ub.Timer('imread-o0'):
+            imdata = kwimage.imread(fpath, backend='gdal')
+            print('imdata.shape = {!r}'.format(imdata.shape))
+        with ub.Timer('imread-o1'):
+            imdata = kwimage.imread(fpath, overview=2, backend='gdal')
+            print('imdata.shape = {!r}'.format(imdata.shape))
 
     for row in ub.ProgIter(rows):
         gpath = row['gpath']
@@ -90,8 +111,8 @@ def main():
             lon_degrees, lon_minutes, lon_seconds = map(rat_to_frac, geos_point['GPSLongitude'])
             lat_sign = {'N': 1, 'S': -1}[geos_point['GPSLatitudeRef']]
             lon_sign = {'E': 1, 'W': -1}[geos_point['GPSLongitudeRef']]
-            lat = lat_sign * lat_degrees + lat_minutes / 60 + lat_seconds / 3600
-            lon = lon_sign * lon_degrees + lon_minutes / 60 + lon_seconds / 3600
+            lat = lat_sign * (lat_degrees + lat_minutes / 60 + lat_seconds / 3600)
+            lon = lon_sign * (lon_degrees + lon_minutes / 60 + lon_seconds / 3600)
             # Can geojson handle rationals?
             row['geos_point'] = {'type': 'Point', 'coordinates': (lon.__json__(), lat.__json__()), 'properties': {'crs': 'CRS84'}}
 
@@ -116,6 +137,12 @@ def main():
     print('coco_dset.fpath = {!r}'.format(coco_dset.fpath))
     coco_dset.dump(coco_dset.fpath, newlines=True)
 
+
+def scatterplot(coco_dset):
+    """
+    import kwcoco
+    coco_dset = kwcoco.CocoDataset('/data/store/data/shit-pics/data.kwcoco.json')
+    """
     import geopandas as gpd
     from shapely import geometry
     from pyproj import CRS
@@ -123,11 +150,20 @@ def main():
 
     # image_locs
     rows = []
+    def coerce_number(x):
+        if isinstance(x, dict) and x['type'] == 'rational':
+            return Rational(x['numerator'], x['denominator'])
+        else:
+            return x
     for gid, img in coco_dset.index.imgs.items():
-        row = {}
+        row = img.copy()
         if 'geos_point' in img:
-            row['geometry'] = geometry.Point(img['geos_point']['coordinates'])
-            rows.append(row)
+            geos_point = img['geos_point']
+            if isinstance(geos_point, dict):
+                coords = geos_point['coordinates']
+                point = [coerce_number(x) for x in coords]
+                row['geometry'] = geometry.Point(point)
+                rows.append(row)
 
     img_locs = gpd.GeoDataFrame(rows, crs='crs84')
 
@@ -143,12 +179,12 @@ def main():
     # ip_utm_loc = ip_loc.to_crs(utm_crs)
     # ip_utm_xy = np.array([(p.x, p.y) for p in ip_utm_loc.geometry.values])
 
-    center_utm_xy = img_utm_xy.mean(axis=0)
+    center_utm_xy = np.median(img_utm_xy, axis=0)
     distances = ((img_utm_xy - center_utm_xy) ** 2).sum(axis=1) ** 0.5
     distances = np.array(distances)
     img_locs['distance'] = distances
     datetimes = [parse_datetime(x) for x in img_locs['datetime']]
-    img_locs['datetime'] = datetimes
+    img_locs['datetime_obj'] = datetimes
     img_locs['timestamp'] = [x.timestamp() for x in datetimes]
     img_locs['date'] = [x.date() for x in datetimes]
     img_locs['time'] = [x.time() for x in datetimes]
@@ -160,20 +196,19 @@ def main():
     # date = dt.date()
     # time = dt.time()
 
-    img_locs['only_paired'] = img_locs['datetime'] < change_point
-
-    num_pair_images = img_locs['only_paired'].sum()
-    num_triple_images = (~img_locs['only_paired']).sum()
-    num_trip_groups = num_triple_images // 3
-    pair_groups = num_pair_images // 2
-    print('num_trip_groups = {!r}'.format(num_trip_groups))
-    print('pair_groups = {!r}'.format(pair_groups))
+    # img_locs['only_paired'] = img_locs['datetime'] < change_point
+    # num_pair_images = img_locs['only_paired'].sum()
+    # num_triple_images = (~img_locs['only_paired']).sum()
+    # num_trip_groups = num_triple_images // 3
+    # pair_groups = num_pair_images // 2
+    # print('num_trip_groups = {!r}'.format(num_trip_groups))
+    # print('pair_groups = {!r}'.format(pair_groups))
 
     import kwplot
     sns = kwplot.autosns()
 
     kwplot.figure(fnum=3, doclf=1)
-    sns.histplot(data=img_locs, x='datetime', kde=True, bins=24, stat='count')
+    sns.histplot(data=img_locs, x='datetime_obj', kde=True, bins=24, stat='count')
 
     kwplot.figure(fnum=1, doclf=1)
     ax = sns.scatterplot(data=img_locs, x='distance', y='hour_of_day', facecolor=(0, 0, 0, 0), edgecolor=(0, 0, 0, 0))
@@ -215,11 +250,43 @@ def main():
         ab = AnnotationBbox(image_box, (x, y), frameon=False)
         ax.add_artist(ab)
 
+    idx = img_locs['distance'].argmin()
+
+    # Answer jasons question
+    cand = img_locs[img_locs['distance'] < 10]
+    pt = cand.iloc[cand['distance'].argmin()]
+    name = pt['name']
+    name = img_locs.iloc[idx]['name']
+
     kwplot.phantom_legend(label_to_color)
     # ax.annotate('💩', (x, y))
 
     import kwimage
     kwplot.imshow(kwimage.stack_images([g.image._A for g in label_to_img.values()]), fnum=2, doclf=True)
+
+
+def show_data_around_name(coco_dset, name):
+    base_img = coco_dset.index.name_to_img[name]
+    gid1 = base_img['id']
+
+    chosen_gids = [gid1, gid1 + 1, gid1 + 2]
+    images = []
+    import kwimage
+    import kwplot
+    kwplot.autompl()
+    import numpy as np
+    for coco_img in coco_dset.images(chosen_gids).coco_images:
+        imdata = coco_img.delay().finalize()
+        rchip, sf_info = kwimage.imresize(imdata, max_dim=800, return_info=True)
+        rchip = np.rot90(rchip, k=3)
+        images.append(rchip)
+
+    images[0] = kwimage.draw_header_text(images[0], 'Before')
+    images[1] = kwimage.draw_header_text(images[1], 'After')
+    images[2] = kwimage.draw_header_text(images[2], 'Negative')
+
+    canvas = kwimage.stack_images(images, pad=10, axis=1)
+    kwplot.imshow(canvas, fnum=2)
 
 
 def doggos():
@@ -333,7 +400,7 @@ def autofind_pair_hueristic(coco_dset):
     @functools.lru_cache(maxsize=32)
     def cache_imread(gid):
         img = coco_dset.imgs[gid1]
-        imdata = kwimage.imread(img['file_name'])
+        imdata = kwimage.imread(img['file_name'], backend='gdal', overview=2)
         rchip, sf_info = kwimage.imresize(imdata, max_dim=416,
                                           return_info=True)
         return rchip
@@ -343,7 +410,7 @@ def autofind_pair_hueristic(coco_dset):
         import utool as ut
         img = coco_dset.imgs[gid1]
         dt = dateutil.parser.parse(img['datetime'])
-        imdata = kwimage.imread(img['file_name'])
+        imdata = kwimage.imread(img['file_name'], backend='gdal', overview=2)
         rchip, sf_info = kwimage.imresize(imdata, max_dim=416,
                                           return_info=True)
         annot = ut.LazyDict({'rchip': rchip, 'dt': dt})

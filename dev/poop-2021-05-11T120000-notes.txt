@@ -1,0 +1,4 @@
+On 2021-05-11 at 3:00pm I changed my protocol. Instead of taking pairs of images I'm now taking triples. One before I pick up the poop, one after I pick it up, and then another disjoint scene to serve as a negative example, usually I just turn and find a region with no poop.
+
+Before I started this protocol I had 933 images, which is roughly 466 pairs.
+Probably a few errors in the protocol in there somewhere due to the odd image.
