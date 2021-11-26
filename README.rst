@@ -157,6 +157,17 @@ But with a little patience and image processing, it's not to hard to narrow down
 Scripts to produce these visualizations have been checked into the repo. Annotations and the image manifest will
 be stored in the kwcoco json format.
 
+The Algorithm
+=============
+
+Currently there is no algorithm checked into the repo. I need to start annotating the dataset first. 
+Eventually there will be a `shitspotter.fit` and `shitspotter.predict` script for training and performing
+inference on unseen images. My current plan for a baseline algorithm is a mobilenet backbone pretrained 
+on imagenet and some single-stage detection / segmentation head on top of that.
+
+Given kwcoco a formated detection dataset, we can also use off-the-shelf detection baselines
+via netharn, mmdet, or some other library that accepts coco/kwcoco input manifests.
+
 
 Downloading the Data
 ====================
