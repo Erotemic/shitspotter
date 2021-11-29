@@ -14,11 +14,11 @@ import datetime
 
 def main():
     """
+    import sys, ubelt
+    sys.path.append(ubelt.expandpath('~/code/shitspotter/scripts'))
+    from gather_shit import *  # NOQA
     """
     dpath = '/data/store/data/shit-pics/'
-
-    total_items = 0
-    num_images = 0
 
     rows = []
     seen = set()
@@ -39,7 +39,6 @@ def main():
             datestamp = dateutil.parser.parse(timestr)
 
             is_double = datestamp < change_point
-            is_triple = not is_double
 
             for fname in fs:
                 gpath = join(r, fname)
@@ -52,30 +51,58 @@ def main():
                 seen.add(fname)
                 rows.append({
                     'gpath': gpath,
-                    'name': pathlib.Path(fname).name,
+                    'name': pathlib.Path(fname).stem,
                     'datestamp': datestamp,
+                    'is_double': is_double,
                 })
 
-            num_files = len(fs)
-            num_images += num_files
-            if is_triple:
-                num_items = num_files // 3
-            else:
-                num_items = num_files // 2
-            total_items += num_items
+    dupidxs = ub.find_duplicates(all_fpaths, key=lambda x: pathlib.Path(x).name)
+    assert len(dupidxs) == 0
 
     if 0:
         # Test to make sure we didn't mess up
         # TODO: clean up duplicate files
-        dupidxs = ub.find_duplicates(all_fpaths, key=lambda x: pathlib.Path(x).name)
+        to_remove = []
+        to_keep = []
         for idxs in dupidxs.values():
             dups = list(ub.take(all_fpaths, idxs))
             hashes = [ub.hash_file(d) for d in dups]
             assert ub.allsame(hashes)
+            deltas = {}
+            folder_dts = []
+            image_dts = []
+            for d in dups:
+                p = pathlib.Path(d)
+                parent_dname = p.parent.name
+                image_dt = parse_datetime(p.name.split('_')[1])
+                folder_dt = parse_datetime(parent_dname.split('-', 1)[1])
+                delta = (folder_dt - image_dt)
+                folder_dts.append(folder_dt)
+                image_dts.append(image_dt)
+                assert delta.total_seconds() >= 0
+                deltas[d] = delta
+            assert len(set(image_dts)) == 1
+            keep_gpath = ub.argmin(deltas)
+            remove_gpaths = set(dups) - {keep_gpath}
+            image_dt = image_dts[0]
+            print('image_dt = {!r}'.format(image_dt))
+            print('folder_dts = {}'.format(ub.repr2(folder_dts, nl=1)))
+            print('deltas = {!r}'.format(deltas))
             print('dups = {!r}'.format(dups))
+            to_keep.append(keep_gpath)
+            to_remove.extend(list(remove_gpaths))
 
-    print('num_images = {!r}'.format(num_images))
-    print('total_items = {!r}'.format(total_items))
+        assert set(to_remove).isdisjoint(set(to_keep))
+
+        # Dont remove, because I'm afraid to do that programtically atm
+        # just move to a trash folder
+        dpath = pathlib.Path('/data/store/data/shit-pics/_trash_dups')
+        dpath.mkdir(exist_ok=True)
+        import shutil
+        for p in to_remove:
+            p = pathlib.Path(p)
+            dst = dpath / p.name
+            shutil.move(p, dst)
 
     if 0:
         import kwimage
@@ -92,7 +119,7 @@ def main():
         gpath = row['gpath']
         row['nbytes'] = os.stat(gpath).st_size
         row['nbytes_str'] = xdev.byte_str(row['nbytes'])
-        exif = extract_image_metadata(gpath)
+        exif = extract_exif_metadata(gpath)
         if 'ImageWidth' in row:
             row['width'] = row['ImageWidth']
             row['height'] = row['ImageHeight']
@@ -104,17 +131,20 @@ def main():
             # dt = date_parser.parse(exif['DateTime'])
             # row['datetime'] = dt.isoformat()
             raise
+        # TODO: exif 'OffsetTime': '-05:00',
         row['datetime'] = dt.isoformat()
+        exif_ori = exif['Orientation']
+        print('exif_ori = {!r}'.format(exif_ori))
         geos_point = exif.get('GPSInfo', None)
         if geos_point is not None and 'GPSLatitude' in geos_point:
-            lat_degrees, lat_minutes, lat_seconds = map(rat_to_frac, geos_point['GPSLatitude'])
-            lon_degrees, lon_minutes, lon_seconds = map(rat_to_frac, geos_point['GPSLongitude'])
+            lat_degrees, lat_minutes, lat_seconds = map(Rational.coerce, geos_point['GPSLatitude'])
+            lon_degrees, lon_minutes, lon_seconds = map(Rational.coerce, geos_point['GPSLongitude'])
             lat_sign = {'N': 1, 'S': -1}[geos_point['GPSLatitudeRef']]
             lon_sign = {'E': 1, 'W': -1}[geos_point['GPSLongitudeRef']]
             lat = lat_sign * (lat_degrees + lat_minutes / 60 + lat_seconds / 3600)
             lon = lon_sign * (lon_degrees + lon_minutes / 60 + lon_seconds / 3600)
             # Can geojson handle rationals?
-            row['geos_point'] = {'type': 'Point', 'coordinates': (lon.__json__(), lat.__json__()), 'properties': {'crs': 'CRS84'}}
+            row['geos_point'] = {'type': 'Point', 'coordinates': (lon.__smalljson__(), lat.__smalljson__()), 'properties': {'crs': 'CRS84'}}
 
     img_info_df = pd.DataFrame(rows)
     img_info_df = img_info_df.sort_values('datetime')
@@ -124,6 +154,8 @@ def main():
     coco_dset = kwcoco.CocoDataset()
     for row in img_info_df.to_dict('records'):
         row = row.copy()
+        row.pop('nbytes_str', None)
+        row.pop('is_double', None)
         row['file_name'] = row.pop('gpath')
         row.pop('datestamp', None)
         coco_dset.add_image(**row)
@@ -135,7 +167,47 @@ def main():
     coco_dset._check_json_serializable()
     coco_dset._ensure_json_serializable()
     print('coco_dset.fpath = {!r}'.format(coco_dset.fpath))
+    coco_dset.reroot(absolute=False)
     coco_dset.dump(coco_dset.fpath, newlines=True)
+
+
+def check_exif_orientation(coco_dset):
+    """
+    Notes on orientation:
+        https://jdhao.github.io/2019/07/31/image_rotation_exif_info/
+
+        1: Upright
+        8: Rot 90 clockwise
+        3: Rot 180
+        6: Rot 270 clockwise
+
+        2: Flip + Upright
+        7: Flip + Rot 90 clockwise
+        4: Flip + Rot 180
+        5: Flip + Rot 270 clockwise
+    """
+    import kwplot
+    import xdev
+    import kwimage
+    kwplot.autompl()
+    gids = list(coco_dset.index.imgs.keys())
+    giditer = xdev.InteractiveIter(gids)
+    for gid in giditer:
+        # for gid in gids:
+        fpath = coco_dset.get_image_fpath(gid)
+        exif = extract_exif_metadata(fpath)
+        exif_ori = exif.get('Orientation', None)
+        print('exif_ori = {!r}'.format(exif_ori))
+        # 'ExifImageHeight': 3024,
+        # 'ExifImageWidth': 4032,
+        # 'ImageLength': 3024,
+        # 'ImageWidth': 4032,
+        # Reading with GDAL/cv2 will NOT apply any exif orientation
+        # but reading with skimage will
+        imdata = kwimage.imread(fpath, backend='gdal', overview=-1)
+
+        kwplot.imshow(imdata)
+        xdev.InteractiveIter.draw()
 
 
 def scatterplot(coco_dset):
@@ -459,113 +531,41 @@ def autofind_pair_hueristic(coco_dset):
         xdev.InteractiveIter.draw()
 
 
-def demo_warp(coco_dset):
-    """
-    import kwcoco
-    coco_dset = kwcoco.CocoDataset('/data/store/data/shit-pics/data.kwcoco.json')
-    """
+def imread_with_exif(fpath, overview=None):
+    import kwimage
     import numpy as np
+    exif = extract_exif_metadata(fpath)
+    exif_ori = exif.get('Orientation')
+    imdata = kwimage.imread(fpath, backend='gdal', overview=overview)
+    if exif_ori is not None:
+        if exif_ori == 1:
+            pass
+        elif exif_ori == 6:
+            imdata = np.rot90(imdata, k=-1)
+        elif exif_ori == 8:
+            imdata = np.rot90(imdata, k=1)
+        elif exif_ori == 3:
+            imdata = np.rot90(imdata, k=2)
+        else:
+            raise NotImplementedError(exif_ori)
+    return imdata
 
+
+def dump_demo_warp_img(coco_dset):
+    import kwplot
+    import kwimage
+    kwplot.autompl()
     gid1, gid2 = (3, 4)
     gid1, gid2 = (30, 31)
     gid1, gid2 = (34, 35)
+    gid1, gid2 = (99, 100)
 
-    img1 = coco_dset.coco_image(gid1)
-    img2 = coco_dset.coco_image(gid2)
+    fig, fig2 = demo_warp(coco_dset, gid1, gid2)
 
-    imdata1 = img1.delay().finalize()
-    imdata2 = img2.delay().finalize()
+    ##
+    ####
+    # Plotting
 
-    # imdata1 = np.rot90(imdata1)
-    # imdata2 = np.rot90(imdata2)
-
-    import kwimage
-    rchip1, sf_info1 = kwimage.imresize(imdata1, max_dim=416, return_info=True)
-    rchip2, sf_info2 = kwimage.imresize(imdata2, max_dim=416, return_info=True)
-
-    undo_scale = kwimage.Affine.coerce(sf_info1).inv()
-
-    # import kwplot
-    # kwplot.autompl()
-    # kwplot.imshow(imdata1, fnum=1, pnum=(1, 2, 1))
-    # kwplot.imshow(imdata2, fnum=1, pnum=(1, 2, 2))
-
-    from vtool_ibeis import PairwiseMatch
-    # from vtool_ibeis.inspect_matches import MatchInspector
-
-    annot1 = {'rchip': rchip1}
-    annot2 = {'rchip': rchip2}
-
-    match_cfg = {
-        'symetric': False,
-        'K': 1,
-        'ratio_thresh': 0.625,
-        'refine_method': 'homog',
-        'rotation_invariance': True,
-        'affine_invariance': True,
-    }
-    match = PairwiseMatch(annot1, annot2)
-    match.apply_all(cfgdict=match_cfg)
-
-    if 0:
-        match.ishow()
-
-    rchip1 = kwimage.ensure_float01(match.annot1['rchip'])
-    rchip2 = kwimage.ensure_float01(match.annot2['rchip'])
-
-    import cv2
-    dims = rchip2.shape[0:2]
-    dsize = dims[::-1]
-    M = match.H_12
-
-    rchip1_align = cv2.warpPerspective(rchip1, M, dsize)
-
-    rchip1_bounds = kwimage.Boxes([[0, 0, dsize[0], dsize[1]]], 'xywh').to_polygons()[0]
-    warp_bounds = rchip1_bounds.warp(M)
-    # warp_bounds.draw()
-    valid_mask = warp_bounds.to_mask(dims=dims).data
-    rchip2_align = rchip2 * valid_mask[:, :, None]
-
-    diff_img = np.abs(rchip1_align - rchip2_align)
-    diff_img = np.linalg.norm(diff_img, axis=2)
-    mask = kwimage.gaussian_blur(diff_img, sigma=3.0)
-    mask = kwimage.morphology(mask, 'close')
-    mask = kwimage.morphology((mask > 0.4).astype(np.float32), 'dilate', kernel=10)
-    mask = kwimage.gaussian_blur(mask, sigma=3.0)
-    mask = (mask > 0.2).astype(np.float32)
-    mask = kwimage.morphology(mask, 'close', kernel=30)
-    mask = kwimage.morphology((mask).astype(np.float32), 'dilate', kernel=30)
-
-    # Warp mask back onto original image
-    tf_orig_from_align = np.asarray(undo_scale @ np.linalg.inv(M))
-    orig_dsize = imdata1.shape[0:2][::-1]
-    mask1_orig = cv2.warpPerspective(mask, tf_orig_from_align, orig_dsize)
-    attention_imdata1 = imdata1 * mask1_orig[..., None]
-
-    import kwplot
-    kwplot.autompl()
-    rstack = kwimage.stack_images([rchip1, rchip2], pad=10, axis=1)
-    align_stack = kwimage.stack_images([rchip1_align, rchip2_align], pad=10, axis=1)
-    diff_stack = kwimage.stack_images([diff_img, mask], pad=10, axis=1)
-
-    fig = kwplot.figure(fnum=3)
-
-    pnum_a = kwplot.PlotNums(nRows=4, nCols=1)
-
-    kwplot.imshow(rstack, fnum=3, pnum=pnum_a[0], title='Raw Before / After Image Pair')
-
-    ax = kwplot.figure(fnum=3, pnum=pnum_a[1]).gca()
-    ax.set_title('SIFT Features Matches (used to align the images)')
-    match.show(ax=ax, show_ell=1, show_lines=False, ell_alpha=0.2, vert=False)
-
-    kwplot.imshow(align_stack, fnum=3, pnum=pnum_a[2], title='Aligned Images')
-
-    kwplot.imshow(diff_stack, fnum=3, pnum=pnum_a[3], title='Difference Image -> Binary Mask')
-
-    # kwplot.imshow(attention_rchip1, fnum=3, pnum=pnum_a[4], title='Candidate Annotation Regions')
-
-    fig2 = kwplot.figure(fnum=4)
-    kwplot.imshow(attention_imdata1, fnum=4, title='Candidate Annotation Regions')
     # fig2.set_size_inches(25.6 , 13.37)
     fig2.set_size_inches(25.6 / 2, 13.37 / 2)
     fig2.tight_layout()
@@ -593,8 +593,268 @@ def demo_warp(coco_dset):
     # match.ishow()
 
 
-def rat_to_frac(rat):
-    return Rational(rat.numerator, rat.denominator)
+def iter_warp(coco_dset):
+    import xdev
+    pairs = list(ub.iter_window(list(coco_dset.images()), 2))
+    for gid1, gid2 in xdev.InteractiveIter(pairs):
+        print('gid1, gid2 = {!r}, {}'.format(gid1, gid2))
+        figs = demo_warp(coco_dset, gid1, gid2)
+        for fig in figs:
+            fig.canvas.draw()
+        pass
+
+
+def demo_warp(coco_dset, gid1, gid2):
+    """
+    import kwcoco
+    coco_dset = kwcoco.CocoDataset('/data/store/data/shit-pics/data.kwcoco.json')
+
+    gid1, gid2 = 24, 25
+    gid1, gid2 = 339, 340  # paralax
+
+    """
+    import numpy as np
+    import kwimage
+    import kwplot
+    from vtool_ibeis import PairwiseMatch
+    import cv2
+    kwplot.autompl()
+
+    # gid1, gid2 = (3, 4)
+    # gid1, gid2 = (30, 31)
+    # gid1, gid2 = (34, 35)
+    # gid1, gid2 = (99, jk100)
+    # gid1, gid2 = (101, 102)
+
+    # img1 = coco_dset.coco_image(gid1)
+    # img2 = coco_dset.coco_image(gid2)
+    # imdata1 = img1.delay().finalize()
+    # imdata2 = img2.delay().finalize()
+
+    # imdata1 = np.rot90(imdata1)
+    # imdata2 = np.rot90(imdata2)
+
+    fpath1 = coco_dset.get_image_fpath(gid1)
+    fpath2 = coco_dset.get_image_fpath(gid2)
+    imdata1 = imread_with_exif(fpath1, overview=2)
+    imdata2 = imread_with_exif(fpath2, overview=2)
+
+    maxdim = max(max(imdata1.shape[0:2]), max(imdata2.shape[0:2]))
+    maxdim = max(512, maxdim)
+
+    # rchip1_rgb, sf_info1 = kwimage.imresize(imdata1, max_dim=512, return_info=True)
+    # rchip2_rgb, sf_info2 = kwimage.imresize(imdata2, max_dim=512, return_info=True)
+    # rchip1_rgb, sf_info1 = kwimage.imresize(imdata1, max_dim=800, return_info=True)
+    # rchip2_rgb, sf_info2 = kwimage.imresize(imdata2, max_dim=800, return_info=True)
+    rchip1_rgb, sf_info1 = kwimage.imresize(imdata1, max_dim=maxdim, return_info=True)
+    rchip2_rgb, sf_info2 = kwimage.imresize(imdata2, max_dim=maxdim, return_info=True)
+
+    undo_scale = kwimage.Affine.coerce(sf_info1).inv()
+
+    # import kwplot
+    # kwplot.autompl()
+    # kwplot.imshow(imdata1, fnum=1, pnum=(1, 2, 1))
+    # kwplot.imshow(imdata2, fnum=1, pnum=(1, 2, 2))
+
+    # from vtool_ibeis.inspect_matches import MatchInspector
+
+    annot1 = {'rchip': np.ascontiguousarray(rchip1_rgb[:, :, ::-1])}
+    annot2 = {'rchip': np.ascontiguousarray(rchip2_rgb[:, :, ::-1])}
+
+    match_cfg = {
+        'symetric': False,
+        'K': 1,
+        'ratio_thresh': 0.625,
+        'refine_method': 'homog',
+        'rotation_invariance': True,
+        'affine_invariance': True,
+    }
+    match = PairwiseMatch(annot1, annot2)
+    match.apply_all(cfgdict=match_cfg)
+
+    if 0:
+        match.ishow()
+
+    rchip1 = np.ascontiguousarray(kwimage.ensure_float01(match.annot1['rchip'][:, :, ::-1]))
+    rchip2 = np.ascontiguousarray(kwimage.ensure_float01(match.annot2['rchip'][:, :, ::-1]))
+    score = match.fs.sum()
+    print('score = {!r}'.format(score))
+
+    rchip2_dims = rchip2.shape[0:2]
+    rchip2_dsize = rchip2_dims[::-1]
+
+    rchip1_dims = rchip1.shape[0:2]
+    rchip1_dsize = rchip1_dims[::-1]
+    M1 = match.H_12
+    rchip1_align = cv2.warpPerspective(rchip1, M1, rchip2_dsize)
+    rchip1_bounds = kwimage.Boxes([[0, 0, rchip1_dsize[0] - 1, rchip1_dsize[1] - 1]], 'xywh').to_polygons()[0]
+    rchip2_bounds = kwimage.Boxes([[0, 0, rchip2_dsize[0] - 1, rchip2_dsize[1] - 1]], 'xywh').to_polygons()[0]
+    warp_bounds1 = rchip1_bounds.warp(M1)
+    shpb1 = warp_bounds1.to_shapely()
+    # Only keep valid regions
+    warp_bounds1 = kwimage.Polygon.from_shapely(shpb1.intersection(rchip2_bounds.to_shapely()))
+    # warp_bounds.draw()
+    valid_rchip2_mask1 = warp_bounds1.to_mask(dims=rchip2_dims).data
+    rchip2_align = rchip2 * valid_rchip2_mask1[:, :, None]
+
+    if 0:
+        import SimpleITK as sitk
+        fixed = sitk.GetImageFromArray(rchip1_align.mean(axis=2))
+        moving = sitk.GetImageFromArray(rchip2_align.mean(axis=2))
+
+        numberOfBins = 36
+        samplingPercentage = 0.10
+        R = sitk.ImageRegistrationMethod()
+        R.SetMetricAsMattesMutualInformation(numberOfBins)
+        R.SetMetricSamplingPercentage(samplingPercentage, sitk.sitkWallClock)
+        R.SetMetricSamplingStrategy(R.RANDOM)
+        R.SetOptimizerAsRegularStepGradientDescent(1.0, .001, 200)
+        R.SetInitialTransform(sitk.TranslationTransform(fixed.GetDimension()))
+        R.SetInterpolator(sitk.sitkBSpline)
+        outTx = R.Execute(fixed, moving)
+
+        resampler = sitk.ResampleImageFilter()
+        resampler.SetReferenceImage(fixed)
+        resampler.SetInterpolator(sitk.sitkBSpline)
+        resampler.SetDefaultPixelValue(0)
+        resampler.SetTransform(outTx)
+        out = resampler.Execute(moving)
+        arr1 = kwimage.atleast_3channels(sitk.GetArrayFromImage(fixed))
+        arr2 = kwimage.atleast_3channels(sitk.GetArrayFromImage(out))
+        # arr1 = kwimage.gaussian_blur(arr1, sigma=2.0)
+        # arr2 = kwimage.gaussian_blur(arr2, sigma=2.0)
+        kwplot.imshow(arr1, fnum=1)
+        kwplot.imshow(arr2, fnum=2)
+        diff_img_MI = np.abs(arr1 - arr2)
+        kwplot.imshow(diff_img_MI, fnum=6)
+        raw1 = arr1
+        raw2 = arr2
+        rchip1_refine = arr1
+        rchip2_refine = arr2
+        M = M1.copy()
+        # TODO: need to be able to invert transform before we can use thi
+    else:
+        if 0:
+            # Refine?
+            # TODO: an iterative matching approach seems to work well
+            annot1_refine = {'rchip': np.ascontiguousarray(kwimage.ensure_uint255(rchip1_align[:, :, ::-1]))}
+            annot2_refine = {'rchip': np.ascontiguousarray(kwimage.ensure_uint255(rchip2_align[:, :, ::-1]))}
+            match_cfg2 = {
+                'symetric': True,
+                'K': 1,
+                'ratio_thresh': 0.625,
+                'refine_method': 'homog',
+                'rotation_invariance': False,
+                'affine_invariance': True,
+            }
+            match2 = PairwiseMatch(annot1_refine, annot2_refine)
+            match2.apply_all(cfgdict=match_cfg2)
+
+            M2 = match2.H_12
+            # rchip1_refine = cv2.warpPerspective(rchip1_align, M2, rchip2_dsize)
+            rchip1_refine = cv2.warpPerspective(rchip1, M2 @ M1, rchip2_dsize)
+            warp_bounds2 = warp_bounds1.warp(M2)
+            if 0:
+                rchip1_bounds.draw(alpha=0.5, color='red')
+                warp_bounds1.draw(alpha=0.5, color='orange')
+                warp_bounds2.draw(alpha=0.5, color='green')
+            # warp_bounds2.draw()
+            valid_rchip2_mask2 = warp_bounds2.to_mask(dims=rchip2_dims).data
+            rchip2_refine = rchip2_align * valid_rchip2_mask2[:, :, None]
+            rchip1_refine = rchip1_refine * valid_rchip2_mask2[:, :, None]
+
+            raw1 = kwimage.gaussian_blur(rchip1_refine, kernel=7)
+            raw2 = kwimage.gaussian_blur(rchip2_refine, kernel=7)
+            M = M2 @ M1
+        else:
+            raw1 = kwimage.gaussian_blur(rchip1_align, kernel=7)
+            raw2 = kwimage.gaussian_blur(rchip2_align, kernel=7)
+            rchip1_refine = rchip1_align
+            rchip2_refine = rchip2_align
+            M = M1.copy()
+    # raw1 = raw1.mean(axis=2, keepdims=True)
+    # raw2 = raw2.mean(axis=2, keepdims=True)
+    diff_img_RAW = np.linalg.norm(np.abs(raw1 - raw2), axis=2)
+    # kwplot.imshow(diff_img_RAW, fnum=7)
+
+    # import itk
+    # image_type = itk.Image[itk.F, 2]
+    # regis = itk.ImageRegistrationMethod[image_type, image_type].New()
+    # regis.SetFixedImage(slice1)
+    # regis.SetMovingImage(slice2)
+    # mi_tf = regis.GetOutput()
+    # slice1 = itk.image_from_array(rchip1_align.mean(axis=2))
+    # slice2 = itk.image_from_array(rchip2_align.mean(axis=2))
+    # diff_filter = itk.SimilarityIndexImageFilter[image_type, image_type].New()
+    # diff_filter.SetInput1(slice1)
+    # diff_filter.SetInput2(slice2)
+    # diff_filter.Update()
+    # indx = diff_filter.GetSimilarityIndex()
+
+    # rchip1_align
+    # diff_img = np.abs(rchip1_align - rchip2_align)
+    # diff_img = np.linalg.norm(diff_img, axis=2)
+    # rchip1_align_final = rchip1_align.copy()
+    # rchip2_align_final = rchip2_align.copy()
+    # rchip1_align_final = raw1.copy()
+    # rchip2_align_final = raw2.copy()
+
+    diff_img = diff_img_RAW
+    mask = diff_img.copy()
+    mask = kwimage.morphology(mask, 'close', kernel=3)
+    mask = kwimage.gaussian_blur(mask, sigma=2.0)
+    mask = kwimage.morphology(mask, 'close', kernel=7)
+    print(sorted(mask.ravel())[-100:])
+    mask = kwimage.morphology((mask > 0.4).astype(np.float32), 'dilate', kernel=10)
+    mask = kwimage.gaussian_blur(mask, sigma=3.0)
+    mask = (mask > 0.2).astype(np.float32)
+    mask = kwimage.morphology(mask, 'close', kernel=30)
+    mask = kwimage.morphology((mask).astype(np.float32), 'dilate', kernel=30)
+
+    # Warp mask back onto original image
+    tf_orig_from_align = np.asarray(undo_scale @ np.linalg.inv(M))
+    orig_dsize = imdata1.shape[0:2][::-1]
+    mask1_orig = cv2.warpPerspective(mask, tf_orig_from_align, orig_dsize)
+
+    overlay = kwimage.ensure_alpha_channel(mask1_orig[..., None])
+    overlay[mask1_orig > 0.5, 3] = 0.0
+    overlay[mask1_orig < 0.5, 3] = 0.8
+    orig = kwimage.ensure_alpha_channel(kwimage.ensure_float01(imdata1))
+    attention_imdata1 = kwimage.overlay_alpha_images(overlay, orig)
+    # attention_imdata1 = imdata1 * mask1_orig[..., None]
+
+    rstack = kwimage.stack_images([rchip1, rchip2], pad=10, axis=1)
+
+    rchip1_align_a = kwimage.ensure_alpha_channel(rchip1_refine, 0.5)
+    rchip2_align_a = kwimage.ensure_alpha_channel(rchip2_refine, 1.0)
+    overlay_align = kwimage.overlay_alpha_layers([rchip1_align_a, rchip2_align_a])
+    # kwplot.imshow(overlay_align, fnum=6, title='Aligned')
+    align_stack1 = kwimage.stack_images([rchip1_refine, rchip2_refine, overlay_align], pad=10, axis=1)
+    # align_stack2 = kwimage.stack_images([rchip1_align_final, rchip2_align_final], pad=10, axis=1)
+    diff_stack = kwimage.stack_images([diff_img, mask], pad=10, axis=1)
+
+    fig = kwplot.figure(fnum=3)
+
+    pnum_a = kwplot.PlotNums(nRows=3, nCols=1)
+
+    kwplot.imshow(rstack, fnum=3, pnum=pnum_a[0], title='Raw Before / After Image Pair')
+    ax = kwplot.figure(fnum=3, pnum=pnum_a[1]).gca()
+    ax.set_title('SIFT Features Matches (used to align the images)')
+    match.show(ax=ax, show_ell=1, show_lines=False, ell_alpha=0.2, vert=False)
+
+    kwplot.imshow(align_stack1, fnum=3, pnum=pnum_a[2], title='Aligned Images')
+    # kwplot.imshow(align_stack2, fnum=3, pnum=pnum_a[3], title='Refined Alignment')
+
+    fig3 = kwplot.figure(fnum=5)
+    kwplot.imshow(diff_stack, fnum=5, title='Difference Image -> Binary Mask')
+    # kwplot.imshow(attention_rchip1, fnum=3, pnum=pnum_a[4], title='Candidate Annotation Regions')
+
+    fig2 = kwplot.figure(fnum=4)
+    kwplot.imshow(attention_imdata1, fnum=4, title='Candidate Annotation Regions')
+
+    fig4 = kwplot.figure(fnum=6)
+    kwplot.imshow(align_stack1, fnum=6, title='Aligned')
+    return fig, fig2, fig3, fig4
 
 
 def utm_epsg_from_latlon(lat, lon):
@@ -655,6 +915,27 @@ class Rational(fractions.Fraction):
             'denominator': self.denominator,
         }
 
+    def __smalljson__(self):
+        return '{:d}/{:d}'.format(self.numerator, self.denominator)
+
+    @classmethod
+    def coerce(cls, data):
+        from PIL.TiffImagePlugin import IFDRational
+        if isinstance(data, dict):
+            return cls.from_json(data)
+        elif isinstance(data, IFDRational):
+            return cls(data.numerator, data.denominator)
+        elif isinstance(data, int):
+            return cls(data, 1)
+        elif isinstance(data, str):
+            return cls(*map(int, data.split('/')))
+        else:
+            raise TypeError
+
+    @classmethod
+    def from_json(cls, data):
+        return cls(data['numerator'], data['denominator'])
+
     def __repr__(self):
         return str(self)
 
@@ -683,7 +964,7 @@ class Rational(fractions.Fraction):
         return Rational(super().__floordiv__(other))
 
 
-def extract_image_metadata(fpath):
+def extract_exif_metadata(fpath):
     from PIL import Image, ExifTags
     from PIL.ExifTags import GPSTAGS
     import ubelt as ub
