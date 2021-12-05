@@ -210,10 +210,121 @@ def check_exif_orientation(coco_dset):
         xdev.InteractiveIter.draw()
 
 
+def data_on_maps(coco_dset):
+    """
+    import kwcoco
+    coco_dset = kwcoco.CocoDataset('/data/store/data/shit-pics/data.kwcoco.json')
+    """
+    import geopandas as gpd
+    from shapely import geometry
+    import numpy as np
+    from pyproj import CRS
+    import osmnx as ox
+    # image_locs
+    rows = []
+    for gid, img in coco_dset.index.imgs.items():
+        row = img.copy()
+        if 'geos_point' in img:
+            geos_point = img['geos_point']
+            if isinstance(geos_point, dict):
+                coords = geos_point['coordinates']
+                point = [Rational.coerce(x) for x in coords]
+                row['geometry'] = geometry.Point(point)
+                rows.append(row)
+    img_locs = gpd.GeoDataFrame(rows, crs='crs84')
+
+    crs84 = CRS.from_user_input('crs84')
+
+    # wld_map_crs84_gdf = gpd.read_file(
+    #     gpd.datasets.get_path('naturalearth_lowres')
+    # ).to_crs(crs84)
+
+    utm_crs = img_locs.estimate_utm_crs()
+    img_locs_utm = img_locs.to_crs(utm_crs)
+
+    aoi_utm = gpd.GeoDataFrame({
+        'geometry': [img_locs_utm.unary_union.convex_hull]
+    }, crs=img_locs_utm.crs)
+    mediod_utm = gpd.GeoDataFrame({
+        'geometry': [geometry.Point(np.median(np.array([(x.x, x.y) for x in img_locs_utm.geometry]), axis=0))]
+    }, crs=img_locs_utm.crs).convex_hull
+
+    mediod_crs84 = mediod_utm.to_crs(crs84)
+    aoi_crs84 = aoi_utm.to_crs(crs84)
+    medoid_lon, medoid_lat = map(lambda x: x[0], mediod_crs84.iloc[0].xy)
+    mediod_wgs84 = (medoid_lat, medoid_lon)
+
+    # import kwplot
+    # sns = kwplot.autosns()
+    # ax = kwplot.figure().gca()
+    # wld_map_crs84_gdf.plot(ax=ax)
+
+    # https://automating-gis-processes.github.io/CSC18/lessons/L3/retrieve-osm-data.html
+    if 0:
+        graph = ox.graph_from_polygon(aoi_crs84.geometry.iloc[0])
+
+    graph = ox.graph_from_point(mediod_wgs84)
+    graphs = []
+    # exterior_points = np.array([np.array(_) for _ in img_locs.unary_union.convex_hull.exterior.coords.xy]).T
+    # for x, y in ub.ProgIter(list(exterior_points)):
+    #     graph = ox.graph_from_point((y, x))
+    #     graphs.append(graph)
+    import networkx as nx
+    combo = nx.disjoint_union_all(graphs + [graph])
+
+    # https://geopandas.org/en/stable/gallery/plotting_basemap_background.html
+    import kwplot
+    ax = kwplot.figure().gca()
+    fig, ax = ox.plot_graph(combo, bgcolor='lawngreen', node_color='dodgerblue', edge_color='skyblue', ax=ax)
+
+    for x, y in zip(img_locs.geometry.x, img_locs.geometry.y):
+        ax.annotate('💩', xy=(x, y), fontname='symbola', color='brown', fontsize=20)
+
+    if 0:
+        minx, miny, maxx, maxy = img_locs.unary_union.bounds
+        ax.set_xlim(minx, maxx)
+        ax.set_ylim(miny, maxy)
+
+    import contextily as cx
+    cx.add_basemap(ax, crs=img_locs.crs)
+    # , xytext=(0, 0), textcoords="offset points")
+    # img_locs.plot(ax=ax)
+
+
 def scatterplot(coco_dset):
     """
     import kwcoco
     coco_dset = kwcoco.CocoDataset('/data/store/data/shit-pics/data.kwcoco.json')
+
+    References:
+        https://catherineh.github.io/programming/2017/10/24/emoji-data-markers-in-matplotlib
+
+    import matplotlib.pyplot as plt
+
+    pip install mplcairo
+
+    import matplotlib
+    import matplotlib.font_manager as fm
+    import matplotlib.pyplot as plt
+    import mplcairo
+    matplotlib.use("module://mplcairo.qt")
+    print(matplotlib.get_backend())
+
+    symbola = ub.grabdata('https://github.com/gearit/ttf-symbola/raw/master/Symbola.ttf')
+
+    # fm.findSystemFonts()
+    # '../fonts/Twitter Colour Emoji.ttf')
+    fm.fontManager.addfont(symbola)
+
+    # fm.findSystemFonts('../fonts/Twitter Colour Emoji.ttf')
+    # fm.fontManager.addfont('../fonts/Twitter Colour Emoji.ttf')
+
+    fig, ax = plt.subplots()
+    t = ax.text(.5, .5, b'\xF0\x9F\x98\x85\xf0\x9f\x98\x8d\xF0\x9F\x98\x85'.decode('utf-8'), fontname='symbola', fontsize=30, ha='center')
+    t = ax.text(.5, .25, '😅💩😍😅', fontname='symbola', fontsize=30, ha='center')
+
+    import unicodedata
+    unicodedata.name('💩')
     """
     import geopandas as gpd
     from shapely import geometry
@@ -222,18 +333,13 @@ def scatterplot(coco_dset):
 
     # image_locs
     rows = []
-    def coerce_number(x):
-        if isinstance(x, dict) and x['type'] == 'rational':
-            return Rational(x['numerator'], x['denominator'])
-        else:
-            return x
     for gid, img in coco_dset.index.imgs.items():
         row = img.copy()
         if 'geos_point' in img:
             geos_point = img['geos_point']
             if isinstance(geos_point, dict):
                 coords = geos_point['coordinates']
-                point = [coerce_number(x) for x in coords]
+                point = [Rational.coerce(x) for x in coords]
                 row['geometry'] = geometry.Point(point)
                 rows.append(row)
 
