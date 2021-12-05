@@ -210,10 +210,42 @@ def check_exif_orientation(coco_dset):
         xdev.InteractiveIter.draw()
 
 
+def data_over_time(coco_dset):
+    """
+    import kwcoco
+    coco_dset = kwcoco.CocoDataset('/data/store/data/shit-pics/data.kwcoco.json')
+    """
+    import pandas as pd
+    import numpy as np
+    rows = []
+    for gid, img in coco_dset.index.imgs.items():
+        row = img.copy()
+        rows.append(row)
+    img_df = pd.DataFrame(rows)
+
+    img_df = img_df.sort_values('datetime')
+    img_df['collection_size'] = np.arange(1, len(img_df) + 1)
+    img_df['collection_size'] = np.arange(1, len(img_df) + 1)
+
+    img_df['pd_datetime'] = pd.to_datetime(img_df.datetime)
+
+    import kwplot
+    sns = kwplot.autosns()
+    ax = kwplot.figure(fnum=3, doclf=True).gca()
+    sns.lineplot(data=img_df, x='pd_datetime', y='collection_size')
+    sns.histplot(data=img_df, x='pd_datetime', ax=ax)
+    ax.set_title('Images collected over time')
+
+
 def data_on_maps(coco_dset):
     """
     import kwcoco
     coco_dset = kwcoco.CocoDataset('/data/store/data/shit-pics/data.kwcoco.json')
+    import matplotlib
+    import matplotlib.font_manager as fm
+    import matplotlib.pyplot as plt
+    import mplcairo
+    matplotlib.use("module://mplcairo.qt")
     """
     import geopandas as gpd
     from shapely import geometry
@@ -274,9 +306,15 @@ def data_on_maps(coco_dset):
 
     # https://geopandas.org/en/stable/gallery/plotting_basemap_background.html
     import kwplot
-    ax = kwplot.figure().gca()
+    ax = kwplot.figure(fnum=1, docla=True).gca()
     fig, ax = ox.plot_graph(combo, bgcolor='lawngreen', node_color='dodgerblue', edge_color='skyblue', ax=ax)
 
+    import matplotlib
+    import matplotlib.font_manager as fm
+    import matplotlib.pyplot as plt
+    import mplcairo
+    matplotlib.use("module://mplcairo.qt")
+    print(matplotlib.get_backend())
     for x, y in zip(img_locs.geometry.x, img_locs.geometry.y):
         ax.annotate('💩', xy=(x, y), fontname='symbola', color='brown', fontsize=20)
 
@@ -288,7 +326,19 @@ def data_on_maps(coco_dset):
     import contextily as cx
     cx.add_basemap(ax, crs=img_locs.crs)
     # , xytext=(0, 0), textcoords="offset points")
-    # img_locs.plot(ax=ax)
+    ax = kwplot.figure(fnum=1, docla=True).gca()
+
+    # import matplotlib
+    # import matplotlib.font_manager as fm
+    # import matplotlib.pyplot as plt
+    # import mplcairo
+    # matplotlib.use("module://mplcairo.qt")
+    import kwplot
+    print(matplotlib.get_backend())
+    ax = kwplot.figure(fnum=1, docla=True).gca()
+    img_locs.plot(ax=ax)
+    for x, y in zip(img_locs.geometry.x, img_locs.geometry.y):
+        ax.annotate('💩', xy=(x, y), fontname='symbola', color='brown', fontsize=20)
 
 
 def scatterplot(coco_dset):
