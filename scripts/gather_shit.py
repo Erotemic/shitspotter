@@ -606,6 +606,10 @@ def show_3_images(coco_dset):
 
 
 def autofind_pair_hueristic(coco_dset):
+    """
+    import kwcoco
+    coco_dset = kwcoco.CocoDataset('/data/store/data/shit-pics/data.kwcoco.json')
+    """
     import pandas as pd
     import dateutil
     import dateutil.parser
@@ -625,32 +629,44 @@ def autofind_pair_hueristic(coco_dset):
 
     # Fails on 31, 32
 
+    # Save a table of images matches in the dataset
+    coco_dset.dataset.setdefault('image_matches', [])
+
     @functools.lru_cache(maxsize=32)
     def cache_imread(gid):
-        img = coco_dset.imgs[gid1]
-        imdata = kwimage.imread(img['file_name'], backend='gdal', overview=2)
-        rchip, sf_info = kwimage.imresize(imdata, max_dim=416,
-                                          return_info=True)
+        coco_img = coco_dset.coco_image(gid)
+        fpath = coco_img.primary_image_filepath()
+        imdata = kwimage.imread(fpath, backend='gdal', overview=0)
+        rchip, sf_info = kwimage.imresize(imdata, max_dim=1024,
+                                          return_info=True, antialias=True)
         return rchip
 
     @functools.lru_cache(maxsize=32)
     def matchable_image(gid):
         import utool as ut
-        img = coco_dset.imgs[gid1]
+        coco_img = coco_dset.coco_image(gid)
+        fpath = coco_img.primary_image_filepath()
+        img = coco_img.img
         dt = dateutil.parser.parse(img['datetime'])
-        imdata = kwimage.imread(img['file_name'], backend='gdal', overview=2)
-        rchip, sf_info = kwimage.imresize(imdata, max_dim=416,
-                                          return_info=True)
+        imdata = kwimage.imread(fpath, backend='gdal', overview=0)
+        rchip, sf_info = kwimage.imresize(imdata, max_dim=1024,
+                                          return_info=True, antialias=True)
         annot = ut.LazyDict({'rchip': rchip, 'dt': dt})
         vtool_ibeis.matching.ensure_metadata_feats(annot, feat_cfg)
         return annot
 
-    scores = {}
-    pairs = list(ub.iter_window(ordered_gids, 2))
+    image_matches = {}
+    for match in coco_dset.dataset['image_matches']:
+        name1 = match['name1']
+        name2 = match['name2']
+        image_matches[(name1, name2)] = match
 
+    pairs = list(ub.iter_window(ordered_gids, 2))
     for gid1, gid2 in ub.ProgIter(pairs, verbose=3):
-        pair = (gid1, gid2)
-        if pair in scores:
+        name1 = coco_dset.index.imgs[gid1]['name']
+        name2 = coco_dset.index.imgs[gid2]['name']
+        pair = (name1, name2)
+        if pair  in image_matches:
             continue
         annot1 = matchable_image(gid1)
         annot2 = matchable_image(gid2)
@@ -658,18 +674,129 @@ def autofind_pair_hueristic(coco_dset):
         delta_seconds = delta.total_seconds()
         if delta_seconds < 60 * 60:
             match_cfg = {
-                'symetric': False,
+                'symetric': True,
                 'K': 1,
-                # 'ratio_thresh': 0.625,
-                'ratio_thresh': 0.7,
+                'ratio_thresh': 0.625,
+                # 'ratio_thresh': 0.7,
                 'refine_method': 'homog',
                 'symmetric': True,
             }
             match = PairwiseMatch(annot1, annot2)
             match.apply_all(cfgdict=match_cfg)
             score = match.fs.sum()
-            scores[pair] = (score, delta_seconds)
-            print('score = {!r}'.format(score))
+            match = {
+                'name1': name1,
+                'name2': name2,
+                'score': score,
+                'H_12': match.H_12,
+            }
+
+            from kwcoco.util import util_json
+            match = util_json.ensure_json_serializable(match)
+            print('match = {}'.format(ub.repr2(match, nl=1)))
+            image_matches[pair] = match
+            coco_dset.dataset['image_matches'].append(match)
+
+    # Save the match table
+    coco_dset.dump(coco_dset.fpath, newlines=True)
+
+    score_dict = ub.ddict(dict)
+    for match in image_matches.values():
+        name1 = match['name1']
+        name2 = match['name2']
+        if match['score'] > 400:
+            score_dict[(name1, name2)] = match['score']
+    assignment = maxvalue_assignment2(score_dict)
+
+    ordered_names = coco_dset.images(ordered_gids).lookup('name')
+    ub.find_duplicates(ub.flatten(assignment))
+    node_to_pairid = {a: i for i, pair in enumerate(assignment) for a in pair}
+    node_to_pair = {a: pair for pair in assignment for a in pair}
+    rows = []
+    for name in ordered_names:
+        dt = coco_dset.index.name_to_img[name]['datetime']
+        pair = node_to_pair.get(name, None)
+        score = score_dict.get(pair, None)
+        if score is None and pair is not None:
+            score = score_dict.get(pair[::-1], None)
+        rows.append({
+            'name': name,
+            'pair_id': node_to_pairid.get(name, None),
+            'score': score,
+            'datetime': dt,
+        })
+    df = pd.DataFrame(rows)
+    print(df.to_string())
+
+    # Check on the automatic protocol
+    change_point = dateutil.parser.parse('2021-05-11T120000')
+
+    pairwise_df = df[
+        pd.to_datetime(df['datetime']) <= change_point
+    ]
+
+    triple_df = df[
+        pd.to_datetime(df['datetime']) > change_point
+    ]
+    import numpy as np
+    triple_df = triple_df.assign(in_sequence=([False] * len(triple_df)))
+    pairwise_df = pairwise_df.assign(in_sequence=([False] * len(pairwise_df)))
+
+    good_pairs = 0
+    bad_pairwise_items = 0
+
+    idx = 0
+    good_pairwise_idxs = []
+    while idx < len(pairwise_df) - 1:
+        a = pairwise_df.iloc[idx]
+        b = pairwise_df.iloc[idx + 1]
+        if a.pair_id == b.pair_id:
+            good_pairs += 1
+            good_pairwise_idxs.append(idx)
+            good_pairwise_idxs.append(idx + 1)
+            idx += 2
+        else:
+            bad_pairwise_items += 1
+            idx += 1
+
+    for _ in range(idx, len(pairwise_df)):
+        bad_pairwise_items += 1
+
+    v = pairwise_df['in_sequence'].values
+    v[good_pairwise_idxs] = 1
+    pairwise_df['in_sequence'] = v
+
+    good_triples = 0
+    bad_triple_items = 0
+    good_triple_idxs = []
+    idx = 0
+    while idx < len(triple_df) - 2:
+        a = triple_df.iloc[idx]
+        b = triple_df.iloc[idx + 1]
+        c = triple_df.iloc[idx + 2]
+        if a.pair_id == b.pair_id and np.isnan(c.pair_id):
+            good_triple_idxs.append(idx)
+            good_triple_idxs.append(idx + 1)
+            good_triple_idxs.append(idx + 2)
+            good_triples += 1
+            idx += 3
+        else:
+            bad_triple_items += 1
+            idx += 1
+    for _ in range(idx, len(pairwise_df)):
+        bad_pairwise_items += 1
+
+    v = triple_df['in_sequence'].values
+    v[good_triple_idxs] = 1
+    triple_df['in_sequence'] = v
+
+    print(pairwise_df.to_string())
+    print(triple_df.to_string())
+
+    print('good_pairs = {!r}'.format(good_pairs))
+    print('good_triples = {!r}'.format(good_triples))
+    print('bad_pairwise_items = {!r}'.format(bad_pairwise_items))
+    print('bad_triple_items = {!r}'.format(bad_triple_items))
 
     import kwplot
     kwplot.autompl()
@@ -685,6 +812,52 @@ def autofind_pair_hueristic(coco_dset):
         kwplot.imshow(canvas, title='pair={}, score={:0.2f}, delta={}'.format(pair, score, delta))
         print('pair = {!r}'.format(pair))
         xdev.InteractiveIter.draw()
+
+
+def maxvalue_assignment2(score_dict):
+    """
+    TODO: upate kwarray with alternative formulation
+    """
+    import networkx as nx
+    import kwarray
+    import numpy as np
+    graph = nx.Graph()
+    for (name1, name2), score in score_dict.items():
+        graph.add_edge(name1, name2, score=score)
+    assignment = nx.algorithms.matching.max_weight_matching(graph, weight='score')
+
+    # assignment = []
+    # for cc in nx.connected_components(graph):
+    #     if 'PXL_20201207_145707892' in cc:
+    #         print('cc = {!r}'.format(cc))
+    #     if len(cc) == 2:
+    #         data = list(graph.edges(cc, data=True))[0][2]
+    #         if data['score'] > 0:
+    #             node1, node2 = cc
+    #             assignment.append((node1, node2))
+    #     if len(cc) > 2:
+    #         subgraph = graph.subgraph(cc)
+    #         idx_to_node = list(subgraph.nodes())
+    #         node_to_idx = {n: idx for idx, n in enumerate(idx_to_node)}
+    #         size = len(idx_to_node)
+    #         cost = np.full((size, size), fill_value=np.inf)
+    #         for n1, n2, data in subgraph.edges(data=True):
+    #             idx1 = node_to_idx[n1]
+    #             idx2 = node_to_idx[n2]
+    #             idx1, idx2 = sorted([idx1, idx2])
+    #             cost[idx1, idx2] = data['score']
+    #             # cost[idx2, idx1] = data['score']
+    #         idx_assigned, total = kwarray.mincost_assignment(cost)
+    #         if 'PXL_20201207_145707892' in cc:
+    #             print('cost =\n{!r}'.format(cost))
+    #             print('idx_assigned = {!r}'.format(idx_assigned))
+    #             print('total = {!r}'.format(total))
+    #         for idx1, idx2 in idx_assigned:
+    #             node1 = idx_to_node[idx1]
+    #             node2 = idx_to_node[idx2]
+    #             assignment.append((node1, node2))
+    return assignment
+
 
 
 def imread_with_exif(fpath, overview=None):
