@@ -8,23 +8,26 @@ from setuptools import find_packages
 if exists('CMakeLists.txt'):
     try:
         import os
+        # Hack to disable all compiled extensions
         val = os.environ.get('DISABLE_C_EXTENSIONS', '').lower()
-        flag = val in {'true', 'on', 'yes', '1'}
+        use_setuptools = val in {'true', 'on', 'yes', '1'}
 
         if '--universal' in sys.argv:
-            flag = True
+            use_setuptools = True
 
         if '--disable-c-extensions' in sys.argv:
             sys.argv.remove('--disable-c-extensions')
-            flag = True
+            use_setuptools = True
 
-        if flag:
-            # Hack to disable all compiled extensions
-            from setuptools import setup
-        else:
-            from skbuild import setup
     except ImportError:
-        setup = None
+        use_setuptools = True
+else:
+    use_setuptools = True
+
+if use_setuptools:
+    from setuptools import setup
+else:
+    from skbuild import setup
 
 
 def parse_version(fpath):
