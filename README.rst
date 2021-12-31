@@ -46,7 +46,7 @@ some time for it to fully drop.
     - Found errors in the dataset stats, updating README.
     - Updated analytics to be updated as the dataset grows. 
     - Initial SIFT-based matching isnt as robust as I'd hoped.
-    - First data is on IPFS, still need to open ports. ID of the root dataset is: QmRGxbcjYb7ndCzZ4fEBBk2ZR7MtU43f4SSDEeZp9vonx9
+    - First data is on IPFS, still need to open ports. ID of the root dataset is: QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG
 * 2021-11-23 - Added annotation process overview and dataset sample.
 * 2021-11-11 - Initial upload of data munging scripts.
 * 2020-12-18 - Took the first picture.
@@ -223,6 +223,10 @@ Update 2021-12-30:
 .. code:: 
 
     QmWhKBAQ765YH2LKMQapWp7mULkQxExrjQKeRAWNu5mfBK shitspotter_dvc/data.kwcoco.json
+    QmXBnDDB4TX5FPGddYCQaVSqTmc6cMMTdUwsLwZhuAM3Yb shitspotter_dvc/_cache
+    QmbvEN1Ky3MGGBVDwyMBZvdUCFi1WvfdzkTzgtE7sAvW9B shitspotter_dvc/analysis
+    QmXdQzqcFv3pky621txT5Z6k41gZR9bkckG4no6DNh2ods shitspotter_dvc/assets/_poop-unstructured-2021-02-06
+    QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn shitspotter_dvc/assets/_trashed
     QmZ4vipXwH7f27VSjx3Bz4aLoeigL9T22sFADv5KCBTFW7 shitspotter_dvc/assets/poop-2020-12-28
     QmTHipghcRCVamWLojWKQy8KgamtRnPv9fL3dxxPv7VVZx shitspotter_dvc/assets/poop-2021-02-06
     QmZ3W4pXVkbhQKssWBhBgspeAB3U6GRGD85eff7BvAPNri shitspotter_dvc/assets/poop-2021-03-05
@@ -238,7 +242,7 @@ Update 2021-12-30:
     QmYXXjAutQLdq644rsugp6jxPH6GSaP3kKRTC2jsy4FQMp shitspotter_dvc/assets/poop-2021-11-26
     QmQAufuJGGn7TDeiEE52k5SLPGrcrawjrd8S2AATrSSBvM shitspotter_dvc/assets/poop-2021-12-27
     QmfZZwoj1gwGPctBQW5Mkye3a8VuajFBCksHVJH7r9Wn3U shitspotter_dvc/assets
-    QmRGxbcjYb7ndCzZ4fEBBk2ZR7MtU43f4SSDEeZp9vonx9 shitspotter_dvc
+    QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG shitspotter_dvc
 
 
 Depsite the name, this is not yet a DVC repo.

@@ -142,11 +142,15 @@ setup_shitspotter_ipns(){
     ipfs key gen $IPNS_KEY
 
     cd ~/data/dvc-repos
-    shitspotter_dvc
+    #shitspotter_dvc
     # Add the current state of the data to IPFS
     ipfs add -r ~/data/dvc-repos/shitspotter_dvc
 
     added QmWhKBAQ765YH2LKMQapWp7mULkQxExrjQKeRAWNu5mfBK shitspotter_dvc/data.kwcoco.json
+    added QmXBnDDB4TX5FPGddYCQaVSqTmc6cMMTdUwsLwZhuAM3Yb shitspotter_dvc/_cache
+    added QmbvEN1Ky3MGGBVDwyMBZvdUCFi1WvfdzkTzgtE7sAvW9B shitspotter_dvc/analysis
+    added QmXdQzqcFv3pky621txT5Z6k41gZR9bkckG4no6DNh2ods shitspotter_dvc/assets/_poop-unstructured-2021-02-06
+    added QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn shitspotter_dvc/assets/_trashed
     added QmZ4vipXwH7f27VSjx3Bz4aLoeigL9T22sFADv5KCBTFW7 shitspotter_dvc/assets/poop-2020-12-28
     added QmTHipghcRCVamWLojWKQy8KgamtRnPv9fL3dxxPv7VVZx shitspotter_dvc/assets/poop-2021-02-06
     added QmZ3W4pXVkbhQKssWBhBgspeAB3U6GRGD85eff7BvAPNri shitspotter_dvc/assets/poop-2021-03-05
@@ -162,7 +166,8 @@ setup_shitspotter_ipns(){
     added QmYXXjAutQLdq644rsugp6jxPH6GSaP3kKRTC2jsy4FQMp shitspotter_dvc/assets/poop-2021-11-26
     added QmQAufuJGGn7TDeiEE52k5SLPGrcrawjrd8S2AATrSSBvM shitspotter_dvc/assets/poop-2021-12-27
     added QmfZZwoj1gwGPctBQW5Mkye3a8VuajFBCksHVJH7r9Wn3U shitspotter_dvc/assets
-    added QmRGxbcjYb7ndCzZ4fEBBk2ZR7MtU43f4SSDEeZp9vonx9 shitspotter_dvc
+    added QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG shitspotter_dvc
+    
 
     ipfs ls /QmRGxbcjYb7ndCzZ4fEBBk2ZR7MtU43f4SSDEeZp9vonx9
     ipfs ls https://ipfs.io/ipfs/QmRGxbcjYb7ndCzZ4fEBBk2ZR7MtU43f4SSDEeZp9vonx9
@@ -172,7 +177,7 @@ setup_shitspotter_ipns(){
     ipfs key export -o "$IPNS_PRIVATE_KEY_STORE/IPNS_KEY.key" $IPNS_KEY
 
     # https://github.com/ipfs/ipfs-ds-convert
-    ipfs ls QmRGxbcjYb7ndCzZ4fEBBk2ZR7MtU43f4SSDEeZp9vonx9
+    ipfs ls QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG
     ipfs ls QmfZZwoj1gwGPctBQW5Mkye3a8VuajFBCksHVJH7r9Wn3U
     ipfs ls "https://ipfs.io/ipfs/QmRGxbcjYb7ndCzZ4fEBBk2ZR7MtU43f4SSDEeZp9vonx9"
     ipfs ls "https://ipfs.io/ipfs/QmQAufuJGGn7TDeiEE52k5SLPGrcrawjrd8S2AATrSSBvM"
