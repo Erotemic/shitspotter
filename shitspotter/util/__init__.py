@@ -52,6 +52,7 @@ __getattr__ = lazy_import(
     submod_attrs={
         'util_data': [
             'find_shit_coco_fpath',
+            'open_shit_coco',
         ],
         'util_image': [
             'extract_exif_metadata',
@@ -68,4 +69,5 @@ def __dir__():
     return __all__
 
 __all__ = ['Rational', 'extract_exif_metadata', 'find_shit_coco_fpath',
-           'imread_with_exif', 'util_data', 'util_image', 'util_math']
+           'imread_with_exif', 'open_shit_coco', 'util_data', 'util_image',
+           'util_math']

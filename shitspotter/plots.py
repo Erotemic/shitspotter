@@ -1,14 +1,46 @@
 from shitspotter.util.util_math import Rational
-from shitspotter.util.util_math import Rational
+from dateutil.parser import parse as parse_datetime
+import pandas as pd
+import ubelt as ub
+import numpy as np
 
 
-def data_over_time(coco_dset):
+def update_analysis_plots():
     """
-    import kwcoco
-    coco_dset = kwcoco.CocoDataset('/data/store/data/shit-pics/data.kwcoco.json')
+    Update all of the dataset analytics
     """
-    import pandas as pd
-    import numpy as np
+    import shitspotter
+    import kwplot
+    kwplot.autoplt()
+
+    coco_dset = shitspotter.open_shit_coco()
+    dump_dpath = (ub.Path(coco_dset.bundle_dpath) / 'analysis').ensuredir()
+
+    fig = data_over_time(coco_dset, fnum=1)
+    fig.set_size_inches(np.array([6.4, 4.8]) * 1.5)
+    fig.tight_layout()
+    fig.savefig(dump_dpath / 'images_over_time.png')
+
+    fig = spacetime_scatterplot(coco_dset)
+    fig.set_size_inches(np.array([6.4, 4.8]) * 1.5)
+    fig.tight_layout()
+    fig.savefig(dump_dpath / 'scat_scatterplot.png')
+
+    doggos(dump_dpath / 'doggos.jpg')
+
+    fig = show_3_images(coco_dset)
+    fig.set_size_inches(np.array([6.4, 4.8]) * 1.5)
+    fig.tight_layout()
+    fig.savefig(dump_dpath / 'viz_three_images.jpg')
+
+    dump_demo_warp_img(coco_dset, dump_dpath)
+
+
+def data_over_time(coco_dset, fnum=1):
+    """
+    import shitspotter
+    coco_dset = shitspotter.open_shit_coco()
+    """
     rows = []
     for gid, img in coco_dset.index.imgs.items():
         row = img.copy()
@@ -23,117 +55,15 @@ def data_over_time(coco_dset):
 
     import kwplot
     sns = kwplot.autosns()
-    ax = kwplot.figure(fnum=3, doclf=True).gca()
+    fig = kwplot.figure(fnum=3, doclf=True)
+    ax = fig.gca()
+    sns.histplot(data=img_df, x='pd_datetime', ax=ax, cumulative=True)
     sns.lineplot(data=img_df, x='pd_datetime', y='collection_size')
-    sns.histplot(data=img_df, x='pd_datetime', ax=ax)
     ax.set_title('Images collected over time')
+    return fig
 
 
-def data_on_maps(coco_dset):
-    """
-    import kwcoco
-    coco_dset = kwcoco.CocoDataset('/data/store/data/shit-pics/data.kwcoco.json')
-    import matplotlib
-    import matplotlib.font_manager as fm
-    import matplotlib.pyplot as plt
-    import mplcairo
-    matplotlib.use("module://mplcairo.qt")
-    """
-    import geopandas as gpd
-    from shapely import geometry
-    import numpy as np
-    from pyproj import CRS
-    import osmnx as ox
-    # image_locs
-    rows = []
-    for gid, img in coco_dset.index.imgs.items():
-        row = img.copy()
-        if 'geos_point' in img:
-            geos_point = img['geos_point']
-            if isinstance(geos_point, dict):
-                coords = geos_point['coordinates']
-                point = [Rational.coerce(x) for x in coords]
-                row['geometry'] = geometry.Point(point)
-                rows.append(row)
-    img_locs = gpd.GeoDataFrame(rows, crs='crs84')
-
-    crs84 = CRS.from_user_input('crs84')
-
-    # wld_map_crs84_gdf = gpd.read_file(
-    #     gpd.datasets.get_path('naturalearth_lowres')
-    # ).to_crs(crs84)
-
-    utm_crs = img_locs.estimate_utm_crs()
-    img_locs_utm = img_locs.to_crs(utm_crs)
-
-    aoi_utm = gpd.GeoDataFrame({
-        'geometry': [img_locs_utm.unary_union.convex_hull]
-    }, crs=img_locs_utm.crs)
-    mediod_utm = gpd.GeoDataFrame({
-        'geometry': [geometry.Point(np.median(np.array([(x.x, x.y) for x in img_locs_utm.geometry]), axis=0))]
-    }, crs=img_locs_utm.crs).convex_hull
-
-    mediod_crs84 = mediod_utm.to_crs(crs84)
-    aoi_crs84 = aoi_utm.to_crs(crs84)
-    medoid_lon, medoid_lat = map(lambda x: x[0], mediod_crs84.iloc[0].xy)
-    mediod_wgs84 = (medoid_lat, medoid_lon)
-
-    # import kwplot
-    # sns = kwplot.autosns()
-    # ax = kwplot.figure().gca()
-    # wld_map_crs84_gdf.plot(ax=ax)
-
-    # https://automating-gis-processes.github.io/CSC18/lessons/L3/retrieve-osm-data.html
-    if 0:
-        graph = ox.graph_from_polygon(aoi_crs84.geometry.iloc[0])
-
-    graph = ox.graph_from_point(mediod_wgs84)
-    graphs = []
-    # exterior_points = np.array([np.array(_) for _ in img_locs.unary_union.convex_hull.exterior.coords.xy]).T
-    # for x, y in ub.ProgIter(list(exterior_points)):
-    #     graph = ox.graph_from_point((y, x))
-    #     graphs.append(graph)
-    import networkx as nx
-    combo = nx.disjoint_union_all(graphs + [graph])
-
-    # https://geopandas.org/en/stable/gallery/plotting_basemap_background.html
-    import kwplot
-    ax = kwplot.figure(fnum=1, docla=True).gca()
-    fig, ax = ox.plot_graph(combo, bgcolor='lawngreen', node_color='dodgerblue', edge_color='skyblue', ax=ax)
-
-    import matplotlib
-    import matplotlib.font_manager as fm
-    import matplotlib.pyplot as plt
-    import mplcairo
-    matplotlib.use("module://mplcairo.qt")
-    print(matplotlib.get_backend())
-    for x, y in zip(img_locs.geometry.x, img_locs.geometry.y):
-        ax.annotate('💩', xy=(x, y), fontname='symbola', color='brown', fontsize=20)
-
-    if 0:
-        minx, miny, maxx, maxy = img_locs.unary_union.bounds
-        ax.set_xlim(minx, maxx)
-        ax.set_ylim(miny, maxy)
-
-    import contextily as cx
-    cx.add_basemap(ax, crs=img_locs.crs)
-    # , xytext=(0, 0), textcoords="offset points")
-    ax = kwplot.figure(fnum=1, docla=True).gca()
-
-    # import matplotlib
-    # import matplotlib.font_manager as fm
-    # import matplotlib.pyplot as plt
-    # import mplcairo
-    # matplotlib.use("module://mplcairo.qt")
-    import kwplot
-    print(matplotlib.get_backend())
-    ax = kwplot.figure(fnum=1, docla=True).gca()
-    img_locs.plot(ax=ax)
-    for x, y in zip(img_locs.geometry.x, img_locs.geometry.y):
-        ax.annotate('💩', xy=(x, y), fontname='symbola', color='brown', fontsize=20)
-
-
-def scatterplot(coco_dset):
+def spacetime_scatterplot(coco_dset):
     """
     import kwcoco
     coco_dset = kwcoco.CocoDataset('/data/store/data/shit-pics/data.kwcoco.json')
@@ -171,7 +101,8 @@ def scatterplot(coco_dset):
     import geopandas as gpd
     from shapely import geometry
     from pyproj import CRS
-    import numpy as np
+    import kwplot
+    sns = kwplot.autosns()
 
     # image_locs
     rows = []
@@ -224,13 +155,7 @@ def scatterplot(coco_dset):
     # print('num_trip_groups = {!r}'.format(num_trip_groups))
     # print('pair_groups = {!r}'.format(pair_groups))
 
-    import kwplot
-    sns = kwplot.autosns()
-
-    kwplot.figure(fnum=3, doclf=1)
-    sns.histplot(data=img_locs, x='datetime_obj', kde=True, bins=24, stat='count')
-
-    kwplot.figure(fnum=1, doclf=1)
+    fig = kwplot.figure(fnum=1, doclf=1)
     ax = sns.scatterplot(data=img_locs, x='distance', y='hour_of_day', facecolor=(0, 0, 0, 0), edgecolor=(0, 0, 0, 0))
     # hue='year_month')
     ax.set_xscale('log')
@@ -238,21 +163,47 @@ def scatterplot(coco_dset):
     ax.set_ylabel('Time of day (hours)')
     ax.set_title('Distribution of Images (n={})'.format(len(img_locs)))
 
-    from PIL import Image, ImageFont, ImageDraw
     text = '💩'
-    # text = 'P'
-    # sudo apt install ttf-ancient-fonts-symbola
-    symbola = ub.grabdata('https://github.com/gearit/ttf-symbola/raw/master/Symbola.ttf')
-    font = ImageFont.truetype(symbola, 32, encoding='unic')
-    # font = ImageFont.truetype('/usr/share/fonts/truetype/Sarai/Sarai.ttf', 60, encoding='unic')
-    # font = ImageFont.truetype("/data/Steam/steamapps/common/Proton 6.3/dist/share/wine/fonts/symbol.ttf", 60, encoding='unic')
 
+    label_to_color = ub.dzip(hue_labels, kwplot.Color.distinct(len(hue_labels)))
+    emoji_plot_pil(ax, img_locs, text, label_to_color)
+    # emoji_plot_font(ax, img_locs, text, label_to_color)
+
+    # idx = img_locs['distance'].argmin()
+    # Answer jasons question
+    # cand = img_locs[img_locs['distance'] < 10]
+    # pt = cand.iloc[cand['distance'].argmin()]
+    # name = pt['name']
+    # name = img_locs.iloc[idx]['name']
+
+    kwplot.phantom_legend(label_to_color)
+    return fig
+
+
+def emoji_plot_font(ax, img_locs, text, label_to_color):
+    for x, y in zip(img_locs.geometry.x, img_locs.geometry.y):
+        ax.annotate(text, xy=(x, y), fontname='symbola', color='brown', fontsize=20)
+
+
+def emoji_plot_pil(ax, img_locs, text, label_to_color):
+    """
+    # import kwimage
+    # kwplot.imshow(kwimage.stack_images([g.image._A for g in label_to_img.values()]), fnum=2, doclf=True)
+    """
+    import kwimage
+    from PIL import Image, ImageFont, ImageDraw
+    # hue_labels
     from matplotlib.offsetbox import OffsetImage, AnnotationBbox
     from kwplot.mpl_make import crop_border_by_color
-    label_to_color = ub.dzip(hue_labels, kwplot.Color.distinct(len(hue_labels)))
+    # text = 'P'
+    # sudo apt install ttf-ancient-fonts-symbola
+    # font = ImageFont.truetype('/usr/share/fonts/truetype/Sarai/Sarai.ttf', 60, encoding='unic')
+    # font = ImageFont.truetype("/data/Steam/steamapps/common/Proton 6.3/dist/share/wine/fonts/symbol.ttf", 60, encoding='unic')
     label_to_img = {}
+    symbola = ub.grabdata('https://github.com/gearit/ttf-symbola/raw/master/Symbola.ttf')
+    font = ImageFont.truetype(symbola, 32, encoding='unic')
     for label, color in label_to_color.items():
-        col = kwplot.Color(list(color) + [1]).as255()
+        col = kwimage.Color(list(color) + [1]).as255()
         pil_img = Image.new("RGBA", (64, 64), (255, 255, 255, 0))
         pil_draw = ImageDraw.Draw(pil_img)
         pil_draw.text((0, 0), text, col, font=font)
@@ -269,20 +220,6 @@ def scatterplot(coco_dset):
         image_box = label_to_img[label]
         ab = AnnotationBbox(image_box, (x, y), frameon=False)
         ax.add_artist(ab)
-
-    idx = img_locs['distance'].argmin()
-
-    # Answer jasons question
-    cand = img_locs[img_locs['distance'] < 10]
-    pt = cand.iloc[cand['distance'].argmin()]
-    name = pt['name']
-    name = img_locs.iloc[idx]['name']
-
-    kwplot.phantom_legend(label_to_color)
-    # ax.annotate('💩', (x, y))
-
-    import kwimage
-    kwplot.imshow(kwimage.stack_images([g.image._A for g in label_to_img.values()]), fnum=2, doclf=True)
 
 
 def show_data_around_name(coco_dset, name):
@@ -309,10 +246,10 @@ def show_data_around_name(coco_dset, name):
     kwplot.imshow(canvas, fnum=2)
 
 
-def doggos():
+def doggos(dump_fpath):
     import kwimage
     from skimage import exposure  # NOQA
-    from skimage.exposure import match_histograms
+    # from skimage.exposure import match_histograms
     raw_images = [
         kwimage.imread('/home/joncrall/Pictures/PXL_20210721_131129724.jpg'),
         kwimage.imread('/home/joncrall/Pictures/PXL_20210724_160822858.jpg'),
@@ -330,7 +267,10 @@ def doggos():
     # ref = kwimage.stack_images_grid(images2[0:1], chunksize=4)
     # images2 = [match_histograms(img, ref, multichannel=False) for img in images2]
     canvas = kwimage.stack_images_grid(images2, chunksize=4)
-    kwimage.imwrite('dogos.jpg', kwimage.ensure_uint255(canvas))
+    # fpath = str(dpath / 'dogos.jpg')
+    fpath = dump_fpath
+    kwimage.imwrite(dump_fpath, kwimage.ensure_uint255(canvas))
+    return fpath
 
 
 def show_data_diversity(coco_dset):
@@ -373,11 +313,17 @@ def show_3_images(coco_dset):
     import kwplot
     kwplot.autompl()
 
-    all_gids = list(coco_dset.images())
-    n = 0
-    n += 3
-    gids = all_gids[943 + n:]
-    chosen_gids = gids[0:3]
+    # all_gids = list(coco_dset.images())
+    # n = 0
+    # n += 3
+    # gids = all_gids[910 + n:]
+    # chosen_gids = gids[0:3]
+
+    names = [
+        'PXL_20210525_190443057',
+        'PXL_20210525_190539541',
+        'PXL_20210525_190547010.MP']
+    chosen_gids = list(coco_dset.images(names=names))
 
     images = []
     import numpy as np
@@ -392,78 +338,60 @@ def show_3_images(coco_dset):
     images[2] = kwimage.draw_header_text(images[2], 'Negative')
 
     canvas = kwimage.stack_images(images, pad=10, axis=1)
+    fig = kwplot.figure(fnum=1, doclf=True)
     kwplot.imshow(canvas, fnum=1)
-
-    kwimage.imwrite('viz_three_images.jpg', canvas)
-
-
-def check_exif_orientation(coco_dset):
-    """
-    Notes on orientation:
-        https://jdhao.github.io/2019/07/31/image_rotation_exif_info/
-
-        1: Upright
-        8: Rot 90 clockwise
-        3: Rot 180
-        6: Rot 270 clockwise
-
-        2: Flip + Upright
-        7: Flip + Rot 90 clockwise
-        4: Flip + Rot 180
-        5: Flip + Rot 270 clockwise
-    """
-    import kwplot
-    import xdev
-    import kwimage
-    kwplot.autompl()
-    gids = list(coco_dset.index.imgs.keys())
-    giditer = xdev.InteractiveIter(gids)
-    for gid in giditer:
-        # for gid in gids:
-        fpath = coco_dset.get_image_fpath(gid)
-        exif = extract_exif_metadata(fpath)
-        exif_ori = exif.get('Orientation', None)
-        print('exif_ori = {!r}'.format(exif_ori))
-        # 'ExifImageHeight': 3024,
-        # 'ExifImageWidth': 4032,
-        # 'ImageLength': 3024,
-        # 'ImageWidth': 4032,
-        # Reading with GDAL/cv2 will NOT apply any exif orientation
-        # but reading with skimage will
-        imdata = kwimage.imread(fpath, backend='gdal', overview=-1)
-
-        kwplot.imshow(imdata)
-        xdev.InteractiveIter.draw()
+    return fig
 
 
-def dump_demo_warp_img(coco_dset):
+def dump_demo_warp_img(coco_dset, dump_dpath):
     import kwplot
     import kwimage
     kwplot.autompl()
-    gid1, gid2 = (3, 4)
-    gid1, gid2 = (30, 31)
-    gid1, gid2 = (34, 35)
-    gid1, gid2 = (99, 100)
+    # gid1, gid2 = (3, 4)
+    # gid1, gid2 = (30, 31)
+    # gid1, gid2 = (34, 35)
+    # gid1, gid2 = (99, 100)
 
-    fig, fig2 = demo_warp(coco_dset, gid1, gid2)
+    gid1, gid2 = list(coco_dset.images(
+        names=['PXL_20210525_190443057', 'PXL_20210525_190539541']))
+
+    # fig, fig2 = demo_warp(coco_dset, gid1, gid2)
+    figs = demo_warp(coco_dset, gid1, gid2)
+
+    fig1, fig2, fig3, fig4 = figs
+    # for fig in figs:
+    #     fig.canvas.draw()
 
     ##
     ####
     # Plotting
 
     # fig2.set_size_inches(25.6 , 13.37)
-    fig2.set_size_inches(25.6 / 2, 13.37 / 2)
-    fig2.tight_layout()
+    fig1.tight_layout()
 
-    fig.set_size_inches(14.4 / 2, 24.84 / 2)
-    fig.tight_layout()
-    toshow_im1 = kwplot.render_figure_to_image(fig)
+    fig1.set_size_inches(14.4 / 2, 24.84 / 2)
+    fig1.tight_layout()
+    toshow_im1 = kwplot.render_figure_to_image(fig1)
     tosave_im1 = kwplot.mpl_make.crop_border_by_color(toshow_im1)
+    kwimage.imwrite(dump_dpath / 'viz_align_process.png', tosave_im1)
+
+    fig2.set_size_inches(8 * 0.8, 13 * 0.8)
+    fig2.tight_layout()
     toshow_im2 = kwplot.render_figure_to_image(fig2)
     tosave_im2 = kwplot.mpl_make.crop_border_by_color(toshow_im2)
+    kwimage.imwrite(dump_dpath / 'viz_candidate_ann.png', tosave_im2)
 
-    kwimage.imwrite('viz_candidate_ann.png', tosave_im1)
-    kwimage.imwrite('viz_align_process.png', tosave_im2)
+    fig3.set_size_inches(16 * 0.8, 13 * 0.8)
+    fig3.tight_layout()
+    toshow_im3 = kwplot.render_figure_to_image(fig3)
+    tosave_im3 = kwplot.mpl_make.crop_border_by_color(toshow_im3)
+    kwimage.imwrite(dump_dpath / 'viz_diff_to_binthresh.png', tosave_im3)
+
+    fig4.set_size_inches(24 * 1.0, 13 * 1.0)
+    fig4.tight_layout()
+    toshow_im3 = kwplot.render_figure_to_image(fig3)
+    tosave_im3 = kwplot.mpl_make.crop_border_by_color(toshow_im3)
+    kwimage.imwrite(dump_dpath / 'viz_align_upclose.png', tosave_im3)
 
     # insepctor = match.ishow()
     # print('insepctor = {!r}'.format(insepctor))
@@ -491,8 +419,8 @@ def iter_warp(coco_dset):
 
 def demo_warp(coco_dset, gid1, gid2):
     """
-    import kwcoco
-    coco_dset = kwcoco.CocoDataset('/data/store/data/shit-pics/data.kwcoco.json')
+    import shitspotter
+    coco_dset = shitspotter.open_shit_coco()
 
     gid1, gid2 = 24, 25
     gid1, gid2 = 339, 340  # paralax
@@ -518,11 +446,12 @@ def demo_warp(coco_dset, gid1, gid2):
 
     # imdata1 = np.rot90(imdata1)
     # imdata2 = np.rot90(imdata2)
+    import shitspotter
 
     fpath1 = coco_dset.get_image_fpath(gid1)
     fpath2 = coco_dset.get_image_fpath(gid2)
-    imdata1 = imread_with_exif(fpath1, overview=2)
-    imdata2 = imread_with_exif(fpath2, overview=2)
+    imdata1 = shitspotter.util.imread_with_exif(fpath1, overview=2)
+    imdata2 = shitspotter.util.imread_with_exif(fpath2, overview=2)
 
     maxdim = max(max(imdata1.shape[0:2]), max(imdata2.shape[0:2]))
     maxdim = max(512, maxdim)
@@ -718,28 +647,27 @@ def demo_warp(coco_dset, gid1, gid2):
     # align_stack2 = kwimage.stack_images([rchip1_align_final, rchip2_align_final], pad=10, axis=1)
     diff_stack = kwimage.stack_images([diff_img, mask], pad=10, axis=1)
 
-    fig = kwplot.figure(fnum=3)
-
+    fig1 = kwplot.figure(fnum=1, doclf=True)
     pnum_a = kwplot.PlotNums(nRows=3, nCols=1)
 
-    kwplot.imshow(rstack, fnum=3, pnum=pnum_a[0], title='Raw Before / After Image Pair')
-    ax = kwplot.figure(fnum=3, pnum=pnum_a[1]).gca()
+    kwplot.imshow(rstack, fnum=1, pnum=pnum_a[0], title='Raw Before / After Image Pair')
+    ax = kwplot.figure(fnum=1, pnum=pnum_a[1]).gca()
     ax.set_title('SIFT Features Matches (used to align the images)')
     match.show(ax=ax, show_ell=1, show_lines=False, ell_alpha=0.2, vert=False)
 
-    kwplot.imshow(align_stack1, fnum=3, pnum=pnum_a[2], title='Aligned Images')
+    kwplot.imshow(align_stack1, fnum=1, pnum=pnum_a[2], title='Aligned Images')
     # kwplot.imshow(align_stack2, fnum=3, pnum=pnum_a[3], title='Refined Alignment')
 
-    fig3 = kwplot.figure(fnum=5)
-    kwplot.imshow(diff_stack, fnum=5, title='Difference Image -> Binary Mask')
+    fig3 = kwplot.figure(fnum=3, doclf=True)
+    kwplot.imshow(diff_stack, fnum=3, title='Difference Image -> Binary Mask')
     # kwplot.imshow(attention_rchip1, fnum=3, pnum=pnum_a[4], title='Candidate Annotation Regions')
 
-    fig2 = kwplot.figure(fnum=4)
-    kwplot.imshow(attention_imdata1, fnum=4, title='Candidate Annotation Regions')
+    fig2 = kwplot.figure(fnum=2, doclf=True)
+    kwplot.imshow(attention_imdata1, fnum=2, title='Candidate Annotation Regions')
 
-    fig4 = kwplot.figure(fnum=6)
-    kwplot.imshow(align_stack1, fnum=6, title='Aligned')
-    return fig, fig2, fig3, fig4
+    fig4 = kwplot.figure(fnum=4, doclf=True)
+    kwplot.imshow(align_stack1, fnum=4, title='Aligned')
+    return fig1, fig2, fig3, fig4
 
 
 def utm_epsg_from_latlon(lat, lon):
@@ -787,7 +715,9 @@ def annotate():
     import kwimage
     import plottool_ibeis
     import kwplot
-    coco_dset = kwcoco.CocoDataset('/data/store/data/shit-pics/data.kwcoco.json')
+    import shitspotter
+    coco_dset = shitspotter.open_shit_coco()
+
     plt = kwplot.autoplt(force='Qt5Agg')
     gpaths = [c.primary_image_filepath() for c in coco_dset.images().coco_images]
 
@@ -840,3 +770,109 @@ def annotate():
     # interact_obj.start()
 
     plt.show()
+
+
+def data_on_maps(coco_dset):
+    """
+    This requires some care to get a reasonable visualization
+
+    import shitspotter
+    coco_dset = shitspotter.open_shit_coco()
+
+    import matplotlib
+    import matplotlib.font_manager as fm
+    import matplotlib.pyplot as plt
+    import mplcairo
+    matplotlib.use("module://mplcairo.qt")
+    """
+    import networkx as nx
+    import geopandas as gpd
+    import osmnx as ox
+    from shapely import geometry
+    from pyproj import CRS
+    # image_locs
+    rows = []
+    for gid, img in coco_dset.index.imgs.items():
+        row = img.copy()
+        if 'geos_point' in img:
+            geos_point = img['geos_point']
+            if isinstance(geos_point, dict):
+                coords = geos_point['coordinates']
+                point = [Rational.coerce(x) for x in coords]
+                row['geometry'] = geometry.Point(point)
+                rows.append(row)
+    img_locs = gpd.GeoDataFrame(rows, crs='crs84')
+
+    crs84 = CRS.from_user_input('crs84')
+
+    # wld_map_crs84_gdf = gpd.read_file(
+    #     gpd.datasets.get_path('naturalearth_lowres')
+    # ).to_crs(crs84)
+
+    utm_crs = img_locs.estimate_utm_crs()
+    img_locs_utm = img_locs.to_crs(utm_crs)
+
+    aoi_utm = gpd.GeoDataFrame({
+        'geometry': [img_locs_utm.unary_union.convex_hull]
+    }, crs=img_locs_utm.crs)
+    mediod_utm = gpd.GeoDataFrame({
+        'geometry': [geometry.Point(np.median(np.array([(x.x, x.y) for x in img_locs_utm.geometry]), axis=0))]
+    }, crs=img_locs_utm.crs).convex_hull
+
+    mediod_crs84 = mediod_utm.to_crs(crs84)
+    aoi_crs84 = aoi_utm.to_crs(crs84)
+    medoid_lon, medoid_lat = map(lambda x: x[0], mediod_crs84.iloc[0].xy)
+    mediod_wgs84 = (medoid_lat, medoid_lon)
+
+    # import kwplot
+    # sns = kwplot.autosns()
+    # ax = kwplot.figure().gca()
+    # wld_map_crs84_gdf.plot(ax=ax)
+
+    # https://automating-gis-processes.github.io/CSC18/lessons/L3/retrieve-osm-data.html
+    if 0:
+        graph = ox.graph_from_polygon(aoi_crs84.geometry.iloc[0])
+
+    graph = ox.graph_from_point(mediod_wgs84)
+    graphs = []
+    # exterior_points = np.array([np.array(_) for _ in img_locs.unary_union.convex_hull.exterior.coords.xy]).T
+    # for x, y in ub.ProgIter(list(exterior_points)):
+    #     graph = ox.graph_from_point((y, x))
+    #     graphs.append(graph)
+    combo = nx.disjoint_union_all(graphs + [graph])
+
+    # https://geopandas.org/en/stable/gallery/plotting_basemap_background.html
+    import kwplot
+    import matplotlib
+    import matplotlib.font_manager as fm  # NOQA
+    import matplotlib.pyplot as plt  # NOQA
+    import mplcairo  # NOQA
+    import contextily as cx
+
+    ax = kwplot.figure(fnum=1, docla=True).gca()
+    fig, ax = ox.plot_graph(combo, bgcolor='lawngreen', node_color='dodgerblue', edge_color='skyblue', ax=ax)
+    matplotlib.use("module://mplcairo.qt")
+    print(matplotlib.get_backend())
+
+    for x, y in zip(img_locs.geometry.x, img_locs.geometry.y):
+        ax.annotate('💩', xy=(x, y), fontname='symbola', color='brown', fontsize=20)
+
+    if 0:
+        minx, miny, maxx, maxy = img_locs.unary_union.bounds
+        ax.set_xlim(minx, maxx)
+        ax.set_ylim(miny, maxy)
+
+    cx.add_basemap(ax, crs=img_locs.crs)
+    # , xytext=(0, 0), textcoords="offset points")
+    ax = kwplot.figure(fnum=1, docla=True).gca()
+
+    # import matplotlib
+    # import matplotlib.font_manager as fm
+    # import matplotlib.pyplot as plt
+    # import mplcairo
+    # matplotlib.use("module://mplcairo.qt")
+    print(matplotlib.get_backend())
+    ax = kwplot.figure(fnum=1, docla=True).gca()
+    img_locs.plot(ax=ax)
+    for x, y in zip(img_locs.geometry.x, img_locs.geometry.y):
+        ax.annotate('💩', xy=(x, y), fontname='symbola', color='brown', fontsize=20)

@@ -1,4 +1,5 @@
 rsync -avrpRPL toothbrush:data/dvc-repos/./shitspotter_dvc "$HOME/data/dvc-repos/"
+rsync -avrpRPL ooo:data/dvc-repos/./shitspotter_dvc "$HOME/data/dvc-repos/"
 
 
 rsync -avrpRP toothbrush:/data/store/Pictures/./Phone-DCIM-2021-04-19 /data/Pictures

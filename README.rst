@@ -42,6 +42,11 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2021-12-30 - 
+    - Found errors in the dataset stats, updating README.
+    - Updated analytics to be updated as the dataset grows. 
+    - Initial SIFT-based matching isnt as robust as I'd hoped.
+    - First data is on IPFS, still need to open ports. ID of the root dataset is: QmRGxbcjYb7ndCzZ4fEBBk2ZR7MtU43f4SSDEeZp9vonx9
 * 2021-11-23 - Added annotation process overview and dataset sample.
 * 2021-11-11 - Initial upload of data munging scripts.
 * 2020-12-18 - Took the first picture.
@@ -137,8 +142,21 @@ The following figure is a hand-picked sample of 9 images from the dataset. Each 
 Dataset Statistics:
 
 * Most images only show a single poop, but other images have multiple.
-* As of 2021-11-11 I've collected 1935 pictures with "798" before/after/(maybe negative) groups of images. 
+
+ 
+### As of 2021-11-11 
+
+(The counts for this date are wrong)
+
+* I've collected 1935 pictures with "798" before/after/(maybe negative) groups of images.
 * There are roughly 457 paired-groups and 333 triple-groups. (Based only on counts, grouping has not happened yet).
+
+### As of 2021-12-30 
+
+(These are more correct)
+
+* As of 2021-12-30 I've collected 2088 pictures with "~895" before/after/(maybe negative) groups of images. (number of pairs is approximate, dataset not fully registered yet)
+* There are roughly 394 paired-groups and 501 triple-groups. (Based only on counts, grouping has not happened yet).
 
 
 Annotation Process
@@ -172,11 +190,12 @@ via netharn, mmdet, or some other library that accepts coco/kwcoco input manifes
 Downloading the Data
 ====================
 
+
 This dataset will be made public once I figure out a way to host and manage it.
 Currently the raw images live on my hard drive, and are backed up across 2 machines, each running RAID-10.
 Lower res copies of the photos live on the cloud, but I'm planning on sharing the originals.
 
-The dataset is currently 20+GB, so I'm planning to use IPFS (or some P2P solution) to handle data distribution.
+The dataset is currently 15G+GB, so I'm planning to use IPFS (or some P2P solution) to handle data distribution.
 Currently the data does not have any annotations, although I've started to build scripts to make that process
 easier. 
 
@@ -195,6 +214,34 @@ It annoys me that I have to put licenses on things. These are the terms I care a
 * Pin the dataset on IPFS if you can.
 
 Otherwise the data is free to use commercially or otherwise. 
+
+
+Update 2021-12-30: 
+
+    IPFS addresses for the top-level dataset filesystem are:
+
+.. code:: 
+
+    QmWhKBAQ765YH2LKMQapWp7mULkQxExrjQKeRAWNu5mfBK shitspotter_dvc/data.kwcoco.json
+    QmZ4vipXwH7f27VSjx3Bz4aLoeigL9T22sFADv5KCBTFW7 shitspotter_dvc/assets/poop-2020-12-28
+    QmTHipghcRCVamWLojWKQy8KgamtRnPv9fL3dxxPv7VVZx shitspotter_dvc/assets/poop-2021-02-06
+    QmZ3W4pXVkbhQKssWBhBgspeAB3U6GRGD85eff7BvAPNri shitspotter_dvc/assets/poop-2021-03-05
+    QmZb6s53W34rmUJ2s5diw4ErhK3aLb5Td9MtML4u5wqMT5 shitspotter_dvc/assets/poop-2021-04-06
+    QmbZrgM4jCJ8ccU9DLGewPkVBDH6pDVs4vdUUk1jeKyfic shitspotter_dvc/assets/poop-2021-04-19
+    QmTexn6vX8vtAYiZYDq2YmHjoUnnJAAxEtyFPwXsqfvpKy shitspotter_dvc/assets/poop-2021-04-25
+    QmXFyYBVqVVcKqcJuGzo3d9WTRxf4U4cZBmRaT6q52mqLp shitspotter_dvc/assets/poop-2021-05-11T000000
+    QmcTkxhsA4QsWb9KJsLKGnWNyhf7SuMNhAmf55DiXqG8iU shitspotter_dvc/assets/poop-2021-05-11T150000
+    QmNVZ6BGbTWd5Tw5s4E3PagzEcvp1ekxxQL6bRSHabEsG3 shitspotter_dvc/assets/poop-2021-06-05
+    QmQAbQTbTquTyMmd27oLunS3Sw2rZvJH5p7zus4h1fvxdz shitspotter_dvc/assets/poop-2021-06-20
+    QmRkCQkAjYFoCS4cEyiDNnk9RbcoQPafmZvoP3GrpVzJ8D shitspotter_dvc/assets/poop-2021-09-20
+    QmYYUdAPYQGTg67cyRWA52yFgDAWhHDsEQX9yqED3tj4ZX shitspotter_dvc/assets/poop-2021-11-11
+    QmYXXjAutQLdq644rsugp6jxPH6GSaP3kKRTC2jsy4FQMp shitspotter_dvc/assets/poop-2021-11-26
+    QmQAufuJGGn7TDeiEE52k5SLPGrcrawjrd8S2AATrSSBvM shitspotter_dvc/assets/poop-2021-12-27
+    QmfZZwoj1gwGPctBQW5Mkye3a8VuajFBCksHVJH7r9Wn3U shitspotter_dvc/assets
+    QmRGxbcjYb7ndCzZ4fEBBk2ZR7MtU43f4SSDEeZp9vonx9 shitspotter_dvc
+
+
+Depsite the name, this is not yet a DVC repo.
 
 
 Acknowledgements
