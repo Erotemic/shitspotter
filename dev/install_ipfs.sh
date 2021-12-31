@@ -23,9 +23,12 @@ install_go(){
     #curl_verify_hash $URL $BASENAME "2d75848ac606061efe52a8068d0e647b35ce487a15bb52272c427df485193602" sha256sum "-L"
 
     source ~/local/init/utils.sh
-    URL="https://golang.org/dl/go1.17.linux-amd64.tar.gz"
+    URL="https://go.dev/dl/go1.17.5.linux-amd64.tar.gz"
+    HASH="bd78114b0d441b029c8fe0341f4910370925a4d270a6a590668840675b0c653e"
+    #URL="https://golang.org/dl/go1.17.linux-amd64.tar.gz"
+    #HASH="6bf89fc4f5ad763871cf7eac80a2d594492de7a818303283f1366a7f6a30372d"
     BASENAME=$(basename $URL)
-    curl_verify_hash "$URL" "$BASENAME" "6bf89fc4f5ad763871cf7eac80a2d594492de7a818303283f1366a7f6a30372d" sha256sum "-L"
+    curl_verify_hash "$URL" "$BASENAME" "$HASH" sha256sum "-L"
 
     mkdir -p "$HOME/.local"
     tar -C "$HOME/.local" -xzf "$BASENAME"
@@ -41,16 +44,23 @@ install_ipfs(){
     https://docs.ipfs.io/how-to/command-line-quick-start/#prerequisites
     https://docs.ipfs.io/install/command-line/
     https://dist.ipfs.io/#go-ipfs
+    https://dist.ipfs.io/go-ipfs
 
     https://developers.cloudflare.com/distributed-web/ipfs-gateway/setting-up-a-server
     "
     source ~/local/init/utils.sh
     mkdir -p "$HOME/temp/setup-ipfs"
     cd "$HOME/temp/setup-ipfs"
-    URL="https://dist.ipfs.io/go-ipfs/v0.9.0/go-ipfs_v0.9.0_linux-amd64.tar.gz"
+    #URL="https://dist.ipfs.io/go-ipfs/v0.9.0/go-ipfs_v0.9.0_linux-amd64.tar.gz"
+
+    URL=https://dist.ipfs.io/go-ipfs/v0.11.0/go-ipfs_v0.11.0_linux-amd64.tar.gz
+    CURL_OPTS="" curl_verify_hash "$URL" "$BASENAME" "7cf73a33ac19a55fc1c69c42f42c774f9d" sha512sum
+
+    #CURL_OPTS="" curl_verify_hash "$URL" "$BASENAME" "e737fd6ccbd1917d302fcdc9e8d29" sha256sum
+    #CURL_OPTS="" curl_verify_hash "$URL" "$BASENAME" "e737fd6ccbd1917d302fcdc9e8d29" sha256sum
+    #QmbZBZZmMuTA4aZ1NrbNSgTbbEQtbHSW9iBgTUWByBaHGn
+
     BASENAME=$(basename $URL)
-    CURL_OPTS="" curl_verify_hash "$URL" "$BASENAME" "e737fd6ccbd1917d302fcdc9e8d29" sha256sum
-    
     tar -xvzf "$BASENAME"
     cp go-ipfs/ipfs "$HOME/.local/bin"
 
@@ -61,7 +71,9 @@ install_ipfs(){
 
     # Maybe server is not the best profile?
     # https://docs.ipfs.io/how-to/command-line-quick-start/#prerequisites
-    ipfs init --profile server
+    #ipfs init --profile server
+    #ipfs init --profile badgerds
+    ipfs init --profile lowpower
 
     __results__="
     generating ED25519 keypair...done
@@ -84,6 +96,8 @@ install_ipfs(){
 
     msg_hash=$(echo "Hello Universe! My name is $(whoami) and I'm excited to start using IPFS!" | ipfs add -q)
     echo "msg_hash = $msg_hash"
+
+    msg_hash=QmeZnz1FJRcSebJuEGc1SqDKE9p5EmrJ93mfrJGXNCkYEM
 
     # We should be able to see our local network
     curl "http://127.0.0.1:8080/ipfs/$msg_hash"
@@ -150,7 +164,27 @@ setup_shitspotter_ipns(){
     added QmfZZwoj1gwGPctBQW5Mkye3a8VuajFBCksHVJH7r9Wn3U shitspotter_dvc/assets
     added QmRGxbcjYb7ndCzZ4fEBBk2ZR7MtU43f4SSDEeZp9vonx9 shitspotter_dvc
 
+    ipfs ls /QmRGxbcjYb7ndCzZ4fEBBk2ZR7MtU43f4SSDEeZp9vonx9
+    ipfs ls https://ipfs.io/ipfs/QmRGxbcjYb7ndCzZ4fEBBk2ZR7MtU43f4SSDEeZp9vonx9
+    ipfs ls /ipfs/QmRGxbcjYb7ndCzZ4fEBBk2ZR7MtU43f4SSDEeZp9vonx9
+
+
     ipfs key export -o "$IPNS_PRIVATE_KEY_STORE/IPNS_KEY.key" $IPNS_KEY
+
+    # https://github.com/ipfs/ipfs-ds-convert
+    ipfs ls QmRGxbcjYb7ndCzZ4fEBBk2ZR7MtU43f4SSDEeZp9vonx9
+    ipfs ls QmfZZwoj1gwGPctBQW5Mkye3a8VuajFBCksHVJH7r9Wn3U
+    ipfs ls "https://ipfs.io/ipfs/QmRGxbcjYb7ndCzZ4fEBBk2ZR7MtU43f4SSDEeZp9vonx9"
+    ipfs ls "https://ipfs.io/ipfs/QmQAufuJGGn7TDeiEE52k5SLPGrcrawjrd8S2AATrSSBvM"
+    ipfs ls /ipfs/QmQAufuJGGn7TDeiEE52k5SLPGrcrawjrd8S2AATrSSBvM
+
+    ipfs get /ipfs/QmXpgvXK7grMY8UFMtHiYoQGX5s8zLQFWTLcxLqvu2ZsAD -o foo.jpg
+
+    lowpower
+    #ipfs config profile apply lowpower
+
+    #ipfs config profile apply badgerds
+    #ipfs-ds-convert convert
 }
 
 
