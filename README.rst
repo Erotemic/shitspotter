@@ -218,8 +218,9 @@ Otherwise the data is free to use commercially or otherwise.
 
 Update 2021-12-30: 
 
-    IPFS addresses for the top-level dataset filesystem are:
+The URL that can be viewed in a web browser: https://ipfs.io/ipfs/QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG 
 
+IPFS addresses for the top-level dataset filesystem are:
 .. code:: 
 
     QmWhKBAQ765YH2LKMQapWp7mULkQxExrjQKeRAWNu5mfBK shitspotter_dvc/data.kwcoco.json
