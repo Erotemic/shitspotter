@@ -22,16 +22,26 @@ install_go(){
     #BASENAME=$(basename $URL)
     #curl_verify_hash $URL $BASENAME "2d75848ac606061efe52a8068d0e647b35ce487a15bb52272c427df485193602" sha256sum "-L"
 
+    ARCH="$(dpkg --print-architecture)"
+    echo "ARCH = $ARCH"
+    GO_VERSION="1.17.5"
+    GO_KEY=go${GO_VERSION}.linux-${ARCH}
+    URL="https://go.dev/dl/${GO_KEY}.tar.gz"
+
+    declare -A GO_KNOWN_HASHES=(
+        ["go1.17.5.linux-amd64-sha256"]="bd78114b0d441b029c8fe0341f4910370925a4d270a6a590668840675b0c653e"
+        ["go1.17.5.linux-arm64-sha256"]="6f95ce3da40d9ce1355e48f31f4eb6508382415ca4d7413b1e7a3314e6430e7e"
+    )
+    EXPECTED_HASH="${GO_KNOWN_HASHES[${GO_KEY}-sha256]}"
+    echo "EXPECTED_HASH = $EXPECTED_HASH"
+
     source ~/local/init/utils.sh
-    URL="https://go.dev/dl/go1.17.5.linux-amd64.tar.gz"
-    HASH="bd78114b0d441b029c8fe0341f4910370925a4d270a6a590668840675b0c653e"
-    #URL="https://golang.org/dl/go1.17.linux-amd64.tar.gz"
-    #HASH="6bf89fc4f5ad763871cf7eac80a2d594492de7a818303283f1366a7f6a30372d"
-    BASENAME=$(basename $URL)
-    curl_verify_hash "$URL" "$BASENAME" "$HASH" sha256sum "-L"
+    BASENAME=$(basename "$URL")
+    curl_verify_hash "$URL" "$BASENAME" "$EXPECTED_HASH" sha256sum "-L"
 
     mkdir -p "$HOME/.local"
     tar -C "$HOME/.local" -xzf "$BASENAME"
+    mkdir -p "$HOME/.local/bin"
     # Add $HOME/.local/go to your path or make symlinks
     ln -s "$HOME/.local/go/bin/go" "$HOME/.local/bin/go"
     ln -s "$HOME/.local/go/bin/gofmt" "$HOME/.local/bin/gofmt"
@@ -52,15 +62,22 @@ install_ipfs(){
     mkdir -p "$HOME/temp/setup-ipfs"
     cd "$HOME/temp/setup-ipfs"
     #URL="https://dist.ipfs.io/go-ipfs/v0.9.0/go-ipfs_v0.9.0_linux-amd64.tar.gz"
+    #URL=https://dist.ipfs.io/go-ipfs/v0.11.0/go-ipfs_v0.11.0_linux-amd64.tar.gz
 
-    URL=https://dist.ipfs.io/go-ipfs/v0.11.0/go-ipfs_v0.11.0_linux-amd64.tar.gz
-    CURL_OPTS="" curl_verify_hash "$URL" "$BASENAME" "7cf73a33ac19a55fc1c69c42f42c774f9d" sha512sum
+    ARCH="$(dpkg --print-architecture)"
+    echo "ARCH = $ARCH"
+    IPFS_VERSION="v0.12.0-rc1"
+    URL="https://dist.ipfs.io/go-ipfs/${IPFS_VERSION}/go-ipfs_${IPFS_VERSION}_linux-${ARCH}.tar.gz"
+    HASH_URL="${URL}.sha512"
+    HASH=$(curl "$HASH_URL" | sed "s/ .*//g")
+    BASENAME=$(basename "$URL")
+    curl_verify_hash "$URL" "$BASENAME" "$HASH" sha512sum
 
     #CURL_OPTS="" curl_verify_hash "$URL" "$BASENAME" "e737fd6ccbd1917d302fcdc9e8d29" sha256sum
     #CURL_OPTS="" curl_verify_hash "$URL" "$BASENAME" "e737fd6ccbd1917d302fcdc9e8d29" sha256sum
     #QmbZBZZmMuTA4aZ1NrbNSgTbbEQtbHSW9iBgTUWByBaHGn
 
-    BASENAME=$(basename $URL)
+    echo "BASENAME = $BASENAME"
     tar -xvzf "$BASENAME"
     cp go-ipfs/ipfs "$HOME/.local/bin"
 
@@ -68,6 +85,9 @@ install_ipfs(){
 
     mkdir -p "$HOME/data/ipfs"
     cd "$HOME/data/ipfs"
+
+    # https://github.com/lucas-clemente/quic-go/wiki/UDP-Receive-Buffer-Size
+    sudo sysctl -w net.core.rmem_max=2500000
 
     # Maybe server is not the best profile?
     # https://docs.ipfs.io/how-to/command-line-quick-start/#prerequisites
@@ -167,6 +187,9 @@ setup_shitspotter_ipns(){
     added QmQAufuJGGn7TDeiEE52k5SLPGrcrawjrd8S2AATrSSBvM shitspotter_dvc/assets/poop-2021-12-27
     added QmfZZwoj1gwGPctBQW5Mkye3a8VuajFBCksHVJH7r9Wn3U shitspotter_dvc/assets
     added QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG shitspotter_dvc
+
+    ipfs pin add QmWhKBAQ765YH2LKMQapWp7mULkQxExrjQKeRAWNu5mfBK
+    ipfs pin add QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG
     
 
     ipfs ls QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG
