@@ -8,20 +8,6 @@ install_go(){
     https://golang.org/dl/
     https://golang.org/dl/go1.17.linux-amd64.tar.gz
     "
-    # Install GO
-    #python -c "import ubelt as ub; print(ub.grabdata(
-    #    'https://golang.org/dl/go1.15.linux-amd64.tar.gz',
-    #    hash_prefix='2d75848ac606061efe52a8068d0e647b35ce487a15bb52272c427df485193602',
-    #    hasher='sha256',
-    #    dpath=ub.ensuredir('$HOME/tmp'), verbose=3))"
-
-    #__EROTEMIC_ALLOW_RELOAD__=1
-    #source $HOME/local/init/utils.sh 
-
-    #URL="https://golang.org/dl/go1.15.linux-amd64.tar.gz"
-    #BASENAME=$(basename $URL)
-    #curl_verify_hash $URL $BASENAME "2d75848ac606061efe52a8068d0e647b35ce487a15bb52272c427df485193602" sha256sum "-L"
-
     ARCH="$(dpkg --print-architecture)"
     echo "ARCH = $ARCH"
     GO_VERSION="1.17.5"
@@ -67,15 +53,15 @@ install_ipfs(){
     ARCH="$(dpkg --print-architecture)"
     echo "ARCH = $ARCH"
     IPFS_VERSION="v0.12.0-rc1"
-    URL="https://dist.ipfs.io/go-ipfs/${IPFS_VERSION}/go-ipfs_${IPFS_VERSION}_linux-${ARCH}.tar.gz"
-    HASH_URL="${URL}.sha512"
-    HASH=$(curl "$HASH_URL" | sed "s/ .*//g")
+    IPFS_KEY=go-ipfs_${IPFS_VERSION}_linux-${ARCH}
+    URL="https://dist.ipfs.io/go-ipfs/${IPFS_VERSION}/${IPFS_KEY}.tar.gz"
+    declare -A IPFS_KNOWN_HASHES=(
+        ["go-ipfs_v0.12.0-rc1_linux-arm64-sha512"]="730c9d7c31f5e10f91ac44e6aa3aff7c3e57ec3b2b571e398342a62d92a0179031c49fc041cd063403147377207e372d005992fee826cd4c4bba9b23df5c4e0c"
+        ["go-ipfs_v0.12.0-rc1_linux-amd64-sha512"]="b0f913f88c515eee75f6dbf8b41aedd876d12ef5af22762e04c3d823964207d1bf314cbc4e39a12cf47faad9ca8bbbbc87f3935940795e891b72c4ff940f0d46"
+    )
+    EXPECTED_HASH="${IPFS_KNOWN_HASHES[${IPFS_KEY}-sha512]}"
     BASENAME=$(basename "$URL")
-    curl_verify_hash "$URL" "$BASENAME" "$HASH" sha512sum
-
-    #CURL_OPTS="" curl_verify_hash "$URL" "$BASENAME" "e737fd6ccbd1917d302fcdc9e8d29" sha256sum
-    #CURL_OPTS="" curl_verify_hash "$URL" "$BASENAME" "e737fd6ccbd1917d302fcdc9e8d29" sha256sum
-    #QmbZBZZmMuTA4aZ1NrbNSgTbbEQtbHSW9iBgTUWByBaHGn
+    curl_verify_hash "$URL" "$BASENAME" "$EXPECTED_HASH" sha512sum
 
     echo "BASENAME = $BASENAME"
     tar -xvzf "$BASENAME"
