@@ -10,6 +10,11 @@ Requires:
 Test:
     docker run -it python bash
 
+    # End-to-end test
+    export PATH=$HOME/.local/bin:$PATH
+    apt update -y && apt install curl -y && curl https://raw.githubusercontent.com/Erotemic/shitspotter/main/dev/standalone_install_ipfs.sh > standalone_install_ipfs.sh
+    source standalone_install_ipfs.sh
+    main
 "
 
 export INSTALL_PREFIX=$HOME/.local
@@ -273,7 +278,7 @@ install_prereqs(){
             apt_ensure python3
         fi
     fi
-    apt_ensure curl tmux
+    UPDATE=1 apt_ensure curl tmux
 }
 
 install_go(){
@@ -356,7 +361,10 @@ initialize_ipfs(){
     COMMAND="ipfs swarm peers"
     until $COMMAND
     do
-       sleep 1
+       sleep 5
+       # https://unix.stackexchange.com/questions/168354/can-i-see-whats-going-on-in-a-tmux-session-without-attaching-to-it/168384
+       # check whats going on with the deamon
+       tmux capture-pane -pt "ipfs_daemon" -S -10
        [[ counter -eq $max_retry ]] && echo "Failed!" && exit 1
        echo "Trying again. Try #$counter"
        ((counter++))
