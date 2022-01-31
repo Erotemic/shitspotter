@@ -14,7 +14,10 @@ def update_analysis_plots():
     kwplot.autoplt()
 
     coco_dset = shitspotter.open_shit_coco()
+
+    print('coco_dset.fpath = {!r}'.format(coco_dset.fpath))
     dump_dpath = (ub.Path(coco_dset.bundle_dpath) / 'analysis').ensuredir()
+    print('coco_dset = {!r}'.format(coco_dset))
 
     fig = data_over_time(coco_dset, fnum=1)
     fig.set_size_inches(np.array([6.4, 4.8]) * 1.5)
@@ -512,6 +515,11 @@ def demo_warp(coco_dset, gid1, gid2):
     rchip2_align = rchip2 * valid_rchip2_mask1[:, :, None]
 
     if 0:
+        # TODO: diffeomorphism - Diffeomorphic Demons
+        # https://insightsoftwareconsortium.github.io/SimpleITK-Notebooks/Python_html/66_Registration_Demons.html
+        # https://www.sci.utah.edu/~wolters/LiteraturZurVorlesung/Literatur/F:_Anisotropy/Vercauteren_DiffeomorphicDemons-Paper_2007.pdf
+        # https://discourse.itk.org/t/python-code-for-diffeomorphicdemonsregistration-in-simpleitk/1937
+        # https://www.cs.ucf.edu/~bagci/teaching/mic16/lec17.pdf
         import SimpleITK as sitk
         fixed = sitk.GetImageFromArray(rchip1_align.mean(axis=2))
         moving = sitk.GetImageFromArray(rchip2_align.mean(axis=2))
@@ -776,14 +784,19 @@ def data_on_maps(coco_dset):
     """
     This requires some care to get a reasonable visualization
 
-    import shitspotter
-    coco_dset = shitspotter.open_shit_coco()
+    Requirements:
+        pip install mplcairo osmnx
 
-    import matplotlib
-    import matplotlib.font_manager as fm
-    import matplotlib.pyplot as plt
-    import mplcairo
-    matplotlib.use("module://mplcairo.qt")
+    Ignore:
+        from shitspotter.plots import *  # NOQA
+        import shitspotter
+        coco_dset = shitspotter.open_shit_coco()
+
+        import matplotlib
+        import matplotlib.font_manager as fm
+        import matplotlib.pyplot as plt
+        import mplcairo
+        matplotlib.use("module://mplcairo.qt")
     """
     import networkx as nx
     import geopandas as gpd
@@ -876,3 +889,15 @@ def data_on_maps(coco_dset):
     img_locs.plot(ax=ax)
     for x, y in zip(img_locs.geometry.x, img_locs.geometry.y):
         ax.annotate('💩', xy=(x, y), fontname='symbola', color='brown', fontsize=20)
+
+
+def demo_osm():
+    import osmnx as ox
+    point = (42.8505339, -73.7710063)
+    graph = ox.graph_from_point(point, dist=1000)
+
+    import kwplot
+    kwplot.autompl()
+    fig = kwplot.figure()
+    ax = fig.gca()
+    ox.plot_graph(graph, bgcolor='black', node_color='dodgerblue', edge_color='skyblue', ax=ax)

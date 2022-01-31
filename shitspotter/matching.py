@@ -9,6 +9,7 @@ import ubelt as ub
 
 def autofind_pair_hueristic(coco_dset):
     """
+    from shitspotter.matching import *  # NOQA
     import shitspotter
     coco_dset = shitspotter.open_shit_coco()
     """
@@ -216,8 +217,7 @@ def autofind_pair_hueristic(coco_dset):
     print('total_unmatchable_tups = {!r}'.format(total_unmatchable_tups))
 
     print('total_estimated_number_of_tups = {!r}'.format(total_estimated_number_of_tups))
-    print('total_estimated_number_of_pairs = {!r}'.format(total_estimated_number_of_pairs))
-
+    # print('total_estimated_number_of_pairs = {!r}'.format(total_estimated_number_of_pairs))
 
     import kwplot
     kwplot.autompl()

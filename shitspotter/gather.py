@@ -17,6 +17,12 @@ from shitspotter.util import Rational, extract_exif_metadata
 
 def main():
     """
+    Used to update the images in the kwcoco file, reconstructs the entire
+    thing.
+
+    Walk the coco bundle dpath and reconstruct the kwcoco file with all
+    currently available images.
+
     from shitspotter.gather import *  # NOQA
     """
     import shitspotter

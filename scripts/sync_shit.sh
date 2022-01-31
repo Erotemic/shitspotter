@@ -1,3 +1,6 @@
+#!/bin/bash
+rsync -avrpRPL "$HOME/data/dvc-repos/./shitspotter_dvc" "ooo:/data/dvc-repos/"
+
 rsync -avrpRPL toothbrush:data/dvc-repos/./shitspotter_dvc "$HOME/data/dvc-repos/"
 rsync -avrpRPL ooo:data/dvc-repos/./shitspotter_dvc "$HOME/data/dvc-repos/"
 
@@ -12,7 +15,8 @@ rsync -avrpRP toothbrush:/data/store/Pictures/./Phone-DCIM-2021-09-20 /data/Pict
 rsync -avrpRP toothbrush:/data/store/Pictures/./Phone-DCIM-2021-11-11 /data/Pictures
 rsync -avrpRP toothbrush:/data/store/Pictures/./Phone-DCIM-2021-11-26 /data/Pictures
 rsync -avrpRP toothbrush:/data/store/Pictures/./Phone-DCIM-2021-12-27 /data/Pictures
-
+rsync -avrpRP toothbrush:/data/store/Pictures/./Phone-DCIM-2022-01-27 /data/Pictures
+rsync -avrpRP toothbrush:/data/store/./Pictures /data/
 rsync -avrpRP toothbrush:/data/store/./Pictures /data/
 
 

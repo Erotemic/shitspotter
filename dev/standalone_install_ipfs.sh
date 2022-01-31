@@ -159,6 +159,23 @@ codeblock()
 }
 
 
+sudo_writeto()
+{
+    __doc__="
+    Unindents text and writes it to a file with sudo privledges
+
+    Usage:
+        sudo_writeto <fpath> <text>
+    "
+    # NOTE: FAILS WITH QUOTES IN BODY
+    fpath=$1
+    text=$2
+    fixed_text=$(codeblock "$text")
+    # IS THERE A BETTER WAY TO FORWARD AN ENV TO SUDO SO sudo writeto works
+    sudo sh -c "echo \"$fixed_text\" > $fpath"
+}
+
+
 verify_hash(){
     __doc__='
     Verifies the hash of a file
@@ -374,13 +391,43 @@ initialize_ipfs(){
 	ipfs cat /ipfs/QmQPeNsJPyVWPFDVHb77w8G42Fvo15z4bG2X8D2GhfbSXc/readme
 }
 
+
+install_ipfs_service(){
+    __doc__="
+    Installing a service to run the IPFS daemon requires sudo
+    "
+    # https://gist.github.com/pstehlik/9efffa800bd1ddec26f48d37ce67a59f
+    # https://www.maxlaumeister.com/u/run-ipfs-on-boot-ubuntu-debian/
+    # https://linuxconfig.org/how-to-create-systemd-service-unit-in-linux#:~:text=There%20are%20basically%20two%20places,%2Fetc%2Fsystemd%2Fsystem%20.
+    SERVICE_DPATH=/etc/systemd/system
+    IPFS_SERVICE_FPATH=$SERVICE_DPATH/ipfs.service
+    IPFS_EXE=$(which ipfs)
+    echo "IPFS_EXE = $IPFS_EXE"
+    echo "IPFS_SERVICE_FPATH = $IPFS_SERVICE_FPATH"
+    sudo_writeto $IPFS_SERVICE_FPATH "
+        [Unit]
+        Description=IPFS daemon
+        After=network.target
+        [Service]
+        Environment=\"IPFS_PATH=/data/ipfs\"
+        User=$USER
+        ExecStart=${IPFS_EXE} daemon
+        [Install]
+        WantedBy=multiuser.target
+        "
+    #sudo systemctl daemon-reload
+    sudo systemctl start ipfs
+    sudo systemctl status ipfs
+        
+}
+
 pin_my_shit(){
     # Quicker test
     ipfs pin add QmWhKBAQ765YH2LKMQapWp7mULkQxExrjQKeRAWNu5mfBK --progress
 
     # Pin my shit (15GB might take awhile)
     #tmux new-session -d -s "ipfs_pin" "ipfs pin add QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG --progress"
-    ipfs pin add QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG --progress
+    ipfs pin add QmaPPoPs7wXXkBgJeffVm49rd63ZtZw5GrhvQQbYrUbrYL --progress
 
     # High level analysis subdir
     ipfs ls QmbvEN1Ky3MGGBVDwyMBZvdUCFi1WvfdzkTzgtE7sAvW9B

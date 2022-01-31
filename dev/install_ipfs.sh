@@ -25,12 +25,19 @@ install_go(){
     BASENAME=$(basename "$URL")
     curl_verify_hash "$URL" "$BASENAME" "$EXPECTED_HASH" sha256sum "-L"
 
-    mkdir -p "$HOME/.local"
-    tar -C "$HOME/.local" -xzf "$BASENAME"
-    mkdir -p "$HOME/.local/bin"
+    INSTALL_PREFIX=$HOME/.local
+    _SUDO=""
+
+    # Uncomment for root-level installation
+    #_SUDO="sudo"
+    #INSTALL_PREFIX=/opt/go
+
+    $_SUDO mkdir -p "$INSTALL_PREFIX"
+    $_SUDO tar -C "$INSTALL_PREFIX" -xzf "$BASENAME"
+    $_SUDO mkdir -p "$INSTALL_PREFIX/bin"
     # Add $HOME/.local/go to your path or make symlinks
-    ln -s "$HOME/.local/go/bin/go" "$HOME/.local/bin/go"
-    ln -s "$HOME/.local/go/bin/gofmt" "$HOME/.local/bin/gofmt"
+    $_SUDO ln -s "$INSTALL_PREFIX/go/bin/go" "$INSTALL_PREFIX/bin/go"
+    $_SUDO ln -s "$INSTALL_PREFIX/go/bin/gofmt" "$INSTALL_PREFIX/bin/gofmt"
 }
 
 
@@ -65,7 +72,19 @@ install_ipfs(){
 
     echo "BASENAME = $BASENAME"
     tar -xvzf "$BASENAME"
-    cp go-ipfs/ipfs "$HOME/.local/bin"
+
+    _SUDO=""
+    INSTALL_PREFIX=$HOME/.local
+    export IPFS_PATH=$HOME/.ipfs
+
+    # Uncomment for root-level installation
+    #_SUDO="sudo"
+    #INSTALL_PREFIX=/opt/ipfs
+    #export IPFS_PATH=/data/ipfs
+    #$_SUDO mkdir -p $IPFS_PATH
+
+    #$_SUDO mkdir -p "$INSTALL_PREFIX/bin"
+    #$_SUDO cp go-ipfs/ipfs "$INSTALL_PREFIX/bin"
 
     # That should install IPFS now, lets set it up
 
@@ -79,6 +98,10 @@ install_ipfs(){
     # https://docs.ipfs.io/how-to/command-line-quick-start/#prerequisites
     #ipfs init --profile server
     #ipfs init --profile badgerds
+    # Notes on ipfs profiles:
+    #https://github.com/ipfs/go-ipfs-config/blob/0a474258a95d8d9436a49539ad9d7da357b015ab/profile.go
+
+
     ipfs init --profile lowpower
 
     __results__="
@@ -134,6 +157,44 @@ install_ipfs(){
 }
 
 
+
+sudo_level_hacks(){
+    # For setting up on a shared server as sudo
+    _SUDO="sudo"
+    export PATH=/opt/go/bin:/opt/ipfs/bin:$PATH
+    export IPFS_PATH=/data/ipfs
+
+    sudo addgroup ipfs
+    sudo usermod -a -G ipfs "$USER"
+
+    sudo chown -R root:ipfs /opt/go
+    sudo chown -R root:ipfs /opt/ipfs
+
+    sudo chown -R root:ipfs $IPFS_PATH
+    sudo chmod -R g+rw $IPFS_PATH
+
+    ipfs init --profile badgerds
+
+    # RIRE
+    ipfs pin add bafybeih23xv6uamx7k27wk4uvzkxdtdryqeok22hpl3ybideggcjhipwme --progress
+
+    DEST_PREFIX=/usr/local
+    $_SUDO ln -s "/opt/go/go/bin/go" "$DEST_PREFIX/bin/go"
+    $_SUDO ln -s "/opt/go/go/bin/gofmt" "$DEST_PREFIX/bin/gofmt"
+    $_SUDO ln -s "/opt/ipfs/bin/ipfs" "$DEST_PREFIX/bin/ipfs"
+
+    /usr/local/bin/ipfs
+
+    # Assume transfer local install to root
+    sudo cp -v -- */ipfs-cluster-* "/opt/ipfs/bin"
+
+    DEST_PREFIX=/usr/local
+    $_SUDO ln -s "/opt/ipfs/bin/ipfs-cluster-ctl" "$DEST_PREFIX/bin/ipfs-cluster-ctl"
+    $_SUDO ln -s "/opt/ipfs/bin/ipfs-cluster-follow" "$DEST_PREFIX/bin/ipfs-cluster-follow"
+    $_SUDO ln -s "/opt/ipfs/bin/ipfs-cluster-service" "$DEST_PREFIX/bin/ipfs-cluster-service"
+}
+
+
 setup_shitspotter_ipns(){
     load_secrets
     # We assume the previous command exposes IPNS_PRIVATE_KEY_STORE
@@ -174,6 +235,10 @@ setup_shitspotter_ipns(){
     added QmfZZwoj1gwGPctBQW5Mkye3a8VuajFBCksHVJH7r9Wn3U shitspotter_dvc/assets
     added QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG shitspotter_dvc
 
+    # Update 2022-01-30
+
+    QmaPPoPs7wXXkBgJeffVm49rd63ZtZw5GrhvQQbYrUbrYL
+
     ipfs pin add QmWhKBAQ765YH2LKMQapWp7mULkQxExrjQKeRAWNu5mfBK
     ipfs pin add QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG
     
@@ -197,6 +262,7 @@ setup_shitspotter_ipns(){
     ipfs get /ipfs/QmXpgvXK7grMY8UFMtHiYoQGX5s8zLQFWTLcxLqvu2ZsAD -o foo.jpg
 
     lowpower
+
     #ipfs config profile apply lowpower
 
     #ipfs config profile apply badgerds
@@ -259,4 +325,173 @@ demo_ipns(){
 
     ipfs cat /ipns/k51qzi5uqu5dkqxbxeulacqmz5ekmopr3nsh9zmgve1dji0dccdy86uqyhq1m0
     ipfs cat /ipns/k51qzi5uqu5dhdij66ntfd6bsozesxh82pfkgys54n2qsmck96nwkr6mvlimk1
+}
+
+ipfs_debug_and_info(){
+    SHIT_CID=QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG
+    ipfs pin add "${SHIT_CID}" --progress
+    
+    ipfs pin add QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG --progress
+    ipfs refs -r QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG | wc
+
+    ( HASH=$SHIT_CID ; echo $HASH ; ipfs refs -r $HASH ) | xargs -l bash -c 'echo -n "$0 - "; ipfs dht findprovs -n 2 $0 | wc -l'
+    
+
+    ipfs dht findprovs -r "${SHIT_CID}"
+
+
+
+    # Generate a random file, pin it, and see if it is accessible
+    pip install diceware
+
+    diceware -n 100 > rando.txt
+    RANDO_HASH=$(ipfs add rando.txt -q)
+    echo "RANDO_HASH=$RANDO_HASH"
+
+    # On another machine
+    RANDO_HASH=QmYMVEQrW8xd3nWKQRyYbjWef7hDSGrcirz8HX8jKA8osQ
+    ipfs get $RANDO_HASH
+
+
+    #### With bigger data
+    # Make big data on PI
+    mkdir -p test_bigger_data_pin
+    head -c500000000 /dev/urandom > test_bigger_data_pin/rando1_500MB.txt
+    head -c50000000 /dev/urandom > test_bigger_data_pin/rando2_50MB.txt
+    head -c50000000 /dev/urandom > test_bigger_data_pin/rando3_50MB.txt
+    head -c50000000 /dev/urandom > test_bigger_data_pin/rando4_50MB.txt
+
+    ipfs add -r test_bigger_data_pin
+    BIG_DATA_HASH=$(ipfs add -r test_bigger_data_pin -q | tail -n 1)
+    echo "BIG_DATA_HASH = $BIG_DATA_HASH"
+
+    BIG_DATA_HASH="Qmdf7DHgHHJXwm1moQDkxns3Yupw6nCbjqurHamBr6KL6R"
+
+    ipfs get Qmdf7DHgHHJXwm1moQDkxns3Yupw6nCbjqurHamBr6KL6R
+
+
+    # Show my peer id
+    ipfs config show | jq .Identity
+
+    # Find number of peers with data:
+    # https://www.reddit.com/r/ipfs/comments/r86kp6/is_there_a_way_to_see_how_many_peers_are_hosting/
+    # This shows nearby "peer-ids" (lower bound) of people hosting the data
+    # the
+    source ~/local/init/utils.sh
+    mapfile -t PEER_ID_ARR <<< "$(ipfs dht findprovs QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG)"
+    bash_array_repr "${PEER_ID_ARR[@]}"
+
+    # Print info about peers
+    for PEER_ID in "${PEER_ID_ARR[@]}"; do
+        printf "\n\n=====\n\n"
+        echo "PEER_ID = $PEER_ID"
+        ipfs dht findpeer "$PEER_ID"
+    done
+}
+
+http_server(){
+    #https://reposhub.com/javascript/misc/ipfs-ipfs-webui.html
+    # https://discuss.ipfs.io/t/how-can-i-enable-remote-connection-to-webui/698/3
+    ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["http://localhost:3000", "https://webui.ipfs.io", "http://127.0.0.1:5001"]'
+    ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["POST"]'
+
+    # There isn't a great way to connect to the webUI on another machine, you
+    # need to forward the port to your local machine and then connect through
+    # that.
+    ssh -L 5001:localhost:5001 pazuzu
+    # To undo:
+    # ipfs config --json API.HTTPHeaders {}
+    
+}
+
+
+install_ipfs_service(){
+    # https://gist.github.com/pstehlik/9efffa800bd1ddec26f48d37ce67a59f
+    # https://www.maxlaumeister.com/u/run-ipfs-on-boot-ubuntu-debian/
+    # https://linuxconfig.org/how-to-create-systemd-service-unit-in-linux#:~:text=There%20are%20basically%20two%20places,%2Fetc%2Fsystemd%2Fsystem%20.
+    source ~/local/init/utils.sh
+    # https://linuxconfig.org/how-to-create-systemd-service-unit-in-linux#:~:text=There%20are%20basically%20two%20places,%2Fetc%2Fsystemd%2Fsystem%20.
+    SERVICE_DPATH=/etc/systemd/system
+    IPFS_SERVICE_FPATH=$SERVICE_DPATH/ipfs.service
+    IPFS_EXE=$(which ipfs)
+    echo "IPFS_EXE = $IPFS_EXE"
+    echo "IPFS_SERVICE_FPATH = $IPFS_SERVICE_FPATH"
+    sudo_writeto $IPFS_SERVICE_FPATH "
+        [Unit]
+        Description=IPFS daemon
+        After=network.target
+        [Service]
+        Environment=\"IPFS_PATH=/data/ipfs\"
+        User=$USER
+        ExecStart=${IPFS_EXE} daemon
+        [Install]
+        WantedBy=multiuser.target
+        "
+    #sudo systemctl daemon-reload
+    sudo systemctl start ipfs
+    sudo systemctl status ipfs
+        
+}
+
+
+init_ipfs_cluster(){
+    # https://cluster.ipfs.io/documentation/deployment/setup/
+    source ~/local/init/utils.sh
+    mkdir -p "$HOME/temp/setup-ipfs-cluster"
+    cd "$HOME/temp/setup-ipfs-cluster"
+
+    ARCH="$(dpkg --print-architecture)"
+    echo "ARCH = $ARCH"
+    IPFS_CLUSTER_VERSION="v0.14.4"
+
+    EXE_NAME=ipfs-cluster-ctl
+    KEY=${EXE_NAME}_${IPFS_CLUSTER_VERSION}_linux-${ARCH}
+    URL="https://dist.ipfs.io/${EXE_NAME}/${IPFS_CLUSTER_VERSION}/$KEY.tar.gz"
+    declare -A KNOWN_HASHES=(
+        ["ipfs-cluster-ctl_v0.14.4_linux-arm64-sha512"]="2c8d2d5023c4528a902889b33a7e52fd71261f34ada62999d6a8fe3910d652093a95320693f581937d8509ccb07ff5b9501985e0262a67c12e64419fa49e4339"
+        ["ipfs-cluster-ctl_v0.14.4_linux-amd64-sha512"]="454331518c0d67319c873c69b7fceeab06cbe4bb926cecb16cc46da86be79d56f63b7100b9ccba5a9c6e99722e27446e33623d7191f3b09c6faed4c36c15204a"
+    )
+    EXPECTED_HASH="${KNOWN_HASHES[${KEY}-sha512]}"
+    BASENAME=$(basename "$URL")
+    curl_verify_hash "$URL" "$BASENAME" "$EXPECTED_HASH" sha512sum
+
+    EXE_NAME=ipfs-cluster-service
+    KEY=${EXE_NAME}_${IPFS_CLUSTER_VERSION}_linux-${ARCH}
+    URL="https://dist.ipfs.io/${EXE_NAME}/${IPFS_CLUSTER_VERSION}/$KEY.tar.gz"
+    declare -A KNOWN_HASHES=(
+        ["ipfs-cluster-service_v0.14.4_linux-arm64-sha512"]="79129b6cc94d36a9921f8e07e207ee13336c89a245a44b075b0ada50b72796b31a7e90bf15171e355e0a1e08cc55e40e67376f813016d678f5a7d007327ffd04"
+        ["ipfs-cluster-service_v0.14.4_linux-amd64-sha512"]="430dbbab5c651fcf99ae9b122fc663cdb5785e51e8dc6c2381b0b82e5f963c5945f9c1c10781d50a5aeac675dc3bbf783b2e03b8c3d5fb5e94804cb2c2efcc9f"
+    )
+    EXPECTED_HASH="${KNOWN_HASHES[${KEY}-sha512]}"
+    BASENAME=$(basename "$URL")
+    curl_verify_hash "$URL" "$BASENAME" "$EXPECTED_HASH" sha512sum
+
+
+    EXE_NAME=ipfs-cluster-follow
+    KEY=${EXE_NAME}_${IPFS_CLUSTER_VERSION}_linux-${ARCH}
+    URL="https://dist.ipfs.io/${EXE_NAME}/${IPFS_CLUSTER_VERSION}/$KEY.tar.gz"
+    declare -A KNOWN_HASHES=(
+        ["ipfs-cluster-follow_v0.14.4_linux-arm64-sha512"]="136fe71f0df0dd44b5ac3e97db8529399dfa84e18fb7b15f16120503dcb44b339e55263a264d1c3ff4bd693c68bcfe5bc208b4b37aa29402fb545256ab06eb88"
+        ["ipfs-cluster-follow_v0.14.4_linux-amd64-sha512"]="22ac2f2a89693c715be5f8a528c89def7c54abc3a3256a85468730c974831dff2e0a21ea489d66c0457f61e7e76d948614c99794333cb8a0dabf3e4a04f74ef8"
+    )
+    EXPECTED_HASH="${KNOWN_HASHES[${KEY}-sha512]}"
+    BASENAME=$(basename "$URL")
+    curl_verify_hash "$URL" "$BASENAME" "$EXPECTED_HASH" sha512sum
+
+    tar -xvzf "ipfs-cluster-ctl_v0.14.4_linux-${ARCH}.tar.gz"
+    tar -xvzf "ipfs-cluster-follow_v0.14.4_linux-${ARCH}.tar.gz"
+    tar -xvzf "ipfs-cluster-service_v0.14.4_linux-${ARCH}.tar.gz"
+
+    INSTALL_PREFIX="$HOME/.local"
+    mkdir -p "$INSTALL_PREFIX/bin"
+    cp -v -- */ipfs-cluster-* "$INSTALL_PREFIX/bin"
+
+    # Now initialize
+    export IPFS_PATH=/data/ipfs
+    ipfs-cluster-service init --consensus crdt
+
+    # https://cluster.ipfs.io/documentation/deployment/setup/
+    
+
+
 }
