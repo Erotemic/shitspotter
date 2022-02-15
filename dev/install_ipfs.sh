@@ -236,7 +236,6 @@ setup_shitspotter_ipns(){
     added QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG shitspotter_dvc
 
     # Update 2022-01-30
-
     QmaPPoPs7wXXkBgJeffVm49rd63ZtZw5GrhvQQbYrUbrYL
 
     ipfs pin add QmWhKBAQ765YH2LKMQapWp7mULkQxExrjQKeRAWNu5mfBK

@@ -205,8 +205,10 @@ If you are in urgent need of any of the data, feel free to contact me (make an i
 I can pin what I have on IPFS, but I was planning on organizing the data a bit before I did that,
 but I'm willing 
 
-Officially the licence will be Apache 2 because that's what I use for everything.
-It annoys me that I have to put licenses on things. These are the terms I care about:
+The licence for the software will be Apache 2. The license for the data will be
+"Creative Commons Attribution 4.0 International".
+
+In addition to these licenses please:
 
 * Cite my work if you use it.
 * If you annotate any of the images, contribute the annotations back. Picking up shit is a team effort.
@@ -214,7 +216,6 @@ It annoys me that I have to put licenses on things. These are the terms I care a
 * Pin the dataset on IPFS if you can.
 
 Otherwise the data is free to use commercially or otherwise. 
-
 
 Update 2022-02-31: Updated root CID: QmaPPoPs7wXXkBgJeffVm49rd63ZtZw5GrhvQQbYrUbrYL
 
