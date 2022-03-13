@@ -101,12 +101,49 @@ def transfer_phone_pictures():
     for job in jobs.as_completed(desc='copying'):
         job.result()
 
+    # Finalize transfer by moving new folder into the right name
+    import os
+    os.rename(tmp_dpath, new_dpath)
 
-def main():
+    import shitspotter
+    coco_fpath = shitspotter.util.find_shit_coco_fpath()
+    asset_dpath = coco_fpath.parent / 'assets'
+
+    new_shit_dpath = asset_dpath / f'poop-{new_stamp}'
+    new_shit_dpath.ensuredir()
+
+    print('Need to manually move shit images')
+
+    print('from new_dpath = {!r}'.format(new_dpath))
+    print('to new_shit_dpath = {!r}'.format(new_dpath))
+
+    import xdev
+    xdev.startfile(new_dpath)
+    xdev.startfile(new_shit_dpath)
+
+    print('Next step is to run the gather script: `python -m shitspotter.gather`')
+    print('Next step is to run the matching script: `python -m shitspotter.matching autofind_pair_hueristic`')
+    print('Next step is to run the plots script: `python -m shitspotter.plots update_analysis_plots`')
+    print('Then repin to IPFS')
+
+    shitspotter_dvc_dpath = coco_fpath.parent
+    command = ub.codeblock(
+        f'''
+        ipfs add -r {shitspotter_dvc_dpath} --progress
+        '''
+    )
+    print(command)
+
+
+def delete_shit_images_on_phone():
+    """
+    Looks for shit images that have been backed up in the shitspotter database
+    and then removes them from the phone SD card.
+    """
     import shitspotter
     import kwcoco
 
-    phone_path_infos = list_phone_paths()
+    phone_path_infos = list_phone_image_paths()
     phone_fpaths = [p['fpath'] for p in phone_path_infos]
 
     coco_fpath = shitspotter.util.find_shit_coco_fpath()

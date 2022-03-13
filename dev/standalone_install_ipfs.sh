@@ -2,6 +2,9 @@
 __doc__="
 Minimal requirements bash script to install and init IPFS
 
+CORE FUNCTIONALITY MOVED TO : 
+~/local/init/setup_ipfs.sh
+
 Requires:
     python or python3
     curl

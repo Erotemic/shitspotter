@@ -901,3 +901,12 @@ def demo_osm():
     fig = kwplot.figure()
     ax = fig.gca()
     ox.plot_graph(graph, bgcolor='black', node_color='dodgerblue', edge_color='skyblue', ax=ax)
+
+
+if __name__ == '__main__':
+    """
+    CommandLine:
+        python ~/code/shitspotter/shitspotter/plots.py
+    """
+    import fire
+    fire.Fire()

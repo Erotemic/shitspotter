@@ -42,6 +42,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2022-03-13 - Added more images and updated analysis
 * 2021-12-30 - 
     - Found errors in the dataset stats, updating README.
     - Updated analytics to be updated as the dataset grows. 
@@ -133,7 +134,16 @@ Known dataset biases are:
 
 The following scatterplot illustrates trends in the space / time distribution of the images.
 
-.. image:: https://i.imgur.com/LXvcqGW.png
+.. https://ipfs.io/ipfs/QmaSfRtzXDCiqyfmZuH6NEy2HBr7radiJNhmSjiETihoh6
+.. https://ipfs.io/ipfs/QmaSfRtzXDCiqyfmZuH6NEy2HBr7radiJNhmSjiETihoh6/analysis/scat_scatterplot.png
+
+.. image:: https://imgur.com/beP2PdK.png
+
+
+A visualization of the cumulative number of images collected over time is as follows:
+
+.. image:: https://i.imgur.com/1gL6EuI.png
+   
 
 The following figure is a hand-picked sample of 9 images from the dataset. Each of these images has poop in it. In some cases it's easy to spot. In other cases, it can be quite difficult. 
 
@@ -148,15 +158,21 @@ Dataset Statistics:
 
 (The counts for this date are wrong)
 
-* I've collected 1935 pictures with "798" before/after/(maybe negative) groups of images.
-* There are roughly 457 paired-groups and 333 triple-groups. (Based only on counts, grouping has not happened yet).
+* I've collected 1935 pictures with "616" before/after/(maybe negative) groups of images.
+* There are roughly 394 paired-groups and 222 triple-groups. (Based only on counts, grouping has not happened yet).
 
 ### As of 2021-12-30 
 
 (These are more correct)
 
-* As of 2021-12-30 I've collected 2088 pictures with "~895" before/after/(maybe negative) groups of images. (number of pairs is approximate, dataset not fully registered yet)
-* There are roughly 394 paired-groups and 501 triple-groups. (Based only on counts, grouping has not happened yet).
+* As of 2021-12-30 I've collected 2088 pictures with "~728" before/after/(maybe negative) groups of images. (number of pairs is approximate, dataset not fully registered yet)
+* There are roughly 394 paired-groups and 334 triple-groups. (Based only on counts, grouping has not happened yet).
+
+
+### As of 2022-03-14 
+
+* As of 2021-12-30 I've collected 2471 pictures with "~954" before/after/(maybe negative) groups of images. (number of pairs is approximate, dataset not fully registered yet)
+* There are roughly 394 paired-groups and 560 triple-groups. (Based only on counts, grouping has not happened yet, there are 658 groups where the before / after images have been reported as registered by the matching algorithm).
 
 
 Annotation Process
@@ -195,15 +211,12 @@ This dataset will be made public once I figure out a way to host and manage it.
 Currently the raw images live on my hard drive, and are backed up across 2 machines, each running RAID-10.
 Lower res copies of the photos live on the cloud, but I'm planning on sharing the originals.
 
-The dataset is currently 15G+GB, so I'm planning to use IPFS (or some P2P solution) to handle data distribution.
-Currently the data does not have any annotations, although I've started to build scripts to make that process
-easier. 
+The dataset is currently 17G+GB, and is currently hosted on IPFS.  Currently
+the data does not have any annotations, although I've started to build scripts
+to make that process easier. 
 
 Eventually I would like to host the data via DVC + IPFS, but fsspec needs an IPFS filesystem implementation first.
-
-If you are in urgent need of any of the data, feel free to contact me (make an issue or email me).
-I can pin what I have on IPFS, but I was planning on organizing the data a bit before I did that,
-but I'm willing 
+I may also look into git-annex as an alternative to DVC.
 
 The licence for the software will be Apache 2. The license for the data will be
 "Creative Commons Attribution 4.0 International".
@@ -220,6 +233,8 @@ Otherwise the data is free to use commercially or otherwise.
 Update 2022-02-31: Updated root CID: QmaPPoPs7wXXkBgJeffVm49rd63ZtZw5GrhvQQbYrUbrYL
 
 Update 2021-12-30: Initial root CID: QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG
+
+Update 2022-03-13: Initial root CID: QmaSfRtzXDCiqyfmZuH6NEy2HBr7radiJNhmSjiETihoh6
 
 The URL that can be viewed in a web browser: https://ipfs.io/ipfs/QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG 
 

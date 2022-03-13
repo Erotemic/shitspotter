@@ -179,3 +179,11 @@ def main():
 
     #
     coco_dset.dump(coco_dset.fpath, newlines=True)
+
+
+if __name__ == '__main__':
+    """
+    CommandLine:
+        python -m shitspotter.gather
+    """
+    main()

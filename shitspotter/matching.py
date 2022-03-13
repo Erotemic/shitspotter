@@ -7,7 +7,7 @@ import pandas as pd
 import ubelt as ub
 
 
-def autofind_pair_hueristic(coco_dset):
+def autofind_pair_hueristic(coco_dset=None):
     """
     from shitspotter.matching import *  # NOQA
     import shitspotter
@@ -16,6 +16,10 @@ def autofind_pair_hueristic(coco_dset):
     import vtool_ibeis
     from kwcoco.util import util_json
     from vtool_ibeis import PairwiseMatch
+
+    if coco_dset is None:
+        import shitspotter
+        coco_dset = shitspotter.open_shit_coco()
     # from vtool_ibeis.matching import VSONE_FEAT_CONFIG
 
     image_df = pd.DataFrame(coco_dset.dataset['images'])
@@ -205,7 +209,7 @@ def autofind_pair_hueristic(coco_dset):
     print('bad_triple_items = {!r}'.format(bad_triple_items))
 
     bad_pair_estimate = bad_pairwise_items // 2
-    bad_triple_estimate = bad_triple_items // 2
+    bad_triple_estimate = bad_triple_items // 3  # is this right?
 
     total_unmatchable_tups = bad_pair_estimate + bad_triple_estimate
     total_matchable_tups = good_pairs + good_triples
@@ -213,26 +217,37 @@ def autofind_pair_hueristic(coco_dset):
 
     print('total_matchable_tups = {!r}'.format(total_matchable_tups))
     print('total_unmatchable_tups = {!r}'.format(total_unmatchable_tups))
+
     print('total_est_pairs= {!r}'.format(good_pairs + bad_pair_estimate))
+    print('total_est_triples= {!r}'.format(good_triples + bad_triple_estimate))
+
     print('total_unmatchable_tups = {!r}'.format(total_unmatchable_tups))
 
     print('total_estimated_number_of_tups = {!r}'.format(total_estimated_number_of_tups))
-    # print('total_estimated_number_of_pairs = {!r}'.format(total_estimated_number_of_pairs))
 
-    import kwplot
-    kwplot.autompl()
-    import xdev
-    matches = {k: v for k, v in scores.items() if v[0] >= 0}
-    iiter = xdev.InteractiveIter(list(matches.items()))
-    for pair, compatability in iiter:
-        gid1, gid2 = pair
-        score, delta = compatability
-        imdata1 = cache_imread(gid1)
-        imdata2 = cache_imread(gid2)
-        canvas = kwimage.stack_images([imdata1, imdata2], axis=1)
-        kwplot.imshow(canvas, title='pair={}, score={:0.2f}, delta={}'.format(pair, score, delta))
-        print('pair = {!r}'.format(pair))
-        xdev.InteractiveIter.draw()
+    num_pairs_ideal = len(pairwise_df) // 2
+    num_triples_ideal = len(triple_df) // 3
+    print('num_pairs_ideal = {!r}'.format(num_pairs_ideal))
+    print('num_triples_ideal = {!r}'.format(num_triples_ideal))
+
+    print(f'total_images = {len(coco_dset.imgs)}')
+    # print('total_estimated_number_of_pairs = {!r}'.format(total_estimated_number_of_pairs))
+    # if 0:
+    #     import kwplot
+    #     kwplot.autompl()
+    #     import xdev
+    #     good_matches = {k: m for k, m in image_matches.items() if m['score'] >= 0}
+    #     # matches = {k: v for k, v in scores.items() if v[0] >= 0}
+    #     iiter = xdev.InteractiveIter(list(good_matches.items()))
+    #     for pair, compatability in iiter:
+    #         gid1, gid2 = pair
+    #         score, delta = compatability
+    #         imdata1 = cache_imread(gid1)
+    #         imdata2 = cache_imread(gid2)
+    #         canvas = kwimage.stack_images([imdata1, imdata2], axis=1)
+    #         kwplot.imshow(canvas, title='pair={}, score={:0.2f}, delta={}'.format(pair, score, delta))
+    #         print('pair = {!r}'.format(pair))
+    #         xdev.InteractiveIter.draw()
 
 
 def maxvalue_assignment2(score_dict):
@@ -245,3 +260,12 @@ def maxvalue_assignment2(score_dict):
         graph.add_edge(name1, name2, score=score)
     assignment = nx.algorithms.matching.max_weight_matching(graph, weight='score')
     return assignment
+
+
+if __name__ == '__main__':
+    """
+    CommandLine:
+        python ~/code/shitspotter/shitspotter/matching.py
+    """
+    import fire
+    fire.Fire()
