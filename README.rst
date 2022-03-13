@@ -241,9 +241,9 @@ The URL that can be viewed in a web browser: https://ipfs.io/ipfs/QmNj2MbeL183Gt
 IPFS addresses for the top-level dataset filesystem are:
 .. code:: 
 
-    QmWhKBAQ765YH2LKMQapWp7mULkQxExrjQKeRAWNu5mfBK shitspotter_dvc/data.kwcoco.json
-    QmXBnDDB4TX5FPGddYCQaVSqTmc6cMMTdUwsLwZhuAM3Yb shitspotter_dvc/_cache
-    QmbvEN1Ky3MGGBVDwyMBZvdUCFi1WvfdzkTzgtE7sAvW9B shitspotter_dvc/analysis
+    QmRYp7JmvTwbHyCojYtxWYi3PrhjzT2LbKti5aBBw22Gpy shitspotter_dvc/data.kwcoco.json
+    QmVArot1i19A7AnrQmXQHHkPoAuxRMQor4nSaJZ31WK3WG shitspotter_dvc/_cache
+    QmdviphpTehw6nWBAFwAcd7L8AA9AMCAXoor7v7kcZx6wZ shitspotter_dvc/analysis
     QmXdQzqcFv3pky621txT5Z6k41gZR9bkckG4no6DNh2ods shitspotter_dvc/assets/_poop-unstructured-2021-02-06
     QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn shitspotter_dvc/assets/_trashed
     QmZ4vipXwH7f27VSjx3Bz4aLoeigL9T22sFADv5KCBTFW7 shitspotter_dvc/assets/poop-2020-12-28
@@ -260,8 +260,10 @@ IPFS addresses for the top-level dataset filesystem are:
     QmYYUdAPYQGTg67cyRWA52yFgDAWhHDsEQX9yqED3tj4ZX shitspotter_dvc/assets/poop-2021-11-11
     QmYXXjAutQLdq644rsugp6jxPH6GSaP3kKRTC2jsy4FQMp shitspotter_dvc/assets/poop-2021-11-26
     QmQAufuJGGn7TDeiEE52k5SLPGrcrawjrd8S2AATrSSBvM shitspotter_dvc/assets/poop-2021-12-27
-    QmfZZwoj1gwGPctBQW5Mkye3a8VuajFBCksHVJH7r9Wn3U shitspotter_dvc/assets
-    QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG shitspotter_dvc
+    QmZmJcYPPakvB4cYxjDWWt9Kq1pSgyYLHXK9b5h4wG7LSD shitspotter_dvc/assets/poop-2022-01-27
+    QmSmMKCNtMTj4EVUfKzWfBKwwztSsDZhsjGGx4T17jtzfV shitspotter_dvc/assets/poop-2022-03-13-T152627
+    QmZ4rxiP445CDWSuiXY2Tq4WfPeB48HzemHDwg1MX3gDqX shitspotter_dvc/assets
+    QmaSfRtzXDCiqyfmZuH6NEy2HBr7radiJNhmSjiETihoh6 shitspotter_dvc
 
 
 Depsite the name, this is not yet a DVC repo.
