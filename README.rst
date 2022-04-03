@@ -42,6 +42,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2022-04-02 - Added more images and updated analysis (Over 1000 Poop Images 🎉)
 * 2022-03-13 - Added more images and updated analysis
 * 2021-12-30 - 
     - Found errors in the dataset stats, updating README.
@@ -135,14 +136,15 @@ Known dataset biases are:
 The following scatterplot illustrates trends in the space / time distribution of the images.
 
 .. https://ipfs.io/ipfs/QmaSfRtzXDCiqyfmZuH6NEy2HBr7radiJNhmSjiETihoh6
-.. https://ipfs.io/ipfs/QmaSfRtzXDCiqyfmZuH6NEy2HBr7radiJNhmSjiETihoh6/analysis/scat_scatterplot.png
+.. https://ipfs.io/ipfs/QmeBEy6cmrk7gu1Fp3zYNRnHC7JtU4sUqA8WnUMeGijHix/images_over_time.png
+.. https://ipfs.io/ipfs/QmeBEy6cmrk7gu1Fp3zYNRnHC7JtU4sUqA8WnUMeGijHix/scat_scatterplot.png
 
-.. image:: https://imgur.com/beP2PdK.png
+.. image:: https://i.imgur.com/VQKmvKq.png
 
 
 A visualization of the cumulative number of images collected over time is as follows:
 
-.. image:: https://i.imgur.com/1gL6EuI.png
+.. image:: https://i.imgur.com/uDMsM8w.png
    
 
 The following figure is a hand-picked sample of 9 images from the dataset. Each of these images has poop in it. In some cases it's easy to spot. In other cases, it can be quite difficult. 
@@ -173,6 +175,26 @@ Dataset Statistics:
 
 * As of 2021-12-30 I've collected 2471 pictures with "~954" before/after/(maybe negative) groups of images. (number of pairs is approximate, dataset not fully registered yet)
 * There are roughly 394 paired-groups and 560 triple-groups. (Based only on counts, grouping has not happened yet, there are 658 groups where the before / after images have been reported as registered by the matching algorithm).
+
+
+Further updates will be added to this table. The number of images is total
+images (including after and negatives). The (estimated) number of groups is
+equal to the number of images with poop in them. And number of registered
+groups is the number of groups the before / after pair had a successful
+registration via the SIFT+RANSAC algorithm.
+
+  
++-------------+----------+---------------------+-----------------------+
+| Date        | # Images | # Estimated Groups  | # Registered Groups   |
++=============+==========+=====================+=======================+
+| 2021-11-11  |  1935    |   ~616              | N/A                   |
++-------------+----------+---------------------+-----------------------+
+| 2021-12-30  |  2088    |   ~728              | N/A                   |
++-------------+----------+---------------------+-----------------------+
+| 2022-03-14  |  2471    |   ~954              | 658                   |
++-------------+----------+---------------------+-----------------------+
+| 2022-04-02  |  2614    |  ~1002              | 697                   |
++-------------+----------+---------------------+-----------------------+
 
 
 Annotation Process
@@ -236,15 +258,17 @@ Update 2021-12-30: Initial root CID: QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoA
 
 Update 2022-03-13: Initial root CID: QmaSfRtzXDCiqyfmZuH6NEy2HBr7radiJNhmSjiETihoh6
 
-The URL that can be viewed in a web browser: https://ipfs.io/ipfs/QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG 
+Update 2022-04-02: Initial root CID: QmfStoay5rjeHMEDiyuGsreXNHsyiS5kVaexSM2fov216j
+
+The URL that can be viewed in a web browser: https://ipfs.io/ipfs/QmfStoay5rjeHMEDiyuGsreXNHsyiS5kVaexSM2fov216j 
 
 IPFS addresses for the top-level dataset filesystem are:
 
 .. code:: 
 
-    QmRYp7JmvTwbHyCojYtxWYi3PrhjzT2LbKti5aBBw22Gpy shitspotter_dvc/data.kwcoco.json
-    QmVArot1i19A7AnrQmXQHHkPoAuxRMQor4nSaJZ31WK3WG shitspotter_dvc/_cache
-    QmdviphpTehw6nWBAFwAcd7L8AA9AMCAXoor7v7kcZx6wZ shitspotter_dvc/analysis
+    Qmbsy1ReCnwGnTNTje8KXQond4adzZvGmarntXsdiF4cmN shitspotter_dvc/data.kwcoco.json
+    Qmebx79dn98NCyHq56ZkHRZZSM4si8amdgcyo5EBCVrxpt shitspotter_dvc/_cache
+    QmeBEy6cmrk7gu1Fp3zYNRnHC7JtU4sUqA8WnUMeGijHix shitspotter_dvc/analysis
     QmXdQzqcFv3pky621txT5Z6k41gZR9bkckG4no6DNh2ods shitspotter_dvc/assets/_poop-unstructured-2021-02-06
     QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn shitspotter_dvc/assets/_trashed
     QmZ4vipXwH7f27VSjx3Bz4aLoeigL9T22sFADv5KCBTFW7 shitspotter_dvc/assets/poop-2020-12-28
@@ -263,8 +287,10 @@ IPFS addresses for the top-level dataset filesystem are:
     QmQAufuJGGn7TDeiEE52k5SLPGrcrawjrd8S2AATrSSBvM shitspotter_dvc/assets/poop-2021-12-27
     QmZmJcYPPakvB4cYxjDWWt9Kq1pSgyYLHXK9b5h4wG7LSD shitspotter_dvc/assets/poop-2022-01-27
     QmSmMKCNtMTj4EVUfKzWfBKwwztSsDZhsjGGx4T17jtzfV shitspotter_dvc/assets/poop-2022-03-13-T152627
-    QmZ4rxiP445CDWSuiXY2Tq4WfPeB48HzemHDwg1MX3gDqX shitspotter_dvc/assets
-    QmaSfRtzXDCiqyfmZuH6NEy2HBr7radiJNhmSjiETihoh6 shitspotter_dvc
+    Qmb2EkADDKn6BKzFGjpQw4R3FFPS1FfnFAZtdJhw5Kg6r6 shitspotter_dvc/assets/poop-2022-04-02-T145512
+    QmQKtbHp8WgcxgHAYB4mWdPSKhLoGUQQapAd7BS7YQDpot shitspotter_dvc/assets
+    QmfStoay5rjeHMEDiyuGsreXNHsyiS5kVaexSM2fov216j shitspotter_dvc
+        
 
 
 Depsite the name, this is not yet a DVC repo.

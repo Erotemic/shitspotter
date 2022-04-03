@@ -1,8 +1,120 @@
 """
 Helper to remove shit pictures from my phone
+
+https://app.pinata.cloud/pinmanager
 """
 import ubelt as ub
 from dateutil import parser
+
+
+def transfer_phone_pictures():
+    """
+    This step does the transfer of ALL pictures from my phone to my
+    image archive. The shit needs to be sorted out manually.
+    """
+    phone_path_infos = list_phone_image_paths()
+    print('Found {len(phone_path_infos)=} phone pictures')
+
+    #
+    pic_dpath = ub.Path('/data/store/Pictures/')
+    # Find most recent existing transfer
+    transfer_infos = []
+    for dpath in pic_dpath.glob('Phone-DCIM-*'):
+        year, month, day = dpath.name.split('-')[2:5]
+        transfer_timestamp = parser.parse(f'{year}{month}{day}T000000')
+        transfer_infos.append({
+            'dpath': dpath,
+            'datetime_transfer': transfer_timestamp
+        })
+    most_recent_dpath_info = max(transfer_infos, key=lambda x: x['datetime_transfer'])
+    print('Most recent existing transfer info:')
+    print('most_recent_dpath_info = {}'.format(ub.repr2(most_recent_dpath_info, nl=1)))
+
+    prev_fpaths = list(most_recent_dpath_info['dpath'].glob('*'))
+    prev_infos = []
+    for fpath in prev_fpaths:
+        info = parse_android_filename(fpath.name)
+        info['fpath'] = fpath
+        prev_infos.append(info)
+
+    # most_recent_pic = max([p['datetime_captured'] for p in prev_infos])
+    most_recent_xfer = most_recent_dpath_info['datetime_transfer']
+
+    # Find all the new images on the phone
+    needs_transfer_infos = []
+    for p in phone_path_infos:
+        if p['datetime_captured'] > most_recent_xfer:
+            needs_transfer_infos.append(p)
+
+    print(f'There are {len(needs_transfer_infos)} item that need transfer')
+
+    # Create a new folder
+    # oldest_time = min([p['datetime_captured'] for p in needs_transfer_infos])
+    newst_time = max([p['datetime_captured'] for p in needs_transfer_infos])
+
+    new_stamp = newst_time.strftime('%Y-%m-%d-T%H%M%S')
+    new_dname = f'Phone-DCIM-{new_stamp}'
+
+    new_dpath = pic_dpath / new_dname
+    print('New Transfer Destination = {!r}'.format(new_dpath))
+
+    # First to transfer to a temp directory so we avoid race conditions
+    tmp_dpath = new_dpath.augment(prefix='_tmp_').ensuredir()
+    copy_jobs = []
+    for p in needs_transfer_infos:
+        copy_jobs.append({
+            'src': p['fpath'],
+            'dst': tmp_dpath / p['fpath'].name,
+        })
+
+    print(f'Start copy jobs to {tmp_dpath=}')
+    import shutil
+    jobs = ub.JobPool(mode='thread', max_workers=8)
+    for copy_job in ub.ProgIter(copy_jobs, desc='submit jobs'):
+        jobs.submit(shutil.copy2, copy_job['src'], copy_job['dst'])
+
+    for job in jobs.as_completed(desc='copying'):
+        job.result()
+
+    # Finalize transfer by moving new folder into the right name
+    print(f'Finalize transfer to {new_dpath}')
+    import os
+    os.rename(tmp_dpath, new_dpath)
+
+    import shitspotter
+    coco_fpath = shitspotter.util.find_shit_coco_fpath()
+    asset_dpath = coco_fpath.parent / 'assets'
+
+    new_shit_dpath = asset_dpath / f'poop-{new_stamp}'
+    new_shit_dpath.ensuredir()
+
+    print('Need to manually move shit images')
+
+    print('from new_dpath = {!r}'.format(new_dpath))
+    print('to new_shit_dpath = {!r}'.format(new_shit_dpath))
+
+    import xdev
+    xdev.startfile(new_dpath)
+    xdev.startfile(new_shit_dpath)
+
+    print('Next step is to run the gather script: `python -m shitspotter.gather`')
+    print('Next step is to run the matching script: `python -m shitspotter.matching autofind_pair_hueristic`')
+    print('Next step is to run the plots script: `python -m shitspotter.plots update_analysis_plots`')
+    print('Then repin to IPFS')
+
+    shitspotter_dvc_dpath = coco_fpath.parent
+    command = ub.codeblock(
+        f'''
+        ipfs add --pin -r {new_shit_dpath} --progress
+        ipfs add --pin -r {shitspotter_dvc_dpath} --progress
+
+        Then on mojo:
+
+        ipfs pin add [THE CID]
+        ipfs pin add Qmb2EkADDKn6BKzFGjpQw4R3FFPS1FfnFAZtdJhw5Kg6r6 --progress
+        '''
+    )
+    print(command)
 
 
 def list_phone_image_paths():
@@ -15,7 +127,9 @@ def list_phone_image_paths():
     android_mount_base = ub.Path('/run/user')
     android_mount_dpath = list(android_mount_base.glob('*/gvfs/mtp:host=Google_Pixel_5_*'))[0]
     phone_dpath = android_mount_dpath / 'Internal shared storage/DCIM/Camera'
-    phone_fpaths = list(ub.ProgIter(phone_dpath.glob('*'), desc='listing DCIM'))
+
+    print('Note: GVFS is slow, listing items on the DCIM may take some time')
+    phone_fpaths = list(ub.ProgIter(phone_dpath.glob('*'), desc='Listing DCIM'))
 
     phone_path_infos = []
     for fpath in ub.ProgIter(phone_fpaths, desc='build image info'):
@@ -37,102 +151,6 @@ def list_phone_image_paths():
             })
 
     return phone_path_infos
-
-
-def transfer_phone_pictures():
-    """
-    This step does the transfer of ALL pictures from my phone to my
-    image archive. The shit needs to be sorted out manually.
-    """
-    phone_path_infos = list_phone_image_paths()
-
-    #
-    pic_dpath = ub.Path('/data/store/Pictures/')
-    # Find most recent existing transfer
-    transfer_infos = []
-    for dpath in pic_dpath.glob('Phone-DCIM-*'):
-        year, month, day = dpath.name.split('-')[2:5]
-        transfer_timestamp = parser.parse(f'{year}{month}{day}T000000')
-        transfer_infos.append({
-            'dpath': dpath,
-            'datetime_transfer': transfer_timestamp
-        })
-    most_recent_dpath_info = max(transfer_infos, key=lambda x: x['datetime_transfer'])
-    prev_fpaths = most_recent_dpath_info['dpath'].glob('*')
-    prev_infos = []
-    for fpath in prev_fpaths:
-        info = parse_android_filename(fpath.name)
-        info['fpath'] = fpath
-        prev_infos.append(info)
-
-    # most_recent_pic = max([p['datetime_captured'] for p in prev_infos])
-    most_recent_xfer = most_recent_dpath_info['datetime_transfer']
-
-    # Find all the new images on the phone
-    needs_transfer_infos = []
-    for p in phone_path_infos:
-        if p['datetime_captured'] > most_recent_xfer:
-            needs_transfer_infos.append(p)
-
-    # Create a new folder
-    # oldest_time = min([p['datetime_captured'] for p in needs_transfer_infos])
-    newst_time = max([p['datetime_captured'] for p in needs_transfer_infos])
-
-    new_stamp = newst_time.strftime('%Y-%m-%d-T%H%M%S')
-    new_dname = f'Phone-DCIM-{new_stamp}'
-
-    new_dpath = pic_dpath / new_dname
-
-    # First to transfer to a temp directory so we avoid race conditions
-    tmp_dpath = new_dpath.augment(prefix='_tmp_').ensuredir()
-
-    copy_jobs = []
-    for p in needs_transfer_infos:
-        copy_jobs.append({
-            'src': p['fpath'],
-            'dst': tmp_dpath / p['fpath'].name,
-        })
-
-    import shutil
-    jobs = ub.JobPool(mode='thread', max_workers=8)
-    for copy_job in ub.ProgIter(copy_jobs, desc='submit jobs'):
-        jobs.submit(shutil.copy, copy_job['src'], copy_job['dst'])
-
-    for job in jobs.as_completed(desc='copying'):
-        job.result()
-
-    # Finalize transfer by moving new folder into the right name
-    import os
-    os.rename(tmp_dpath, new_dpath)
-
-    import shitspotter
-    coco_fpath = shitspotter.util.find_shit_coco_fpath()
-    asset_dpath = coco_fpath.parent / 'assets'
-
-    new_shit_dpath = asset_dpath / f'poop-{new_stamp}'
-    new_shit_dpath.ensuredir()
-
-    print('Need to manually move shit images')
-
-    print('from new_dpath = {!r}'.format(new_dpath))
-    print('to new_shit_dpath = {!r}'.format(new_dpath))
-
-    import xdev
-    xdev.startfile(new_dpath)
-    xdev.startfile(new_shit_dpath)
-
-    print('Next step is to run the gather script: `python -m shitspotter.gather`')
-    print('Next step is to run the matching script: `python -m shitspotter.matching autofind_pair_hueristic`')
-    print('Next step is to run the plots script: `python -m shitspotter.plots update_analysis_plots`')
-    print('Then repin to IPFS')
-
-    shitspotter_dvc_dpath = coco_fpath.parent
-    command = ub.codeblock(
-        f'''
-        ipfs add -r {shitspotter_dvc_dpath} --progress
-        '''
-    )
-    print(command)
 
 
 def delete_shit_images_on_phone():
@@ -170,7 +188,7 @@ def delete_shit_images_on_phone():
         dvc_stat = dvc_fpath.stat()
         phone_stat = phone_fpath.stat()
         assert phone_stat.st_size == dvc_stat.st_size
-        assert phone_stat.st_mtime == dvc_stat.st_mtime
+        # assert phone_stat.st_mtime == dvc_stat.st_mtime
 
         to_delete.append(phone_fpath)
 

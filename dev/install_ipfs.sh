@@ -490,7 +490,4 @@ init_ipfs_cluster(){
     ipfs-cluster-service init --consensus crdt
 
     # https://cluster.ipfs.io/documentation/deployment/setup/
-    
-
-
 }
