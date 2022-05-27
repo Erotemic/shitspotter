@@ -16,6 +16,7 @@ rsync -avrpRP toothbrush:/data/store/Pictures/./Phone-DCIM-2021-11-26 /data/Pict
 rsync -avrpRP toothbrush:/data/store/Pictures/./Phone-DCIM-2021-12-27 /data/Pictures
 rsync -avrpRP toothbrush:/data/store/Pictures/./Phone-DCIM-2022-01-27 /data/Pictures
 rsync -avrpRP toothbrush:/data/store/Pictures/./Phone-DCIM-2022-03-13-T152627 /data/Pictures
+rsync -avrpRP toothbrush:/data/store/Pictures/./Phone-DCIM-2022-04-02-T145512 /data/Pictures
 rsync -avrpRP toothbrush:/data/store/./Pictures /data/
 rsync -avrpRP toothbrush:/data/store/./Pictures /data/
 

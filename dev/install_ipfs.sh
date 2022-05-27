@@ -59,12 +59,14 @@ install_ipfs(){
 
     ARCH="$(dpkg --print-architecture)"
     echo "ARCH = $ARCH"
-    IPFS_VERSION="v0.12.0-rc1"
+    IPFS_VERSION="v0.12.2"
     IPFS_KEY=go-ipfs_${IPFS_VERSION}_linux-${ARCH}
     URL="https://dist.ipfs.io/go-ipfs/${IPFS_VERSION}/${IPFS_KEY}.tar.gz"
     declare -A IPFS_KNOWN_HASHES=(
         ["go-ipfs_v0.12.0-rc1_linux-arm64-sha512"]="730c9d7c31f5e10f91ac44e6aa3aff7c3e57ec3b2b571e398342a62d92a0179031c49fc041cd063403147377207e372d005992fee826cd4c4bba9b23df5c4e0c"
         ["go-ipfs_v0.12.0-rc1_linux-amd64-sha512"]="b0f913f88c515eee75f6dbf8b41aedd876d12ef5af22762e04c3d823964207d1bf314cbc4e39a12cf47faad9ca8bbbbc87f3935940795e891b72c4ff940f0d46"
+        ["go-ipfs_v0.12.2_linux-arm64-sha512"]="75b71c4a4f7dd888dc8c1995e57a2c67b17c9593f9c4fa3a585a3803f2ac1ae9c2a97c7f7381ca8cf2bc731f0a9eff9b88131b9ba98c15cd41fc68c67e2833b5"
+        ["go-ipfs_v0.12.2_linux-amd64-sha512"]="d1b376fe1fb081631af773ea05632090dd79ae5a0057f8b8a0202c28b64a966d14bbfde768ce5a993745761ce56ceed6323a6bd1714f9ae71fa4d68fcbeb1dbb"
     )
     EXPECTED_HASH="${IPFS_KNOWN_HASHES[${IPFS_KEY}-sha512]}"
     BASENAME=$(basename "$URL")
@@ -83,8 +85,8 @@ install_ipfs(){
     #export IPFS_PATH=/data/ipfs
     #$_SUDO mkdir -p $IPFS_PATH
 
-    #$_SUDO mkdir -p "$INSTALL_PREFIX/bin"
-    #$_SUDO cp go-ipfs/ipfs "$INSTALL_PREFIX/bin"
+    $_SUDO mkdir -p "$INSTALL_PREFIX/bin"
+    $_SUDO cp go-ipfs/ipfs "$INSTALL_PREFIX/bin"
 
     # That should install IPFS now, lets set it up
 
