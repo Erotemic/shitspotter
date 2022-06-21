@@ -203,7 +203,15 @@ def emoji_plot_pil(ax, img_locs, text, label_to_color):
     # font = ImageFont.truetype('/usr/share/fonts/truetype/Sarai/Sarai.ttf', 60, encoding='unic')
     # font = ImageFont.truetype("/data/Steam/steamapps/common/Proton 6.3/dist/share/wine/fonts/symbol.ttf", 60, encoding='unic')
     label_to_img = {}
-    symbola = ub.grabdata('https://github.com/gearit/ttf-symbola/raw/master/Symbola.ttf')
+
+    # symbola = ub.grabdata('https://github.com/gearit/ttf-symbola/raw/master/Symbola.ttf')
+    # QmQY15hiCfFLXCeFxie1iLhqjzY8fEgGxkT8i3uvrWN4me
+    symbola = ub.grabdata(
+        'https://github.com/taylor/fonts/raw/master/Symbola.ttf',
+        hash_prefix='65d634649ab3c4e718b376db0d2e7566d8cfccfff12c70fb3ae2e29a',
+        hasher='sha512',
+    )
+
     font = ImageFont.truetype(symbola, 32, encoding='unic')
     for label, color in label_to_color.items():
         col = kwimage.Color(list(color) + [1]).as255()

@@ -42,6 +42,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2022-06-20 - Added more images, starting transition to V1 CIDS 
 * 2022-04-02 - Added more images and updated analysis (Over 1000 Poop Images 🎉)
 * 2022-03-13 - Added more images and updated analysis
 * 2021-12-30 - 
@@ -135,16 +136,14 @@ Known dataset biases are:
 
 The following scatterplot illustrates trends in the space / time distribution of the images.
 
-.. https://ipfs.io/ipfs/QmaSfRtzXDCiqyfmZuH6NEy2HBr7radiJNhmSjiETihoh6
-.. https://ipfs.io/ipfs/QmeBEy6cmrk7gu1Fp3zYNRnHC7JtU4sUqA8WnUMeGijHix/images_over_time.png
-.. https://ipfs.io/ipfs/QmeBEy6cmrk7gu1Fp3zYNRnHC7JtU4sUqA8WnUMeGijHix/scat_scatterplot.png
-
-.. image:: https://i.imgur.com/VQKmvKq.png
+.. image:: https://ipfs.io/ipfs/bafybeihk4r7lmyhovvs6e2h3hs66qcjpzdeqpnp27sgtxi3x7cknrlotmq/scat_scatterplot.png
+.. .. image:: https://i.imgur.com/ne3AeC4.png
 
 
 A visualization of the cumulative number of images collected over time is as follows:
 
-.. image:: https://i.imgur.com/uDMsM8w.png
+.. image:: https://ipfs.io/ipfs/bafybeihk4r7lmyhovvs6e2h3hs66qcjpzdeqpnp27sgtxi3x7cknrlotmq/images_over_time.png
+.. .. image:: https://i.imgur.com/ppPXo6X.png
    
 
 The following figure is a hand-picked sample of 9 images from the dataset. Each of these images has poop in it. In some cases it's easy to spot. In other cases, it can be quite difficult. 
@@ -196,6 +195,8 @@ registration via the SIFT+RANSAC algorithm.
 | 2022-04-02  |  2614    |  ~1002              | 697                   |
 +-------------+----------+---------------------+-----------------------+
 | 2022-04-16  |  2706    |  ~1033              | 722                   |
++-------------+----------+---------------------+-----------------------+
+| 2022-06-20  |  2991    |  ~1127              | 734                   |
 +-------------+----------+---------------------+-----------------------+
 
 
@@ -262,39 +263,41 @@ Update 2022-03-13: Initial root CID: QmaSfRtzXDCiqyfmZuH6NEy2HBr7radiJNhmSjiETih
 
 Update 2022-04-02: Initial root CID: QmfStoay5rjeHMEDiyuGsreXNHsyiS5kVaexSM2fov216j
 
-The URL that can be viewed in a web browser: https://ipfs.io/ipfs/QmfStoay5rjeHMEDiyuGsreXNHsyiS5kVaexSM2fov216j 
+Update 2022-06-20: Initial root CID: bafybeihltrtb4xncqvfbipdwnlxsrxmeb4df7xmoqpjatg7jxrl3lqqk6y
+
+The URL that can be viewed in a web browser: https://ipfs.io/ipfs/bafybeihltrtb4xncqvfbipdwnlxsrxmeb4df7xmoqpjatg7jxrl3lqqk6y 
 
 IPFS addresses for the top-level dataset filesystem are:
 
 .. code:: 
 
-    Qmbsy1ReCnwGnTNTje8KXQond4adzZvGmarntXsdiF4cmN shitspotter_dvc/data.kwcoco.json
-    Qmebx79dn98NCyHq56ZkHRZZSM4si8amdgcyo5EBCVrxpt shitspotter_dvc/_cache
-    QmeBEy6cmrk7gu1Fp3zYNRnHC7JtU4sUqA8WnUMeGijHix shitspotter_dvc/analysis
-    QmXdQzqcFv3pky621txT5Z6k41gZR9bkckG4no6DNh2ods shitspotter_dvc/assets/_poop-unstructured-2021-02-06
-    QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn shitspotter_dvc/assets/_trashed
-    QmZ4vipXwH7f27VSjx3Bz4aLoeigL9T22sFADv5KCBTFW7 shitspotter_dvc/assets/poop-2020-12-28
-    QmTHipghcRCVamWLojWKQy8KgamtRnPv9fL3dxxPv7VVZx shitspotter_dvc/assets/poop-2021-02-06
-    QmZ3W4pXVkbhQKssWBhBgspeAB3U6GRGD85eff7BvAPNri shitspotter_dvc/assets/poop-2021-03-05
-    QmZb6s53W34rmUJ2s5diw4ErhK3aLb5Td9MtML4u5wqMT5 shitspotter_dvc/assets/poop-2021-04-06
-    QmbZrgM4jCJ8ccU9DLGewPkVBDH6pDVs4vdUUk1jeKyfic shitspotter_dvc/assets/poop-2021-04-19
-    QmTexn6vX8vtAYiZYDq2YmHjoUnnJAAxEtyFPwXsqfvpKy shitspotter_dvc/assets/poop-2021-04-25
-    QmXFyYBVqVVcKqcJuGzo3d9WTRxf4U4cZBmRaT6q52mqLp shitspotter_dvc/assets/poop-2021-05-11T000000
-    QmcTkxhsA4QsWb9KJsLKGnWNyhf7SuMNhAmf55DiXqG8iU shitspotter_dvc/assets/poop-2021-05-11T150000
-    QmNVZ6BGbTWd5Tw5s4E3PagzEcvp1ekxxQL6bRSHabEsG3 shitspotter_dvc/assets/poop-2021-06-05
-    QmQAbQTbTquTyMmd27oLunS3Sw2rZvJH5p7zus4h1fvxdz shitspotter_dvc/assets/poop-2021-06-20
-    QmRkCQkAjYFoCS4cEyiDNnk9RbcoQPafmZvoP3GrpVzJ8D shitspotter_dvc/assets/poop-2021-09-20
-    QmYYUdAPYQGTg67cyRWA52yFgDAWhHDsEQX9yqED3tj4ZX shitspotter_dvc/assets/poop-2021-11-11
-    QmYXXjAutQLdq644rsugp6jxPH6GSaP3kKRTC2jsy4FQMp shitspotter_dvc/assets/poop-2021-11-26
-    QmQAufuJGGn7TDeiEE52k5SLPGrcrawjrd8S2AATrSSBvM shitspotter_dvc/assets/poop-2021-12-27
-    QmZmJcYPPakvB4cYxjDWWt9Kq1pSgyYLHXK9b5h4wG7LSD shitspotter_dvc/assets/poop-2022-01-27
-    QmSmMKCNtMTj4EVUfKzWfBKwwztSsDZhsjGGx4T17jtzfV shitspotter_dvc/assets/poop-2022-03-13-T152627
-    Qmb2EkADDKn6BKzFGjpQw4R3FFPS1FfnFAZtdJhw5Kg6r6 shitspotter_dvc/assets/poop-2022-04-02-T145512
-    QmQKtbHp8WgcxgHAYB4mWdPSKhLoGUQQapAd7BS7YQDpot shitspotter_dvc/assets
-    QmfStoay5rjeHMEDiyuGsreXNHsyiS5kVaexSM2fov216j shitspotter_dvc
+    bafybeialoyzqvvhgtg2hvmwdmfrydotl7agsovnf26sp4iuopzkehg3afq - shitspotter_dvc/data.kwcoco.json
+    bafybeigy36iq57nz5wpbxja6txtm57zznn6kuyryjzb32n3rm3nccx5bzy - shitspotter_dvc/_cache
+    bafybeihk4r7lmyhovvs6e2h3hs66qcjpzdeqpnp27sgtxi3x7cknrlotmq - shitspotter_dvc/analysis
+    bafybeialkwcgpkneapnixeit2uzyjehnjn27vwbaynjnlryl5flsf3q6fi - shitspotter_dvc/assets/poop-2020-12-28/
+    bafybeig2wlncnixclod2hecd7e7zoemvdhwoxuzi5xtnomottb27kx4jzq - shitspotter_dvc/assets/poop-2021-02-06/
+    bafybeifrkr2grtiuhm4uwuqri25h67dsfmsrwtn3q7xpfaeetqlwukgoum - shitspotter_dvc/assets/poop-2021-03-05/
+    bafybeigspol3oqllgushdujw3dgzlnrgb5ywy42i3gtk5g2h7px3r25w6q - shitspotter_dvc/assets/poop-2021-04-06/
+    bafybeibhtymsnsmdqukjf2emde6zlxapzczom7a4pauqv65pfducb4v2pu - shitspotter_dvc/assets/poop-2021-04-19/
+    bafybeiecpxpodwxrmmkiyxef6222hobnr6okq35ecdcvlrt2wa4pduqpua - shitspotter_dvc/assets/poop-2021-04-25/
+    bafybeicozcsoutdeh37nvv4a6xjuwha2s5yqssepg4x6rysvcaqyptluhm - shitspotter_dvc/assets/poop-2021-05-11T000000/
+    bafybeig6v5abxioluw7zmk6mxzsg4xumhphkr64jqznjc2pgilhhg453b4 - shitspotter_dvc/assets/poop-2021-05-11T150000/
+    bafybeiecdgnasyccutesze6odoyg2uhqkzc4hy25imbls2szpbwmsqsggm - shitspotter_dvc/assets/poop-2021-06-05/
+    bafybeia5v47nt7m5dlw6ozfptreu6oxjdypjbbod3zhwx26hducphkg2em - shitspotter_dvc/assets/poop-2021-06-20/
+    bafybeigo4ffpewvp23v6pa65durazqtzov7rpqucg6w3723bkolnhi2xwu - shitspotter_dvc/assets/poop-2021-09-20/
+    bafybeie4sspgtzv5upgmj2gx43jcebnvmjpcnlehwpteyzbm7rm22buuli - shitspotter_dvc/assets/poop-2021-11-11/
+    bafybeialx3qohukvftxoluss4iakdqiqjnsfyxu7qmcotbjci76zxy4wym - shitspotter_dvc/assets/poop-2021-11-26/
+    bafybeigmpdet6dhtvkauisv7oyxvbcqlhiac4a6pgi7phn3zak37txireu - shitspotter_dvc/assets/poop-2021-12-27/
+    bafybeiewsg5b353s26r566aw756y5h5omnjei3xllzv7sldesmthu6p5bi - shitspotter_dvc/assets/poop-2022-01-27/
+    bafybeiapgukq36wxd3b23io3io5iry2jpu6ojy4pdc5wqry5ouy3s7q65u - shitspotter_dvc/assets/poop-2022-03-13-T152627/
+    bafybeiba5k3iauqu4ayul4yozapadlpiehezwow63lm3r26hgk4eqrrjki - shitspotter_dvc/assets/poop-2022-04-02-T145512/
+    bafybeic3amh4klgs3aantyqgd7lti2vhnnmutbcfddtvw2572ynlldkpua - shitspotter_dvc/assets/poop-2022-04-16-T135257/
+    bafybeicyotgcgufq2nsewvk2ph4xchgbnltd7t2j334lqgvc4jdnxrw5by - shitspotter_dvc/assets/poop-2022-05-26-T173650/
+    bafybeieddszhqi6fzrpnn2q2ab74hva4gwnx5bcdnvh7cwwrnf7ikyukru - shitspotter_dvc/assets/poop-2022-06-08-T132910/
+    bafybeigss3h3p6pnsw7bgfevs77lv6duzhzi7fmuiyf5qtujafqanrrjsi - shitspotter_dvc/assets/poop-2022-06-20-T235340/
+    bafybeihmy6kahelz7nyd4hzpj733knecoxosjy7nd3q7stxfygx3hvj7bu - shitspotter_dvc/assets
+    bafybeihltrtb4xncqvfbipdwnlxsrxmeb4df7xmoqpjatg7jxrl3lqqk6y - shitspotter_dvc
         
-
-
 Depsite the name, this is not yet a DVC repo.
 
 

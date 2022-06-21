@@ -1,6 +1,9 @@
 """
 Helper to remove shit pictures from my phone
 
+CommandLine:
+    python ~/code/shitspotter/dev/remote_from_phone.py
+
 https://app.pinata.cloud/pinmanager
 """
 import ubelt as ub
@@ -284,10 +287,23 @@ def transfer_phone_pictures():
     for job in jobs.as_completed(desc='copying'):
         job.result()
 
-    # Finalize transfer by moving new folder into the right name
-    print(f'Finalize transfer to {new_dpath}')
     import os
     os.rename(tmp_dpath, new_dpath)
+
+    finalize_transfer(new_dpath)
+
+
+def finalize_transfer(new_dpath):
+    """
+    import sys, ubelt
+    sys.path.append(ubelt.expandpath('~/code/shitspotter/dev'))
+    from remote_from_phone import *  # NOQA
+    new_dpath = "/data/store/Pictures/Phone-DCIM-2022-05-26-T173650/"
+    """
+    # Finalize transfer by moving new folder into the right name
+    print(f'Finalize transfer to {new_dpath}')
+    new_dpath = ub.Path(new_dpath)
+    new_stamp = new_dpath.name.split('-', 2)[2]
 
     import shitspotter
     coco_fpath = shitspotter.util.find_shit_coco_fpath()
@@ -314,15 +330,65 @@ def transfer_phone_pictures():
     command = ub.codeblock(
         f'''
         ipfs add --pin -r {new_shit_dpath} --progress --cid-version=1 --raw-leaves=false
-        ipfs add --pin -r {shitspotter_dvc_dpath} --progress
-
-        Then on mojo:
-
-        ipfs pin add [THE CID]
-        ipfs pin add QmfStoay5rjeHMEDiyuGsreXNHsyiS5kVaexSM2fov216j --progress
+        ipfs add --pin -r {shitspotter_dvc_dpath} --progress --cid-version=1 --raw-leaves=false
         '''
     )
     print(command)
+
+    # dpath = ub.Path(shitspotter.__file__).parent
+    # cid_revisions_fpath = dpath / 'cid_revisions.txt'
+    command = ub.codeblock(
+        '''
+        Add it to the CID revisions:
+        echo "QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
+        echo "QmaPPoPs7wXXkBgJeffVm49rd63ZtZw5GrhvQQbYrUbrYL" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
+        echo "QmaSfRtzXDCiqyfmZuH6NEy2HBr7radiJNhmSjiETihoh6" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
+        echo "QmPptXKFKi6oTJL3VeCNy5Apk8MJsHhCAAwVmegHhuRY83" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
+        echo "QmfStoay5rjeHMEDiyuGsreXNHsyiS5kVaexSM2fov216j" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
+        echo "bafybeihgex2fj4ethxnfmiivasw5wqsbt2pdjswu3yr554rewm6myrkq4a" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
+        echo "bafybeihltrtb4xncqvfbipdwnlxsrxmeb4df7xmoqpjatg7jxrl3lqqk6y" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
+
+        Then on mojo:
+
+        THE_CID=bafybeihltrtb4xncqvfbipdwnlxsrxmeb4df7xmoqpjatg7jxrl3lqqk6y
+        DATE=$(date +"%Y-%m-%d")
+
+        ipfs pin add --progress "${THE_CID}"
+
+        # Also, we should pin the CID on a pinning service
+        ipfs pin remote add --service=web3.storage.erotemic --name={shitspotter-dvc-$DATE} ${THE_CID} --background
+        ipfs pin remote ls --service=web3.storage.erotemic --cid=${THE_CID} --status=queued,pinning,pinned,failed
+
+        # e.g.
+        ipfs pin add bafybeihgex2fj4ethxnfmiivasw5wqsbt2pdjswu3yr554rewm6myrkq4a --progress
+        ipfs pin add QmfStoay5rjeHMEDiyuGsreXNHsyiS5kVaexSM2fov216j --progress
+        ipfs pin remote add --service=web3.storage.erotemic --name=shitspotter-dvc-2022-06-08 bafybeihgex2fj4ethxnfmiivasw5wqsbt2pdjswu3yr554rewm6myrkq4a --background
+        ipfs pin remote ls --service=web3.storage.erotemic --cid=QmYftzG6enTebF2f143KeHiPiJGs66LJf3jT1fNYAiqQvq --status=queued,pinning,pinned,failed
+        '''
+    )
+    print(command)
+
+
+
+    # Try to programatically figure out what the CID was
+    r"""
+    import ubelt as ub
+    out = ub.cmd('ipfs pin ls --type=recursive')['out']
+    cids = []
+    for line in out.strip().split('\n'):
+        cid = line.split(' ')[0]
+        cids.append(cid)
+
+    for cid in cids:
+        result = ub.cmd(f'ipfs ls {cid}')['out']
+        for line in result.strip().split('\n'):
+            if 'data.kwcoco.json' in line:
+                print()
+                print(line)
+                print(cid)
+                print()
+                break
+    """
 
 
 def delete_shit_images_on_phone():
@@ -369,3 +435,11 @@ def delete_shit_images_on_phone():
 
         # ub.hash_file(dvc_fpath)
         # ub.hash_file(phone_fpath)
+
+
+if __name__ == '__main__':
+    """
+    CommandLine:
+        python ~/code/shitspotter/dev/remote_from_phone.py
+    """
+    transfer_phone_pictures()
