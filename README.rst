@@ -111,6 +111,9 @@ interested in collaborating.
 TACO: http://tacodataset.org/ 
 The TACO dataset is Trash Annotations in Context. It could be the case that this data could be incorporated into the TACO dataset, although it does not currently contain a category for feces.
 
+SnapCrap: An app to report poop on the streets of San Francisco
+https://medium.com/@miller.stowe/snapcrap-why-i-built-an-app-to-report-poop-on-the-streets-of-san-francisco-aac12382a7ce
+
 Other related links I haven't gone through well enough yet:
 
 * https://getdiglabs.com/blogs/the-dig-labs-dish/computer-vision-and-dog-poop
