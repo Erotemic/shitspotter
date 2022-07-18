@@ -42,6 +42,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2022-07-17 - Added more images
 * 2022-06-20 - Added more images, starting transition to V1 CIDS 
 * 2022-04-02 - Added more images and updated analysis (Over 1000 Poop Images 🎉)
 * 2022-03-13 - Added more images and updated analysis
@@ -199,7 +200,9 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+
 | 2022-04-16  |  2706    |  ~1033              | 722                   |
 +-------------+----------+---------------------+-----------------------+
-| 2022-06-20  |  2991    |  ~1127              | 734                   |
+| 2022-06-20  |  2991    |  ~1127              | 734?                  |
++-------------+----------+---------------------+-----------------------+
+| 2022-07-17  |  3144    |  ~1179              | 823                   |
 +-------------+----------+---------------------+-----------------------+
 
 
@@ -274,9 +277,9 @@ IPFS addresses for the top-level dataset filesystem are:
 
 .. code:: 
 
-    bafybeialoyzqvvhgtg2hvmwdmfrydotl7agsovnf26sp4iuopzkehg3afq - shitspotter_dvc/data.kwcoco.json
-    bafybeigy36iq57nz5wpbxja6txtm57zznn6kuyryjzb32n3rm3nccx5bzy - shitspotter_dvc/_cache
-    bafybeihk4r7lmyhovvs6e2h3hs66qcjpzdeqpnp27sgtxi3x7cknrlotmq - shitspotter_dvc/analysis
+    bafybeif7b3gkkvgpqni43anc3u5ie5sf4f53ysm46vr5ivcyc6zqb4evyy - shitspotter_dvc/data.kwcoco.json
+    bafybeihvl3dn3mlcehzzwwqsqgkjlnieqjaaqsvlqr3pfwjv34pvtswryy - shitspotter_dvc/_cache
+    bafybeicjadefy4mpsucovpe3xygnkxvbtojubaoizyar65v5pv7cmv2bx4 - shitspotter_dvc/analysis
     bafybeialkwcgpkneapnixeit2uzyjehnjn27vwbaynjnlryl5flsf3q6fi - shitspotter_dvc/assets/poop-2020-12-28/
     bafybeig2wlncnixclod2hecd7e7zoemvdhwoxuzi5xtnomottb27kx4jzq - shitspotter_dvc/assets/poop-2021-02-06/
     bafybeifrkr2grtiuhm4uwuqri25h67dsfmsrwtn3q7xpfaeetqlwukgoum - shitspotter_dvc/assets/poop-2021-03-05/
@@ -298,8 +301,10 @@ IPFS addresses for the top-level dataset filesystem are:
     bafybeicyotgcgufq2nsewvk2ph4xchgbnltd7t2j334lqgvc4jdnxrw5by - shitspotter_dvc/assets/poop-2022-05-26-T173650/
     bafybeieddszhqi6fzrpnn2q2ab74hva4gwnx5bcdnvh7cwwrnf7ikyukru - shitspotter_dvc/assets/poop-2022-06-08-T132910/
     bafybeigss3h3p6pnsw7bgfevs77lv6duzhzi7fmuiyf5qtujafqanrrjsi - shitspotter_dvc/assets/poop-2022-06-20-T235340/
-    bafybeihmy6kahelz7nyd4hzpj733knecoxosjy7nd3q7stxfygx3hvj7bu - shitspotter_dvc/assets
-    bafybeihltrtb4xncqvfbipdwnlxsrxmeb4df7xmoqpjatg7jxrl3lqqk6y - shitspotter_dvc
+    bafybeih6qtza2vnrdvemlhuezfhoom6wh2457mnwmlw7sg4ncgstl35zsa - shitspotter_dvc/assets/poop-2022-07-16-T215017/
+    
+    bafybeieuef4i72d3dnyc7f3gn4pvmy3cfdsqngwguhczuqdzcsgfzuywce - shitspotter_dvc/assets
+    bafybeihi7v7sgnxb2y57ie2dr7oobigsn5fqiwxwq56sdpmzo5on7a2xwe - shitspotter_dvc
         
 Depsite the name, this is not yet a DVC repo.
 

@@ -206,16 +206,23 @@ def transfer_phone_pictures():
     """
     phone = GVFSAndroidConnection.discover()[0]
     phone_image_infos = phone.dcim_image_infos()
-    print('Found {len(phone_image_infos)=} phone pictures')
+    print(f'Found {len(phone_image_infos)=} phone pictures')
 
     # This is my internal convention for storing pictures, it will not
     # generalize
     pic_dpath = ub.Path('/data/store/Pictures/')
     # Find most recent existing transfer
     transfer_infos = []
-    for dpath in pic_dpath.glob('Phone-DCIM-*'):
-        year, month, day = dpath.name.split('-')[2:5]
-        transfer_timestamp = dateparser.parse(f'{year}{month}{day}T000000')
+    phone_transfer_dpaths = sorted(pic_dpath.glob('Phone-DCIM-*'))
+
+    import re
+    timepat = re.compile(r'T\d\d\d\d\d\d')
+    for dpath in phone_transfer_dpaths:
+        year, month, day, *rest = dpath.name.split('-')[2:]
+        if len(rest) == 1 and timepat.match(rest[0]):
+            transfer_timestamp = dateparser.parse(f'{year}{month}{day}{rest[0]}')
+        else:
+            transfer_timestamp = dateparser.parse(f'{year}{month}{day}T000000')
         transfer_infos.append({
             'dpath': dpath,
             'datetime_transfer': transfer_timestamp
@@ -253,7 +260,8 @@ def transfer_phone_pictures():
     print('New Transfer Destination = {!r}'.format(new_dpath))
 
     # First to transfer to a temp directory so we avoid race conditions
-    tmp_dpath = new_dpath.augment(prefix='_tmp_').ensuredir()
+    # tmp_dpath = new_dpath.augment(prefix='_tmp_').ensuredir()
+    tmp_dpath = ub.Path(ub.augpath(new_dpath, prefix='_tmp_')).ensuredir()
     copy_jobs = []
     for p in needs_transfer_infos:
         copy_jobs.append({
@@ -261,7 +269,7 @@ def transfer_phone_pictures():
             'dst': tmp_dpath / p['fpath'].name,
         })
 
-    print(f'Start copy jobs to {tmp_dpath=}')
+    print(f'Start {len(needs_transfer_infos)} copy jobs to {tmp_dpath=}')
 
     class CopyManager:
         """
@@ -347,10 +355,12 @@ def finalize_transfer(new_dpath):
         echo "QmfStoay5rjeHMEDiyuGsreXNHsyiS5kVaexSM2fov216j" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
         echo "bafybeihgex2fj4ethxnfmiivasw5wqsbt2pdjswu3yr554rewm6myrkq4a" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
         echo "bafybeihltrtb4xncqvfbipdwnlxsrxmeb4df7xmoqpjatg7jxrl3lqqk6y" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
+        echo "bafybeihi7v7sgnxb2y57ie2dr7oobigsn5fqiwxwq56sdpmzo5on7a2xwe" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
+
 
         Then on mojo:
 
-        THE_CID=bafybeihltrtb4xncqvfbipdwnlxsrxmeb4df7xmoqpjatg7jxrl3lqqk6y
+        THE_CID=bafybeihi7v7sgnxb2y57ie2dr7oobigsn5fqiwxwq56sdpmzo5on7a2xwe
         DATE=$(date +"%Y-%m-%d")
 
         ipfs pin add --progress "${THE_CID}"
@@ -367,8 +377,6 @@ def finalize_transfer(new_dpath):
         '''
     )
     print(command)
-
-
 
     # Try to programatically figure out what the CID was
     r"""
