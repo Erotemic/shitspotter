@@ -26,3 +26,9 @@ rsync -avrpRPn toothbrush:/data/store/./Pictures /data/
 
 ooo:/data/Pictures
 toothbrush:/data/store/Pictures
+
+### Ooo changed to mimic toothbrush paths
+rsync -avrpRPn toothbrush:/data/store/./Pictures /data/store
+
+# Real run
+rsync -avrpRP toothbrush:/data/store/./Pictures /data/store

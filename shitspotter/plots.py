@@ -475,6 +475,13 @@ def demo_warp(coco_dset, gid1, gid2):
     rchip2_rgb, sf_info2 = kwimage.imresize(imdata2, max_dim=maxdim, return_info=True)
 
     undo_scale = kwimage.Affine.coerce(sf_info1).inv()
+    # rchip2_rgb, sf_info2 = kwimage.imresize(imdata2, max_dim=512, return_info=True)
+    # rchip1_rgb, sf_info1 = kwimage.imresize(imdata1, max_dim=800, return_info=True)
+    # rchip2_rgb, sf_info2 = kwimage.imresize(imdata2, max_dim=800, return_info=True)
+    rchip1_rgb, sf_info1 = kwimage.imresize(imdata1, max_dim=maxdim, return_info=True)
+    rchip2_rgb, sf_info2 = kwimage.imresize(imdata2, max_dim=maxdim, return_info=True)
+
+    undo_scale = kwimage.Affine.coerce(sf_info1).inv()
 
     # import kwplot
     # kwplot.autompl()
@@ -521,6 +528,28 @@ def demo_warp(coco_dset, gid1, gid2):
     # warp_bounds.draw()
     valid_rchip2_mask1 = warp_bounds1.to_mask(dims=rchip2_dims).data
     rchip2_align = rchip2 * valid_rchip2_mask1[:, :, None]
+
+    if 0:
+        """
+        pip install itk-elastix
+        https://github.com/InsightSoftwareConsortium/ITKElastix/issues/159
+        pip install itk==v5.3rc04.post1
+        pip install itk==v5.3rc4
+
+        python -c "import itk; itk.elastix_registration_method"
+
+        pip install itk==v5.3rc3
+
+        https://github.com/Erotemic/local/blob/main/tools/supported_python_versions_pip.py
+
+        pip install itk-elastix==[0.14.0]
+        pip install itk-filtering==5.3rc2
+        pip install itk-filtering==5.3rc2
+        pip install itk==v5.3rc04.post1
+        """
+        # import itk
+        # fixed_image:
+        # registered_image, params = itk.elastix_registration_method(fixed_image, moving_image)
 
     if 0:
         # TODO: diffeomorphism - Diffeomorphic Demons

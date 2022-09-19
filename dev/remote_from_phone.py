@@ -329,16 +329,40 @@ def finalize_transfer(new_dpath):
     xdev.startfile(new_dpath)
     xdev.startfile(new_shit_dpath)
 
-    print('Next step is to run the gather script: `python -m shitspotter.gather`')
-    print('Next step is to run the matching script: `python -m shitspotter.matching autofind_pair_hueristic`')
-    print('Next step is to run the plots script: `python -m shitspotter.plots update_analysis_plots`')
-    print('Then repin to IPFS')
+    print('The next step is to run...')
+    print(ub.codeblock(
+        '''
+        # The gather script
+        python -m shitspotter.gather
+
+        # The matching script
+        python -m shitspotter.matching autofind_pair_hueristic
+
+        # The plots script
+        python -m shitspotter.plots update_analysis_plots
+        '''))
+
+    # print('Next step is to run the gather script: `python -m shitspotter.gather`')
+    # print('Next step is to run the matching script: `python -m shitspotter.matching autofind_pair_hueristic`')
+    # print('Next step is to run the plots script: `python -m shitspotter.plots update_analysis_plots`')
+    print('')
+    print('Then repin the updated dataset to IPFS')
 
     shitspotter_dvc_dpath = coco_fpath.parent
     command = ub.codeblock(
         f'''
+        # Pin the new folder directly.
         ipfs add --pin -r {new_shit_dpath} --progress --cid-version=1 --raw-leaves=false
-        ipfs add --pin -r {shitspotter_dvc_dpath} --progress --cid-version=1 --raw-leaves=false
+
+        # Then re-add the root, which gives us the new CID
+        ipfs add --pin -r {shitspotter_dvc_dpath} --progress --cid-version=1 --raw-leaves=false | tee "pin_job.log"
+
+        # Programatically grab the new CID:
+        THE_NEW_CID=$(tail -n 1 pin_job.log | cut -d ' ' -f 2)
+        echo "THE_NEW_CID=$THE_NEW_CID"
+
+        # Add it to the CID revisions:
+        echo "$THE_NEW_CID" >> $HOME/code/shitspotter/shitspotter/cid_revisions.txt
         '''
     )
     print(command)
@@ -347,7 +371,6 @@ def finalize_transfer(new_dpath):
     # cid_revisions_fpath = dpath / 'cid_revisions.txt'
     command = ub.codeblock(
         '''
-        Add it to the CID revisions:
         echo "QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
         echo "QmaPPoPs7wXXkBgJeffVm49rd63ZtZw5GrhvQQbYrUbrYL" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
         echo "QmaSfRtzXDCiqyfmZuH6NEy2HBr7radiJNhmSjiETihoh6" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
@@ -356,18 +379,21 @@ def finalize_transfer(new_dpath):
         echo "bafybeihgex2fj4ethxnfmiivasw5wqsbt2pdjswu3yr554rewm6myrkq4a" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
         echo "bafybeihltrtb4xncqvfbipdwnlxsrxmeb4df7xmoqpjatg7jxrl3lqqk6y" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
         echo "bafybeihi7v7sgnxb2y57ie2dr7oobigsn5fqiwxwq56sdpmzo5on7a2xwe" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
+        echo "bafybeiedk6bu2qpl4snlu3jmtri4b2sf476tgj5kdg2ztxtm7bd6ftzqyy" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
 
 
         Then on mojo:
 
-        THE_CID=bafybeihi7v7sgnxb2y57ie2dr7oobigsn5fqiwxwq56sdpmzo5on7a2xwe
+        THE_NEW_CID=bafybeihi7v7sgnxb2y57ie2dr7oobigsn5fqiwxwq56sdpmzo5on7a2xwe
+        THE_NEW_CID=bafybeiedk6bu2qpl4snlu3jmtri4b2sf476tgj5kdg2ztxtm7bd6ftzqyy
+
         DATE=$(date +"%Y-%m-%d")
 
-        ipfs pin add --progress "${THE_CID}"
+        ipfs pin add --progress "${THE_NEW_CID}"
 
         # Also, we should pin the CID on a pinning service
-        ipfs pin remote add --service=web3.storage.erotemic --name={shitspotter-dvc-$DATE} ${THE_CID} --background
-        ipfs pin remote ls --service=web3.storage.erotemic --cid=${THE_CID} --status=queued,pinning,pinned,failed
+        ipfs pin remote add --service=web3.storage.erotemic --name={shitspotter-dvc-$DATE} ${THE_NEW_CID} --background
+        ipfs pin remote ls --service=web3.storage.erotemic --cid=${THE_NEW_CID} --status=queued,pinning,pinned,failed
 
         # e.g.
         ipfs pin add bafybeihgex2fj4ethxnfmiivasw5wqsbt2pdjswu3yr554rewm6myrkq4a --progress

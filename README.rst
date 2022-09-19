@@ -42,6 +42,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2022-09-19 - Added more images (With an indoor triple! wow! Thanks sick dog!)
 * 2022-07-17 - Added more images
 * 2022-06-20 - Added more images, starting transition to V1 CIDS 
 * 2022-04-02 - Added more images and updated analysis (Over 1000 Poop Images 🎉)
@@ -140,13 +141,13 @@ Known dataset biases are:
 
 The following scatterplot illustrates trends in the space / time distribution of the images.
 
-.. image:: https://ipfs.io/ipfs/bafybeihk4r7lmyhovvs6e2h3hs66qcjpzdeqpnp27sgtxi3x7cknrlotmq/scat_scatterplot.png
+.. image:: https://ipfs.io/ipfs/bafybeiedk6bu2qpl4snlu3jmtri4b2sf476tgj5kdg2ztxtm7bd6ftzqyy/analysis/scat_scatterplot.png
 .. .. image:: https://i.imgur.com/ne3AeC4.png
 
 
 A visualization of the cumulative number of images collected over time is as follows:
 
-.. image:: https://ipfs.io/ipfs/bafybeihk4r7lmyhovvs6e2h3hs66qcjpzdeqpnp27sgtxi3x7cknrlotmq/images_over_time.png
+.. image:: https://ipfs.io/ipfs/bafybeiedk6bu2qpl4snlu3jmtri4b2sf476tgj5kdg2ztxtm7bd6ftzqyy/analysis/images_over_time.png
 .. .. image:: https://i.imgur.com/ppPXo6X.png
    
 
@@ -203,6 +204,8 @@ registration via the SIFT+RANSAC algorithm.
 | 2022-06-20  |  2991    |  ~1127              | 734?                  |
 +-------------+----------+---------------------+-----------------------+
 | 2022-07-17  |  3144    |  ~1179              | 823                   |
++-------------+----------+---------------------+-----------------------+
+| 2022-07-17  |  3423    |  ~1272              | 892                   |
 +-------------+----------+---------------------+-----------------------+
 
 
@@ -277,9 +280,9 @@ IPFS addresses for the top-level dataset filesystem are:
 
 .. code:: 
 
-    bafybeif7b3gkkvgpqni43anc3u5ie5sf4f53ysm46vr5ivcyc6zqb4evyy - shitspotter_dvc/data.kwcoco.json
-    bafybeihvl3dn3mlcehzzwwqsqgkjlnieqjaaqsvlqr3pfwjv34pvtswryy - shitspotter_dvc/_cache
-    bafybeicjadefy4mpsucovpe3xygnkxvbtojubaoizyar65v5pv7cmv2bx4 - shitspotter_dvc/analysis
+    bafybeicgtynttikujfc4ky37dvc66rtfn3bzp5k5orybjges4evg6vtb3a - shitspotter_dvc/data.kwcoco.json
+    bafybeih6c73v7riub5wipfe5pq2rqpvg7ccemqene36tnrq7f3xyw2peqm - shitspotter_dvc/_cache
+    bafybeidyeeo5qhet75tfj7pc7md6gzph2dvsixun2kn5kpfhzg2lo642g4 - shitspotter_dvc/analysis
     bafybeialkwcgpkneapnixeit2uzyjehnjn27vwbaynjnlryl5flsf3q6fi - shitspotter_dvc/assets/poop-2020-12-28/
     bafybeig2wlncnixclod2hecd7e7zoemvdhwoxuzi5xtnomottb27kx4jzq - shitspotter_dvc/assets/poop-2021-02-06/
     bafybeifrkr2grtiuhm4uwuqri25h67dsfmsrwtn3q7xpfaeetqlwukgoum - shitspotter_dvc/assets/poop-2021-03-05/
@@ -302,9 +305,10 @@ IPFS addresses for the top-level dataset filesystem are:
     bafybeieddszhqi6fzrpnn2q2ab74hva4gwnx5bcdnvh7cwwrnf7ikyukru - shitspotter_dvc/assets/poop-2022-06-08-T132910/
     bafybeigss3h3p6pnsw7bgfevs77lv6duzhzi7fmuiyf5qtujafqanrrjsi - shitspotter_dvc/assets/poop-2022-06-20-T235340/
     bafybeih6qtza2vnrdvemlhuezfhoom6wh2457mnwmlw7sg4ncgstl35zsa - shitspotter_dvc/assets/poop-2022-07-16-T215017/
+    bafybeigvu4k5w2eflpkmucaas3p4yb7mhdbpmcdsmysbpfa54biiy4vvya - shitspotter_dvc/assets/poop-2022-09-19-T153414/
     
-    bafybeieuef4i72d3dnyc7f3gn4pvmy3cfdsqngwguhczuqdzcsgfzuywce - shitspotter_dvc/assets
-    bafybeihi7v7sgnxb2y57ie2dr7oobigsn5fqiwxwq56sdpmzo5on7a2xwe - shitspotter_dvc
+    bafybeihsmsjmfncgqqu7shrpt7fk52hejwklcyj5vfvbwqay4bl4wkw26m - shitspotter_dvc/assets
+    bafybeiedk6bu2qpl4snlu3jmtri4b2sf476tgj5kdg2ztxtm7bd6ftzqyy - shitspotter_dvc
         
 Depsite the name, this is not yet a DVC repo.
 
