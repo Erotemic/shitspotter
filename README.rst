@@ -128,7 +128,7 @@ Other related links I haven't gone through well enough yet:
 Dataset Description
 ===================
 
-The dataset contains a wide variety of image and background conditions that occur in update New York, including: seasonal changes, snow, rain, daytime, nighttime (some taken with flash, others taken with my phone's *night mode*), grass, concrete, etc...
+The dataset contains a wide variety of image and background conditions that occur in upstate New York, including: seasonal changes, snow, rain, daytime, nighttime (some taken with flash, others taken with my phone's *night mode*), grass, concrete, etc...
 
 Known dataset biases are:
 

@@ -386,7 +386,6 @@ def finalize_transfer(new_dpath):
 
         THE_NEW_CID=bafybeihi7v7sgnxb2y57ie2dr7oobigsn5fqiwxwq56sdpmzo5on7a2xwe
         THE_NEW_CID=bafybeiedk6bu2qpl4snlu3jmtri4b2sf476tgj5kdg2ztxtm7bd6ftzqyy
-
         DATE=$(date +"%Y-%m-%d")
 
         ipfs pin add --progress "${THE_NEW_CID}"
