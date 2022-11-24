@@ -42,6 +42,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2022-11-23 - We are thankful for more images 🦃
 * 2022-09-19 - Added more images (With an indoor triple! wow! Thanks sick dog!)
 * 2022-07-17 - Added more images
 * 2022-06-20 - Added more images, starting transition to V1 CIDS 
@@ -141,15 +142,17 @@ Known dataset biases are:
 
 The following scatterplot illustrates trends in the space / time distribution of the images.
 
-.. .. image:: https://ipfs.io/ipfs/bafybeiedk6bu2qpl4snlu3jmtri4b2sf476tgj5kdg2ztxtm7bd6ftzqyy/analysis/scat_scatterplot.png
-.. image:: https://imgur.com/q6XzSKa.png
+.. .. image:: https://ipfs.io/ipfs/bafybeibnofjvl7amoiw6gx4hq5w3hfvl3iid2y45l4pipcqgl5nedpngzi/analysis/scat_scatterplot.png
+.. image:: https://imgur.com/DeUesAC.png
+.. .. image:: https://imgur.com/q6XzSKa.png
 .. .. image:: https://i.imgur.com/ne3AeC4.png
 
 
 A visualization of the cumulative number of images collected over time is as follows:
 
-.. .. image:: https://ipfs.io/ipfs/bafybeiedk6bu2qpl4snlu3jmtri4b2sf476tgj5kdg2ztxtm7bd6ftzqyy/analysis/images_over_time.png
-.. image:: https://imgur.com/C2X1NCt.png
+.. .. image:: /analysis/images_over_time.png
+.. image:: https://imgur.com/vrAzrfj.png
+.. .. image:: https://imgur.com/C2X1NCt.png
 .. .. image:: https://i.imgur.com/ppPXo6X.png
    
 
@@ -207,7 +210,9 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+
 | 2022-07-17  |  3144    |  ~1179              | 823                   |
 +-------------+----------+---------------------+-----------------------+
-| 2022-07-17  |  3423    |  ~1272              | 892                   |
+| 2022-09-19  |  3423    |  ~1272              | 892                   |
++-------------+----------+---------------------+-----------------------+
+| 2022-11-23  |  3667    |  ~1353              | 959                   |
 +-------------+----------+---------------------+-----------------------+
 
 
@@ -235,7 +240,7 @@ Eventually there will be a `shitspotter.fit` and `shitspotter.predict` script fo
 inference on unseen images. My current plan for a baseline algorithm is a mobilenet backbone pretrained 
 on imagenet and some single-stage detection / segmentation head on top of that.
 
-Given kwcoco a formated detection dataset, we can also use off-the-shelf detection baselines
+Given kwcoco a formatted detection dataset, we can also use off-the-shelf detection baselines
 via netharn, mmdet, or some other library that accepts coco/kwcoco input manifests.
 
 
@@ -247,7 +252,7 @@ This dataset will be made public once I figure out a way to host and manage it.
 Currently the raw images live on my hard drive, and are backed up across 2 machines, each running RAID-10.
 Lower res copies of the photos live on the cloud, but I'm planning on sharing the originals.
 
-The dataset is currently 17G+GB, and is currently hosted on IPFS.  Currently
+The dataset is currently 26G+GB, and is currently hosted on IPFS.  Currently
 the data does not have any annotations, although I've started to build scripts
 to make that process easier. 
 
@@ -276,9 +281,9 @@ Update 2022-04-02: Initial root CID: QmfStoay5rjeHMEDiyuGsreXNHsyiS5kVaexSM2fov2
 
 Update 2022-06-20: Initial root CID: bafybeihltrtb4xncqvfbipdwnlxsrxmeb4df7xmoqpjatg7jxrl3lqqk6y
 
-The URL that can be viewed in a web browser: https://ipfs.io/ipfs/bafybeihltrtb4xncqvfbipdwnlxsrxmeb4df7xmoqpjatg7jxrl3lqqk6y 
+The URL that can be viewed in a web browser: https://ipfs.io/ipfs/bafybeibnofjvl7amoiw6gx4hq5w3hfvl3iid2y45l4pipcqgl5nedpngzi 
 
-IPFS addresses for the top-level dataset filesystem are:
+Current IPFS addresses for the top-level dataset filesystem are:
 
 .. code:: 
 
@@ -308,11 +313,12 @@ IPFS addresses for the top-level dataset filesystem are:
     bafybeigss3h3p6pnsw7bgfevs77lv6duzhzi7fmuiyf5qtujafqanrrjsi - shitspotter_dvc/assets/poop-2022-06-20-T235340/
     bafybeih6qtza2vnrdvemlhuezfhoom6wh2457mnwmlw7sg4ncgstl35zsa - shitspotter_dvc/assets/poop-2022-07-16-T215017/
     bafybeigvu4k5w2eflpkmucaas3p4yb7mhdbpmcdsmysbpfa54biiy4vvya - shitspotter_dvc/assets/poop-2022-09-19-T153414/
+    bafybeihnmt5pxlx5ywatlzvabtbebh6sspkaiithobqwjvrvfvzynl6oyy - shitspotter_dvc/assets/poop-2022-11-23-T182537/
     
-    bafybeihsmsjmfncgqqu7shrpt7fk52hejwklcyj5vfvbwqay4bl4wkw26m - shitspotter_dvc/assets
-    bafybeiedk6bu2qpl4snlu3jmtri4b2sf476tgj5kdg2ztxtm7bd6ftzqyy - shitspotter_dvc
+    bafybeicr7duywjuv6ya6lbnddnhcjkjxh34dcgdllbueakddiliywouroy - shitspotter_dvc/assets
+    bafybeibnofjvl7amoiw6gx4hq5w3hfvl3iid2y45l4pipcqgl5nedpngzi - shitspotter_dvc
         
-Depsite the name, this is not yet a DVC repo.
+Despite the name, this is not yet a DVC repo.
 
 
 Acknowledgements

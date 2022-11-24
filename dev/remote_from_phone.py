@@ -7,6 +7,7 @@ CommandLine:
 https://app.pinata.cloud/pinmanager
 """
 import ubelt as ub
+import rich
 from dateutil import parser as dateparser
 
 
@@ -208,6 +209,9 @@ def transfer_phone_pictures():
     phone_image_infos = phone.dcim_image_infos()
     print(f'Found {len(phone_image_infos)=} phone pictures')
 
+    if not len(phone_image_infos):
+        raise Exception('No items detected. Is USB preference set to "File Transfer?"')
+
     # This is my internal convention for storing pictures, it will not
     # generalize
     pic_dpath = ub.Path('/data/store/Pictures/')
@@ -329,6 +333,12 @@ def finalize_transfer(new_dpath):
     xdev.startfile(new_dpath)
     xdev.startfile(new_shit_dpath)
 
+    from rich.prompt import Confirm
+
+    ans = Confirm.ask('Manually move images and then enter y to continue')
+    while not ans:
+        ans = Confirm.ask('Manually move images and then enter y to continue')
+
     print('The next step is to run...')
     print(ub.codeblock(
         '''
@@ -352,17 +362,40 @@ def finalize_transfer(new_dpath):
     command = ub.codeblock(
         f'''
         # Pin the new folder directly.
-        ipfs add --pin -r {new_shit_dpath} --progress --cid-version=1 --raw-leaves=false
+        ipfs add --pin -r {new_shit_dpath} --progress --cid-version=1 --raw-leaves=false | tee "new_pin_job.log"
+        NEW_FOLDER_CID=$(tail -n 1 new_pin_job.log | cut -d ' ' -f 2)
+        echo "NEW_FOLDER_CID=$NEW_FOLDER_CID"
+
+        echo "
+        On MOJO run:
+
+        NEW_FOLDER_CID=$NEW_FOLDER_CID
+        ipfs pin add --progress "$NEW_FOLDER_CID"
+        "
 
         # Then re-add the root, which gives us the new CID
-        ipfs add --pin -r {shitspotter_dvc_dpath} --progress --cid-version=1 --raw-leaves=false | tee "pin_job.log"
+        ipfs add --pin -r {shitspotter_dvc_dpath} --progress --cid-version=1 --raw-leaves=false | tee "root_pin_job.log"
 
         # Programatically grab the new CID:
-        THE_NEW_CID=$(tail -n 1 pin_job.log | cut -d ' ' -f 2)
-        echo "THE_NEW_CID=$THE_NEW_CID"
+        NEW_ROOT_CID=$(tail -n 1 root_pin_job.log | cut -d ' ' -f 2)
+        echo "NEW_ROOT_CID=$NEW_ROOT_CID"
 
         # Add it to the CID revisions:
-        echo "$THE_NEW_CID" >> $HOME/code/shitspotter/shitspotter/cid_revisions.txt
+        echo "$NEW_ROOT_CID" >> $HOME/code/shitspotter/shitspotter/cid_revisions.txt
+
+        echo "
+        Then on MOJO run:
+
+        NEW_ROOT_CID=$NEW_ROOT_CID
+        DATE=$(date +"%Y-%m-%d")
+        ipfs pin add --progress "$NEW_ROOT_CID"
+
+        # Add pin to web3 remote storage
+        ipfs pin remote add --service=web3.storage.erotemic --name=shitspotter-dvc-$DATE $NEW_ROOT_CID --background
+
+        # Query status of remote pin
+        ipfs pin remote ls --service=web3.storage.erotemic --cid=$NEW_ROOT_CID --status=queued,pinning,pinned,failed
+        "
         '''
     )
     print(command)
@@ -371,6 +404,9 @@ def finalize_transfer(new_dpath):
     # cid_revisions_fpath = dpath / 'cid_revisions.txt'
     command = ub.codeblock(
         '''
+
+        OLD EXAMPLES:
+
         echo "QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
         echo "QmaPPoPs7wXXkBgJeffVm49rd63ZtZw5GrhvQQbYrUbrYL" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
         echo "QmaSfRtzXDCiqyfmZuH6NEy2HBr7radiJNhmSjiETihoh6" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
@@ -384,15 +420,15 @@ def finalize_transfer(new_dpath):
 
         Then on mojo:
 
-        THE_NEW_CID=bafybeihi7v7sgnxb2y57ie2dr7oobigsn5fqiwxwq56sdpmzo5on7a2xwe
-        THE_NEW_CID=bafybeiedk6bu2qpl4snlu3jmtri4b2sf476tgj5kdg2ztxtm7bd6ftzqyy
+        NEW_ROOT_CID=bafybeihi7v7sgnxb2y57ie2dr7oobigsn5fqiwxwq56sdpmzo5on7a2xwe
+        NEW_ROOT_CID=bafybeiedk6bu2qpl4snlu3jmtri4b2sf476tgj5kdg2ztxtm7bd6ftzqyy
         DATE=$(date +"%Y-%m-%d")
 
-        ipfs pin add --progress "${THE_NEW_CID}"
+        ipfs pin add --progress "${NEW_ROOT_CID}"
 
         # Also, we should pin the CID on a pinning service
-        ipfs pin remote add --service=web3.storage.erotemic --name={shitspotter-dvc-$DATE} ${THE_NEW_CID} --background
-        ipfs pin remote ls --service=web3.storage.erotemic --cid=${THE_NEW_CID} --status=queued,pinning,pinned,failed
+        ipfs pin remote add --service=web3.storage.erotemic --name=shitspotter-dvc-$DATE ${NEW_ROOT_CID} --background
+        ipfs pin remote ls --service=web3.storage.erotemic --cid=${NEW_ROOT_CID} --status=queued,pinning,pinned,failed
 
         # e.g.
         ipfs pin add bafybeihgex2fj4ethxnfmiivasw5wqsbt2pdjswu3yr554rewm6myrkq4a --progress
