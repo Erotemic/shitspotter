@@ -13,7 +13,7 @@
 .. .. +------------------+----------------------------------------------+
 
 
-The ``shitspotter`` module is where I will be work on the "shitspotter" poop-detection algorithm and dataset.
+This ``shitspotter`` repo is where I am building the "shitspotter" poop-detection algorithm and dataset.
 The primary goal of this work is to allow for the creation of a phone app that finds where your dog pooped,
 because you ran to grab the doggy-bags you forgot, and now you can't find the damn thing.
 Other applications can be envisioned, such as AR glasses that lets you know if you are about to walk into a steamer, 
