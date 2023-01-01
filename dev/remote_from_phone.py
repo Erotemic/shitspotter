@@ -7,8 +7,32 @@ CommandLine:
 https://app.pinata.cloud/pinmanager
 """
 import ubelt as ub
-import rich
+import shutil
+import os
+import re
+import scriptconfig as scfg
+import parse
 from dateutil import parser as dateparser
+
+
+class TransferConfig(scfg.DataConfig):
+    """
+    This is an interactive script. It will:
+
+        1. Discover an Android Device connected to a PC in USB file transfer mode.
+        2. Copy all images it infers as new into a `pic_dpath` on your local PC
+        3. Pop up the new folder and an empty new shitspotter folder.
+        4. Ask the user to manually move all shit pictures into the new
+           shitspotter folder.
+        5. Ask the user to confirm when this process is done.
+        6. Print instructions for subsequent commands to register the new
+           images with the dataset / upload them to IPFS.
+
+    Note:
+        The `shitspotter` module is used to identify the dataset path.
+    """
+    pic_dpath = scfg.Value('/data/store/Pictures/', help=(
+        'The location on the PC to transfer all new pictures to'))
 
 
 class AndroidConventions:
@@ -59,7 +83,6 @@ class AndroidConventions:
         """
         Parse info out of a motorola android image / video filename.
         """
-        import parse
         moto_pattern_v1 = parse.Parser('{prefix}_{YYYYMMDD:.8}_{HHMMSSmmm:.9}_{extra}.{modifiers_and_ext}')
         info = None
         if info is None:
@@ -118,13 +141,9 @@ class AndroidConventions:
             >>>     print('fname = {!r}'.format(fname))
             >>>     print('info = {!r}'.format(info))
         """
-        import parse
-        parse.parse
-
         def parse_dupid(text):
             return text
         parse_dupid.pattern = r'(~\d+)?'
-        # re.search(r'~\d+', '~33')
 
         android_11_pattern = parse.Parser('{prefix}_{YYYYMMDD:.8}_{HHMMSSmmm:.9}{dupid:Dupid}.{modifiers_and_ext}', extra_types=dict(Dupid=parse_dupid))
 
@@ -205,21 +224,34 @@ def transfer_phone_pictures():
 
         nautilius mtp://Google_Pixel_5_0A141FDD40091U/
     """
+    config = TransferConfig.cli()
+    print('config = {}'.format(ub.urepr(dict(config), nl=1)))
+
     phone = GVFSAndroidConnection.discover()[0]
     phone_image_infos = phone.dcim_image_infos()
     print(f'Found {len(phone_image_infos)=} phone pictures')
 
     if not len(phone_image_infos):
-        raise Exception('No items detected. Is USB preference set to "File Transfer?"')
+        raise Exception(ub.paragraph(
+            '''
+            No GVFS items detected.  Is the phone USB preference set to "File
+            Transfer?". This property must be set each time the phone is
+            connected to the PC. On an Android Pixel 5 unlock the phone, swipe
+            down to access notifications. At the bottom select "Charging this
+            USB device", which then expands and allows you to "Tap for more
+            options". Selecting this opens USB Preferences. Change the "Use USB
+            for" setting to "File transfer / Android Audio". Finally rerun the
+            script.
+            '''))
 
     # This is my internal convention for storing pictures, it will not
     # generalize
-    pic_dpath = ub.Path('/data/store/Pictures/')
+    # pic_dpath = ub.Path('/data/store/Pictures/')
+    pic_dpath = ub.Path(config['pic_dpath'])
     # Find most recent existing transfer
     transfer_infos = []
     phone_transfer_dpaths = sorted(pic_dpath.glob('Phone-DCIM-*'))
 
-    import re
     timepat = re.compile(r'T\d\d\d\d\d\d')
     for dpath in phone_transfer_dpaths:
         year, month, day, *rest = dpath.name.split('-')[2:]
@@ -286,7 +318,6 @@ def transfer_phone_pictures():
         if not dst.exists():
             return shutil.copy2(src, dst)
 
-    import shutil
     jobs = ub.JobPool(mode='thread', max_workers=8)
     eager_copy_jobs = [d for d in copy_jobs if not d['dst'].exists()]
     print(f'# Needs Copy {len(eager_copy_jobs)} / {len(copy_jobs)}')
@@ -299,7 +330,6 @@ def transfer_phone_pictures():
     for job in jobs.as_completed(desc='copying'):
         job.result()
 
-    import os
     os.rename(tmp_dpath, new_dpath)
 
     finalize_transfer(new_dpath)
@@ -334,13 +364,12 @@ def finalize_transfer(new_dpath):
     xdev.startfile(new_shit_dpath)
 
     from rich.prompt import Confirm
-
     ans = Confirm.ask('Manually move images and then enter y to continue')
     while not ans:
         ans = Confirm.ask('Manually move images and then enter y to continue')
 
     print('The next step is to run...')
-    print(ub.codeblock(
+    print(ub.highlight_code(ub.codeblock(
         '''
         # The gather script
         python -m shitspotter.gather
@@ -350,7 +379,9 @@ def finalize_transfer(new_dpath):
 
         # The plots script
         python -m shitspotter.plots update_analysis_plots
-        '''))
+
+        # Update the README based on the output of these scripts
+        '''), 'bash'))
 
     # print('Next step is to run the gather script: `python -m shitspotter.gather`')
     # print('Next step is to run the matching script: `python -m shitspotter.matching autofind_pair_hueristic`')
@@ -370,7 +401,7 @@ def finalize_transfer(new_dpath):
         On MOJO run:
 
         NEW_FOLDER_CID=$NEW_FOLDER_CID
-        ipfs pin add --progress "$NEW_FOLDER_CID"
+        ipfs pin add --progress $NEW_FOLDER_CID
         "
 
         # Then re-add the root, which gives us the new CID
@@ -388,7 +419,8 @@ def finalize_transfer(new_dpath):
 
         NEW_ROOT_CID=$NEW_ROOT_CID
         DATE=$(date +"%Y-%m-%d")
-        ipfs pin add --progress "$NEW_ROOT_CID"
+        ipfs pin add --progress $NEW_ROOT_CID
+        "
 
         # Add pin to web3 remote storage
         ipfs pin remote add --service=web3.storage.erotemic --name=shitspotter-dvc-$DATE $NEW_ROOT_CID --background
@@ -398,7 +430,7 @@ def finalize_transfer(new_dpath):
         "
         '''
     )
-    print(command)
+    print(ub.highlight_code(command, 'bash'))
 
     # dpath = ub.Path(shitspotter.__file__).parent
     # cid_revisions_fpath = dpath / 'cid_revisions.txt'

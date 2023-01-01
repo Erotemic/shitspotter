@@ -62,9 +62,10 @@ def main():
                     })
 
     dupidxs = ub.find_duplicates(all_fpaths, key=lambda x: pathlib.Path(x).name)
-    assert len(dupidxs) == 0
+    # assert len(dupidxs) == 0
 
-    if 0:
+    if len(dupidxs) > 0:
+        print('ERROR: DUPLICATE DATA')
         # Test to make sure we didn't mess up
         # TODO: clean up duplicate files
         to_remove = []
@@ -99,6 +100,7 @@ def main():
             to_keep.append(keep_gpath)
             to_remove.extend(list(remove_gpaths))
 
+        raise Exception('Duplicate data')
         assert set(to_remove).isdisjoint(set(to_keep))
 
         # Dont remove, because I'm afraid to do that programtically atm

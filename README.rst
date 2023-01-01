@@ -42,6 +42,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2023-01-01 - Another batch of leafy images.
 * 2022-11-23 - We are thankful for more images 🦃
 * 2022-09-19 - Added more images (With an indoor triple! wow! Thanks sick dog!)
 * 2022-07-17 - Added more images
@@ -143,7 +144,8 @@ Known dataset biases are:
 The following scatterplot illustrates trends in the space / time distribution of the images.
 
 .. .. image:: https://ipfs.io/ipfs/bafybeibnofjvl7amoiw6gx4hq5w3hfvl3iid2y45l4pipcqgl5nedpngzi/analysis/scat_scatterplot.png
-.. image:: https://imgur.com/DeUesAC.png
+.. image:: https://i.imgur.com/tL1rHPP.png
+.. .. image:: https://imgur.com/DeUesAC.png
 .. .. image:: https://imgur.com/q6XzSKa.png
 .. .. image:: https://i.imgur.com/ne3AeC4.png
 
@@ -151,7 +153,8 @@ The following scatterplot illustrates trends in the space / time distribution of
 A visualization of the cumulative number of images collected over time is as follows:
 
 .. .. image:: /analysis/images_over_time.png
-.. image:: https://imgur.com/vrAzrfj.png
+.. image:: https://i.imgur.com/TfDYWOV.png
+.. .. image:: https://imgur.com/vrAzrfj.png
 .. .. image:: https://imgur.com/C2X1NCt.png
 .. .. image:: https://i.imgur.com/ppPXo6X.png
    
@@ -214,6 +217,8 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+
 | 2022-11-23  |  3667    |  ~1353              | 959                   |
 +-------------+----------+---------------------+-----------------------+
+| 2023-01-01  |  3800    |  ~1397              | 998                   |
++-------------+----------+---------------------+-----------------------+
 
 
 Annotation Process
@@ -271,25 +276,14 @@ In addition to these licenses please:
 
 Otherwise the data is free to use commercially or otherwise. 
 
-Update 2022-02-31: Updated root CID: QmaPPoPs7wXXkBgJeffVm49rd63ZtZw5GrhvQQbYrUbrYL
-
-Update 2021-12-30: Initial root CID: QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG
-
-Update 2022-03-13: Initial root CID: QmaSfRtzXDCiqyfmZuH6NEy2HBr7radiJNhmSjiETihoh6
-
-Update 2022-04-02: Initial root CID: QmfStoay5rjeHMEDiyuGsreXNHsyiS5kVaexSM2fov216j
-
-Update 2022-06-20: Initial root CID: bafybeihltrtb4xncqvfbipdwnlxsrxmeb4df7xmoqpjatg7jxrl3lqqk6y
-
-The URL that can be viewed in a web browser: https://ipfs.io/ipfs/bafybeibnofjvl7amoiw6gx4hq5w3hfvl3iid2y45l4pipcqgl5nedpngzi 
+The URL that can be viewed in a web browser: https://ipfs.io/ipfs/bafybeihicisq66veupabzpq7gutxd2sikfe43jvtirield4wlnznpanj24 
 
 Current IPFS addresses for the top-level dataset filesystem are:
 
 .. code:: 
 
-    bafybeicgtynttikujfc4ky37dvc66rtfn3bzp5k5orybjges4evg6vtb3a - shitspotter_dvc/data.kwcoco.json
-    bafybeih6c73v7riub5wipfe5pq2rqpvg7ccemqene36tnrq7f3xyw2peqm - shitspotter_dvc/_cache
-    bafybeidyeeo5qhet75tfj7pc7md6gzph2dvsixun2kn5kpfhzg2lo642g4 - shitspotter_dvc/analysis
+    bafybeiefroexxylbcka54ahtdngfvebvochmjndpj5xbliuldmp7wf4eqq - shitspotter_dvc/data.kwcoco.json
+    bafybeibnapjzxiwlkveapyhqfu6mzul73rea7axh6b4wcmkt7q42brgkde - shitspotter_dvc/analysis
     bafybeialkwcgpkneapnixeit2uzyjehnjn27vwbaynjnlryl5flsf3q6fi - shitspotter_dvc/assets/poop-2020-12-28/
     bafybeig2wlncnixclod2hecd7e7zoemvdhwoxuzi5xtnomottb27kx4jzq - shitspotter_dvc/assets/poop-2021-02-06/
     bafybeifrkr2grtiuhm4uwuqri25h67dsfmsrwtn3q7xpfaeetqlwukgoum - shitspotter_dvc/assets/poop-2021-03-05/
@@ -314,9 +308,10 @@ Current IPFS addresses for the top-level dataset filesystem are:
     bafybeih6qtza2vnrdvemlhuezfhoom6wh2457mnwmlw7sg4ncgstl35zsa - shitspotter_dvc/assets/poop-2022-07-16-T215017/
     bafybeigvu4k5w2eflpkmucaas3p4yb7mhdbpmcdsmysbpfa54biiy4vvya - shitspotter_dvc/assets/poop-2022-09-19-T153414/
     bafybeihnmt5pxlx5ywatlzvabtbebh6sspkaiithobqwjvrvfvzynl6oyy - shitspotter_dvc/assets/poop-2022-11-23-T182537/
+    bafybeibx2oarr3liqrda4hd7xlw643vbd5nxff2b44blzccw7ekw6gbwv4 - shitspotter_dvc/assets/poop-2023-01-01-T171030
     
-    bafybeicr7duywjuv6ya6lbnddnhcjkjxh34dcgdllbueakddiliywouroy - shitspotter_dvc/assets
-    bafybeibnofjvl7amoiw6gx4hq5w3hfvl3iid2y45l4pipcqgl5nedpngzi - shitspotter_dvc
+    bafybeibjlf7uknsm3fqucujdljaa3fmhhd3jf535mquwwhlt5dmkisqfyi - shitspotter_dvc/assets
+    bafybeihicisq66veupabzpq7gutxd2sikfe43jvtirield4wlnznpanj24 - shitspotter_dvc
         
 Despite the name, this is not yet a DVC repo.
 
