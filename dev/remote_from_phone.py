@@ -224,6 +224,9 @@ def transfer_phone_pictures():
 
         nautilius mtp://Google_Pixel_5_0A141FDD40091U/
     """
+    import shitspotter  # NOQA
+    import xdev  # NOQA
+    from rich.prompt import Confirm  # NOQA
     config = TransferConfig.cli()
     print('config = {}'.format(ub.urepr(dict(config), nl=1)))
 
@@ -340,7 +343,7 @@ def finalize_transfer(new_dpath):
     import sys, ubelt
     sys.path.append(ubelt.expandpath('~/code/shitspotter/dev'))
     from remote_from_phone import *  # NOQA
-    new_dpath = "/data/store/Pictures/Phone-DCIM-2022-05-26-T173650/"
+    new_dpath = "/data/store/Pictures/Phone-DCIM-2023-03-11-T165018"
     """
     # Finalize transfer by moving new folder into the right name
     print(f'Finalize transfer to {new_dpath}')
@@ -422,14 +425,14 @@ def finalize_transfer(new_dpath):
         ipfs pin add --progress $NEW_ROOT_CID
         "
 
-        # Add pin to web3 remote storage
-        ipfs pin remote add --service=web3.storage.erotemic --name=shitspotter-dvc-$DATE $NEW_ROOT_CID --background
-
-        # Query status of remote pin
-        ipfs pin remote ls --service=web3.storage.erotemic --cid=$NEW_ROOT_CID --status=queued,pinning,pinned,failed
-        "
         '''
     )
+    # TODO: is there another pinning service that wont flake on us?
+    # # Add pin to web3 remote storage
+    # ipfs pin remote add --service=web3.storage.erotemic --name=shitspotter-dvc-$DATE $NEW_ROOT_CID --background
+    # # Query status of remote pin
+    # ipfs pin remote ls --service=web3.storage.erotemic --cid=$NEW_ROOT_CID --status=queued,pinning,pinned,failed
+    # "
     print(ub.highlight_code(command, 'bash'))
 
     # dpath = ub.Path(shitspotter.__file__).parent

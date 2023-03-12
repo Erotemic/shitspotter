@@ -22,7 +22,7 @@ or perhaps city governments could use this to more efficiently clean public area
 This module will contain an algorithm for training a pytorch network to detect poop in images, and a script
 for detecting poop in unseen images given a pretrained model. 
 
-The dataset currently contains 20GB of outdoor images taken with a phone. The general process of acquiring the dataset has been: 
+The dataset currently contains 25GB of outdoor images taken with a phone. The general process of acquiring the dataset has been: 
 1. My dog poops or I see a rogue poop, 
 2. I take a "before" picture of the poop,
 3. I pick up the poop, 
@@ -42,6 +42,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2023-03-11 - 305 new images. Many of these images are taken from a close up ground angle. I will continue to collect more in this way.
 * 2023-01-01 - Another batch of leafy images.
 * 2022-11-23 - We are thankful for more images 🦃
 * 2022-09-19 - Added more images (With an indoor triple! wow! Thanks sick dog!)
@@ -219,6 +220,8 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+
 | 2023-01-01  |  3800    |  ~1397              | 998                   |
 +-------------+----------+---------------------+-----------------------+
+| 2023-03-03  |  4105    |  ~1498              | 1068                  |
++-------------+----------+---------------------+-----------------------+
 
 
 Annotation Process
@@ -276,7 +279,7 @@ In addition to these licenses please:
 
 Otherwise the data is free to use commercially or otherwise. 
 
-The URL that can be viewed in a web browser: https://ipfs.io/ipfs/bafybeihicisq66veupabzpq7gutxd2sikfe43jvtirield4wlnznpanj24 
+The URL that can be viewed in a web browser: https://ipfs.io/ipfs/bafybeicjvjt2abdj7e5mpwq27itxi2u6lzcegl5dgw6nqe22363vmdsnru 
 
 Current IPFS addresses for the top-level dataset filesystem are:
 
@@ -308,10 +311,11 @@ Current IPFS addresses for the top-level dataset filesystem are:
     bafybeih6qtza2vnrdvemlhuezfhoom6wh2457mnwmlw7sg4ncgstl35zsa - shitspotter_dvc/assets/poop-2022-07-16-T215017/
     bafybeigvu4k5w2eflpkmucaas3p4yb7mhdbpmcdsmysbpfa54biiy4vvya - shitspotter_dvc/assets/poop-2022-09-19-T153414/
     bafybeihnmt5pxlx5ywatlzvabtbebh6sspkaiithobqwjvrvfvzynl6oyy - shitspotter_dvc/assets/poop-2022-11-23-T182537/
-    bafybeibx2oarr3liqrda4hd7xlw643vbd5nxff2b44blzccw7ekw6gbwv4 - shitspotter_dvc/assets/poop-2023-01-01-T171030
+    bafybeibx2oarr3liqrda4hd7xlw643vbd5nxff2b44blzccw7ekw6gbwv4 - shitspotter_dvc/assets/poop-2023-01-01-T171030/
+    bafybeibky4jj4hhmlwuifx52fjdurseqzkmwpp4derwqvf5lo2vakzrtoe - shitspotter_dvc/assets/poop-2023-03-11-T165018/
     
-    bafybeibjlf7uknsm3fqucujdljaa3fmhhd3jf535mquwwhlt5dmkisqfyi - shitspotter_dvc/assets
-    bafybeihicisq66veupabzpq7gutxd2sikfe43jvtirield4wlnznpanj24 - shitspotter_dvc
+    bafybeifkal4gv63vth54vicp7bcsfh6op4xfxad6o6kbytu4qjc4xvp46a - shitspotter_dvc/assets
+    bafybeicjvjt2abdj7e5mpwq27itxi2u6lzcegl5dgw6nqe22363vmdsnru - shitspotter_dvc
         
 Despite the name, this is not yet a DVC repo.
 
