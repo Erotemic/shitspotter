@@ -36,6 +36,9 @@ class TransferConfig(scfg.DataConfig):
 
 
 class AndroidConventions:
+    """
+    Parse information out of standard android file names.
+    """
 
     @staticmethod
     def parse_image_filename(fname):
@@ -163,6 +166,8 @@ class AndroidConventions:
 
 class GVFSAndroidConnection(ub.Path):
     """
+    Discover connected android devices using a filesystem interface.
+
     Example:
         connections = GVFSAndroidConnection.discover()
         phone = self = connections[0]
@@ -214,22 +219,45 @@ class GVFSAndroidConnection(ub.Path):
         return phone_image_infos
 
 
-def transfer_phone_pictures():
+def main():
     """
-    This step does the transfer of ALL pictures from my phone to my
-    image archive. The shit needs to be sorted out manually.
-
-    I've needed to open nautilus to get the phone mounted before.
-    This might be scriptable by running:
-
-        nautilius mtp://Google_Pixel_5_0A141FDD40091U/
+    Execute main transfer logic
     """
+    config = TransferConfig.cli(cmdline=True, strict=True)
+    import rich
+    rich.print('config = {}'.format(ub.urepr(config, nl=1)))
+
+    # Import to make sure they are installed
     import shitspotter  # NOQA
     import xdev  # NOQA
-    from rich.prompt import Confirm  # NOQA
-    config = TransferConfig.cli()
-    print('config = {}'.format(ub.urepr(dict(config), nl=1)))
 
+    cache_dpath = ub.Path.appdir('shitspotter/transfer_session').ensuredir()
+    lock_fpath = cache_dpath / 'transfering.lock'
+    prepared_transfer_fpath = cache_dpath / 'prepared_transfer.pkl'
+    if lock_fpath.exists():
+        raise Exception(
+            'Previous transfer lockfile exists. '
+            'Needs to implement resume or cleanup dirty state')
+    lock_fpath.touch()
+
+    new_dpath, needs_transfer_infos = prepare_phone_transfer(config)
+
+    import pickle
+    prepared_transfer_fpath.write_bytes(pickle.dumps({
+        'new_dpath': new_dpath,
+        'needs_transfer_infos': needs_transfer_infos,
+    }))
+
+    transfer_phone_pictures(new_dpath, needs_transfer_infos)
+    finalize_transfer(new_dpath)
+
+    cache_dpath.delete()
+
+
+def prepare_phone_transfer(config):
+    """
+    Gather information about the files that need to be transfered.
+    """
     phone = GVFSAndroidConnection.discover()[0]
     phone_image_infos = phone.dcim_image_infos()
     print(f'Found {len(phone_image_infos)=} phone pictures')
@@ -297,10 +325,24 @@ def transfer_phone_pictures():
 
     new_dpath = pic_dpath / new_dname
     print('New Transfer Destination = {!r}'.format(new_dpath))
+    return new_dpath, needs_transfer_infos
+
+
+def transfer_phone_pictures(new_dpath, needs_transfer_infos):
+    """
+    This step does the transfer of ALL pictures from my phone to my
+    image archive. The shit needs to be sorted out manually.
+
+    I've needed to open nautilus to get the phone mounted before. But this
+    doesn't always seem to be necessary.
+    This might be scriptable by running:
+
+        nautilius mtp://Google_Pixel_5_0A141FDD40091U/
+    """
 
     # First to transfer to a temp directory so we avoid race conditions
     # tmp_dpath = new_dpath.augment(prefix='_tmp_').ensuredir()
-    tmp_dpath = ub.Path(ub.augpath(new_dpath, prefix='_tmp_')).ensuredir()
+    tmp_dpath = new_dpath.augment(prefix='_tmp_').ensuredir()
     copy_jobs = []
     for p in needs_transfer_infos:
         copy_jobs.append({
@@ -334,8 +376,7 @@ def transfer_phone_pictures():
         job.result()
 
     os.rename(tmp_dpath, new_dpath)
-
-    finalize_transfer(new_dpath)
+    return new_dpath
 
 
 def finalize_transfer(new_dpath):
@@ -345,12 +386,14 @@ def finalize_transfer(new_dpath):
     from remote_from_phone import *  # NOQA
     new_dpath = "/data/store/Pictures/Phone-DCIM-2023-03-11-T165018"
     """
+    import shitspotter
+    import xdev
+    from rich.prompt import Confirm
     # Finalize transfer by moving new folder into the right name
     print(f'Finalize transfer to {new_dpath}')
     new_dpath = ub.Path(new_dpath)
     new_stamp = new_dpath.name.split('-', 2)[2]
 
-    import shitspotter
     coco_fpath = shitspotter.util.find_shit_coco_fpath()
     asset_dpath = coco_fpath.parent / 'assets'
 
@@ -362,11 +405,9 @@ def finalize_transfer(new_dpath):
     print('from new_dpath = {!r}'.format(new_dpath))
     print('to new_shit_dpath = {!r}'.format(new_shit_dpath))
 
-    import xdev
     xdev.startfile(new_dpath)
     xdev.startfile(new_shit_dpath)
 
-    from rich.prompt import Confirm
     ans = Confirm.ask('Manually move images and then enter y to continue')
     while not ans:
         ans = Confirm.ask('Manually move images and then enter y to continue')
@@ -546,4 +587,4 @@ if __name__ == '__main__':
     CommandLine:
         python ~/code/shitspotter/dev/remote_from_phone.py
     """
-    transfer_phone_pictures()
+    main()

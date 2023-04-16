@@ -7,6 +7,22 @@ import pandas as pd
 import ubelt as ub
 
 
+def run_match(annot1, annot2, match_cfg):
+    from kwcoco.util import util_json
+    from vtool_ibeis import PairwiseMatch
+    match = PairwiseMatch(annot1, annot2)
+    match.apply_all(cfgdict=match_cfg)
+    score = match.fs.sum()
+    match = {
+        'name1': annot1['name'],
+        'name2': annot2['name'],
+        'score': score,
+        'H_12': match.H_12,
+    }
+    match = util_json.ensure_json_serializable(match)
+    return match
+
+
 def autofind_pair_hueristic(coco_dset=None):
     """
     from shitspotter.matching import *  # NOQA
@@ -14,8 +30,11 @@ def autofind_pair_hueristic(coco_dset=None):
     coco_dset = shitspotter.open_shit_coco()
     """
     import vtool_ibeis
-    from kwcoco.util import util_json
-    from vtool_ibeis import PairwiseMatch
+    # from kwcoco.util import util_json
+    from vtool_ibeis import PairwiseMatch  # NOQA
+    import pyhesaff  # NOQA
+    import pyflann_ibeis  # NOQA
+    import vtool_ibeis_ext  # NOQA
 
     if coco_dset is None:
         import shitspotter
@@ -53,7 +72,7 @@ def autofind_pair_hueristic(coco_dset=None):
         imdata = kwimage.imread(fpath, backend='gdal', overview=0)
         rchip, sf_info = kwimage.imresize(imdata, max_dim=1024,
                                           return_info=True, antialias=True)
-        annot = ut.LazyDict({'rchip': rchip, 'dt': dt})
+        annot = ut.LazyDict({'rchip': rchip, 'dt': dt, 'name': coco_img['name']})
         vtool_ibeis.matching.ensure_metadata_feats(annot, feat_cfg)
         return annot
 
@@ -64,26 +83,35 @@ def autofind_pair_hueristic(coco_dset=None):
 
     # .setdefault('image_matches', {})
     image_matches = shelf
-    # for match in coco_dset.dataset['image_matches']:
-    #     name1 = match['name1']
-    #     name2 = match['name2']
-    #     pair = (name1, name2)
-    #     if pair not in image_matches:
-    #         image_matches[pair] = match
-
+    existing_keys = set(shelf.keys())
     pairs = list(ub.iter_window(ordered_gids, 2))
-    for gid1, gid2 in ub.ProgIter(pairs, verbose=3):
-        name1 = coco_dset.index.imgs[gid1]['name']
-        name2 = coco_dset.index.imgs[gid2]['name']
-        pair = (name1, name2)
-        key = ub.repr2(pair, compact=1)
-        if key  in image_matches:
-            continue
-        annot1 = matchable_image(gid1)
-        annot2 = matchable_image(gid2)
-        delta = (annot2['dt'] - annot1['dt'])
-        delta_seconds = delta.total_seconds()
-        if delta_seconds < 60 * 60:
+    uncompared_pairs = []
+    compared_pairs = []
+    compare_time_thresh = 60 * 60  # 1 hour
+    for gid1, gid2 in ub.ProgIter(pairs, verbose=3, desc='find uncompared pairs'):
+        coco_img1 = coco_dset.coco_image(gid1)
+        coco_img2 = coco_dset.coco_image(gid2)
+        pair = (coco_img1['name'], coco_img2['name'])
+        key = ub.urepr(pair, compact=1)
+        if key not in existing_keys:
+            dt1 = dateutil.parser.parse(coco_img1['datetime'])
+            dt2 = dateutil.parser.parse(coco_img2['datetime'])
+            delta = dt1 - dt2
+            delta_seconds = delta.total_seconds()
+            if delta_seconds < compare_time_thresh:
+                uncompared_pairs.append((gid1, gid2))
+            else:
+                compared_pairs.append((gid1, gid2))
+        else:
+            compared_pairs.append((gid1, gid2))
+    print(f'Found {len(compared_pairs)} compared pairs and {len(uncompared_pairs)} uncompared pairs')
+
+    match_workers = 0  # pickle breaks vtool-ibeis
+    jobs = ub.JobPool('serial', max_workers=match_workers, transient=True)
+    with jobs:
+        for idx, (gid1, gid2) in enumerate(ub.ProgIter(uncompared_pairs, verbose=3, desc='submit compare jobs')):
+            annot1 = matchable_image(gid1)
+            annot2 = matchable_image(gid2)
             match_cfg = {
                 'symetric': True,
                 'K': 1,
@@ -92,19 +120,22 @@ def autofind_pair_hueristic(coco_dset=None):
                 'refine_method': 'homog',
                 'symmetric': True,
             }
-            match = PairwiseMatch(annot1, annot2)
-            match.apply_all(cfgdict=match_cfg)
-            score = match.fs.sum()
-            match = {
-                'name1': name1,
-                'name2': name2,
-                'score': score,
-                'H_12': match.H_12,
-            }
+            job = jobs.submit(run_match, annot1, annot2, match_cfg)
 
-            match = util_json.ensure_json_serializable(match)
-            print('match = {}'.format(ub.repr2(match, nl=1)))
-            image_matches[key] = match
+            if idx == 0 or match_workers == 0:
+                # Do the first job immediately to check for issues
+                match = job.result()
+                print('match = {}'.format(ub.urepr(match, nl=1)))
+                key = ub.urepr((match['name1'], match['name2']), compact=1)
+                image_matches[key] = match
+                jobs.jobs.clear()
+
+        if match_workers > 0:
+            for job in jobs.as_completed(desc='collect compare jobs'):
+                match = job.result()
+                print('match = {}'.format(ub.urepr(match, nl=1)))
+                key = ub.urepr((match['name1'], match['name2']), compact=1)
+                image_matches[key] = match
 
     # Save the match table
     image_matches.sync()
