@@ -511,6 +511,8 @@ def finalize_transfer(new_dpath):
         ipfs pin add QmfStoay5rjeHMEDiyuGsreXNHsyiS5kVaexSM2fov216j --progress
         ipfs pin remote add --service=web3.storage.erotemic --name=shitspotter-dvc-2022-06-08 bafybeihgex2fj4ethxnfmiivasw5wqsbt2pdjswu3yr554rewm6myrkq4a --background
         ipfs pin remote ls --service=web3.storage.erotemic --cid=QmYftzG6enTebF2f143KeHiPiJGs66LJf3jT1fNYAiqQvq --status=queued,pinning,pinned,failed
+
+        Also see: ~/code/shitspotter/dev/sync_shit.sh
         '''
     )
     print(command)
@@ -575,8 +577,14 @@ def delete_shit_images_on_phone():
 
         to_delete.append(phone_fpath)
 
-    for p in ub.ProgIter(to_delete, desc='deleting file'):
-        p.unlink(missing_ok=True)
+    from rich.prompt import Confirm
+    print('to_delete = {}'.format(ub.urepr(to_delete, nl=1)))
+    print(len(to_delete))
+
+    ans = Confirm.ask('Ready to delete?')
+    if ans:
+        for p in ub.ProgIter(to_delete, desc='deleting file'):
+            p.unlink(missing_ok=True)
 
         # ub.hash_file(dvc_fpath)
         # ub.hash_file(phone_fpath)

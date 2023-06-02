@@ -36,6 +36,23 @@ The code will be published as it is written to this repo.
 The data and pretrained models will be made public on IPFS.
 
 
+Downloading
+===========
+
+All data is publicly hosted on IPFS and is free to use under "Creative Commons Attribution 4.0 International".
+
+The `IPFS CID <https://docs.ipfs.tech/concepts/content-addressing/>`_ (Content Identifier) for the most recent dataset is:
+
+.. code::
+
+    bafybeic2ehnqled363zqimtbqbonagw6atgsyst5cqbm3wec6cg3te5ala
+
+The dataset can be viewed in a webbrowser through an IPFS gateway:
+https://ipfs.io/ipfs/bafybeicjvjt2abdj7e5mpwq27itxi2u6lzcegl5dgw6nqe22363vmdsnru
+
+If you have an IPFS node, please help keep this dataset alive and available by pinning it.
+
+
 Recent Updates
 ==============
 
