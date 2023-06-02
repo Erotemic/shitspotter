@@ -272,20 +272,14 @@ Given kwcoco a formatted detection dataset, we can also use off-the-shelf detect
 via netharn, mmdet, or some other library that accepts coco/kwcoco input manifests.
 
 
-Downloading the Data
-====================
+Data Management
+===============
 
+The full resolution dataset is public and hosted on IPFS.
 
-This dataset will be made public once I figure out a way to host and manage it.
-Currently the raw images live on my hard drive, and are backed up across 2 machines, each running RAID-10.
-Lower res copies of the photos live on the cloud, but I'm planning on sharing the originals.
-
-The dataset is currently 26G+GB, and is currently hosted on IPFS.  Currently
-the data does not have any annotations, although I've started to build scripts
-to make that process easier.
-
-Eventually I would like to host the data via DVC + IPFS, but fsspec needs an IPFS filesystem implementation first.
-I may also look into git-annex as an alternative to DVC.
+Despite the name, this is not yet a DVC repo.  Eventually I would like to host
+the data via DVC + IPFS, but fsspec needs an IPFS filesystem implementation
+first.  I may also look into git-annex as an alternative to DVC.
 
 The licence for the software will be Apache 2. The license for the data will be
 "Creative Commons Attribution 4.0 International".
@@ -338,7 +332,6 @@ Current IPFS addresses for the top-level dataset filesystem are:
     bafybeia37l74odvbshidnvk4vndr2jl2kfze6uls4jzfa5jzhxvcqkx7hq - shitspotter_dvc/assets
     bafybeic2ehnqled363zqimtbqbonagw6atgsyst5cqbm3wec6cg3te5ala - shitspotter_dvc
 
-Despite the name, this is not yet a DVC repo.
 
 
 Acknowledgements
