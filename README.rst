@@ -45,10 +45,10 @@ The `IPFS CID <https://docs.ipfs.tech/concepts/content-addressing/>`_ (Content I
 
 .. code::
 
-    bafybeic2ehnqled363zqimtbqbonagw6atgsyst5cqbm3wec6cg3te5ala
+    bafybeiflkm37altah2ey2jxko7kngquwfugyo4cl36y7xjf7o2lbrgucbi
 
 The dataset can be viewed in a webbrowser through an IPFS gateway:
-https://ipfs.io/ipfs/bafybeicjvjt2abdj7e5mpwq27itxi2u6lzcegl5dgw6nqe22363vmdsnru
+https://ipfs.io/ipfs/bafybeiflkm37altah2ey2jxko7kngquwfugyo4cl36y7xjf7o2lbrgucbi
 
 If you have an IPFS node, please help keep this dataset alive and available by pinning it.
 
@@ -59,6 +59,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2023-07-01 - Another batch of 300 photos. I also realized that if I could ID which dog made which poop, I could do a longiturdinal study.
 * 2023-04-16 - More ground based photos. One "after" photo contains a positive example I didn't see in the background.
 * 2023-03-11 - 305 new images. Many of these images are taken from a close up ground angle. I will continue to collect more in this way.
 * 2023-01-01 - Another batch of leafy images.
@@ -71,7 +72,7 @@ some time for it to fully drop.
 * 2021-12-30 -
     - Found errors in the dataset stats, updating README.
     - Updated analytics to be updated as the dataset grows.
-    - Initial SIFT-based matching isnt as robust as I'd hoped.
+    - Initial SIFT-based matching isn't as robust as I'd hoped.
     - First data is on IPFS, still need to open ports. ID of the root dataset is: QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG
 * 2021-11-23 - Added annotation process overview and dataset sample.
 * 2021-11-11 - Initial upload of data munging scripts.
@@ -242,6 +243,8 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+
 | 2023-04-16  |  4286    |  ~1559              | 1094                  |
 +-------------+----------+---------------------+-----------------------+
+| 2023-07-01  |  4594    |  ~1662              | 1154                  |
++-------------+----------+---------------------+-----------------------+
 
 
 Annotation Process
@@ -293,7 +296,7 @@ In addition to these licenses please:
 
 Otherwise the data is free to use commercially or otherwise.
 
-The URL that can be viewed in a web browser: https://ipfs.io/ipfs/bafybeicjvjt2abdj7e5mpwq27itxi2u6lzcegl5dgw6nqe22363vmdsnru
+The URL that can be viewed in a web browser: https://ipfs.io/ipfs/bafybeiflkm37altah2ey2jxko7kngquwfugyo4cl36y7xjf7o2lbrgucbi
 
 Current IPFS addresses for the top-level dataset filesystem are:
 
@@ -328,9 +331,10 @@ Current IPFS addresses for the top-level dataset filesystem are:
     bafybeibx2oarr3liqrda4hd7xlw643vbd5nxff2b44blzccw7ekw6gbwv4 - shitspotter_dvc/assets/poop-2023-01-01-T171030/
     bafybeibky4jj4hhmlwuifx52fjdurseqzkmwpp4derwqvf5lo2vakzrtoe - shitspotter_dvc/assets/poop-2023-03-11-T165018/
     bafybeifj7uidepqz2wbumajacy2oacn7c7cuh6zwnduovn4xyszdpiodoe - shitspotter_dvc/assets/poop-2023-04-16-T175739/
+    bafybeihhbwe6mtkts7335e2wdr3p4mo5impx3niqbcavvqh3l3rknpbuti - shitspotter_dvc/assets/poop-2023-07-01-T160318
 
-    bafybeia37l74odvbshidnvk4vndr2jl2kfze6uls4jzfa5jzhxvcqkx7hq - shitspotter_dvc/assets
-    bafybeic2ehnqled363zqimtbqbonagw6atgsyst5cqbm3wec6cg3te5ala - shitspotter_dvc
+    bafybeibsljcqg2sd2rpho2xd4z6fimzxwyvugmgqasoxseq7qcomnpku5q - shitspotter_dvc/assets
+    bafybeiflkm37altah2ey2jxko7kngquwfugyo4cl36y7xjf7o2lbrgucbi - shitspotter_dvc
 
 
 

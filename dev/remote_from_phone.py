@@ -236,7 +236,7 @@ def main():
     prepared_transfer_fpath = cache_dpath / 'prepared_transfer.pkl'
     if lock_fpath.exists():
         raise Exception(
-            'Previous transfer lockfile exists. '
+            f'Previous transfer lockfile exists: {prepared_transfer_fpath}. '
             'Needs to implement resume or cleanup dirty state')
     lock_fpath.touch()
 
