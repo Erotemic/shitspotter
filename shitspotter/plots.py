@@ -474,14 +474,14 @@ def demo_warp(coco_dset, gid1, gid2):
     rchip1_rgb, sf_info1 = kwimage.imresize(imdata1, max_dim=maxdim, return_info=True)
     rchip2_rgb, sf_info2 = kwimage.imresize(imdata2, max_dim=maxdim, return_info=True)
 
-    undo_scale = kwimage.Affine.coerce(sf_info1).inv()
     # rchip2_rgb, sf_info2 = kwimage.imresize(imdata2, max_dim=512, return_info=True)
     # rchip1_rgb, sf_info1 = kwimage.imresize(imdata1, max_dim=800, return_info=True)
     # rchip2_rgb, sf_info2 = kwimage.imresize(imdata2, max_dim=800, return_info=True)
     rchip1_rgb, sf_info1 = kwimage.imresize(imdata1, max_dim=maxdim, return_info=True)
     rchip2_rgb, sf_info2 = kwimage.imresize(imdata2, max_dim=maxdim, return_info=True)
 
-    undo_scale = kwimage.Affine.coerce(sf_info1).inv()
+    undo_scale = kwimage.Affine.coerce(ub.udict(sf_info1) - {'dsize'}).inv()
+    # undo_scale = kwimage.Affine.coerce(sf_info1).inv()
 
     # import kwplot
     # kwplot.autompl()

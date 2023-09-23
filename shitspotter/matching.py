@@ -261,7 +261,28 @@ def autofind_pair_hueristic(coco_dset=None):
     print('num_pairs_ideal = {!r}'.format(num_pairs_ideal))
     print('num_triples_ideal = {!r}'.format(num_triples_ideal))
 
-    print(f'total_images = {len(coco_dset.imgs)}')
+    total_imgs = len(coco_dset.imgs)
+    print(f'total_images = {total_imgs}')
+
+    if 1:
+        import datetime as datetime_mod
+        today = datetime_mod.datetime.now().date()
+        row = {
+            'Date': today.isoformat(),
+            '# Images': total_imgs,
+            '# Estimated Groups': total_estimated_number_of_tups,
+            '# Registered Groups': total_matchable_tups,
+        }
+        print('New row for README')
+        print('| {:<12s}| {:<8s} | {:<18s}  | {:<22s}|'.format(*list(row.keys())))
+        print('+=============+==========+=====================+=======================+')
+        print('| {:<12s}|  {:<7d} |  ~{:<17d} | {:<22d}|'.format(*list(row.values())))
+        print('+-------------+----------+---------------------+-----------------------+')
+        # import tabulate
+        # import pandas as pd
+        # df = pd.DataFrame([row])
+        # print(tabulate.tabulate(df.values, headers=df.columns, tablefmt='rst'))
+
     # print('total_estimated_number_of_pairs = {!r}'.format(total_estimated_number_of_pairs))
     # if 0:
     #     import kwplot

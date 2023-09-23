@@ -230,6 +230,7 @@ def main():
     # Import to make sure they are installed
     import shitspotter  # NOQA
     import xdev  # NOQA
+    import pickle
 
     cache_dpath = ub.Path.appdir('shitspotter/transfer_session').ensuredir()
     lock_fpath = cache_dpath / 'transfering.lock'
@@ -240,9 +241,13 @@ def main():
             'Needs to implement resume or cleanup dirty state')
     lock_fpath.touch()
 
-    new_dpath, needs_transfer_infos = prepare_phone_transfer(config)
+    try:
+        new_dpath, needs_transfer_infos = prepare_phone_transfer(config)
+    except Exception:
+        print('FIXME: delete cache?')
+        cache_dpath.delete()
+        raise
 
-    import pickle
     prepared_transfer_fpath.write_bytes(pickle.dumps({
         'new_dpath': new_dpath,
         'needs_transfer_infos': needs_transfer_infos,
@@ -367,6 +372,8 @@ def transfer_phone_pictures(new_dpath, needs_transfer_infos):
     eager_copy_jobs = [d for d in copy_jobs if not d['dst'].exists()]
     print(f'# Needs Copy {len(eager_copy_jobs)} / {len(copy_jobs)}')
 
+    # Could use kwutil CopyManager
+
     for copy_job in ub.ProgIter(copy_jobs, desc='submit jobs'):
         src, dst = copy_job['src'], copy_job['dst']
         job = jobs.submit(safe_copy, src, dst)
@@ -431,7 +438,7 @@ def finalize_transfer(new_dpath):
     # print('Next step is to run the matching script: `python -m shitspotter.matching autofind_pair_hueristic`')
     # print('Next step is to run the plots script: `python -m shitspotter.plots update_analysis_plots`')
     print('')
-    print('Then repin the updated dataset to IPFS')
+    print('# Then repin the updated dataset to IPFS')
 
     shitspotter_dvc_dpath = coco_fpath.parent
     command = ub.codeblock(
@@ -456,7 +463,7 @@ def finalize_transfer(new_dpath):
         echo "NEW_ROOT_CID=$NEW_ROOT_CID"
 
         # Add it to the CID revisions:
-        echo "$NEW_ROOT_CID" >> $HOME/code/shitspotter/shitspotter/cid_revisions.txt
+        echo "$NEW_ROOT_CID" >> "$HOME"/code/shitspotter/shitspotter/cid_revisions.txt
 
         echo "
         Then on MOJO run:
@@ -466,6 +473,7 @@ def finalize_transfer(new_dpath):
         ipfs pin add --progress $NEW_ROOT_CID
         "
 
+        # Also see: ~/code/shitspotter/dev/sync_shit.sh
         '''
     )
     # TODO: is there another pinning service that wont flake on us?
@@ -478,44 +486,41 @@ def finalize_transfer(new_dpath):
 
     # dpath = ub.Path(shitspotter.__file__).parent
     # cid_revisions_fpath = dpath / 'cid_revisions.txt'
-    command = ub.codeblock(
-        '''
+    # command = ub.codeblock(
+    #     '''
 
-        OLD EXAMPLES:
+    #     OLD EXAMPLES:
+    #     echo "QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
+    #     echo "QmaPPoPs7wXXkBgJeffVm49rd63ZtZw5GrhvQQbYrUbrYL" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
+    #     echo "QmaSfRtzXDCiqyfmZuH6NEy2HBr7radiJNhmSjiETihoh6" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
+    #     echo "QmPptXKFKi6oTJL3VeCNy5Apk8MJsHhCAAwVmegHhuRY83" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
+    #     echo "QmfStoay5rjeHMEDiyuGsreXNHsyiS5kVaexSM2fov216j" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
+    #     echo "bafybeihgex2fj4ethxnfmiivasw5wqsbt2pdjswu3yr554rewm6myrkq4a" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
+    #     echo "bafybeihltrtb4xncqvfbipdwnlxsrxmeb4df7xmoqpjatg7jxrl3lqqk6y" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
+    #     echo "bafybeihi7v7sgnxb2y57ie2dr7oobigsn5fqiwxwq56sdpmzo5on7a2xwe" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
+    #     echo "bafybeiedk6bu2qpl4snlu3jmtri4b2sf476tgj5kdg2ztxtm7bd6ftzqyy" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
 
-        echo "QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
-        echo "QmaPPoPs7wXXkBgJeffVm49rd63ZtZw5GrhvQQbYrUbrYL" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
-        echo "QmaSfRtzXDCiqyfmZuH6NEy2HBr7radiJNhmSjiETihoh6" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
-        echo "QmPptXKFKi6oTJL3VeCNy5Apk8MJsHhCAAwVmegHhuRY83" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
-        echo "QmfStoay5rjeHMEDiyuGsreXNHsyiS5kVaexSM2fov216j" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
-        echo "bafybeihgex2fj4ethxnfmiivasw5wqsbt2pdjswu3yr554rewm6myrkq4a" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
-        echo "bafybeihltrtb4xncqvfbipdwnlxsrxmeb4df7xmoqpjatg7jxrl3lqqk6y" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
-        echo "bafybeihi7v7sgnxb2y57ie2dr7oobigsn5fqiwxwq56sdpmzo5on7a2xwe" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
-        echo "bafybeiedk6bu2qpl4snlu3jmtri4b2sf476tgj5kdg2ztxtm7bd6ftzqyy" >> /home/joncrall/code/shitspotter/shitspotter/cid_revisions.txt
+    #     Then on mojo:
 
+    #     # Note: define NEW_ROOT_CID=
+    #     DATE=$(date +"%Y-%m-%d")
 
-        Then on mojo:
+    #     ipfs pin add --progress "${NEW_ROOT_CID}"
 
-        NEW_ROOT_CID=bafybeihi7v7sgnxb2y57ie2dr7oobigsn5fqiwxwq56sdpmzo5on7a2xwe
-        NEW_ROOT_CID=bafybeiedk6bu2qpl4snlu3jmtri4b2sf476tgj5kdg2ztxtm7bd6ftzqyy
-        DATE=$(date +"%Y-%m-%d")
+    #     # Also, we should pin the CID on a pinning service
+    #     ipfs pin remote add --service=web3.storage.erotemic --name="shitspotter-dvc-$DATE" "${NEW_ROOT_CID}" --background
+    #     ipfs pin remote ls --service=web3.storage.erotemic --cid="${NEW_ROOT_CID}" --status=queued,pinning,pinned,failed
 
-        ipfs pin add --progress "${NEW_ROOT_CID}"
+    #     # e.g.
+    #     ipfs pin add bafybeihgex2fj4ethxnfmiivasw5wqsbt2pdjswu3yr554rewm6myrkq4a --progress
+    #     ipfs pin add QmfStoay5rjeHMEDiyuGsreXNHsyiS5kVaexSM2fov216j --progress
+    #     ipfs pin remote add --service=web3.storage.erotemic --name=shitspotter-dvc-2022-06-08 bafybeihgex2fj4ethxnfmiivasw5wqsbt2pdjswu3yr554rewm6myrkq4a --background
+    #     ipfs pin remote ls --service=web3.storage.erotemic --cid=QmYftzG6enTebF2f143KeHiPiJGs66LJf3jT1fNYAiqQvq --status=queued,pinning,pinned,failed
 
-        # Also, we should pin the CID on a pinning service
-        ipfs pin remote add --service=web3.storage.erotemic --name=shitspotter-dvc-$DATE ${NEW_ROOT_CID} --background
-        ipfs pin remote ls --service=web3.storage.erotemic --cid=${NEW_ROOT_CID} --status=queued,pinning,pinned,failed
-
-        # e.g.
-        ipfs pin add bafybeihgex2fj4ethxnfmiivasw5wqsbt2pdjswu3yr554rewm6myrkq4a --progress
-        ipfs pin add QmfStoay5rjeHMEDiyuGsreXNHsyiS5kVaexSM2fov216j --progress
-        ipfs pin remote add --service=web3.storage.erotemic --name=shitspotter-dvc-2022-06-08 bafybeihgex2fj4ethxnfmiivasw5wqsbt2pdjswu3yr554rewm6myrkq4a --background
-        ipfs pin remote ls --service=web3.storage.erotemic --cid=QmYftzG6enTebF2f143KeHiPiJGs66LJf3jT1fNYAiqQvq --status=queued,pinning,pinned,failed
-
-        Also see: ~/code/shitspotter/dev/sync_shit.sh
-        '''
-    )
-    print(command)
+    #     Also see: ~/code/shitspotter/dev/sync_shit.sh
+    #     '''
+    # )
+    # print(command)
 
     # Try to programatically figure out what the CID was
     r"""

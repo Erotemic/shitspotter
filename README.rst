@@ -59,6 +59,8 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2023-09-22 - 123 new images.
+* 2023-08-22 - 182 new images.
 * 2023-07-01 - Another batch of 300 photos. I also realized that if I could ID which dog made which poop, I could do a longiturdinal study.
 * 2023-04-16 - More ground based photos. One "after" photo contains a positive example I didn't see in the background.
 * 2023-03-11 - 305 new images. Many of these images are taken from a close up ground angle. I will continue to collect more in this way.
@@ -245,6 +247,11 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+
 | 2023-07-01  |  4594    |  ~1662              | 1154                  |
 +-------------+----------+---------------------+-----------------------+
+| 2023-08-22  |  4776    |  ~1723              | 1197                  |
++-------------+----------+---------------------+-----------------------+
+| 2023-09-22  |  4899    |  ~1764              | 1232                  |
++-------------+----------+---------------------+-----------------------+
+
 
 
 Annotation Process
@@ -296,7 +303,7 @@ In addition to these licenses please:
 
 Otherwise the data is free to use commercially or otherwise.
 
-The URL that can be viewed in a web browser: https://ipfs.io/ipfs/bafybeiflkm37altah2ey2jxko7kngquwfugyo4cl36y7xjf7o2lbrgucbi
+The URL that can be viewed in a web browser: https://ipfs.io/ipfs/bafybeiczi4pn4na2iw7c66bpbf5rdr3ua3grp2qvjgrmnuzqabjjim4o2q
 
 Current IPFS addresses for the top-level dataset filesystem are:
 
@@ -331,10 +338,13 @@ Current IPFS addresses for the top-level dataset filesystem are:
     bafybeibx2oarr3liqrda4hd7xlw643vbd5nxff2b44blzccw7ekw6gbwv4 - shitspotter_dvc/assets/poop-2023-01-01-T171030/
     bafybeibky4jj4hhmlwuifx52fjdurseqzkmwpp4derwqvf5lo2vakzrtoe - shitspotter_dvc/assets/poop-2023-03-11-T165018/
     bafybeifj7uidepqz2wbumajacy2oacn7c7cuh6zwnduovn4xyszdpiodoe - shitspotter_dvc/assets/poop-2023-04-16-T175739/
-    bafybeihhbwe6mtkts7335e2wdr3p4mo5impx3niqbcavvqh3l3rknpbuti - shitspotter_dvc/assets/poop-2023-07-01-T160318
+    bafybeihhbwe6mtkts7335e2wdr3p4mo5impx3niqbcavvqh3l3rknpbuti - shitspotter_dvc/assets/poop-2023-07-01-T160318/
+    bafybeiez6f2nwubarmduko73uclgitsaagvdov4s5oexcwltw5dosjhq4m - shitspotter_dvc/assets/poop-2023-08-22-T202656/
+    bafybeihurilrwce7rxr7o3iqdf227o74cfk23ilv2nleoj5hd6wx5iapz4 - shitspotter_dvc/assets/poop-2023-09-22-T180825
 
-    bafybeibsljcqg2sd2rpho2xd4z6fimzxwyvugmgqasoxseq7qcomnpku5q - shitspotter_dvc/assets
-    bafybeiflkm37altah2ey2jxko7kngquwfugyo4cl36y7xjf7o2lbrgucbi - shitspotter_dvc
+
+    bafybeidtzbnrua46vjx36ragh7z5ouyodqazh4cxyetdxxtimvk7yi46qu - shitspotter_dvc/assets
+    bafybeieahblb6aafomi72gnheu3ihom7nobdad4t6jcrrwhd5eb3wxkrgy - shitspotter_dvc
 
 
 
