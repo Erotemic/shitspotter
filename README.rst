@@ -159,7 +159,7 @@ Known dataset biases are:
 * Geographic region: Most images were taken in Upstate New York climate.
 * Sensor: Most images were taken with my Pixel 5. A few images were from my old Motorola Droid.
 * Coordinate: Humans unconsciously center "objects of interest" in images they take. In some instances I tried to mitigate this bias, either by explicitly changing the center of the poop, or not looking at the screen when taking a snapshot.
-* Me: I'm the only one taking pictures. I'm also fairly tall, so the images are all from my viewpoint. There are other "me" biases I may not be aware of.
+* Me: I'm ~the only one~ the main person taking pictures. I'm also fairly tall, so the images are all from my viewpoint. There are other "me" biases I may not be aware of.
 * My Dogs: My two poop machines are fairly regular, and they have their own methods for times and places to make a dookie.
 * Freshness: The shit I deal with is often fresh out of the oven. Although, I have picked up a decent number of abandoned stools from other dog owners in the area, some of these are quite old. And age of the sample does seem to have an impact on its appearance. New poops have a shine, while old ones are quite dull, and will start to break down.
 
