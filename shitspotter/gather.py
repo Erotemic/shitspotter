@@ -35,6 +35,11 @@ def main():
     all_fpaths = []
     change_point = dateutil.parser.parse('2021-05-11T120000')
     walk_prog = ub.ProgIter(desc='walking')
+
+    extensions = set()
+
+    block_extensions = ('.mp4', '.json')
+
     with walk_prog:
         for r, ds, fs in os.walk(dpath, followlinks=True):
             walk_prog.step()
@@ -48,11 +53,18 @@ def main():
                 for fname in fs:
                     gpath = join(r, fname)
                     all_fpaths.append(gpath)
-                    if fname.endswith('.mp4'):
+                    if fname.endswith(block_extensions):
                         continue
                     if fname in seen:
                         print('SEEN fname = {!r}'.format(fname))
                         continue
+
+                    ext = fname.split('.')[-1]
+
+                    if ext == 'shitspotter':
+                        raise Exception
+
+                    extensions.add(ext)
                     seen.add(fname)
                     rows.append({
                         'gpath': gpath,
@@ -143,7 +155,10 @@ def main():
             raise
         # TODO: exif 'OffsetTime': '-05:00',
         row['datetime'] = dt.isoformat()
-        # exif_ori = exif.get('Orientation', None)
+
+        exif_ori = exif.get('Orientation', None)
+        row['exif_ori'] = exif_ori
+
         # print('exif_ori = {!r}'.format(exif_ori))
         geos_point = exif.get('GPSInfo', None)
         if geos_point is not None and 'GPSLatitude' in geos_point:
@@ -178,9 +193,129 @@ def main():
     coco_dset._ensure_json_serializable()
     print('coco_dset.fpath = {!r}'.format(coco_dset.fpath))
     coco_dset.reroot(absolute=False)
+    coco_dset.clear_annotations()
 
+    ADD_LABELME_ANNOTS = 1
+    if ADD_LABELME_ANNOTS:
+        import json
+        import kwimage
+        json_fpaths = sorted((dpath / 'assets').glob('*/*.json'))
+        for fpath in ub.ProgIter(json_fpaths):
+
+            if True:
+                # Fixup labelme json files
+                # Remove image data, fix bad labels
+                labelme_data = json.loads(fpath.read_text())
+                needs_write = 0
+                if labelme_data.get('imageData', None) is not None:
+                    labelme_data['imageData'] = None
+                    needs_write = 1
+
+                for shape in labelme_data['shapes']:
+                    if shape['label'] == 'poop;':
+                        shape['label'] = 'poop'
+
+                if needs_write:
+                    fpath.write_text(json.dumps(labelme_data))
+
+            labelme_data = json.loads(fpath.read_text())
+            imginfo, annsinfo = labelme_to_coco_structure(labelme_data)
+            image_name = imginfo['file_name'].rsplit('.', 1)[0]
+            img = coco_dset.index.name_to_img[image_name]
+
+            # Construct the inverted exif transform
+            # (From exif space -> raw space)
+            rot_ccw = 0
+            flip_axis = None
+            if img['exif_ori'] == 8:
+                rot_ccw = 3
+            elif img['exif_ori'] == 3:
+                rot_ccw = 2
+            elif img['exif_ori'] == 6:
+                rot_ccw = 1
+            elif img['exif_ori'] == 7:
+                flip_axis = 1
+                rot_ccw = 3
+            elif img['exif_ori'] == 4:
+                flip_axis = 1
+                rot_ccw = 2
+            elif img['exif_ori'] == 5:
+                flip_axis = 1
+                rot_ccw = 1
+            exif_canvas_dsize = (labelme_data['imageWidth'], labelme_data['imageHeight'])
+            inv_exif = kwimage.Affine.fliprot(
+                flip_axis=flip_axis, rot_k=rot_ccw,
+                canvas_dsize=exif_canvas_dsize
+            )
+
+            for ann in annsinfo:
+                ann = ann.copy()
+                poly = kwimage.Polygon.from_coco(ann['segmentation'])
+
+                if not inv_exif.isclose_identity():
+                    # if img['id'] not in {0}:
+                    #     raise Exception(img['id'])
+                    # LabelMe Polygons are annotated in EXIF space, but
+                    # we need them in raw space for kwcoco.
+                    poly = poly.warp(inv_exif)
+
+                ann['segmentation'] = poly.to_coco(style='new')
+                ann['bbox'] = poly.box().quantize().to_coco()
+
+                catname = ann.pop('category_name')
+                cid = coco_dset.ensure_category(catname)
+                ann['category_id'] = cid
+                ann['image_id'] = img['id']
+                coco_dset.add_annotation(**ann)
+
+            if 0:
+                import kwplot
+                kwplot.autompl(recheck=1, force='QtAgg')
+                if not inv_exif.isclose_identity():
+                    coco_dset.show_image(img['id'])
+                    if img['id'] not in {0, 1575, 7, 1554}:
+                        raise Exception(img['id'])
     #
     coco_dset.dump(coco_dset.fpath, newlines=True)
+
+
+def labelme_to_coco_structure(labelme_data):
+    import kwimage
+    import numpy as np
+    img = {
+        'file_name': labelme_data['imagePath'],
+        'width': labelme_data['imageWidth'],
+        'height': labelme_data['imageHeight'],
+    }
+    anns = []
+    for shape in labelme_data['shapes']:
+        points = shape['points']
+
+        if shape['group_id'] is not None:
+            raise NotImplementedError('groupid')
+
+        if shape['description']:
+            raise NotImplementedError('desc')
+        shape_type = shape['shape_type']
+
+        if shape_type != 'polygon':
+            raise NotImplementedError(shape_type)
+
+        flags = shape['flags']
+        if flags:
+            raise NotImplementedError('flags')
+
+        category_name = shape['label']
+        poly = kwimage.Polygon.coerce(np.array(points))
+
+        ann = {
+            'category_name': category_name,
+            'bbox': poly.box().quantize().to_coco(),
+            'segmentation': poly.to_coco(style='new'),
+        }
+        anns.append(ann)
+
+    return img, anns
 
 
 if __name__ == '__main__':

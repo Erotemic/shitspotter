@@ -428,14 +428,33 @@ def iter_warp(coco_dset):
         pass
 
 
-def demo_warp(coco_dset, gid1, gid2):
+def demo_warp(coco_dset, gid1, gid2, overview=2, max_sidelen=512,
+              ratio_thresh=0.625):
     """
     import shitspotter
     coco_dset = shitspotter.open_shit_coco()
 
-    gid1, gid2 = 24, 25
-    gid1, gid2 = 339, 340  # paralax
+    from kwutil import util_time
 
+    # name = 'PXL_20201122_163121561'
+    name = 'PXL_20211125_175720394'
+    print([n for n in coco_dset.index.name_to_img if name in n])
+
+    img1 = coco_dset.index.name_to_img[name]
+
+    coco_img1 = coco_dset.coco_image(img1['id'])
+    coco_images = coco_dset.images().coco_images
+    after = [c for c in coco_images if c.datetime > coco_img1.datetime]
+    after = sorted(after, key=lambda c: c.datetime)
+    coco_img2 =after[0]
+
+    overview = 1
+    max_sidelen = None
+    ratio_thresh = 0.625
+    gid1, gid2 = coco_img1.img['id'], coco_img2.img['id']
+
+    # gid1, gid2 = 24, 25
+    # gid1, gid2 = 339, 340  # paralax
     """
     import numpy as np
     import kwimage
@@ -461,18 +480,22 @@ def demo_warp(coco_dset, gid1, gid2):
 
     fpath1 = coco_dset.get_image_fpath(gid1)
     fpath2 = coco_dset.get_image_fpath(gid2)
-    imdata1 = shitspotter.util.imread_with_exif(fpath1, overview=2)
-    imdata2 = shitspotter.util.imread_with_exif(fpath2, overview=2)
+    imdata1 = shitspotter.util.imread_with_exif(fpath1, overview=overview)
+    imdata2 = shitspotter.util.imread_with_exif(fpath2, overview=overview)
+
+    if 0:
+        imdata2 = np.rot90(imdata2, -1)
 
     maxdim = max(max(imdata1.shape[0:2]), max(imdata2.shape[0:2]))
-    maxdim = max(512, maxdim)
+    if max_sidelen is not None:
+        maxdim = max(512, maxdim)
 
     # rchip1_rgb, sf_info1 = kwimage.imresize(imdata1, max_dim=512, return_info=True)
     # rchip2_rgb, sf_info2 = kwimage.imresize(imdata2, max_dim=512, return_info=True)
     # rchip1_rgb, sf_info1 = kwimage.imresize(imdata1, max_dim=800, return_info=True)
     # rchip2_rgb, sf_info2 = kwimage.imresize(imdata2, max_dim=800, return_info=True)
-    rchip1_rgb, sf_info1 = kwimage.imresize(imdata1, max_dim=maxdim, return_info=True)
-    rchip2_rgb, sf_info2 = kwimage.imresize(imdata2, max_dim=maxdim, return_info=True)
+    # rchip1_rgb, sf_info1 = kwimage.imresize(imdata1, max_dim=maxdim, return_info=True)
+    # rchip2_rgb, sf_info2 = kwimage.imresize(imdata2, max_dim=maxdim, return_info=True)
 
     # rchip2_rgb, sf_info2 = kwimage.imresize(imdata2, max_dim=512, return_info=True)
     # rchip1_rgb, sf_info1 = kwimage.imresize(imdata1, max_dim=800, return_info=True)
@@ -496,12 +519,14 @@ def demo_warp(coco_dset, gid1, gid2):
     match_cfg = {
         'symetric': False,
         'K': 1,
-        'ratio_thresh': 0.625,
+        # 'ratio_thresh': 0.625,
+        'ratio_thresh': ratio_thresh,
         'refine_method': 'homog',
         'rotation_invariance': True,
         'affine_invariance': True,
     }
     match = PairwiseMatch(annot1, annot2)
+    match.verbose = True
     match.apply_all(cfgdict=match_cfg)
 
     if 0:
@@ -519,8 +544,8 @@ def demo_warp(coco_dset, gid1, gid2):
     rchip1_dsize = rchip1_dims[::-1]
     M1 = match.H_12
     rchip1_align = cv2.warpPerspective(rchip1, M1, rchip2_dsize)
-    rchip1_bounds = kwimage.Boxes([[0, 0, rchip1_dsize[0] - 1, rchip1_dsize[1] - 1]], 'xywh').to_polygons()[0]
-    rchip2_bounds = kwimage.Boxes([[0, 0, rchip2_dsize[0] - 1, rchip2_dsize[1] - 1]], 'xywh').to_polygons()[0]
+    rchip1_bounds = kwimage.Box.coerce([0, 0, rchip1_dsize[0] - 1, rchip1_dsize[1] - 1], format='xywh').to_polygon()
+    rchip2_bounds = kwimage.Box.coerce([0, 0, rchip2_dsize[0] - 1, rchip2_dsize[1] - 1], format='xywh').to_polygon()
     warp_bounds1 = rchip1_bounds.warp(M1)
     shpb1 = warp_bounds1.to_shapely()
     # Only keep valid regions
@@ -529,6 +554,85 @@ def demo_warp(coco_dset, gid1, gid2):
     valid_rchip2_mask1 = warp_bounds1.to_mask(dims=rchip2_dims).data
     rchip2_align = rchip2 * valid_rchip2_mask1[:, :, None]
 
+    if 0:
+        _alternate_matching_experimental(rchip1, rchip1_align, rchip2_align,
+                                         rchip2_dims, rchip2_dsize,
+                                         rchip1_bounds, warp_bounds1, M1)
+    else:
+        raw1 = kwimage.gaussian_blur(rchip1_align, kernel=7)
+        raw2 = kwimage.gaussian_blur(rchip2_align, kernel=7)
+        rchip1_refine = rchip1_align
+        rchip2_refine = rchip2_align
+        M = M1.copy()
+    # raw1 = raw1.mean(axis=2, keepdims=True)
+    # raw2 = raw2.mean(axis=2, keepdims=True)
+    diff_img_RAW = np.linalg.norm(np.abs(raw1 - raw2), axis=2)
+
+    diff_img = diff_img_RAW
+    mask = diff_img.copy()
+    mask = kwimage.morphology(mask, 'close', kernel=3)
+    mask = kwimage.gaussian_blur(mask, sigma=2.0)
+    mask = kwimage.morphology(mask, 'close', kernel=7)
+    print(sorted(mask.ravel())[-100:])
+    mask = kwimage.morphology((mask > 0.4).astype(np.float32), 'dilate', kernel=10)
+    mask = kwimage.gaussian_blur(mask, sigma=3.0)
+    mask = (mask > 0.2).astype(np.float32)
+    mask = kwimage.morphology(mask, 'close', kernel=30)
+    mask = kwimage.morphology((mask).astype(np.float32), 'dilate', kernel=30)
+
+    # Warp mask back onto original image
+    tf_orig_from_align = np.asarray(undo_scale @ np.linalg.inv(M))
+    orig_dsize = imdata1.shape[0:2][::-1]
+    mask1_orig = cv2.warpPerspective(mask, tf_orig_from_align, orig_dsize)
+
+    overlay = kwimage.ensure_alpha_channel(mask1_orig[..., None])
+    overlay[mask1_orig > 0.5, 3] = 0.0
+    overlay[mask1_orig < 0.5, 3] = 0.8
+    orig = kwimage.ensure_alpha_channel(kwimage.ensure_float01(imdata1))
+    attention_imdata1 = kwimage.overlay_alpha_images(overlay, orig)
+    # attention_imdata1 = imdata1 * mask1_orig[..., None]
+
+    rstack = kwimage.stack_images([rchip1, rchip2], pad=10, axis=1)
+
+    rchip1_align_a = kwimage.ensure_alpha_channel(rchip1_refine, 0.5)
+    rchip2_align_a = kwimage.ensure_alpha_channel(rchip2_refine, 1.0)
+    overlay_align = kwimage.overlay_alpha_layers([rchip1_align_a, rchip2_align_a])
+    # kwplot.imshow(overlay_align, fnum=6, title='Aligned')
+    align_stack1 = kwimage.stack_images([rchip1_refine, rchip2_refine, overlay_align], pad=10, axis=1)
+    # align_stack2 = kwimage.stack_images([rchip1_align_final, rchip2_align_final], pad=10, axis=1)
+    diff_stack = kwimage.stack_images([diff_img, mask], pad=10, axis=1)
+
+    fig1 = kwplot.figure(fnum=1, doclf=True)
+    pnum_a = kwplot.PlotNums(nRows=3, nCols=1)
+
+    kwplot.imshow(rstack, fnum=1, pnum=pnum_a[0], title='Raw Before / After Image Pair')
+    ax = kwplot.figure(fnum=1, pnum=pnum_a[1]).gca()
+    ax.set_title('SIFT Features Matches (used to align the images)')
+    match.show(ax=ax, show_ell=1, show_lines=False, ell_alpha=0.2, vert=False)
+
+    kwplot.imshow(align_stack1, fnum=1, pnum=pnum_a[2], title='Aligned Images')
+    # kwplot.imshow(align_stack2, fnum=3, pnum=pnum_a[3], title='Refined Alignment')
+
+    fig3 = kwplot.figure(fnum=3, doclf=True)
+    kwplot.imshow(diff_stack, fnum=3, title='Difference Image -> Binary Mask')
+    # kwplot.imshow(attention_rchip1, fnum=3, pnum=pnum_a[4], title='Candidate Annotation Regions')
+
+    fig2 = kwplot.figure(fnum=2, doclf=True)
+    kwplot.imshow(attention_imdata1, fnum=2, title='Candidate Annotation Regions')
+
+    fig4 = kwplot.figure(fnum=4, doclf=True)
+    kwplot.imshow(align_stack1, fnum=4, title='Aligned')
+    return fig1, fig2, fig3, fig4
+
+
+def _alternate_matching_experimental(rchip1, rchip1_align, rchip2_align,
+                                     rchip2_dims, rchip2_dsize, rchip1_bounds,
+                                     warp_bounds1, M1):
+    import kwimage
+    import kwplot
+    import numpy as np
+    from vtool_ibeis import PairwiseMatch
+    import cv2
     if 0:
         """
         pip install itk-elastix
@@ -550,7 +654,6 @@ def demo_warp(coco_dset, gid1, gid2):
         # import itk
         # fixed_image:
         # registered_image, params = itk.elastix_registration_method(fixed_image, moving_image)
-
     if 0:
         # TODO: diffeomorphism - Diffeomorphic Demons
         # https://insightsoftwareconsortium.github.io/SimpleITK-Notebooks/Python_html/66_Registration_Demons.html
@@ -614,6 +717,7 @@ def demo_warp(coco_dset, gid1, gid2):
             rchip1_refine = cv2.warpPerspective(rchip1, M2 @ M1, rchip2_dsize)
             warp_bounds2 = warp_bounds1.warp(M2)
             if 0:
+
                 rchip1_bounds.draw(alpha=0.5, color='red')
                 warp_bounds1.draw(alpha=0.5, color='orange')
                 warp_bounds2.draw(alpha=0.5, color='green')
@@ -625,15 +729,8 @@ def demo_warp(coco_dset, gid1, gid2):
             raw1 = kwimage.gaussian_blur(rchip1_refine, kernel=7)
             raw2 = kwimage.gaussian_blur(rchip2_refine, kernel=7)
             M = M2 @ M1
-        else:
-            raw1 = kwimage.gaussian_blur(rchip1_align, kernel=7)
-            raw2 = kwimage.gaussian_blur(rchip2_align, kernel=7)
-            rchip1_refine = rchip1_align
-            rchip2_refine = rchip2_align
-            M = M1.copy()
-    # raw1 = raw1.mean(axis=2, keepdims=True)
-    # raw2 = raw2.mean(axis=2, keepdims=True)
-    diff_img_RAW = np.linalg.norm(np.abs(raw1 - raw2), axis=2)
+
+    x = raw1, raw2, M
     # kwplot.imshow(diff_img_RAW, fnum=7)
 
     # import itk
@@ -657,62 +754,7 @@ def demo_warp(coco_dset, gid1, gid2):
     # rchip2_align_final = rchip2_align.copy()
     # rchip1_align_final = raw1.copy()
     # rchip2_align_final = raw2.copy()
-
-    diff_img = diff_img_RAW
-    mask = diff_img.copy()
-    mask = kwimage.morphology(mask, 'close', kernel=3)
-    mask = kwimage.gaussian_blur(mask, sigma=2.0)
-    mask = kwimage.morphology(mask, 'close', kernel=7)
-    print(sorted(mask.ravel())[-100:])
-    mask = kwimage.morphology((mask > 0.4).astype(np.float32), 'dilate', kernel=10)
-    mask = kwimage.gaussian_blur(mask, sigma=3.0)
-    mask = (mask > 0.2).astype(np.float32)
-    mask = kwimage.morphology(mask, 'close', kernel=30)
-    mask = kwimage.morphology((mask).astype(np.float32), 'dilate', kernel=30)
-
-    # Warp mask back onto original image
-    tf_orig_from_align = np.asarray(undo_scale @ np.linalg.inv(M))
-    orig_dsize = imdata1.shape[0:2][::-1]
-    mask1_orig = cv2.warpPerspective(mask, tf_orig_from_align, orig_dsize)
-
-    overlay = kwimage.ensure_alpha_channel(mask1_orig[..., None])
-    overlay[mask1_orig > 0.5, 3] = 0.0
-    overlay[mask1_orig < 0.5, 3] = 0.8
-    orig = kwimage.ensure_alpha_channel(kwimage.ensure_float01(imdata1))
-    attention_imdata1 = kwimage.overlay_alpha_images(overlay, orig)
-    # attention_imdata1 = imdata1 * mask1_orig[..., None]
-
-    rstack = kwimage.stack_images([rchip1, rchip2], pad=10, axis=1)
-
-    rchip1_align_a = kwimage.ensure_alpha_channel(rchip1_refine, 0.5)
-    rchip2_align_a = kwimage.ensure_alpha_channel(rchip2_refine, 1.0)
-    overlay_align = kwimage.overlay_alpha_layers([rchip1_align_a, rchip2_align_a])
-    # kwplot.imshow(overlay_align, fnum=6, title='Aligned')
-    align_stack1 = kwimage.stack_images([rchip1_refine, rchip2_refine, overlay_align], pad=10, axis=1)
-    # align_stack2 = kwimage.stack_images([rchip1_align_final, rchip2_align_final], pad=10, axis=1)
-    diff_stack = kwimage.stack_images([diff_img, mask], pad=10, axis=1)
-
-    fig1 = kwplot.figure(fnum=1, doclf=True)
-    pnum_a = kwplot.PlotNums(nRows=3, nCols=1)
-
-    kwplot.imshow(rstack, fnum=1, pnum=pnum_a[0], title='Raw Before / After Image Pair')
-    ax = kwplot.figure(fnum=1, pnum=pnum_a[1]).gca()
-    ax.set_title('SIFT Features Matches (used to align the images)')
-    match.show(ax=ax, show_ell=1, show_lines=False, ell_alpha=0.2, vert=False)
-
-    kwplot.imshow(align_stack1, fnum=1, pnum=pnum_a[2], title='Aligned Images')
-    # kwplot.imshow(align_stack2, fnum=3, pnum=pnum_a[3], title='Refined Alignment')
-
-    fig3 = kwplot.figure(fnum=3, doclf=True)
-    kwplot.imshow(diff_stack, fnum=3, title='Difference Image -> Binary Mask')
-    # kwplot.imshow(attention_rchip1, fnum=3, pnum=pnum_a[4], title='Candidate Annotation Regions')
-
-    fig2 = kwplot.figure(fnum=2, doclf=True)
-    kwplot.imshow(attention_imdata1, fnum=2, title='Candidate Annotation Regions')
-
-    fig4 = kwplot.figure(fnum=4, doclf=True)
-    kwplot.imshow(align_stack1, fnum=4, title='Aligned')
-    return fig1, fig2, fig3, fig4
+    return x
 
 
 def utm_epsg_from_latlon(lat, lon):

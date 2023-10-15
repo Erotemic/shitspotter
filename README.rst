@@ -22,7 +22,7 @@ or perhaps city governments could use this to more efficiently clean public area
 This module will contain an algorithm for training a pytorch network to detect poop in images, and a script
 for detecting poop in unseen images given a pretrained model.
 
-The dataset currently contains 25GB of outdoor images taken with a phone. The general process of acquiring the dataset has been:
+The dataset currently contains 30GB of outdoor images taken with a phone. The general process of acquiring the dataset has been:
 1. My dog poops or I see a rogue poop,
 2. I take a "before" picture of the poop,
 3. I pick up the poop,
@@ -45,10 +45,10 @@ The `IPFS CID <https://docs.ipfs.tech/concepts/content-addressing/>`_ (Content I
 
 .. code::
 
-    bafybeiflkm37altah2ey2jxko7kngquwfugyo4cl36y7xjf7o2lbrgucbi
+    bafybeief7tmoarwmd26b2petx7crtvdnz6ucccek5wpwxwdvfydanfukna
 
 The dataset can be viewed in a webbrowser through an IPFS gateway:
-https://ipfs.io/ipfs/bafybeiflkm37altah2ey2jxko7kngquwfugyo4cl36y7xjf7o2lbrgucbi
+https://ipfs.io/ipfs/bafybeief7tmoarwmd26b2petx7crtvdnz6ucccek5wpwxwdvfydanfukna
 
 If you have an IPFS node, please help keep this dataset alive and available by pinning it.
 
@@ -59,7 +59,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
-* 2023-09-22 - 123 new images.
+* 2023-10-15 - The next phase of the project - annotation and training - has begun. Also 82 new images.
 * 2023-08-22 - 182 new images.
 * 2023-07-01 - Another batch of 300 photos. I also realized that if I could ID which dog made which poop, I could do a longiturdinal study.
 * 2023-04-16 - More ground based photos. One "after" photo contains a positive example I didn't see in the background.
@@ -218,39 +218,42 @@ groups is the number of groups the before / after pair had a successful
 registration via the SIFT+RANSAC algorithm.
 
 
-+-------------+----------+---------------------+-----------------------+
-| Date        | # Images | # Estimated Groups  | # Registered Groups   |
-+=============+==========+=====================+=======================+
-| 2021-11-11  |  1935    |   ~616              | N/A                   |
-+-------------+----------+---------------------+-----------------------+
-| 2021-12-30  |  2088    |   ~728              | N/A                   |
-+-------------+----------+---------------------+-----------------------+
-| 2022-03-14  |  2471    |   ~954              | 658                   |
-+-------------+----------+---------------------+-----------------------+
-| 2022-04-02  |  2614    |  ~1002              | 697                   |
-+-------------+----------+---------------------+-----------------------+
-| 2022-04-16  |  2706    |  ~1033              | 722                   |
-+-------------+----------+---------------------+-----------------------+
-| 2022-06-20  |  2991    |  ~1127              | 734?                  |
-+-------------+----------+---------------------+-----------------------+
-| 2022-07-17  |  3144    |  ~1179              | 823                   |
-+-------------+----------+---------------------+-----------------------+
-| 2022-09-19  |  3423    |  ~1272              | 892                   |
-+-------------+----------+---------------------+-----------------------+
-| 2022-11-23  |  3667    |  ~1353              | 959                   |
-+-------------+----------+---------------------+-----------------------+
-| 2023-01-01  |  3800    |  ~1397              | 998                   |
-+-------------+----------+---------------------+-----------------------+
-| 2023-03-03  |  4105    |  ~1498              | 1068                  |
-+-------------+----------+---------------------+-----------------------+
-| 2023-04-16  |  4286    |  ~1559              | 1094                  |
-+-------------+----------+---------------------+-----------------------+
-| 2023-07-01  |  4594    |  ~1662              | 1154                  |
-+-------------+----------+---------------------+-----------------------+
-| 2023-08-22  |  4776    |  ~1723              | 1197                  |
-+-------------+----------+---------------------+-----------------------+
-| 2023-09-22  |  4899    |  ~1764              | 1232                  |
-+-------------+----------+---------------------+-----------------------+
++-------------+----------+---------------------+-----------------------+-----------------------+
+| Date        | # Images | # Estimated Groups  | # Registered Groups   | # Annotated Images    |
++=============+==========+=====================+=======================+=======================+
+| 2021-11-11  |  1935    |   ~616              | N/A                   | 0                     |
++-------------+----------+---------------------+-----------------------+-----------------------+
+| 2021-12-30  |  2088    |   ~728              | N/A                   | 0                     |
++-------------+----------+---------------------+-----------------------+-----------------------+
+| 2022-03-14  |  2471    |   ~954              | 658                   | 0                     |
++-------------+----------+---------------------+-----------------------+-----------------------+
+| 2022-04-02  |  2614    |  ~1002              | 697                   | 0                     |
++-------------+----------+---------------------+-----------------------+-----------------------+
+| 2022-04-16  |  2706    |  ~1033              | 722                   | 0                     |
++-------------+----------+---------------------+-----------------------+-----------------------+
+| 2022-06-20  |  2991    |  ~1127              | 734?                  | 0                     |
++-------------+----------+---------------------+-----------------------+-----------------------+
+| 2022-07-17  |  3144    |  ~1179              | 823                   | 0                     |
++-------------+----------+---------------------+-----------------------+-----------------------+
+| 2022-09-19  |  3423    |  ~1272              | 892                   | 0                     |
++-------------+----------+---------------------+-----------------------+-----------------------+
+| 2022-11-23  |  3667    |  ~1353              | 959                   | 0                     |
++-------------+----------+---------------------+-----------------------+-----------------------+
+| 2023-01-01  |  3800    |  ~1397              | 998                   | 0                     |
++-------------+----------+---------------------+-----------------------+-----------------------+
+| 2023-03-03  |  4105    |  ~1498              | 1068                  | 0                     |
++-------------+----------+---------------------+-----------------------+-----------------------+
+| 2023-04-16  |  4286    |  ~1559              | 1094                  | 0                     |
++-------------+----------+---------------------+-----------------------+-----------------------+
+| 2023-07-01  |  4594    |  ~1662              | 1154                  | 0                     |
++-------------+----------+---------------------+-----------------------+-----------------------+
+| 2023-08-22  |  4776    |  ~1723              | 1197                  | 0                     |
++-------------+----------+---------------------+-----------------------+-----------------------+
+| 2023-09-22  |  4899    |  ~1764              | 1232                  | 0                     |
++-------------+----------+---------------------+-----------------------+-----------------------+
+| 2023-10-15  |  4981    |  ~1790              | 1255                  | 362                   |
++-------------+----------+---------------------+-----------------------+-----------------------+
+
 
 
 
@@ -270,16 +273,53 @@ But with a little patience and image processing, it's not to hard to narrow down
 Scripts to produce these visualizations have been checked into the repo. Annotations and the image manifest will
 be stored in the kwcoco json format.
 
+
+Update: 2023-10-15
+
+The before/after annotation process is unfortunately not robust enough to generate annotations. Instead annotations are being added with `labelme <https://github.com/wkentaro/labelme>`_. This tool leverages the `Segment Anything Model (SAM) <https://segment-anything.com/>`_, which does a good job at finding poop polygon boundaries from a single click. This process is not perfect, and annotations are corrected when they are incorrectly generated. In some difficult cases the SAM model is unable to segment the object of interest at all.
+
+The following is a screenshot of the annotation tool with two easy cases and
+one harder case that SAM struggled with on the top.
+
+.. image:: https://i.imgur.com/3lmXgww.png
+
+
+The labelme annotations are kept in their original form as sidecar json files
+to the original images. However, when the dataset is updated, these annotations
+are converted and stored in the top-level kwcoco dataset.
+
+
 The Algorithm
 =============
 
 Currently there is no algorithm checked into the repo. I need to start annotating the dataset first.
-Eventually there will be a `shitspotter.fit` and `shitspotter.predict` script for training and performing
+Eventually there will be a ``shitspotter.fit`` and ``shitspotter.predict`` script for training and performing
 inference on unseen images. My current plan for a baseline algorithm is a mobilenet backbone pretrained
 on imagenet and some single-stage detection / segmentation head on top of that.
 
 Given kwcoco a formatted detection dataset, we can also use off-the-shelf detection baselines
 via netharn, mmdet, or some other library that accepts coco/kwcoco input manifests.
+
+Update: 2023-10-15
+
+The `geowatch <https://gitlab.kitware.com/computer-vision/geowatch>`_ framework
+is being used to train initial models on the small set of annotations.
+
+
+Initial train and validation batches look like this:
+
+.. image:: https://i.imgur.com/Nfk8XbE.jpg
+
+
+.. image:: https://i.imgur.com/YHfl0Wd.jpg
+
+
+The training batches are starting to fit the data, but the validation batches
+shows that there is still a clear generalizatio gap, but this is only the very
+start of training and the hyper-parameters are untuned.
+
+
+The current train validation split
 
 
 Data Management
@@ -303,49 +343,46 @@ In addition to these licenses please:
 
 Otherwise the data is free to use commercially or otherwise.
 
-The URL that can be viewed in a web browser: https://ipfs.io/ipfs/bafybeiczi4pn4na2iw7c66bpbf5rdr3ua3grp2qvjgrmnuzqabjjim4o2q
+The URL that can be viewed in a web browser: https://ipfs.io/ipfs/bafybeief7tmoarwmd26b2petx7crtvdnz6ucccek5wpwxwdvfydanfukna
 
 Current IPFS addresses for the top-level dataset filesystem are:
 
 .. code::
 
-    bafybeiefroexxylbcka54ahtdngfvebvochmjndpj5xbliuldmp7wf4eqq - shitspotter_dvc/data.kwcoco.json
-    bafybeibnapjzxiwlkveapyhqfu6mzul73rea7axh6b4wcmkt7q42brgkde - shitspotter_dvc/analysis
-    bafybeialkwcgpkneapnixeit2uzyjehnjn27vwbaynjnlryl5flsf3q6fi - shitspotter_dvc/assets/poop-2020-12-28/
-    bafybeig2wlncnixclod2hecd7e7zoemvdhwoxuzi5xtnomottb27kx4jzq - shitspotter_dvc/assets/poop-2021-02-06/
-    bafybeifrkr2grtiuhm4uwuqri25h67dsfmsrwtn3q7xpfaeetqlwukgoum - shitspotter_dvc/assets/poop-2021-03-05/
-    bafybeigspol3oqllgushdujw3dgzlnrgb5ywy42i3gtk5g2h7px3r25w6q - shitspotter_dvc/assets/poop-2021-04-06/
-    bafybeibhtymsnsmdqukjf2emde6zlxapzczom7a4pauqv65pfducb4v2pu - shitspotter_dvc/assets/poop-2021-04-19/
-    bafybeiecpxpodwxrmmkiyxef6222hobnr6okq35ecdcvlrt2wa4pduqpua - shitspotter_dvc/assets/poop-2021-04-25/
-    bafybeicozcsoutdeh37nvv4a6xjuwha2s5yqssepg4x6rysvcaqyptluhm - shitspotter_dvc/assets/poop-2021-05-11T000000/
-    bafybeig6v5abxioluw7zmk6mxzsg4xumhphkr64jqznjc2pgilhhg453b4 - shitspotter_dvc/assets/poop-2021-05-11T150000/
-    bafybeiecdgnasyccutesze6odoyg2uhqkzc4hy25imbls2szpbwmsqsggm - shitspotter_dvc/assets/poop-2021-06-05/
-    bafybeia5v47nt7m5dlw6ozfptreu6oxjdypjbbod3zhwx26hducphkg2em - shitspotter_dvc/assets/poop-2021-06-20/
-    bafybeigo4ffpewvp23v6pa65durazqtzov7rpqucg6w3723bkolnhi2xwu - shitspotter_dvc/assets/poop-2021-09-20/
-    bafybeie4sspgtzv5upgmj2gx43jcebnvmjpcnlehwpteyzbm7rm22buuli - shitspotter_dvc/assets/poop-2021-11-11/
-    bafybeialx3qohukvftxoluss4iakdqiqjnsfyxu7qmcotbjci76zxy4wym - shitspotter_dvc/assets/poop-2021-11-26/
-    bafybeigmpdet6dhtvkauisv7oyxvbcqlhiac4a6pgi7phn3zak37txireu - shitspotter_dvc/assets/poop-2021-12-27/
-    bafybeiewsg5b353s26r566aw756y5h5omnjei3xllzv7sldesmthu6p5bi - shitspotter_dvc/assets/poop-2022-01-27/
-    bafybeiapgukq36wxd3b23io3io5iry2jpu6ojy4pdc5wqry5ouy3s7q65u - shitspotter_dvc/assets/poop-2022-03-13-T152627/
-    bafybeiba5k3iauqu4ayul4yozapadlpiehezwow63lm3r26hgk4eqrrjki - shitspotter_dvc/assets/poop-2022-04-02-T145512/
-    bafybeic3amh4klgs3aantyqgd7lti2vhnnmutbcfddtvw2572ynlldkpua - shitspotter_dvc/assets/poop-2022-04-16-T135257/
-    bafybeicyotgcgufq2nsewvk2ph4xchgbnltd7t2j334lqgvc4jdnxrw5by - shitspotter_dvc/assets/poop-2022-05-26-T173650/
-    bafybeieddszhqi6fzrpnn2q2ab74hva4gwnx5bcdnvh7cwwrnf7ikyukru - shitspotter_dvc/assets/poop-2022-06-08-T132910/
-    bafybeigss3h3p6pnsw7bgfevs77lv6duzhzi7fmuiyf5qtujafqanrrjsi - shitspotter_dvc/assets/poop-2022-06-20-T235340/
-    bafybeih6qtza2vnrdvemlhuezfhoom6wh2457mnwmlw7sg4ncgstl35zsa - shitspotter_dvc/assets/poop-2022-07-16-T215017/
-    bafybeigvu4k5w2eflpkmucaas3p4yb7mhdbpmcdsmysbpfa54biiy4vvya - shitspotter_dvc/assets/poop-2022-09-19-T153414/
-    bafybeihnmt5pxlx5ywatlzvabtbebh6sspkaiithobqwjvrvfvzynl6oyy - shitspotter_dvc/assets/poop-2022-11-23-T182537/
-    bafybeibx2oarr3liqrda4hd7xlw643vbd5nxff2b44blzccw7ekw6gbwv4 - shitspotter_dvc/assets/poop-2023-01-01-T171030/
-    bafybeibky4jj4hhmlwuifx52fjdurseqzkmwpp4derwqvf5lo2vakzrtoe - shitspotter_dvc/assets/poop-2023-03-11-T165018/
-    bafybeifj7uidepqz2wbumajacy2oacn7c7cuh6zwnduovn4xyszdpiodoe - shitspotter_dvc/assets/poop-2023-04-16-T175739/
-    bafybeihhbwe6mtkts7335e2wdr3p4mo5impx3niqbcavvqh3l3rknpbuti - shitspotter_dvc/assets/poop-2023-07-01-T160318/
-    bafybeiez6f2nwubarmduko73uclgitsaagvdov4s5oexcwltw5dosjhq4m - shitspotter_dvc/assets/poop-2023-08-22-T202656/
-    bafybeihurilrwce7rxr7o3iqdf227o74cfk23ilv2nleoj5hd6wx5iapz4 - shitspotter_dvc/assets/poop-2023-09-22-T180825
+    bafybeiaydlkog4rzfmmuidbvxpwhmosfgyex3kx2oz2keq3rewszisilmq -   shitspotter_dvc/assets/poop-2020-12-28/
+    bafybeiddzhnsovxx76pgb65p7kekfmlz4i6afqsdrbdnazs3h6cxhosr3i -   shitspotter_dvc/assets/poop-2021-02-06/
+    bafybeifrkr2grtiuhm4uwuqri25h67dsfmsrwtn3q7xpfaeetqlwukgoum -   shitspotter_dvc/assets/poop-2021-03-05/
+    bafybeigspol3oqllgushdujw3dgzlnrgb5ywy42i3gtk5g2h7px3r25w6q -   shitspotter_dvc/assets/poop-2021-04-06/
+    bafybeibshwnzyerfheehpt7qhw7jojjjrb5g2a74yvpwqm2wcadpyjjzny -   shitspotter_dvc/assets/poop-2021-04-19/
+    bafybeiecpxpodwxrmmkiyxef6222hobnr6okq35ecdcvlrt2wa4pduqpua -   shitspotter_dvc/assets/poop-2021-04-25/
+    bafybeigzkx5xxju2rbj5zai3o7vppwqbjso7tj23q77deqymjsf7trubzu -   shitspotter_dvc/assets/poop-2021-05-11T000000/
+    bafybeig6v5abxioluw7zmk6mxzsg4xumhphkr64jqznjc2pgilhhg453b4 -   shitspotter_dvc/assets/poop-2021-05-11T150000/
+    bafybeiecdgnasyccutesze6odoyg2uhqkzc4hy25imbls2szpbwmsqsggm -   shitspotter_dvc/assets/poop-2021-06-05/
+    bafybeia5v47nt7m5dlw6ozfptreu6oxjdypjbbod3zhwx26hducphkg2em -   shitspotter_dvc/assets/poop-2021-06-20/
+    bafybeigo4ffpewvp23v6pa65durazqtzov7rpqucg6w3723bkolnhi2xwu -   shitspotter_dvc/assets/poop-2021-09-20/
+    bafybeibrw7je4zmoartzrpq5vbvg7klim5gr5j3q44doeb3tbxkkboftvi -   shitspotter_dvc/assets/poop-2021-11-11/
+    bafybeid5wqkm6tqoexrbzz3qo3663vhq5tdnlg4exlhyyj3aqzsso42jiu -   shitspotter_dvc/assets/poop-2021-11-26/
+    bafybeigmpdet6dhtvkauisv7oyxvbcqlhiac4a6pgi7phn3zak37txireu -   shitspotter_dvc/assets/poop-2021-12-27/
+    bafybeiewsg5b353s26r566aw756y5h5omnjei3xllzv7sldesmthu6p5bi -   shitspotter_dvc/assets/poop-2022-01-27/
+    bafybeiapgukq36wxd3b23io3io5iry2jpu6ojy4pdc5wqry5ouy3s7q65u -   shitspotter_dvc/assets/poop-2022-03-13-T152627/
+    bafybeiba5k3iauqu4ayul4yozapadlpiehezwow63lm3r26hgk4eqrrjki -   shitspotter_dvc/assets/poop-2022-04-02-T145512/
+    bafybeic3amh4klgs3aantyqgd7lti2vhnnmutbcfddtvw2572ynlldkpua -   shitspotter_dvc/assets/poop-2022-04-16-T135257/
+    bafybeicyotgcgufq2nsewvk2ph4xchgbnltd7t2j334lqgvc4jdnxrw5by -   shitspotter_dvc/assets/poop-2022-05-26-T173650/
+    bafybeieddszhqi6fzrpnn2q2ab74hva4gwnx5bcdnvh7cwwrnf7ikyukru -   shitspotter_dvc/assets/poop-2022-06-08-T132910/
+    bafybeigss3h3p6pnsw7bgfevs77lv6duzhzi7fmuiyf5qtujafqanrrjsi -   shitspotter_dvc/assets/poop-2022-06-20-T235340/
+    bafybeih6qtza2vnrdvemlhuezfhoom6wh2457mnwmlw7sg4ncgstl35zsa -   shitspotter_dvc/assets/poop-2022-07-16-T215017/
+    bafybeigvu4k5w2eflpkmucaas3p4yb7mhdbpmcdsmysbpfa54biiy4vvya -   shitspotter_dvc/assets/poop-2022-09-19-T153414/
+    bafybeiahrdxhtbcyq3icgooxk2fvgm2oxpaohtagfauvssthuqxfxrhtwm -   shitspotter_dvc/assets/poop-2022-11-23-T182537/
+    bafybeibx2oarr3liqrda4hd7xlw643vbd5nxff2b44blzccw7ekw6gbwv4 -   shitspotter_dvc/assets/poop-2023-01-01-T171030/
+    bafybeibky4jj4hhmlwuifx52fjdurseqzkmwpp4derwqvf5lo2vakzrtoe -   shitspotter_dvc/assets/poop-2023-03-11-T165018/
+    bafybeifj7uidepqz2wbumajacy2oacn7c7cuh6zwnduovn4xyszdpiodoe -   shitspotter_dvc/assets/poop-2023-04-16-T175739/
+    bafybeihhbwe6mtkts7335e2wdr3p4mo5impx3niqbcavvqh3l3rknpbuti -   shitspotter_dvc/assets/poop-2023-07-01-T160318/
+    bafybeiez6f2nwubarmduko73uclgitsaagvdov4s5oexcwltw5dosjhq4m -   shitspotter_dvc/assets/poop-2023-08-22-T202656/
+    bafybeihurilrwce7rxr7o3iqdf227o74cfk23ilv2nleoj5hd6wx5iapz4 -   shitspotter_dvc/assets/poop-2023-09-22-T180825/
+    bafybeihsxlzwr45jvxzhq7vst6zirykdm4ufbmapxidl5bs4ncyfo7nmja -   shitspotter_dvc/assets/poop-2023-10-15-T193631/
 
-
-    bafybeidtzbnrua46vjx36ragh7z5ouyodqazh4cxyetdxxtimvk7yi46qu - shitspotter_dvc/assets
-    bafybeieahblb6aafomi72gnheu3ihom7nobdad4t6jcrrwhd5eb3wxkrgy - shitspotter_dvc
-
+    bafybeihsdpvygurjrhxtsbrr2ij7mtsqazz7prblwg3jzlhppeg5ij6ify - shitspotter_dvc/assets
+    bafybeief7tmoarwmd26b2petx7crtvdnz6ucccek5wpwxwdvfydanfukna - shitspotter_dvc
 
 
 Acknowledgements
@@ -355,6 +392,10 @@ I want to give thanks to the people and animals-that-think-they-are-people who
 contributed to this project. My colleagues at Kitware have provided valuable
 help / insight into project direction, dataset collection, problem formulation,
 related research, discussion, and memes.
+
+I would also like to thank the several people that have contributed their own
+images in the contributions folder (More info on contributions will be added
+later).
 
 I want to give special thanks to my two poop machines, without whom this project would not be possible.
 

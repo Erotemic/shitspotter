@@ -42,11 +42,17 @@ def autofind_pair_hueristic(coco_dset=None):
     # from vtool_ibeis.matching import VSONE_FEAT_CONFIG
 
     image_df = pd.DataFrame(coco_dset.dataset['images'])
-    ordered_gids = image_df.sort_values('datetime').id.tolist()
+
+    has_annots = [len(aids) > 0 for aids in coco_dset.images(image_df['id']).aids]
+    image_df['has_annots'] = has_annots
+    image_df = image_df.sort_values('datetime')
+
+    ordered_gids = image_df.id.tolist()
     feat_cfg = {
         'rotation_invariance': True,
         'affine_invariance': True,
     }
+    image_df = image_df.set_index('id', drop=False)
 
     # Fails on 31, 32
 
@@ -94,8 +100,8 @@ def autofind_pair_hueristic(coco_dset=None):
         pair = (coco_img1['name'], coco_img2['name'])
         key = ub.urepr(pair, compact=1)
         if key not in existing_keys:
-            dt1 = dateutil.parser.parse(coco_img1['datetime'])
-            dt2 = dateutil.parser.parse(coco_img2['datetime'])
+            dt1 = coco_img1.datetime
+            dt2 = coco_img2.datetime
             delta = dt1 - dt2
             delta_seconds = delta.total_seconds()
             if delta_seconds < compare_time_thresh:
@@ -137,7 +143,7 @@ def autofind_pair_hueristic(coco_dset=None):
                 key = ub.urepr((match['name1'], match['name2']), compact=1)
                 image_matches[key] = match
 
-    # Save the match table
+    # Save the match table shelf
     image_matches.sync()
 
     # coco_dset.dump(coco_dset.fpath, newlines=True)
@@ -197,6 +203,8 @@ def autofind_pair_hueristic(coco_dset=None):
             good_pairwise_idxs.append(idx + 1)
             idx += 2
         else:
+            # import xdev
+            # xdev.embed()
             bad_pairwise_items += 1
             idx += 1
 
@@ -264,6 +272,11 @@ def autofind_pair_hueristic(coco_dset=None):
     total_imgs = len(coco_dset.imgs)
     print(f'total_images = {total_imgs}')
 
+    num_images_with_annots = sum([bool(a) for a in coco_dset.images().annots])
+    num_annots = coco_dset.n_annots
+    print('num_images_with_annots = {}'.format(ub.urepr(num_images_with_annots, nl=1)))
+    print('num_annots = {}'.format(ub.urepr(num_annots, nl=1)))
+
     if 1:
         import datetime as datetime_mod
         today = datetime_mod.datetime.now().date()
@@ -272,12 +285,13 @@ def autofind_pair_hueristic(coco_dset=None):
             '# Images': total_imgs,
             '# Estimated Groups': total_estimated_number_of_tups,
             '# Registered Groups': total_matchable_tups,
+            '# Annotated Images': num_images_with_annots,
         }
         print('New row for README')
-        print('| {:<12s}| {:<8s} | {:<18s}  | {:<22s}|'.format(*list(row.keys())))
-        print('+=============+==========+=====================+=======================+')
-        print('| {:<12s}|  {:<7d} |  ~{:<17d} | {:<22d}|'.format(*list(row.values())))
-        print('+-------------+----------+---------------------+-----------------------+')
+        print('| {:<12s}| {:<8s} | {:<18s}  | {:<22s}| {:<22s}|'.format(*list(row.keys())))
+        print('+=============+==========+=====================+=======================+=======================+')
+        print('| {:<12s}|  {:<7d} |  ~{:<17d} | {:<22d}| {:<22d}|'.format(*list(row.values())))
+        print('+-------------+----------+---------------------+-----------------------+-----------------------+')
         # import tabulate
         # import pandas as pd
         # df = pd.DataFrame([row])
