@@ -166,7 +166,8 @@ Known dataset biases are:
 The following scatterplot illustrates trends in the space / time distribution of the images.
 
 .. .. image:: https://ipfs.io/ipfs/bafybeibnofjvl7amoiw6gx4hq5w3hfvl3iid2y45l4pipcqgl5nedpngzi/analysis/scat_scatterplot.png
-.. image:: https://i.imgur.com/tL1rHPP.png
+.. image:: https://i.imgur.com/78EfIpl.png
+.. .. image:: https://i.imgur.com/tL1rHPP.png
 .. .. image:: https://imgur.com/DeUesAC.png
 .. .. image:: https://imgur.com/q6XzSKa.png
 .. .. image:: https://i.imgur.com/ne3AeC4.png

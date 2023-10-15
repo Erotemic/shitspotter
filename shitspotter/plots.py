@@ -25,7 +25,8 @@ def update_analysis_plots():
     fig.savefig(dump_dpath / 'images_over_time.png')
 
     fig = spacetime_scatterplot(coco_dset)
-    fig.set_size_inches(np.array([6.4, 4.8]) * 1.5)
+    # fig.set_size_inches(np.array([6.4, 4.8]) * 1.5)
+    fig.set_size_inches(np.array([6.4, 6.8]) * 1.5)
     fig.tight_layout()
     fig.savefig(dump_dpath / 'scat_scatterplot.png')
 
@@ -169,6 +170,11 @@ def spacetime_scatterplot(coco_dset):
     text = '💩'
 
     label_to_color = ub.dzip(hue_labels, kwplot.Color.distinct(len(hue_labels)))
+
+    chunked = list(ub.chunks(label_to_color.items(), nchunks=24))
+    selected = [c[0] for c in chunked[:-1]] + [chunked[-1][-1]]
+    selected = dict(selected)
+
     emoji_plot_pil(ax, img_locs, text, label_to_color)
     # emoji_plot_font(ax, img_locs, text, label_to_color)
 
@@ -179,7 +185,7 @@ def spacetime_scatterplot(coco_dset):
     # name = pt['name']
     # name = img_locs.iloc[idx]['name']
 
-    kwplot.phantom_legend(label_to_color)
+    kwplot.phantom_legend(selected)
     return fig
 
 
