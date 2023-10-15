@@ -276,7 +276,12 @@ be stored in the kwcoco json format.
 
 Update: 2023-10-15
 
-The before/after annotation process is unfortunately not robust enough to generate annotations. Instead annotations are being added with `labelme <https://github.com/wkentaro/labelme>`_. This tool leverages the `Segment Anything Model (SAM) <https://segment-anything.com/>`_, which does a good job at finding poop polygon boundaries from a single click. This process is not perfect, and annotations are corrected when they are incorrectly generated. In some difficult cases the SAM model is unable to segment the object of interest at all.
+The before/after annotation process is unfortunately not robust enough to
+generate annotations. This additional structure is still of interest for
+defining change detection problems or other processing, but bootstrapping the
+annotation process is harder than originally anticipated.
+
+In lieu of difference-image annotations, annotations are being added with an AI assisted annotation tool: `labelme <https://github.com/wkentaro/labelme>`_. This tool leverages the `Segment Anything Model (SAM) <https://segment-anything.com/>`_, which does a good job at finding poop polygon boundaries from a single click. This process is not perfect, and annotations are corrected when they are incorrectly generated. In some difficult cases the SAM model is unable to segment the object of interest at all.
 
 The following is a screenshot of the annotation tool with two easy cases and
 one harder case that SAM struggled with on the top.
