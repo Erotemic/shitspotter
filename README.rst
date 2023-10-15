@@ -315,7 +315,7 @@ Initial train and validation batches look like this:
 
 
 The training batches are starting to fit the data, but the validation batches
-shows that there is still a clear generalizatio gap, but this is only the very
+shows that there is still a clear generalization gap, but this is only the very
 start of training and the hyper-parameters are untuned.
 
 
