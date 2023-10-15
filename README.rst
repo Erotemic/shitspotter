@@ -175,7 +175,7 @@ The following scatterplot illustrates trends in the space / time distribution of
 A visualization of the cumulative number of images collected over time is as follows:
 
 .. .. image:: /analysis/images_over_time.png
-.. image:: https://i.imgur.com/TfDYWOV.png
+.. image:: https://i.imgur.com/lQCNvNn.png
 .. .. image:: https://imgur.com/vrAzrfj.png
 .. .. image:: https://imgur.com/C2X1NCt.png
 .. .. image:: https://i.imgur.com/ppPXo6X.png
