@@ -2,7 +2,7 @@
 Helper to remove shit pictures from my phone
 
 CommandLine:
-    python ~/code/shitspotter/dev/remote_from_phone.py
+    python ~/code/shitspotter/shitspotter/phone_manager.py
 
 https://app.pinata.cloud/pinmanager
 """
@@ -15,24 +15,69 @@ import parse
 from dateutil import parser as dateparser
 
 
-class TransferConfig(scfg.DataConfig):
+class RemoteFromPhoneConfig(scfg.DataConfig):
     """
     This is an interactive script. It will:
 
         1. Discover an Android Device connected to a PC in USB file transfer mode.
+
         2. Copy all images it infers as new into a `pic_dpath` on your local PC
+
         3. Pop up the new folder and an empty new shitspotter folder.
+
         4. Ask the user to manually move all shit pictures into the new
            shitspotter folder.
+
         5. Ask the user to confirm when this process is done.
+
         6. Print instructions for subsequent commands to register the new
            images with the dataset / upload them to IPFS.
 
     Note:
-        The `shitspotter` module is used to identify the dataset path.
+        The :mod:`shitspotter` module is used to identify the dataset path.
     """
     pic_dpath = scfg.Value('/data/store/Pictures/', help=(
         'The location on the PC to transfer all new pictures to'))
+
+    @classmethod
+    def main(TransferConfig, cmdline=True, **kwargs):
+        """
+        Execute main transfer logic
+        """
+        config = TransferConfig.cli(cmdline=cmdline, strict=True, data=kwargs)
+        import rich
+        rich.print('config = {}'.format(ub.urepr(config, nl=1)))
+
+        # Import to make sure they are installed
+        import shitspotter  # NOQA
+        import xdev  # NOQA
+        import pickle
+
+        cache_dpath = ub.Path.appdir('shitspotter/transfer_session').ensuredir()
+        lock_fpath = cache_dpath / 'transfering.lock'
+        prepared_transfer_fpath = cache_dpath / 'prepared_transfer.pkl'
+        if lock_fpath.exists():
+            raise Exception(
+                f'Previous transfer lockfile exists: {prepared_transfer_fpath}. '
+                'Needs to implement resume or cleanup dirty state')
+        lock_fpath.touch()
+
+        try:
+            new_dpath, needs_transfer_infos = prepare_phone_transfer(config)
+        except Exception:
+            print('FIXME: delete cache?')
+            cache_dpath.delete()
+            raise
+
+        prepared_transfer_fpath.write_bytes(pickle.dumps({
+            'new_dpath': new_dpath,
+            'needs_transfer_infos': needs_transfer_infos,
+        }))
+
+        transfer_phone_pictures(new_dpath, needs_transfer_infos)
+        finalize_transfer(new_dpath)
+
+        cache_dpath.delete()
 
 
 class AndroidConventions:
@@ -46,9 +91,7 @@ class AndroidConventions:
         Generic parser over multiple android formats
 
         Example:
-            >>> import sys, ubelt
-            >>> sys.path.append(ubelt.expandpath('~/code/shitspotter/dev'))
-            >>> from remote_from_phone import *  # NOQA
+            >>> from shitspotter.phone_manager import *  # NOQA
             >>> fnames = [
             >>>     'PXL_20210528_144025399~2.jpg',
             >>>     'PXL_20210528_144025399.jpg',
@@ -126,9 +169,7 @@ class AndroidConventions:
             https://support.google.com/photos/thread/11837254/what-do-google-file-names-mean?hl=en
 
         Example:
-            >>> import sys, ubelt
-            >>> sys.path.append(ubelt.expandpath('~/code/shitspotter/dev'))
-            >>> from remote_from_phone import *  # NOQA
+            >>> from shitspotter.phone_manager import *  # NOQA
             >>> fnames = [
             >>>     'PXL_20210528_144025399~2.jpg',
             >>>     'PXL_20210528_144025399.jpg',
@@ -217,46 +258,6 @@ class GVFSAndroidConnection(ub.Path):
                 # info['datetime_created'] = datetime_created
                 phone_image_infos.append(info)
         return phone_image_infos
-
-
-def main():
-    """
-    Execute main transfer logic
-    """
-    config = TransferConfig.cli(cmdline=True, strict=True)
-    import rich
-    rich.print('config = {}'.format(ub.urepr(config, nl=1)))
-
-    # Import to make sure they are installed
-    import shitspotter  # NOQA
-    import xdev  # NOQA
-    import pickle
-
-    cache_dpath = ub.Path.appdir('shitspotter/transfer_session').ensuredir()
-    lock_fpath = cache_dpath / 'transfering.lock'
-    prepared_transfer_fpath = cache_dpath / 'prepared_transfer.pkl'
-    if lock_fpath.exists():
-        raise Exception(
-            f'Previous transfer lockfile exists: {prepared_transfer_fpath}. '
-            'Needs to implement resume or cleanup dirty state')
-    lock_fpath.touch()
-
-    try:
-        new_dpath, needs_transfer_infos = prepare_phone_transfer(config)
-    except Exception:
-        print('FIXME: delete cache?')
-        cache_dpath.delete()
-        raise
-
-    prepared_transfer_fpath.write_bytes(pickle.dumps({
-        'new_dpath': new_dpath,
-        'needs_transfer_infos': needs_transfer_infos,
-    }))
-
-    transfer_phone_pictures(new_dpath, needs_transfer_infos)
-    finalize_transfer(new_dpath)
-
-    cache_dpath.delete()
 
 
 def prepare_phone_transfer(config):
@@ -388,9 +389,7 @@ def transfer_phone_pictures(new_dpath, needs_transfer_infos):
 
 def finalize_transfer(new_dpath):
     """
-    import sys, ubelt
-    sys.path.append(ubelt.expandpath('~/code/shitspotter/dev'))
-    from remote_from_phone import *  # NOQA
+    from shitspotter.phone_manager import *  # NOQA
     new_dpath = "/data/store/Pictures/Phone-DCIM-2023-03-11-T165018"
     """
     import shitspotter
@@ -598,6 +597,6 @@ def delete_shit_images_on_phone():
 if __name__ == '__main__':
     """
     CommandLine:
-        python ~/code/shitspotter/dev/remote_from_phone.py
+        python ~/code/shitspotter/shitspotter/phone_manager.py
     """
-    main()
+    RemoteFromPhoneConfig.main()

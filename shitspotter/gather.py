@@ -214,11 +214,12 @@ def main():
                 for shape in labelme_data['shapes']:
                     if shape['label'] == 'poop;':
                         shape['label'] = 'poop'
+                        needs_write = 1
 
                 if needs_write:
                     fpath.write_text(json.dumps(labelme_data))
 
-            labelme_data = json.loads(fpath.read_text())
+            # labelme_data = json.loads(fpath.read_text())
             imginfo, annsinfo = labelme_to_coco_structure(labelme_data)
             image_name = imginfo['file_name'].rsplit('.', 1)[0]
             img = coco_dset.index.name_to_img[image_name]
@@ -276,6 +277,9 @@ def main():
                     if img['id'] not in {0, 1575, 7, 1554}:
                         raise Exception(img['id'])
     #
+    print('coco_dset = {}'.format(ub.urepr(coco_dset, nl=1)))
+    print('coco_dset.fpath = {}'.format(ub.urepr(coco_dset.fpath, nl=1)))
+    print(ub.urepr(coco_dset.stats(extended=True), nl=2))
     coco_dset.dump(coco_dset.fpath, newlines=True)
 
 

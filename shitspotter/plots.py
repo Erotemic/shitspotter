@@ -26,7 +26,7 @@ def update_analysis_plots():
 
     fig = spacetime_scatterplot(coco_dset)
     # fig.set_size_inches(np.array([6.4, 4.8]) * 1.5)
-    fig.set_size_inches(np.array([6.4, 6.8]) * 1.5)
+    fig.set_size_inches(np.array([6.4, 4.8]) * 1.5)
     fig.tight_layout()
     fig.savefig(dump_dpath / 'scat_scatterplot.png')
 
