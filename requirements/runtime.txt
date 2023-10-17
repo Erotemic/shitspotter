@@ -1,1 +1,1 @@
-ubelt
+ubelt>=1.3.3
