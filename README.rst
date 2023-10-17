@@ -325,7 +325,13 @@ shows that there is still a clear generalization gap, but this is only the very
 start of training and the hyper-parameters are untuned.
 
 
-The current train validation split
+The current train validation split is defined in the ``make_splits.py`` file.
+Only "before" images with annotations are currently considered. The "after"
+images and "negative" will be taken into account when they are properly
+associated with the "before" images in the kwcoco metadata. The early images
+before 2021 are used for validation, whereas everything else is used for
+training. Contributor data is also currently held out and can serve as a test
+set once annotations are placed.
 
 
 Data Management
