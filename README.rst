@@ -418,11 +418,14 @@ I would also like to thank the several people that have contributed their own
 images in the contributions folder (More info on contributions will be added
 later).
 
-I want to give special thanks to my two poop machines - Honey and Bezoar - who inspired this project. Without them this project would not be possible.
+I want to give special thanks to my two poop machines - Honey and Bezoar - who
+inspired this project. Without them this project would not be possible.
 
+.. Image of Honey And Bezoar
 .. image:: https://i.imgur.com/MWQVs0w.jpg
 
 
+.. Multiple Images of Honey And Bezoar
 .. image:: https://i.imgur.com/Z3TCZ47.jpg
 
 
@@ -439,7 +442,9 @@ Honey came to us from Ohio as a fearful dog, but has always been open to
 trusting new people. She has grown into an intelligent and willful dog with a
 scrappy personality.
 
+.. An Image of Honey
 .. image:: https://i.imgur.com/YUJjWoh.jpg
+.. bafybeihuhrp6wtle5wuhsgcgf6bp7w4ol4pft7y2pcplylzly7gfag74lm bafybeic5a4kjrb37tdmc6pzlpcxe2x6hc4kggemnqm2mcdu4tmrzvir6vm/Contributor-Honey.jpg
 
 
 Bezoar - (~2018 - 2023-10-19) - Adopted in 2020 and named for a calcified
@@ -462,7 +467,9 @@ that can describe my grief or the degree to which she enriched my life.  I take
 comfort in knowing that her legacy has the potential to live on through her
 contributions to this dataset.
 
+.. An Image of Bezoar
 .. image:: https://i.imgur.com/gUzwgCT.jpg
+.. bafybeibr33vb5m3ytovwputzai2vka2sjovmguktyk7yjp3emvtoihp7he bafybeic5a4kjrb37tdmc6pzlpcxe2x6hc4kggemnqm2mcdu4tmrzvir6vm/Contributor-Bezoar.jpg
 
 
 .. |Pypi| image:: https://img.shields.io/pypi/v/shitspotter.svg
