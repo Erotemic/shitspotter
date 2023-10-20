@@ -45,10 +45,10 @@ The `IPFS CID <https://docs.ipfs.tech/concepts/content-addressing/>`_ (Content I
 
 .. code::
 
-    bafybeief7tmoarwmd26b2petx7crtvdnz6ucccek5wpwxwdvfydanfukna
+    bafybeigovcysmghsyab6ia3raycsebbc32kea2k4qoxcsujmp52hzpsghy
 
 The dataset can be viewed in a webbrowser through an IPFS gateway:
-https://ipfs.io/ipfs/bafybeief7tmoarwmd26b2petx7crtvdnz6ucccek5wpwxwdvfydanfukna
+https://ipfs.io/ipfs/bafybeigovcysmghsyab6ia3raycsebbc32kea2k4qoxcsujmp52hzpsghy
 
 If you have an IPFS node, please help keep this dataset alive and available by pinning it.
 
@@ -59,6 +59,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2023-10-19 - A few new images, the last images from Bezoar, who passed away today.
 * 2023-10-15 - The next phase of the project - annotation and training - has begun. Also 82 new images.
 * 2023-08-22 - 182 new images.
 * 2023-07-01 - Another batch of 300 photos. I also realized that if I could ID which dog made which poop, I could do a longiturdinal study.
@@ -254,7 +255,8 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+-----------------------+
 | 2023-10-15  |  4981    |  ~1790              | 1255                  | 362                   |
 +-------------+----------+---------------------+-----------------------+-----------------------+
-
+| 2023-10-20  |  5019    |  ~1804              | 1266                  | 430                   |
++-------------+----------+---------------------+-----------------------+-----------------------+
 
 
 
@@ -340,8 +342,8 @@ Data Management
 The full resolution dataset is public and hosted on IPFS.
 
 Despite the name, this is not yet a DVC repo.  Eventually I would like to host
-the data via DVC + IPFS, but fsspec needs an IPFS filesystem implementation
-first.  I may also look into git-annex as an alternative to DVC.
+the data via DVC + IPFS, but fsspec needs a mature IPFS filesystem
+implementation first. I may also look into git-annex as an alternative to DVC.
 
 The licence for the software will be Apache 2. The license for the data will be
 "Creative Commons Attribution 4.0 International".
@@ -355,46 +357,53 @@ In addition to these licenses please:
 
 Otherwise the data is free to use commercially or otherwise.
 
-The URL that can be viewed in a web browser: https://ipfs.io/ipfs/bafybeief7tmoarwmd26b2petx7crtvdnz6ucccek5wpwxwdvfydanfukna
+The URL that can be viewed in a web browser: https://ipfs.io/ipfs/bafybeigovcysmghsyab6ia3raycsebbc32kea2k4qoxcsujmp52hzpsghy
 
 Current IPFS addresses for the top-level dataset filesystem are:
 
 .. code::
 
-    bafybeiaydlkog4rzfmmuidbvxpwhmosfgyex3kx2oz2keq3rewszisilmq -   shitspotter_dvc/assets/poop-2020-12-28/
-    bafybeiddzhnsovxx76pgb65p7kekfmlz4i6afqsdrbdnazs3h6cxhosr3i -   shitspotter_dvc/assets/poop-2021-02-06/
-    bafybeifrkr2grtiuhm4uwuqri25h67dsfmsrwtn3q7xpfaeetqlwukgoum -   shitspotter_dvc/assets/poop-2021-03-05/
-    bafybeigspol3oqllgushdujw3dgzlnrgb5ywy42i3gtk5g2h7px3r25w6q -   shitspotter_dvc/assets/poop-2021-04-06/
-    bafybeibshwnzyerfheehpt7qhw7jojjjrb5g2a74yvpwqm2wcadpyjjzny -   shitspotter_dvc/assets/poop-2021-04-19/
-    bafybeiecpxpodwxrmmkiyxef6222hobnr6okq35ecdcvlrt2wa4pduqpua -   shitspotter_dvc/assets/poop-2021-04-25/
-    bafybeigzkx5xxju2rbj5zai3o7vppwqbjso7tj23q77deqymjsf7trubzu -   shitspotter_dvc/assets/poop-2021-05-11T000000/
-    bafybeig6v5abxioluw7zmk6mxzsg4xumhphkr64jqznjc2pgilhhg453b4 -   shitspotter_dvc/assets/poop-2021-05-11T150000/
-    bafybeiecdgnasyccutesze6odoyg2uhqkzc4hy25imbls2szpbwmsqsggm -   shitspotter_dvc/assets/poop-2021-06-05/
-    bafybeia5v47nt7m5dlw6ozfptreu6oxjdypjbbod3zhwx26hducphkg2em -   shitspotter_dvc/assets/poop-2021-06-20/
-    bafybeigo4ffpewvp23v6pa65durazqtzov7rpqucg6w3723bkolnhi2xwu -   shitspotter_dvc/assets/poop-2021-09-20/
-    bafybeibrw7je4zmoartzrpq5vbvg7klim5gr5j3q44doeb3tbxkkboftvi -   shitspotter_dvc/assets/poop-2021-11-11/
-    bafybeid5wqkm6tqoexrbzz3qo3663vhq5tdnlg4exlhyyj3aqzsso42jiu -   shitspotter_dvc/assets/poop-2021-11-26/
-    bafybeigmpdet6dhtvkauisv7oyxvbcqlhiac4a6pgi7phn3zak37txireu -   shitspotter_dvc/assets/poop-2021-12-27/
-    bafybeiewsg5b353s26r566aw756y5h5omnjei3xllzv7sldesmthu6p5bi -   shitspotter_dvc/assets/poop-2022-01-27/
-    bafybeiapgukq36wxd3b23io3io5iry2jpu6ojy4pdc5wqry5ouy3s7q65u -   shitspotter_dvc/assets/poop-2022-03-13-T152627/
-    bafybeiba5k3iauqu4ayul4yozapadlpiehezwow63lm3r26hgk4eqrrjki -   shitspotter_dvc/assets/poop-2022-04-02-T145512/
-    bafybeic3amh4klgs3aantyqgd7lti2vhnnmutbcfddtvw2572ynlldkpua -   shitspotter_dvc/assets/poop-2022-04-16-T135257/
-    bafybeicyotgcgufq2nsewvk2ph4xchgbnltd7t2j334lqgvc4jdnxrw5by -   shitspotter_dvc/assets/poop-2022-05-26-T173650/
-    bafybeieddszhqi6fzrpnn2q2ab74hva4gwnx5bcdnvh7cwwrnf7ikyukru -   shitspotter_dvc/assets/poop-2022-06-08-T132910/
-    bafybeigss3h3p6pnsw7bgfevs77lv6duzhzi7fmuiyf5qtujafqanrrjsi -   shitspotter_dvc/assets/poop-2022-06-20-T235340/
-    bafybeih6qtza2vnrdvemlhuezfhoom6wh2457mnwmlw7sg4ncgstl35zsa -   shitspotter_dvc/assets/poop-2022-07-16-T215017/
-    bafybeigvu4k5w2eflpkmucaas3p4yb7mhdbpmcdsmysbpfa54biiy4vvya -   shitspotter_dvc/assets/poop-2022-09-19-T153414/
-    bafybeiahrdxhtbcyq3icgooxk2fvgm2oxpaohtagfauvssthuqxfxrhtwm -   shitspotter_dvc/assets/poop-2022-11-23-T182537/
-    bafybeibx2oarr3liqrda4hd7xlw643vbd5nxff2b44blzccw7ekw6gbwv4 -   shitspotter_dvc/assets/poop-2023-01-01-T171030/
-    bafybeibky4jj4hhmlwuifx52fjdurseqzkmwpp4derwqvf5lo2vakzrtoe -   shitspotter_dvc/assets/poop-2023-03-11-T165018/
-    bafybeifj7uidepqz2wbumajacy2oacn7c7cuh6zwnduovn4xyszdpiodoe -   shitspotter_dvc/assets/poop-2023-04-16-T175739/
-    bafybeihhbwe6mtkts7335e2wdr3p4mo5impx3niqbcavvqh3l3rknpbuti -   shitspotter_dvc/assets/poop-2023-07-01-T160318/
-    bafybeiez6f2nwubarmduko73uclgitsaagvdov4s5oexcwltw5dosjhq4m -   shitspotter_dvc/assets/poop-2023-08-22-T202656/
-    bafybeihurilrwce7rxr7o3iqdf227o74cfk23ilv2nleoj5hd6wx5iapz4 -   shitspotter_dvc/assets/poop-2023-09-22-T180825/
-    bafybeihsxlzwr45jvxzhq7vst6zirykdm4ufbmapxidl5bs4ncyfo7nmja -   shitspotter_dvc/assets/poop-2023-10-15-T193631/
+    bafybeifh2mepgjaa2d24ah5t7dgnobmeswxgozx5j3yout7hhjdzk4eqwm - shitspotter_dvc/assets/_contributions
+    bafybeidap2man4erddpk74ql253cutjeqisxoeu5mtaal52hpjbwrdy3fy - shitspotter_dvc/assets/_horse-poop-2022-05-26
+    bafybeidmcwo5lugzs5pjdwp3rvhgorz6zzw2of6s3surdnth5yz4hkxt2m - shitspotter_dvc/assets/_poop-unstructured-2021-02-06
+    bafybeiczsscdsbs7ffqz55asqdf3smv6klcw3gofszvwlyarci47bgf354 - shitspotter_dvc/assets/_trashed
+    bafybeigl4v7dlltjmyvujoo563wf6uoj7pqrbudkatar7h4zagqbe73hd4 - shitspotter_dvc/assets/_unstructured
+    bafybeieony6ygiipdp324ibuqhdggefsaa7ykqrxuxoqgobnvhpkqhq2gi - shitspotter_dvc/assets/poop-2020-12-28
+    bafybeiddzhnsovxx76pgb65p7kekfmlz4i6afqsdrbdnazs3h6cxhosr3i - shitspotter_dvc/assets/poop-2021-02-06
+    bafybeifrkr2grtiuhm4uwuqri25h67dsfmsrwtn3q7xpfaeetqlwukgoum - shitspotter_dvc/assets/poop-2021-03-05
+    bafybeigspol3oqllgushdujw3dgzlnrgb5ywy42i3gtk5g2h7px3r25w6q - shitspotter_dvc/assets/poop-2021-04-06
+    bafybeibshwnzyerfheehpt7qhw7jojjjrb5g2a74yvpwqm2wcadpyjjzny - shitspotter_dvc/assets/poop-2021-04-19
+    bafybeiecpxpodwxrmmkiyxef6222hobnr6okq35ecdcvlrt2wa4pduqpua - shitspotter_dvc/assets/poop-2021-04-25
+    bafybeigzkx5xxju2rbj5zai3o7vppwqbjso7tj23q77deqymjsf7trubzu - shitspotter_dvc/assets/poop-2021-05-11T000000
+    bafybeiasq55mc6nba3akml5c4niupbpfbyqtzcm2kjv7klgorllm5e3qna - shitspotter_dvc/assets/poop-2021-05-11T120000-notes.txt
+    bafybeig6v5abxioluw7zmk6mxzsg4xumhphkr64jqznjc2pgilhhg453b4 - shitspotter_dvc/assets/poop-2021-05-11T150000
+    bafybeiecdgnasyccutesze6odoyg2uhqkzc4hy25imbls2szpbwmsqsggm - shitspotter_dvc/assets/poop-2021-06-05
+    bafybeia5v47nt7m5dlw6ozfptreu6oxjdypjbbod3zhwx26hducphkg2em - shitspotter_dvc/assets/poop-2021-06-20
+    bafybeigo4ffpewvp23v6pa65durazqtzov7rpqucg6w3723bkolnhi2xwu - shitspotter_dvc/assets/poop-2021-09-20
+    bafybeibrw7je4zmoartzrpq5vbvg7klim5gr5j3q44doeb3tbxkkboftvi - shitspotter_dvc/assets/poop-2021-11-11
+    bafybeid7yfx6u4yacxpnmzg5vhwh7e47lga5oj3tpmdup3omo6s7yx54ee - shitspotter_dvc/assets/poop-2021-11-26
+    bafybeicedyv5dfy5x6yb2vw5quliajx2emrusssnev2v3qz3xdm7h6fsyy - shitspotter_dvc/assets/poop-2021-12-27
+    bafybeiewsg5b353s26r566aw756y5h5omnjei3xllzv7sldesmthu6p5bi - shitspotter_dvc/assets/poop-2022-01-27
+    bafybeiapgukq36wxd3b23io3io5iry2jpu6ojy4pdc5wqry5ouy3s7q65u - shitspotter_dvc/assets/poop-2022-03-13-T152627
+    bafybeiba5k3iauqu4ayul4yozapadlpiehezwow63lm3r26hgk4eqrrjki - shitspotter_dvc/assets/poop-2022-04-02-T145512
+    bafybeic3amh4klgs3aantyqgd7lti2vhnnmutbcfddtvw2572ynlldkpua - shitspotter_dvc/assets/poop-2022-04-16-T135257
+    bafybeicyotgcgufq2nsewvk2ph4xchgbnltd7t2j334lqgvc4jdnxrw5by - shitspotter_dvc/assets/poop-2022-05-26-T173650
+    bafybeieddszhqi6fzrpnn2q2ab74hva4gwnx5bcdnvh7cwwrnf7ikyukru - shitspotter_dvc/assets/poop-2022-06-08-T132910
+    bafybeigss3h3p6pnsw7bgfevs77lv6duzhzi7fmuiyf5qtujafqanrrjsi - shitspotter_dvc/assets/poop-2022-06-20-T235340
+    bafybeih6qtza2vnrdvemlhuezfhoom6wh2457mnwmlw7sg4ncgstl35zsa - shitspotter_dvc/assets/poop-2022-07-16-T215017
+    bafybeigvu4k5w2eflpkmucaas3p4yb7mhdbpmcdsmysbpfa54biiy4vvya - shitspotter_dvc/assets/poop-2022-09-19-T153414
+    bafybeid6guu5vv5zj467bkxpt3zkg2mn45q7kxab5tteps7hzpiuyam7mi - shitspotter_dvc/assets/poop-2022-11-23-T182537
+    bafybeibx2oarr3liqrda4hd7xlw643vbd5nxff2b44blzccw7ekw6gbwv4 - shitspotter_dvc/assets/poop-2023-01-01-T171030
+    bafybeibky4jj4hhmlwuifx52fjdurseqzkmwpp4derwqvf5lo2vakzrtoe - shitspotter_dvc/assets/poop-2023-03-11-T165018
+    bafybeifj7uidepqz2wbumajacy2oacn7c7cuh6zwnduovn4xyszdpiodoe - shitspotter_dvc/assets/poop-2023-04-16-T175739
+    bafybeihhbwe6mtkts7335e2wdr3p4mo5impx3niqbcavvqh3l3rknpbuti - shitspotter_dvc/assets/poop-2023-07-01-T160318
+    bafybeiez6f2nwubarmduko73uclgitsaagvdov4s5oexcwltw5dosjhq4m - shitspotter_dvc/assets/poop-2023-08-22-T202656
+    bafybeihurilrwce7rxr7o3iqdf227o74cfk23ilv2nleoj5hd6wx5iapz4 - shitspotter_dvc/assets/poop-2023-09-22-T180825
+    bafybeihsxlzwr45jvxzhq7vst6zirykdm4ufbmapxidl5bs4ncyfo7nmja - shitspotter_dvc/assets/poop-2023-10-15-T193631
+    bafybeiew5srmawar4qjkj3iohhg7i7fnc24ik3ym5is5y4d7ftho47puoq - shitspotter_dvc/assets/poop-2023-10-19-T212018
 
-    bafybeihsdpvygurjrhxtsbrr2ij7mtsqazz7prblwg3jzlhppeg5ij6ify - shitspotter_dvc/assets
-    bafybeief7tmoarwmd26b2petx7crtvdnz6ucccek5wpwxwdvfydanfukna - shitspotter_dvc
+    bafybeifbutthhmxamkcx5rcfi5yx5eolwa7olyiekvjxaiicef5llpildq - shitspotter_dvc/assets
+    bafybeigovcysmghsyab6ia3raycsebbc32kea2k4qoxcsujmp52hzpsghy - shitspotter_dvc
 
 
 Acknowledgements
@@ -409,11 +418,63 @@ I would also like to thank the several people that have contributed their own
 images in the contributions folder (More info on contributions will be added
 later).
 
-I want to give special thanks to my two poop machines, without whom this project would not be possible.
+I want to give special thanks to my two poop machines - Honey and Bezoar - who
+inspired this project. Without them this project would not be possible.
 
+.. Image of Honey And Bezoar
 .. image:: https://i.imgur.com/MWQVs0w.jpg
 
+
+.. Multiple Images of Honey And Bezoar
 .. image:: https://i.imgur.com/YUJjWoh.jpg
+
+
+Honey - (~2013 - ) - Adopted in 2015 and named for a sweet concoction of insect
+regurgitation and enzymes, Honey is called out for her resemblance to a fox and is notable
+for her eagerness for attention and outgoing personality. DNA
+analysis indicates that she is part Boxer, Beagle, German Shepard, and Golden
+Retriever.
+Honey's likes include: breakfast, sniffing stinky things, digging holes,
+sleeping on soft things, viciously shaking small fury objects, and whining for
+absolutely no reason.
+Honey's dislikes include: baths, loud noises, phone calls, and arguments.
+Honey came to us from Ohio as a fearful dog, but has always been open to
+trusting new people. She has grown into an intelligent and willful dog with a
+scrappy personality.
+
+.. An Image of Honey
+.. image:: https://i.imgur.com/gUzwgCT.jpg
+   :height: 400px
+   :align: left
+.. bafybeihuhrp6wtle5wuhsgcgf6bp7w4ol4pft7y2pcplylzly7gfag74lm bafybeic5a4kjrb37tdmc6pzlpcxe2x6hc4kggemnqm2mcdu4tmrzvir6vm/Contributor-Honey.jpg
+
+
+Bezoar - (~2018 - 2023-10-19) - Adopted in 2020 and named for a calcified
+hairball, Bezoar is an awkward and shy dog, but has grown into a curious
+and loving sweetheart. Her DNA test shows that she is part Stafford
+Terrier, Cane Corso, Labrador Retriever, German Shepard, and Rhodesian
+Ridgeback.
+Bezoar's likes include: breakfast, a particular red coco plush, boops (muzzle
+nudges), chasing squirrels, and running in the park,
+Bezoar's dislikes include: baths, sudden movements, rainy weather, and coming
+inside before she is ready.
+Bezoar came to us from Alabama with very bad heartworms and experienced a host of
+health problems through her life. In 2022 she was diagnosed with rare form of
+osteosarcoma in her nose, which is typically an aggressive cancer, but she
+had a rare progression and lived a quality life with it for over a year and a
+half without significant tumor growth. Sadly, in October 2023, rapid growth
+resumed and she was euthanized while surrounded by her close friends and
+family.  To say she will be missed is an understatement; there are no words
+that can describe my grief or the degree to which she enriched my life.  I take
+comfort in knowing that her legacy has the potential to live on through her
+contributions to this dataset.
+
+.. An Image of Bezoar
+.. image:: https://i.imgur.com/Z3TCZ47.jpg
+   :height: 400px
+   :align: left
+.. bafybeibr33vb5m3ytovwputzai2vka2sjovmguktyk7yjp3emvtoihp7he bafybeic5a4kjrb37tdmc6pzlpcxe2x6hc4kggemnqm2mcdu4tmrzvir6vm/Contributor-Bezoar.jpg
+
 
 .. |Pypi| image:: https://img.shields.io/pypi/v/shitspotter.svg
    :target: https://pypi.python.org/pypi/shitspotter
