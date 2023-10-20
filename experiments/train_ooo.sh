@@ -133,6 +133,32 @@ torch_globals:
 "
 
 
+DVC_DATA_DPATH=$HOME/data/dvc-repos/shitspotter_dvc
+DVC_EXPT_DPATH=$HOME/data/dvc-repos/shitspotter_expt_dvc
+WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER
+DATASET_CODE=ShitSpotter
+KWCOCO_BUNDLE_DPATH=$DVC_DATA_DPATH
+TRAIN_FPATH=$KWCOCO_BUNDLE_DPATH/train.kwcoco.zip
+VALI_FPATH=$KWCOCO_BUNDLE_DPATH/vali.kwcoco.zip
+EXPERIMENT_NAME="shitspotter_ooo_scratch_v1"
+CHANNELS="phone:(red|green|blue)"
+DEFAULT_ROOT_DIR=$WORKDIR/$DATASET_CODE/runs/$EXPERIMENT_NAME
+
+#geowatch repackage /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/Ooo/joncrall/ShitSpotter/runs/shitspotter_ooo_scratch_v1/lightning_logs/version_3/checkpoints/last.ckpt
+#
+PRED_FPATH=$DVC_EXPT_DPATH/shitspotter-test/pred.kwcoco.zip
+
+PACKAGE_FPATH="$HOME/data/dvc-repos/shitspotter_expt_dvc/training/Ooo/joncrall/ShitSpotter/runs/shitspotter_ooo_scratch_v1/lightning_logs/version_3/checkpoints/last.pt"
+
+#python -m watch.tasks.fusion.predict --help
+python -m watch.tasks.fusion.predict \
+    --package_fpath="$PACKAGE_FPATH" \
+    --test_dataset="$VALI_FPATH"  \
+    --pred_dataset="$PRED_FPATH" \
+    --draw_batches=False \
+    --device="0,"
+
+
 
 #export CUDA_VISIBLE_DEVICES=1
 DVC_DATA_DPATH=$HOME/data/dvc-repos/shitspotter_dvc
