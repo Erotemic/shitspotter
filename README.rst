@@ -322,6 +322,11 @@ Initial train and validation batches look like this:
 .. image:: https://i.imgur.com/YHfl0Wd.jpg
 
 
+An example prediction on a full validation image is:
+
+.. image:: https://i.imgur.com/ya4jnAO.jpg
+
+
 The training batches are starting to fit the data, but the validation batches
 shows that there is still a clear generalization gap, but this is only the very
 start of training and the hyper-parameters are untuned.

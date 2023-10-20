@@ -141,3 +141,28 @@ initializer:
     init: /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/lightning_logs/version_16/checkpoints/epoch=351-step=4224-val_loss=2.518.ckpt.ckpt
 "
 
+
+geowatch repackage "$HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/lightning_logs/version_16/checkpoints/last.ckpt"
+PACKAGE_FPATH=$HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/lightning_logs/version_16/checkpoints/last.pt
+
+
+DVC_DATA_DPATH=$HOME/data/dvc-repos/shitspotter_dvc
+DVC_EXPT_DPATH=$HOME/data/dvc-repos/shitspotter_expt_dvc
+KWCOCO_BUNDLE_DPATH=$DVC_DATA_DPATH
+TRAIN_FPATH=$KWCOCO_BUNDLE_DPATH/train.kwcoco.zip
+VALI_FPATH=$KWCOCO_BUNDLE_DPATH/vali.kwcoco.zip
+
+#geowatch repackage /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/Ooo/joncrall/ShitSpotter/runs/shitspotter_ooo_scratch_v1/lightning_logs/version_3/checkpoints/last.ckpt
+PRED_FPATH=$DVC_EXPT_DPATH/shitspotter-test-v2/pred.kwcoco.zip
+
+
+python -m watch.tasks.fusion.predict \
+    --package_fpath="$PACKAGE_FPATH" \
+    --test_dataset="$VALI_FPATH"  \
+    --pred_dataset="$PRED_FPATH" \
+    --select_images=".id < 10" \
+    --draw_batches=1 \
+    --device="0,"
+
+
+geowatch visualize /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/shitspotter-test-v2/pred.kwcoco.zip --smart
