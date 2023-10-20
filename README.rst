@@ -426,7 +426,7 @@ inspired this project. Without them this project would not be possible.
 
 
 .. Multiple Images of Honey And Bezoar
-.. image:: https://i.imgur.com/Z3TCZ47.jpg
+.. image:: https://i.imgur.com/YUJjWoh.jpg
 
 
 Honey - (~2013 - ) - Adopted in 2015 and named for a sweet concoction of insect
@@ -443,7 +443,9 @@ trusting new people. She has grown into an intelligent and willful dog with a
 scrappy personality.
 
 .. An Image of Honey
-.. image:: https://i.imgur.com/YUJjWoh.jpg
+.. image:: https://i.imgur.com/gUzwgCT.jpg
+   :height: 100px
+   :align: left
 .. bafybeihuhrp6wtle5wuhsgcgf6bp7w4ol4pft7y2pcplylzly7gfag74lm bafybeic5a4kjrb37tdmc6pzlpcxe2x6hc4kggemnqm2mcdu4tmrzvir6vm/Contributor-Honey.jpg
 
 
@@ -468,7 +470,9 @@ comfort in knowing that her legacy has the potential to live on through her
 contributions to this dataset.
 
 .. An Image of Bezoar
-.. image:: https://i.imgur.com/gUzwgCT.jpg
+.. image:: https://i.imgur.com/Z3TCZ47.jpg
+   :height: 100px
+   :align: left
 .. bafybeibr33vb5m3ytovwputzai2vka2sjovmguktyk7yjp3emvtoihp7he bafybeic5a4kjrb37tdmc6pzlpcxe2x6hc4kggemnqm2mcdu4tmrzvir6vm/Contributor-Bezoar.jpg
 
 
