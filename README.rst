@@ -134,9 +134,11 @@ Unfortunately, this is detecting the action, and not the consequence.
 A Dog Poop DNA database could be used in conjunction with this work: https://www.bbc.com/news/uk-england-somerset-56324906
 
 A 2019 Project by Neeraj Madan: https://www.youtube.com/watch?v=qGNbHwp0jM8
-This is the most similar thing to this project that I've seen so far. I have
-not watched his entire video yet, but I may contact him so see if they're
-interested in collaborating.
+This is the most similar thing to this project that I've seen so far.
+He enumerates many reasons why it is beneficial to remove dog waste from our
+environment, and considers many applications for a dog poop detector. He has a
+dataset of 100 dog poop images and used FasterRCNN as a baseline dataset.
+I have reached out to him to see if he is interested in collaborating.
 
 TACO: http://tacodataset.org/
 The TACO dataset is Trash Annotations in Context. It could be the case that this data could be incorporated into the TACO dataset, although it does not currently contain a category for feces.
