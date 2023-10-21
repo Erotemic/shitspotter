@@ -13,7 +13,7 @@
 .. .. +------------------+----------------------------------------------+
 
 
-This ``shitspotter`` repo is where I am building the "shitspotter" poop-detection algorithm and dataset.
+This ``shitspotter`` repo is where I am building the "ShitSpotter" poop-detection algorithm and dataset.
 The primary goal of this work is to allow for the creation of a phone app that finds where your dog pooped,
 because you ran to grab the doggy-bags you forgot, and now you can't find the damn thing.
 Other applications can be envisioned, such as AR glasses that lets you know if you are about to walk into a steamer,
@@ -109,6 +109,9 @@ doing that. This is the process currently being used. The following figure
 illustrates an example of one of these "triples".
 
 .. image:: https://i.imgur.com/NnEC8XZ.jpg
+
+
+The name "ShitSpotter" is an homage to my earlier work: [HotSpotter](https://github.com/Erotemic/hotspotter), which later became [IBEIS](https://github.com/Erotemic/ibeis). This is work on individual animal identification, particularly Zebras. This work is continued by [WildMe](https://www.wildme.org/).
 
 Related Work
 ============
@@ -426,7 +429,7 @@ images in the contributions folder (More info on contributions will be added
 later).
 
 I want to give special thanks to my two poop machines - Honey and Bezoar - who
-inspired this project. Without them, this project would not be possible.
+inspired this project. Without them, ShitSpotter would not be possible.
 
 .. Image of Honey And Bezoar
 .. image:: https://i.imgur.com/MWQVs0w.jpg
@@ -437,8 +440,8 @@ inspired this project. Without them, this project would not be possible.
 
 
 Honey - (~2013 - ) - Adopted in 2015 and named for a sweet concoction of insect regurgitation and enzymes,
-  Honey is called out for her resemblance to a fox and is notable for her eagerness for attention and outgoing
-  personality.
+  Honey is often called out for her resemblance to a fox and is notable for her eagerness for attention and
+  outgoing personality.
 DNA analysis indicates that she is part Boxer, Beagle, German Shepard, and Golden Retriever.
 Honey's likes include:
 breakfast, sniffing stinky things, digging holes, sleeping on soft things, viciously shaking small furry
@@ -457,10 +460,8 @@ She has grown into an intelligent and willful dog with a scrappy personality.
 
 Bezoar - (~2018 - 2023-10-19) - Adopted in 2020 and named for a calcified hairball, Bezoar was an awkward
   and shy dog, but grew into a curious and loving sweetheart.
-
 Her DNA test indicated she was part Stafford Terrier, Cane Corso, Labrador Retriever, German Shepard, and
   Rhodesian Ridgeback.
-
 Bezoar's likes included:
 breakfast, a particular red coco plush, boops (muzzle nudges), chasing squirrels, and running in the park,
   Bezoar's dislikes included:
