@@ -322,14 +322,16 @@ Initial train and validation batches look like this:
 .. image:: https://i.imgur.com/YHfl0Wd.jpg
 
 
-An example prediction on a full validation image is:
+An example prediction from an initial model on a full validation image is:
 
 .. image:: https://i.imgur.com/ya4jnAO.jpg
 
 
-The training batches are starting to fit the data, but the validation batches
-shows that there is still a clear generalization gap, but this is only the very
-start of training and the hyper-parameters are untuned.
+Clearly there is still more work to do, but training a deep network is an art,
+and I have full confidence that a high quality model is possible. The training
+batches are starting to fit the data, but the validation batches shows that
+there is still a clear generalization gap, but this is only the very start of
+training and the hyper-parameters are untuned.
 
 
 The current train validation split is defined in the ``make_splits.py`` file.
@@ -424,7 +426,7 @@ images in the contributions folder (More info on contributions will be added
 later).
 
 I want to give special thanks to my two poop machines - Honey and Bezoar - who
-inspired this project. Without them this project would not be possible.
+inspired this project. Without them ShitSpotter would not be possible.
 
 .. Image of Honey And Bezoar
 .. image:: https://i.imgur.com/MWQVs0w.jpg
