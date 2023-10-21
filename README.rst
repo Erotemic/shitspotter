@@ -111,7 +111,7 @@ illustrates an example of one of these "triples".
 .. image:: https://i.imgur.com/NnEC8XZ.jpg
 
 
-The name "ShitSpotter" is an homage to my earlier work: [HotSpotter](https://github.com/Erotemic/hotspotter), which later became [IBEIS](https://github.com/Erotemic/ibeis). This is work on individual animal identification, particularly Zebras. This work is continued by [WildMe](https://www.wildme.org/).
+The name "ShitSpotter" is an homage to my earlier work: `HotSpotter <https://github.com/Erotemic/hotspotter>`_, which later became `IBEIS <https://github.com/Erotemic/ibeis>`_ This is work on individual animal identification, particularly Zebras. This work is continued by `WildMe <https://www.wildme.org/>`_.
 
 Related Work
 ============
