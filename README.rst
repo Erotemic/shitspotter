@@ -422,9 +422,10 @@ Acknowledgements
 ================
 
 I want to give thanks to the people and animals-that-think-they-are-people who
-contributed to this project. My colleagues at Kitware have provided valuable
-help / insight into project direction, dataset collection, problem formulation,
-related research, discussion, and memes.
+contributed to this project.  My colleagues at
+[Kitware](https://www.kitware.com/) have provided valuable help / insight into
+project direction, dataset collection, problem formulation, related research,
+discussion, and memes.
 
 I would also like to thank the several people that have contributed their own
 images in the contributions folder (More info on contributions will be added
