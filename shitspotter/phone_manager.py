@@ -430,6 +430,9 @@ def finalize_transfer(new_dpath):
         # The plots script
         python -m shitspotter.plots update_analysis_plots
 
+        # The train/vali splits
+        python -m shitspotter.make_splits
+
         # Update the README based on the output of these scripts
         '''), 'bash'))
 

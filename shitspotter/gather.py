@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Gather raw data into a kwcoco file
 """
