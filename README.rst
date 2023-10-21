@@ -468,7 +468,7 @@ chasing squirrels, and running in the park, Bezoar's dislikes included: baths,
 sudden movements, rainy weather, and coming inside before she is ready.  Bezoar
 came to us from Alabama with bad heartworm and experienced a host of health
 problems through her life.  In 2022 she was diagnosed with rare form of
-osteosarcoma in her nose, which is typically an aggressive cancer, but she had
+osteosarcoma in her nose, which is typically an aggressive bone cancer, but she had
 a rare progression and lived a quality life with it for over a year and a half
 without significant tumor growth.  Sadly, in October 2023, rapid growth resumed
 and she was euthanized while surrounded by her close friends and family.  To
