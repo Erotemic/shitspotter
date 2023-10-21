@@ -423,7 +423,7 @@ Acknowledgements
 
 I want to give thanks to the people and animals-that-think-they-are-people who
 contributed to this project.  My colleagues at
-[Kitware](https://www.kitware.com/) have provided valuable help / insight into
+`Kitware <https://www.kitware.com/>`_ have provided valuable help / insight into
 project direction, dataset collection, problem formulation, related research,
 discussion, and memes.
 
