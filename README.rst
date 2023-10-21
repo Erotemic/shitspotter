@@ -442,7 +442,8 @@ inspired this project. Without them, ShitSpotter would not be possible.
 .. image:: https://i.imgur.com/YUJjWoh.jpg
 
 
-Honey - (~2013 - ) - Adopted in 2015 and named for a sweet concoction of insect
+Honey - (~2013 - ) - Adopted in 2015 and named for a
+`sweet concoction <https://en.wikipedia.org/wiki/Honey>`_ of insect
 regurgitation and enzymes, Honey is often called out for her resemblance to a
 fox and is notable for her eagerness for attention and outgoing personality.
 DNA analysis indicates that she is part Boxer, Beagle, German Shepard, and
@@ -460,23 +461,23 @@ intelligent and willful dog with a scrappy personality.
 .. bafybeihuhrp6wtle5wuhsgcgf6bp7w4ol4pft7y2pcplylzly7gfag74lm bafybeic5a4kjrb37tdmc6pzlpcxe2x6hc4kggemnqm2mcdu4tmrzvir6vm/Contributor-Honey.jpg
 
 
-Bezoar - (~2018 - 2023-10-19) - Adopted in 2020 and named for a calcified
-hairball, Bezoar was an awkward and shy dog, but grew into a curious and loving
-sweetheart.  Her DNA test indicated she was part Stafford Terrier, Cane Corso,
-Labrador Retriever, German Shepard, and Rhodesian Ridgeback.  Bezoar's likes
-included: breakfast, a particular red coco plush, boops (muzzle nudges),
-chasing squirrels, and running in the park, Bezoar's dislikes included: baths,
-sudden movements, rainy weather, and coming inside before she is ready.  Bezoar
-came to us from Alabama with bad heartworm and experienced a host of health
-problems through her life.  In 2022 she was diagnosed with rare form of
-osteosarcoma in her nose, which is typically an aggressive bone cancer, but she had
-a rare progression and lived a quality life with it for over a year and a half
-without significant tumor growth.  Sadly, in October 2023, rapid growth resumed
-and she was euthanized while surrounded by her close friends and family.  To
-say she will be missed is an understatement; there are no words that can
-describe my grief or the degree to which she enriched my life.  I take comfort
-in knowing that she may be in part immortalized through her contributions to
-this dataset.
+Bezoar - (~2018 - 2023-10-19) - Adopted in 2020 and named for a
+`calcified hairball <https://en.wikipedia.org/wiki/Bezoar>`_, Bezoar was an
+awkward and shy dog, but grew into a curious and loving sweetheart.  Her DNA
+test indicated she was part Stafford Terrier, Cane Corso, Labrador Retriever,
+German Shepard, and Rhodesian Ridgeback.  Bezoar's likes included: breakfast, a
+particular red coco plush, boops (muzzle nudges), chasing squirrels, and
+running in the park, Bezoar's dislikes included: baths, sudden movements, rainy
+weather, and coming inside before she is ready.  Bezoar came to us from Alabama
+with bad heartworm and experienced a host of health problems through her life.
+In 2022 she was diagnosed with rare form of osteosarcoma in her nose, which is
+an aggressive bone cancer, but she had a rare progression and lived a quality
+life for over a year and a half without significant tumor growth.  Sadly, in
+October 2023, rapid growth resumed and she was euthanized while surrounded by
+her close friends and family.  To say she will be missed is an understatement;
+there are no words that can describe my grief or the degree to which she
+enriched my life.  I take comfort in knowing that she may be in part
+immortalized through her contributions to this dataset.
 
 .. An Image of Bezoar
 .. image:: https://i.imgur.com/Z3TCZ47.jpg
