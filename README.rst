@@ -13,7 +13,7 @@
 .. .. +------------------+----------------------------------------------+
 
 
-This ``shitspotter`` repo is where I am building the "shitspotter" poop-detection algorithm and dataset.
+This ``shitspotter`` repo is where I am building the "ShitSpotter" poop-detection algorithm and dataset.
 The primary goal of this work is to allow for the creation of a phone app that finds where your dog pooped,
 because you ran to grab the doggy-bags you forgot, and now you can't find the damn thing.
 Other applications can be envisioned, such as AR glasses that lets you know if you are about to walk into a steamer,
@@ -110,6 +110,9 @@ illustrates an example of one of these "triples".
 
 .. image:: https://i.imgur.com/NnEC8XZ.jpg
 
+
+The name "ShitSpotter" is an homage to my earlier work: `HotSpotter <https://github.com/Erotemic/hotspotter>`_, which later became `IBEIS <https://github.com/Erotemic/ibeis>`_ This is work on individual animal identification, particularly Zebras. This work is continued by `WildMe <https://www.wildme.org/>`_.
+
 Related Work
 ============
 
@@ -131,9 +134,11 @@ Unfortunately, this is detecting the action, and not the consequence.
 A Dog Poop DNA database could be used in conjunction with this work: https://www.bbc.com/news/uk-england-somerset-56324906
 
 A 2019 Project by Neeraj Madan: https://www.youtube.com/watch?v=qGNbHwp0jM8
-This is the most similar thing to this project that I've seen so far. I have
-not watched his entire video yet, but I may contact him so see if they're
-interested in collaborating.
+This is the most similar thing to this project that I've seen so far.
+He enumerates many reasons why it is beneficial to remove dog waste from our
+environment, and considers many applications for a dog poop detector. He has a
+dataset of 100 dog poop images and used FasterRCNN as a baseline dataset.
+I have reached out to him to see if he is interested in collaborating.
 
 TACO: http://tacodataset.org/
 The TACO dataset is Trash Annotations in Context. It could be the case that this data could be incorporated into the TACO dataset, although it does not currently contain a category for feces.
@@ -417,16 +422,17 @@ Acknowledgements
 ================
 
 I want to give thanks to the people and animals-that-think-they-are-people who
-contributed to this project. My colleagues at Kitware have provided valuable
-help / insight into project direction, dataset collection, problem formulation,
-related research, discussion, and memes.
+contributed to this project.  My colleagues at
+`Kitware <https://www.kitware.com/>`_ have provided valuable help / insight into
+project direction, dataset collection, problem formulation, related research,
+discussion, and memes.
 
 I would also like to thank the several people that have contributed their own
 images in the contributions folder (More info on contributions will be added
 later).
 
 I want to give special thanks to my two poop machines - Honey and Bezoar - who
-inspired this project. Without them, this project would not be possible.
+inspired this project. Without them, ShitSpotter would not be possible.
 
 .. Image of Honey And Bezoar
 .. image:: https://i.imgur.com/MWQVs0w.jpg
@@ -436,17 +442,17 @@ inspired this project. Without them, this project would not be possible.
 .. image:: https://i.imgur.com/YUJjWoh.jpg
 
 
-Honey - (~2013 - ) - Adopted in 2015 and named for a sweet concoction of insect regurgitation and enzymes,
-  Honey is called out for her resemblance to a fox and is notable for her eagerness for attention and outgoing
-  personality.
-DNA analysis indicates that she is part Boxer, Beagle, German Shepard, and Golden Retriever.
-Honey's likes include:
-breakfast, sniffing stinky things, digging holes, sleeping on soft things, viciously shaking small furry
-  objects, and whining for absolutely no reason.
-Honey's dislikes include:
-baths, loud noises, phone calls, and arguments.
-Honey came to us from Ohio as a fearful dog, but has always been open to trusting new people.
-She has grown into an intelligent and willful dog with a scrappy personality.
+Honey - (~2013 - ) - Adopted in 2015 and named for a
+`sweet concoction <https://en.wikipedia.org/wiki/Honey>`_ of insect
+regurgitation and enzymes, Honey is often called out for her resemblance to a
+fox and is notable for her eagerness for attention and outgoing personality.
+DNA analysis indicates that she is part Boxer, Beagle, German Shepard, and
+Golden Retriever.  Honey's likes include: breakfast, sniffing stinky things,
+digging holes, sleeping on soft things, viciously shaking small furry objects,
+and whining for absolutely no reason.  Honey's dislikes include: baths, loud
+noises, phone calls, and arguments.  Honey came to us from Ohio as a fearful
+dog, but has always been open to trusting new people.  She has grown into an
+intelligent and willful dog with a scrappy personality.
 
 .. An Image of Honey
 .. image:: https://i.imgur.com/gUzwgCT.jpg
@@ -455,26 +461,23 @@ She has grown into an intelligent and willful dog with a scrappy personality.
 .. bafybeihuhrp6wtle5wuhsgcgf6bp7w4ol4pft7y2pcplylzly7gfag74lm bafybeic5a4kjrb37tdmc6pzlpcxe2x6hc4kggemnqm2mcdu4tmrzvir6vm/Contributor-Honey.jpg
 
 
-Bezoar - (~2018 - 2023-10-19) - Adopted in 2020 and named for a calcified hairball, Bezoar was an awkward
-  and shy dog, but grew into a curious and loving sweetheart.
-
-Her DNA test indicated she was part Stafford Terrier, Cane Corso, Labrador Retriever, German Shepard, and
-  Rhodesian Ridgeback.
-
-Bezoar's likes included:
-breakfast, a particular red coco plush, boops (muzzle nudges), chasing squirrels, and running in the park,
-  Bezoar's dislikes included:
-baths, sudden movements, rainy weather, and coming inside before she is ready.
-Bezoar came to us from Alabama with bad heartworm and experienced a host of health problems through her
-  life.
-In 2022 she was diagnosed with rare form of osteosarcoma in her nose, which is typically an aggressive
-  cancer, but she had a rare progression and lived a quality life with it for over a year and a half without
-  significant tumor growth.
-Sadly, in October 2023, rapid growth resumed and she was euthanized while surrounded by her close friends
-  and family.
-To say she will be missed is an understatement; there are no words that can describe my grief or the degree
-  to which she enriched my life.
-I take comfort in knowing that she may be in part immortalized through her contributions to this dataset.
+Bezoar - (~2018 - 2023-10-19) - Adopted in 2020 and named for a
+`calcified hairball <https://en.wikipedia.org/wiki/Bezoar>`_, Bezoar was an
+awkward and shy dog, but grew into a curious and loving sweetheart.  Her DNA
+test indicated she was part Stafford Terrier, Cane Corso, Labrador Retriever,
+German Shepard, and Rhodesian Ridgeback.  Bezoar's likes included: breakfast, a
+particular red coco plush, boops (muzzle nudges), chasing squirrels, and
+running in the park, Bezoar's dislikes included: baths, sudden movements, rainy
+weather, and coming inside before she is ready.  Bezoar came to us from Alabama
+with bad heartworm and experienced a host of health problems through her life.
+In 2022 she was diagnosed with rare form of osteosarcoma in her nose, which is
+an aggressive bone cancer, but she had a rare progression and lived a quality
+life for over a year and a half without significant tumor growth.  Sadly, in
+October 2023, rapid growth resumed and she was euthanized while surrounded by
+her close friends and family.  To say she will be missed is an understatement;
+there are no words that can describe my grief or the degree to which she
+enriched my life.  I take comfort in knowing that she may be in part
+immortalized through her contributions to this dataset.
 
 .. An Image of Bezoar
 .. image:: https://i.imgur.com/Z3TCZ47.jpg
