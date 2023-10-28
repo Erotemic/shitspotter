@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+
+
 def make_splits():
     import shitspotter
     import kwcoco

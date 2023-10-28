@@ -424,6 +424,9 @@ def finalize_transfer(new_dpath):
         # The gather script
         python -m shitspotter.gather
 
+        # The train/vali splits
+        python -m shitspotter.make_splits
+
         # The matching script
         python -m shitspotter.matching autofind_pair_hueristic
 
