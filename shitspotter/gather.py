@@ -31,7 +31,7 @@ def main():
 
     dpath = coco_fpath.parent
 
-    rows = []
+    image_rows = []
     seen = set()
     all_fpaths = []
     change_point = dateutil.parser.parse('2021-05-11T120000')
@@ -65,14 +65,26 @@ def main():
                     if ext == 'shitspotter':
                         raise Exception
 
+                    labelme_sidecar_fpath = ub.Path(gpath).augment(ext='.json')
+                    has_labelme = labelme_sidecar_fpath.exists()
+
                     extensions.add(ext)
                     seen.add(fname)
-                    rows.append({
+                    image_info = {
                         'gpath': gpath,
                         'name': pathlib.Path(fname).stem,
+                        'cohort': dname,
                         'datestamp': datestamp,
                         'is_double': is_double,
-                    })
+                        'has_labelme': has_labelme,
+                    }
+                    image_rows.append(image_info)
+
+    cohort_to_num_labels = {}
+    for cohort, group in sorted(ub.group_items(image_rows, key=lambda x: x['cohort']).items()):
+        num_labels = sum([g['has_labelme'] for g in group])
+        cohort_to_num_labels[cohort] = f'{num_labels} / {len(group)}'
+    print('cohort_to_num_labels = {}'.format(ub.urepr(cohort_to_num_labels, nl=1)))
 
     dupidxs = ub.find_duplicates(all_fpaths, key=lambda x: pathlib.Path(x).name)
     # assert len(dupidxs) == 0
@@ -130,7 +142,7 @@ def main():
     if 0:
         import kwimage
         # Test we can read overviews
-        fpath = rows[-1]['gpath']
+        fpath = image_rows[-1]['gpath']
         with ub.Timer('imread-o0'):
             imdata = kwimage.imread(fpath, backend='gdal')
             print('imdata.shape = {!r}'.format(imdata.shape))
@@ -138,7 +150,7 @@ def main():
             imdata = kwimage.imread(fpath, overview=2, backend='gdal')
             print('imdata.shape = {!r}'.format(imdata.shape))
 
-    for row in ub.ProgIter(rows):
+    for row in ub.ProgIter(image_rows):
         gpath = row['gpath']
         row['nbytes'] = os.stat(gpath).st_size
         row['nbytes_str'] = xdev.byte_str(row['nbytes'])
@@ -172,7 +184,7 @@ def main():
             # Can geojson handle rationals?
             row['geos_point'] = {'type': 'Point', 'coordinates': (lon.__smalljson__(), lat.__smalljson__()), 'properties': {'crs': 'CRS84'}}
 
-    img_info_df = pd.DataFrame(rows)
+    img_info_df = pd.DataFrame(image_rows)
     img_info_df = img_info_df.sort_values('datetime')
     print(img_info_df)
     print(xdev.byte_str(sum(img_info_df.nbytes)))
