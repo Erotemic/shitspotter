@@ -2,7 +2,7 @@
 Helper to remove shit pictures from my phone
 
 CommandLine:
-    python ~/code/shitspotter/shitspotter/phone_manager.py
+    python -m shitspotter.phone_manager
 
 https://app.pinata.cloud/pinmanager
 """
@@ -418,6 +418,9 @@ def finalize_transfer(new_dpath):
     while not ans:
         ans = Confirm.ask('Manually move images and then enter y to continue')
 
+    print('# Ensure IPFS is running')
+    print('sudo systemctl start ipfs')
+
     print('The next step is to run...')
     print(ub.highlight_code(ub.codeblock(
         '''
@@ -600,6 +603,6 @@ def delete_shit_images_on_phone():
 if __name__ == '__main__':
     """
     CommandLine:
-        python ~/code/shitspotter/shitspotter/phone_manager.py
+        python -m shitspotter.phone_manager
     """
     RemoteFromPhoneConfig.main()

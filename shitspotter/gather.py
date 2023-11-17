@@ -83,8 +83,14 @@ def main():
     cohort_to_num_labels = {}
     for cohort, group in sorted(ub.group_items(image_rows, key=lambda x: x['cohort']).items()):
         num_labels = sum([g['has_labelme'] for g in group])
-        cohort_to_num_labels[cohort] = f'{num_labels} / {len(group)}'
-    print('cohort_to_num_labels = {}'.format(ub.urepr(cohort_to_num_labels, nl=1)))
+        group_size = len(group)
+        complete_frac = (num_labels * 3) / group_size
+        if complete_frac > 1.2:
+            complete_frac = (num_labels * 2) / group_size
+        complete_percent = min(1, complete_frac) * 100
+        cohort_to_num_labels[cohort] = f'{num_labels} / {len(group)} - ~{complete_percent:0.2f}%'
+    import rich
+    rich.print('cohort_to_num_labels = {}'.format(ub.urepr(cohort_to_num_labels, nl=1, align=' - ')))
 
     dupidxs = ub.find_duplicates(all_fpaths, key=lambda x: pathlib.Path(x).name)
     # assert len(dupidxs) == 0
