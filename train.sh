@@ -202,7 +202,7 @@ MAX_STEPS=8000000
 DDP_WORKAROUND=0 python -m watch.tasks.fusion fit --config "
 data:
     select_videos          : $SELECT_VIDEOS
-    num_workers            : 6
+    num_workers            : 0
     train_dataset          : $TRAIN_FPATH
     vali_dataset           : $VALI_FPATH
     window_dims            : '512,512'
