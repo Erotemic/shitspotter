@@ -4,59 +4,74 @@
 def make_splits():
     import shitspotter
     import kwcoco
+    import ubelt as ub
+    import numpy as np
+    import kwutil
     coco_fpath = shitspotter.util.find_shit_coco_fpath()
     dset = kwcoco.CocoDataset(coco_fpath)
 
-    gids_with_annots = [gid for gid, aids in dset.index.gid_to_aids.items() if len(aids) > 0]
-    images_with_annots = dset.images(gids_with_annots)
+    # Check on the automatic protocol
+    change_point = kwutil.util_time.datetime.coerce('2021-05-11T120000')
 
-    import ubelt as ub
-    from kwutil import util_time
-    datetimes = list(map(util_time.coerce_datetime, images_with_annots.lookup('datetime', None)))
-    year_to_gids = ub.group_items(images_with_annots, [d.year for d in datetimes])
+    # Group images by cohort, and determine train / val split
+    cohort_to_imgs = ub.group_items(dset.images().coco_images, key=lambda g: g['cohort'])
+    cohort_to_imgs = {cohort: sorted(imgs, key=lambda g: g['datetime']) for cohort, imgs in cohort_to_imgs.items()}
+    for cohort, coco_imgs in cohort_to_imgs.items():
 
-    # Group images into videos (do this with the image pairs)
-    for year, gids in year_to_gids.items():
+        cohort_start = coco_imgs[0].datetime
 
-        video_name = f'video_{year}'
-        if video_name not in dset.index.name_to_video:
-            video_id = dset.add_video(name=video_name)
+        if cohort.startswith('poop-'):
+            has_annots = np.array([len(coco_img.annots()) > 0 for coco_img in coco_imgs]).astype(np.uint8)
+            keep_flags = has_annots.copy()
+            if cohort_start <= change_point:
+                keep_flags + np.roll(has_annots, 1) + np.roll(has_annots, 2)
+            else:
+                keep_flags + np.roll(has_annots, 1)
+            keep_imgs = ub.compress(coco_imgs, keep_flags)
+
+            for coco_img in keep_imgs:
+                if cohort_start.date().year <= 2020:
+                    coco_img.img['split'] = 'vali'
+                else:
+                    coco_img.img['split'] = 'train'
         else:
-            video_id = dset.index.name_to_video[video_name]['id']
+            raise NotImplementedError
 
-        video = dset.index.videos[video_id]
+    for img in dset.dataset['images']:
+        img['sensor_coarse'] = 'phone'
+        img['datetime_captured'] = img['datetime']
+        img['channels'] = 'red|green|blue'
 
-        video_images = dset.images(gids)
-
-        for idx, img in enumerate(video_images.objs):
-            img['frame_index'] = idx
-            img['video_id'] = video_id
-            img['sensor_coarse'] = 'phone'
-            img['datetime_captured'] = img['datetime']
-            img['channels'] = 'red|green|blue'
-
-            # hack
-            video['width'] = img['width']
-            video['height'] = img['height']
+    # gids_with_annots = [gid for gid, aids in dset.index.gid_to_aids.items() if len(aids) > 0]
+    # images_with_annots = dset.images(gids_with_annots)
+    # import ubelt as ub
+    # from kwutil import util_time
+    # datetimes = list(map(util_time.coerce_datetime, images_with_annots.lookup('datetime', None)))
+    # year_to_gids = ub.group_items(images_with_annots, [d.year for d in datetimes])
+    # # Group images into videos (do this with the image pairs)
+    # if 0:
+    #     for year, gids in year_to_gids.items():
+    #         video_name = f'video_{year}'
+    #         video_id = dset.ensure_video(name=video_name)
+    #         video = dset.index.videos[video_id]
+    #         video_images = dset.images(gids)
+    #         for idx, img in enumerate(video_images.objs):
+    #             img['frame_index'] = idx
+    #             img['video_id'] = video_id
+    #             img['sensor_coarse'] = 'phone'
+    #             img['datetime_captured'] = img['datetime']
+    #             img['channels'] = 'red|green|blue'
+    #             # hack
+    #             video['width'] = img['width']
+    #             video['height'] = img['height']
 
     dset._build_index()
     dset.conform()
 
-    vali_gids = []
-    train_gids = []
-
-    for year, gids in year_to_gids.items():
-        if year <= 2020:
-            vali_gids.extend(gids)
-        else:
-            train_gids.extend(gids)
-
-    groups = [g for k, g in sorted(year_to_gids.items())]
-    train_gids = list(ub.flatten(groups[1:]))
-    vali_gids = list(ub.flatten(groups[:1]))
-
-    train_split = dset.subset(train_gids)
-    vali_split = dset.subset(vali_gids)
+    images = dset.images()
+    split_to_gids = ub.group_items(images, images.lookup('split', default=None))
+    train_split = dset.subset(split_to_gids['train'])
+    vali_split = dset.subset(split_to_gids['vali'])
 
     def build_code(coco_dset):
         hashid = coco_dset._build_hashid()[0:8]

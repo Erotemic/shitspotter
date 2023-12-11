@@ -22,7 +22,7 @@ or perhaps city governments could use this to more efficiently clean public area
 This module will contain an algorithm for training a pytorch network to detect poop in images, and a script
 for detecting poop in unseen images given a pretrained model.
 
-The dataset currently contains 30GB of outdoor images taken with a phone. The general process of acquiring the dataset has been:
+The dataset currently contains 31GB of outdoor images taken with a phone. The general process of acquiring the dataset has been:
 1. My dog poops or I see a rogue poop,
 2. I take a "before" picture of the poop,
 3. I pick up the poop,
@@ -45,12 +45,16 @@ The `IPFS CID <https://docs.ipfs.tech/concepts/content-addressing/>`_ (Content I
 
 .. code::
 
-    bafybeigovcysmghsyab6ia3raycsebbc32kea2k4qoxcsujmp52hzpsghy
+    bafybeie275n5f4f64vodekmodnktbnigsvbxktffvy2xxkcfsqxlie4hrm
 
 The dataset can be viewed in a webbrowser through an IPFS gateway:
-https://ipfs.io/ipfs/bafybeigovcysmghsyab6ia3raycsebbc32kea2k4qoxcsujmp52hzpsghy
+https://ipfs.io/ipfs/bafybeie275n5f4f64vodekmodnktbnigsvbxktffvy2xxkcfsqxlie4hrm
 
 If you have an IPFS node, please help keep this dataset alive and available by pinning it.
+
+Sometimes IPFS can be slow, especially for the latest data. However, older URLs can be faster to access: e.g.
+https://ipfs.io/ipfs/QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG
+
 
 
 Recent Updates
@@ -59,6 +63,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2023-11-17 - More images and annotations.
 * 2023-10-19 - A few new images, the last images from Bezoar, who passed away today.
 * 2023-10-15 - The next phase of the project - annotation and training - has begun. Also 82 new images.
 * 2023-08-22 - 182 new images.
@@ -262,6 +267,8 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+-----------------------+
 | 2023-10-20  |  5019    |  ~1804              | 1266                  | 430                   |
 +-------------+----------+---------------------+-----------------------+-----------------------+
+| 2023-11-17  |  5141    |  ~1845              | 1304                  | 919                   |
++-------------+----------+---------------------+-----------------------+-----------------------+
 
 
 
@@ -375,7 +382,7 @@ Current IPFS addresses for the top-level dataset filesystem are:
 
 .. code::
 
-    bafybeifh2mepgjaa2d24ah5t7dgnobmeswxgozx5j3yout7hhjdzk4eqwm - shitspotter_dvc/assets/_contributions
+    bafybeieydez2b6tksq5c26l4quhx5475et5ttvipuc7hs6n5khaolomilm - shitspotter_dvc/assets/_contributions
     bafybeidap2man4erddpk74ql253cutjeqisxoeu5mtaal52hpjbwrdy3fy - shitspotter_dvc/assets/_horse-poop-2022-05-26
     bafybeidmcwo5lugzs5pjdwp3rvhgorz6zzw2of6s3surdnth5yz4hkxt2m - shitspotter_dvc/assets/_poop-unstructured-2021-02-06
     bafybeiczsscdsbs7ffqz55asqdf3smv6klcw3gofszvwlyarci47bgf354 - shitspotter_dvc/assets/_trashed
@@ -413,9 +420,10 @@ Current IPFS addresses for the top-level dataset filesystem are:
     bafybeihurilrwce7rxr7o3iqdf227o74cfk23ilv2nleoj5hd6wx5iapz4 - shitspotter_dvc/assets/poop-2023-09-22-T180825
     bafybeihsxlzwr45jvxzhq7vst6zirykdm4ufbmapxidl5bs4ncyfo7nmja - shitspotter_dvc/assets/poop-2023-10-15-T193631
     bafybeiew5srmawar4qjkj3iohhg7i7fnc24ik3ym5is5y4d7ftho47puoq - shitspotter_dvc/assets/poop-2023-10-19-T212018
+    bafybeicqdlnupmpn54ehiqfqwhiwejh5sl5dizqsb2gsr6rk6aszszu2ue - shitspotter_dvc/assets/poop-2023-11-16-T154909/
 
-    bafybeifbutthhmxamkcx5rcfi5yx5eolwa7olyiekvjxaiicef5llpildq - shitspotter_dvc/assets
-    bafybeigovcysmghsyab6ia3raycsebbc32kea2k4qoxcsujmp52hzpsghy - shitspotter_dvc
+    bafybeicirkqvz6pedd3mvpokyo7cwy2x3isxxnjiplzdgsi22qxs2wv6ie - shitspotter_dvc/assets
+    bafybeie275n5f4f64vodekmodnktbnigsvbxktffvy2xxkcfsqxlie4hrm - shitspotter_dvc
 
 
 Acknowledgements
