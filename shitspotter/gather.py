@@ -81,16 +81,24 @@ def main():
                     image_rows.append(image_info)
 
     cohort_to_num_labels = {}
+    total_numer = 0
+    total_denom = 0
     for cohort, group in sorted(ub.group_items(image_rows, key=lambda x: x['cohort']).items()):
         num_labels = sum([g['has_labelme'] for g in group])
         group_size = len(group)
-        complete_frac = (num_labels * 3) / group_size
+        numer = (num_labels * 3)
+        complete_frac = numer / group_size
         if complete_frac > 1.2:
-            complete_frac = (num_labels * 2) / group_size
+            numer = (num_labels * 2)
+        complete_frac =  numer / group_size
+        total_numer += numer
+        total_denom += group_size
         complete_percent = min(1, complete_frac) * 100
         cohort_to_num_labels[cohort] = f'{num_labels} / {len(group)} - ~{complete_percent:0.2f}%'
     import rich
     rich.print('cohort_to_num_labels = {}'.format(ub.urepr(cohort_to_num_labels, nl=1, align=' - ')))
+    total_complete = (total_numer / total_denom) * 100
+    print(f'total_complete = {total_complete:0.2f}%')
 
     dupidxs = ub.find_duplicates(all_fpaths, key=lambda x: pathlib.Path(x).name)
     # assert len(dupidxs) == 0
@@ -315,10 +323,12 @@ def labelme_to_coco_structure(labelme_data):
         points = shape['points']
 
         if shape['group_id'] is not None:
-            raise NotImplementedError('groupid')
+            print(f'unhandled shape = {ub.urepr(shape, nl=1)}')
+            raise NotImplementedError(f'groupid: {img}')
 
         if shape['description']:
-            raise NotImplementedError('desc')
+            print(f'unhandled shape = {ub.urepr(shape, nl=1)}')
+            raise NotImplementedError(f'desc: {img}')
         shape_type = shape['shape_type']
 
         if shape_type != 'polygon':
