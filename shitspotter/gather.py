@@ -327,8 +327,10 @@ def labelme_to_coco_structure(labelme_data):
             raise NotImplementedError(f'groupid: {img}')
 
         if shape['description']:
-            print(f'unhandled shape = {ub.urepr(shape, nl=1)}')
-            raise NotImplementedError(f'desc: {img}')
+            desc = shape['description']
+            if desc is not None and desc.strip():
+                print(f'unhandled esc = {ub.urepr(desc, nl=1)}')
+                raise NotImplementedError(f'desc: {img}')
         shape_type = shape['shape_type']
 
         if shape_type != 'polygon':

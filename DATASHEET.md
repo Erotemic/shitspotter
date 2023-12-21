@@ -1,6 +1,6 @@
 # Datasheet: ShitSpotter
 
-Template: [JRMeyer/markdown-datasheet-for-datasets](https://github.com/JRMeyer/markdown-datasheet-for-datasets)
+Template: [JRMeyer/markdown-datasheet-for-datasets](https://github.com/JRMeyer/markdown-datasheet-for-datasets) based on [Datasheets for Datasets by Gebru et al](https://arxiv.org/abs/1803.09010).
 
 Author: Jon Crall
 
@@ -87,8 +87,8 @@ kwcoco stats data.kwcoco.json
 
 8. **Are there recommended data splits (e.g. training, development/validation, testing)?** If so, please provide a description of these splits, explaining the rationale behind them.
 
-    Yes, we are currently suggesting that data before 2021 be used as
-    validation, and after be used as train. This may change in the future.
+    Yes, we are currently suggesting that data from 2020 and 2024 are used as
+    validation. Data from 2021, 2022, 2023 are in the training set. 
 
 9. **Are there any errors, sources of noise, or redundancies in the dataset?** If so, please provide a description.
 

@@ -13,6 +13,9 @@ def make_splits():
     # Check on the automatic protocol
     change_point = kwutil.util_time.datetime.coerce('2021-05-11T120000')
 
+    # Data from these years will belong to the validation dataset
+    validation_years = {2020, 2024}
+
     # Group images by cohort, and determine train / val split
     cohort_to_imgs = ub.group_items(dset.images().coco_images, key=lambda g: g['cohort'])
     cohort_to_imgs = {cohort: sorted(imgs, key=lambda g: g['datetime']) for cohort, imgs in cohort_to_imgs.items()}
@@ -29,8 +32,11 @@ def make_splits():
                 keep_flags + np.roll(has_annots, 1)
             keep_imgs = ub.compress(coco_imgs, keep_flags)
 
+            cohort_year = cohort_start.date().year
+            is_validation = cohort_year in validation_years
+
             for coco_img in keep_imgs:
-                if cohort_start.date().year <= 2020:
+                if is_validation:
                     coco_img.img['split'] = 'vali'
                 else:
                     coco_img.img['split'] = 'train'

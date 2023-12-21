@@ -22,7 +22,7 @@ or perhaps city governments could use this to more efficiently clean public area
 This module will contain an algorithm for training a pytorch network to detect poop in images, and a script
 for detecting poop in unseen images given a pretrained model.
 
-The dataset currently contains 31GB of outdoor images taken with a phone. The general process of acquiring the dataset has been:
+The dataset currently contains 32GB of outdoor images taken with a phone. The general process of acquiring the dataset has been:
 1. My dog poops or I see a rogue poop,
 2. I take a "before" picture of the poop,
 3. I pick up the poop,
@@ -45,10 +45,10 @@ The `IPFS CID <https://docs.ipfs.tech/concepts/content-addressing/>`_ (Content I
 
 .. code::
 
-    bafybeie275n5f4f64vodekmodnktbnigsvbxktffvy2xxkcfsqxlie4hrm
+    bafybeifkufkmmx3qxbvxe5hbskxr4gijkevcryxwp3mys2pqf4yjv2tobu
 
 The dataset can be viewed in a webbrowser through an IPFS gateway:
-https://ipfs.io/ipfs/bafybeie275n5f4f64vodekmodnktbnigsvbxktffvy2xxkcfsqxlie4hrm
+https://ipfs.io/ipfs/bafybeifkufkmmx3qxbvxe5hbskxr4gijkevcryxwp3mys2pqf4yjv2tobu
 
 If you have an IPFS node, please help keep this dataset alive and available by pinning it.
 
@@ -63,7 +63,8 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
-* 2023-11-17 - More images and annotations.
+* 2023-12-20 - More images and many more annotations. Data collected next year (2024) will be part of the validation set. New CID is ``bafybeifkufkmmx3qxbvxe5hbskxr4gijkevcryxwp3mys2pqf4yjv2tobu``.
+* 2023-11-17 - More images and annotations. New CID is ``bafybeie275n5f4f64vodekmodnktbnigsvbxktffvy2xxkcfsqxlie4hrm``.
 * 2023-10-19 - A few new images, the last images from Bezoar, who passed away today.
 * 2023-10-15 - The next phase of the project - annotation and training - has begun. Also 82 new images.
 * 2023-08-22 - 182 new images.
@@ -81,7 +82,7 @@ some time for it to fully drop.
     - Found errors in the dataset stats, updating README.
     - Updated analytics to be updated as the dataset grows.
     - Initial SIFT-based matching isn't as robust as I'd hoped.
-    - First data is on IPFS, still need to open ports. ID of the root dataset is: QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG
+    - First data is on IPFS, still need to open ports. ID of the root dataset is: ``QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG``
 * 2021-11-23 - Added annotation process overview and dataset sample.
 * 2021-11-11 - Initial upload of data munging scripts.
 * 2020-12-18 - Took the first picture.
@@ -269,6 +270,8 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+-----------------------+
 | 2023-11-17  |  5141    |  ~1845              | 1304                  | 919                   |
 +-------------+----------+---------------------+-----------------------+-----------------------+
+| 2023-12-20  |  5249    |  ~1881              | 1337                  | 1440                  |
++-------------+----------+---------------------+-----------------------+-----------------------+
 
 
 
@@ -420,7 +423,8 @@ Current IPFS addresses for the top-level dataset filesystem are:
     bafybeihurilrwce7rxr7o3iqdf227o74cfk23ilv2nleoj5hd6wx5iapz4 - shitspotter_dvc/assets/poop-2023-09-22-T180825
     bafybeihsxlzwr45jvxzhq7vst6zirykdm4ufbmapxidl5bs4ncyfo7nmja - shitspotter_dvc/assets/poop-2023-10-15-T193631
     bafybeiew5srmawar4qjkj3iohhg7i7fnc24ik3ym5is5y4d7ftho47puoq - shitspotter_dvc/assets/poop-2023-10-19-T212018
-    bafybeicqdlnupmpn54ehiqfqwhiwejh5sl5dizqsb2gsr6rk6aszszu2ue - shitspotter_dvc/assets/poop-2023-11-16-T154909/
+    bafybeicqdlnupmpn54ehiqfqwhiwejh5sl5dizqsb2gsr6rk6aszszu2ue - shitspotter_dvc/assets/poop-2023-11-16-T154909
+    bafybeiboaujmbfrmopu4qguc6klv2s7ubxq3z4fka2u3d5m6i7waykonuy - shitspotter_dvc/assets/poop-2023-12-19-T190904
 
     bafybeicirkqvz6pedd3mvpokyo7cwy2x3isxxnjiplzdgsi22qxs2wv6ie - shitspotter_dvc/assets
     bafybeie275n5f4f64vodekmodnktbnigsvbxktffvy2xxkcfsqxlie4hrm - shitspotter_dvc
