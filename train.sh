@@ -1580,3 +1580,333 @@ torch_globals:
 initializer:
     init: /data/joncrall/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_v011/lightning_logs/version_9/checkpoints/epoch=347-step=145812-val_loss=0.491.ckpt.ckpt
 " # --ckpt_path="$PREV_CHECKPOINT"
+
+
+# ----
+
+export CUDA_VISIBLE_DEVICES=0,1
+DVC_DATA_DPATH=$HOME/data/dvc-repos/shitspotter_dvc
+DVC_EXPT_DPATH=$HOME/data/dvc-repos/shitspotter_expt_dvc
+WATCH_DVC_EXPT_DPATH=$(geowatch_dvc --tags='phase2_expt' --hardware='auto')
+WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER
+
+DATASET_CODE=ShitSpotter
+KWCOCO_BUNDLE_DPATH=$DVC_DATA_DPATH
+
+
+TRAIN_FPATH=$KWCOCO_BUNDLE_DPATH/train.kwcoco.zip
+VALI_FPATH=$KWCOCO_BUNDLE_DPATH/vali.kwcoco.zip
+
+inspect_kwcoco_files(){
+    kwcoco stats "$TRAIN_FPATH" "$VALI_FPATH"
+    kwcoco info "$VALI_FPATH" -g 1
+    kwcoco info "$VALI_FPATH" -v 1
+    #kwcoco info "$VALI_FPATH" -a 1
+    #geowatch stats "$TRAIN_FPATH" "$VALI_FPATH"
+}
+#inspect_kwcoco_files
+EXPERIMENT_NAME="shitspotter_v013"
+
+CHANNELS="phone:(red|green|blue)"
+DEFAULT_ROOT_DIR=$WORKDIR/$DATASET_CODE/runs/$EXPERIMENT_NAME
+TARGET_LR=1e-4
+WEIGHT_DECAY=$(python -c "print($TARGET_LR * 0.01)")
+ETA_MIN=$(python -c "print($TARGET_LR * 0.0001)")
+MAX_STEPS=8000
+
+DEVICES=$(python -c "if 1:
+    import os
+    n = len(os.environ.get('CUDA_VISIBLE_DEVICES', '').split(','))
+    print(','.join(list(map(str, range(n)))) + ',')
+")
+ACCELERATOR=gpu
+STRATEGY=$(python -c "if 1:
+    import os
+    n = len(os.environ.get('CUDA_VISIBLE_DEVICES', '').split(','))
+    print('ddp' if n > 1 else 'auto')
+")
+DDP_WORKAROUND=$(python -c "if 1:
+    import os
+    n = len(os.environ.get('CUDA_VISIBLE_DEVICES', '').split(','))
+    print(int(n > 1))
+")
+echo "DEVICES = $DEVICES"
+echo "DDP_WORKAROUND = $DDP_WORKAROUND"
+echo "WEIGHT_DECAY = $WEIGHT_DECAY"
+#STRATEGY=ddp
+
+# Find the most recent checkpoint (TODO add utility for this)
+PREV_CHECKPOINT=$(python -c "if 1:
+    import ubelt as ub
+    root_dir = ub.Path('$DEFAULT_ROOT_DIR')
+    checkpoints = list((root_dir / 'lightning_logs').glob('version_*/checkpoints/*.ckpt'))
+    if len(checkpoints) == 0:
+        print('None')
+    else:
+        version_to_checkpoints = ub.group_items(checkpoints, key=lambda x: int(x.parent.parent.name.split('_')[-1]))
+        max_version = max(version_to_checkpoints)
+        candidates = version_to_checkpoints[max_version]
+        checkpoints = sorted(candidates, key=lambda p: p.stat().st_mtime)
+        chosen = checkpoints[-1]
+        print(chosen)
+")
+echo "PREV_CHECKPOINT = $PREV_CHECKPOINT"
+
+DDP_WORKAROUND=$DDP_WORKAROUND python -m geowatch.tasks.fusion fit --config "
+data:
+    select_videos          : $SELECT_VIDEOS
+    num_workers            : 0
+    train_dataset          : $TRAIN_FPATH
+    vali_dataset           : $VALI_FPATH
+    window_dims            : '416,416'
+    time_steps             : 1
+    time_sampling          : uniform
+    #time_kernel            : '[0.0s,]'
+    window_resolution     : 0.5
+    input_resolution      : 0.5
+    output_resolution     : 0.5
+    neg_to_pos_ratio       : 1.0
+    batch_size             : 1
+    normalize_perframe     : false
+    normalize_peritem      : false
+    max_epoch_length       : 10000
+    channels               : '$CHANNELS'
+    min_spacetime_weight   : 0.6
+    temporal_dropout_rate  : 0.5
+    channel_dropout_rate   : 0.5
+    modality_dropout_rate  : 0.5
+    temporal_dropout       : 0.0
+    channel_dropout        : 0.05
+    modality_dropout       : 0.05
+    mask_low_quality       : False
+    mask_samecolor_method  : None
+    observable_threshold   : 0.0
+    quality_threshold      : 0.0
+    weight_dilate          : 0
+    dist_weights           : False
+    use_centered_positives : True
+    use_grid_positives     : True
+    use_grid_negatives     : True
+    normalize_inputs       : 8096
+    balance_areas          : false
+model:
+    class_path: MultimodalTransformer
+    init_args:
+        class_weights          : 'auto'
+        tokenizer              : linconv
+        arch_name              : smt_it_stm_s24
+        decoder                : mlp
+        positive_change_weight : 1
+        negative_change_weight : 0.01
+        stream_channels        : 16
+        class_loss             : 'dicefocal'
+        saliency_loss          : 'focal'
+        saliency_head_hidden   : 8
+        change_head_hidden     : 6
+        class_head_hidden      : 6
+        global_change_weight   : 0.00
+        global_class_weight    : 1.00
+        global_saliency_weight : 1.00
+        multimodal_reduce      : max
+        continual_learning     : true
+        perterb_scale          : 1e-8
+optimizer:
+    class_path: torch.optim.AdamW
+    init_args:
+        lr           : $TARGET_LR
+        weight_decay : $WEIGHT_DECAY
+lr_scheduler:
+  class_path: torch.optim.lr_scheduler.CosineAnnealingLR
+  init_args:
+    T_max        : $MAX_STEPS
+    eta_min      : $ETA_MIN
+trainer:
+    accumulate_grad_batches: 512
+    default_root_dir     : $DEFAULT_ROOT_DIR
+    accelerator          : $ACCELERATOR
+    devices              : $DEVICES
+    strategy             : $STRATEGY
+    limit_val_batches    : 2056
+    limit_train_batches  : 5012
+    num_sanity_val_steps : 0
+    max_epochs           : 360
+    callbacks:
+        - class_path: pytorch_lightning.callbacks.ModelCheckpoint
+          init_args:
+              monitor: val_loss
+              mode: min
+              save_top_k: 5
+              filename: '{epoch}-{step}-{val_loss:.3f}.ckpt'
+              save_last: true
+
+torch_globals:
+    float32_matmul_precision: auto
+
+initializer:
+    init: /data/joncrall/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_v012/lightning_logs/version_0/checkpoints/last.ckpt
+" # --ckpt_path="$PREV_CHECKPOINT"
+
+
+# ----
+
+export CUDA_VISIBLE_DEVICES=0,1
+DVC_DATA_DPATH=$HOME/data/dvc-repos/shitspotter_dvc
+DVC_EXPT_DPATH=$HOME/data/dvc-repos/shitspotter_expt_dvc
+WATCH_DVC_EXPT_DPATH=$(geowatch_dvc --tags='phase2_expt' --hardware='auto')
+WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER
+
+DATASET_CODE=ShitSpotter
+KWCOCO_BUNDLE_DPATH=$DVC_DATA_DPATH
+
+
+TRAIN_FPATH=$KWCOCO_BUNDLE_DPATH/train.kwcoco.zip
+VALI_FPATH=$KWCOCO_BUNDLE_DPATH/vali.kwcoco.zip
+
+inspect_kwcoco_files(){
+    kwcoco stats "$TRAIN_FPATH" "$VALI_FPATH"
+    kwcoco info "$VALI_FPATH" -g 1
+    kwcoco info "$VALI_FPATH" -v 1
+    #kwcoco info "$VALI_FPATH" -a 1
+    #geowatch stats "$TRAIN_FPATH" "$VALI_FPATH"
+}
+#inspect_kwcoco_files
+EXPERIMENT_NAME="shitspotter_v014"
+
+CHANNELS="phone:(red|green|blue)"
+DEFAULT_ROOT_DIR=$WORKDIR/$DATASET_CODE/runs/$EXPERIMENT_NAME
+TARGET_LR=5e-5
+WEIGHT_DECAY=$(python -c "print($TARGET_LR * 0.01)")
+ETA_MIN=$(python -c "print($TARGET_LR * 0.0001)")
+MAX_STEPS=8000
+
+DEVICES=$(python -c "if 1:
+    import os
+    n = len(os.environ.get('CUDA_VISIBLE_DEVICES', '').split(','))
+    print(','.join(list(map(str, range(n)))) + ',')
+")
+ACCELERATOR=gpu
+STRATEGY=$(python -c "if 1:
+    import os
+    n = len(os.environ.get('CUDA_VISIBLE_DEVICES', '').split(','))
+    print('ddp' if n > 1 else 'auto')
+")
+DDP_WORKAROUND=$(python -c "if 1:
+    import os
+    n = len(os.environ.get('CUDA_VISIBLE_DEVICES', '').split(','))
+    print(int(n > 1))
+")
+echo "DEVICES = $DEVICES"
+echo "DDP_WORKAROUND = $DDP_WORKAROUND"
+echo "WEIGHT_DECAY = $WEIGHT_DECAY"
+#STRATEGY=ddp
+
+# Find the most recent checkpoint (TODO add utility for this)
+PREV_CHECKPOINT=$(python -c "if 1:
+    import ubelt as ub
+    root_dir = ub.Path('$DEFAULT_ROOT_DIR')
+    checkpoints = list((root_dir / 'lightning_logs').glob('version_*/checkpoints/*.ckpt'))
+    if len(checkpoints) == 0:
+        print('None')
+    else:
+        version_to_checkpoints = ub.group_items(checkpoints, key=lambda x: int(x.parent.parent.name.split('_')[-1]))
+        max_version = max(version_to_checkpoints)
+        candidates = version_to_checkpoints[max_version]
+        checkpoints = sorted(candidates, key=lambda p: p.stat().st_mtime)
+        chosen = checkpoints[-1]
+        print(chosen)
+")
+echo "PREV_CHECKPOINT = $PREV_CHECKPOINT"
+
+DDP_WORKAROUND=$DDP_WORKAROUND python -m geowatch.tasks.fusion fit --config "
+data:
+    select_videos          : $SELECT_VIDEOS
+    num_workers            : 0
+    train_dataset          : $TRAIN_FPATH
+    vali_dataset           : $VALI_FPATH
+    window_dims            : '416,416'
+    time_steps             : 1
+    time_sampling          : uniform
+    #time_kernel            : '[0.0s,]'
+    window_resolution     : 0.5
+    input_resolution      : 0.5
+    output_resolution     : 0.5
+    neg_to_pos_ratio       : 1.0
+    batch_size             : 1
+    normalize_perframe     : false
+    normalize_peritem      : false
+    max_epoch_length       : 10000
+    channels               : '$CHANNELS'
+    min_spacetime_weight   : 0.6
+    temporal_dropout_rate  : 0.5
+    channel_dropout_rate   : 0.5
+    modality_dropout_rate  : 0.5
+    temporal_dropout       : 0.0
+    channel_dropout        : 0.05
+    modality_dropout       : 0.05
+    mask_low_quality       : False
+    mask_samecolor_method  : None
+    observable_threshold   : 0.0
+    quality_threshold      : 0.0
+    weight_dilate          : 0
+    dist_weights           : False
+    use_centered_positives : True
+    use_grid_positives     : True
+    use_grid_negatives     : True
+    normalize_inputs       : 8096
+    balance_areas          : false
+model:
+    class_path: MultimodalTransformer
+    init_args:
+        class_weights          : 'auto'
+        tokenizer              : linconv
+        arch_name              : smt_it_stm_s24
+        decoder                : mlp
+        positive_change_weight : 1
+        negative_change_weight : 0.01
+        stream_channels        : 16
+        class_loss             : 'dicefocal'
+        saliency_loss          : 'focal'
+        saliency_head_hidden   : 8
+        change_head_hidden     : 6
+        class_head_hidden      : 6
+        global_change_weight   : 0.00
+        global_class_weight    : 1.00
+        global_saliency_weight : 1.00
+        multimodal_reduce      : max
+        continual_learning     : true
+        perterb_scale          : 1e-8
+optimizer:
+    class_path: torch.optim.AdamW
+    init_args:
+        lr           : $TARGET_LR
+        weight_decay : $WEIGHT_DECAY
+lr_scheduler:
+  class_path: torch.optim.lr_scheduler.CosineAnnealingLR
+  init_args:
+    T_max        : $MAX_STEPS
+    eta_min      : $ETA_MIN
+trainer:
+    accumulate_grad_batches: 1024
+    default_root_dir     : $DEFAULT_ROOT_DIR
+    accelerator          : $ACCELERATOR
+    devices              : $DEVICES
+    strategy             : $STRATEGY
+    limit_val_batches    : 2056
+    limit_train_batches  : 5012
+    num_sanity_val_steps : 0
+    max_epochs           : 360
+    callbacks:
+        - class_path: pytorch_lightning.callbacks.ModelCheckpoint
+          init_args:
+              monitor: val_loss
+              mode: min
+              save_top_k: 5
+              filename: '{epoch}-{step}-{val_loss:.3f}.ckpt'
+              save_last: true
+
+torch_globals:
+    float32_matmul_precision: auto
+
+initializer:
+    init: /data/joncrall/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_v013/lightning_logs/version_0/checkpoints/epoch=294-step=2360-val_loss=0.587.ckpt.ckpt
+" # --ckpt_path="$PREV_CHECKPOINT"

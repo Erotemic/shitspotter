@@ -41,14 +41,22 @@ Downloading
 
 All data is publicly hosted on IPFS and is free to use under "Creative Commons Attribution 4.0 International".
 
+We use IPFS because it supports content addressable storage (CAS).  CAS has a
+lot of benefits. Among these are: data duplication, simpler updates to "living
+datasets", and verification of download success.  To learn more see the
+Wikipedia article on:
+
+* `content addressable storage <https://en.wikipedia.org/wiki/Content-addressable_storage>`_,
+* `IPFS <https://en.wikipedia.org/wiki/InterPlanetary_File_System>`_.
+
 The `IPFS CID <https://docs.ipfs.tech/concepts/content-addressing/>`_ (Content Identifier) for the most recent dataset is:
 
 .. code::
 
-    bafybeifkufkmmx3qxbvxe5hbskxr4gijkevcryxwp3mys2pqf4yjv2tobu
+    bafybeihuem7qz2djallypbb6bo5z7ojqnjz5s4xj6j3c4w4aztqln4tbzu
 
 The dataset can be viewed in a webbrowser through an IPFS gateway:
-https://ipfs.io/ipfs/bafybeifkufkmmx3qxbvxe5hbskxr4gijkevcryxwp3mys2pqf4yjv2tobu
+https://ipfs.io/ipfs/bafybeihuem7qz2djallypbb6bo5z7ojqnjz5s4xj6j3c4w4aztqln4tbzu
 
 If you have an IPFS node, please help keep this dataset alive and available by pinning it.
 
@@ -63,6 +71,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2023-12-31 - Last update of 2023. We also welcome a new content contributor: Roady. Details will be added in the acknowledgements. New CID is ``bafybeihuem7qz2djallypbb6bo5z7ojqnjz5s4xj6j3c4w4aztqln4tbzu``.
 * 2023-12-20 - More images and many more annotations. Data collected next year (2024) will be part of the validation set. New CID is ``bafybeifkufkmmx3qxbvxe5hbskxr4gijkevcryxwp3mys2pqf4yjv2tobu``.
 * 2023-11-17 - More images and annotations. New CID is ``bafybeie275n5f4f64vodekmodnktbnigsvbxktffvy2xxkcfsqxlie4hrm``.
 * 2023-10-19 - A few new images, the last images from Bezoar, who passed away today.
@@ -272,7 +281,11 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+-----------------------+
 | 2023-12-20  |  5249    |  ~1881              | 1337                  | 1440                  |
 +-------------+----------+---------------------+-----------------------+-----------------------+
+| 2023-12-31  |  5330    |  ~1908              | 1360                  | 1440                  |
++-------------+----------+---------------------+-----------------------+-----------------------+
 
+
+For further details, see the `Datasheet <DATASHEET.md>`_.
 
 
 Annotation Process
@@ -372,7 +385,7 @@ The licence for the software will be Apache 2. The license for the data will be
 
 In addition to these licenses please:
 
-* Cite my work if you use it.
+* Cite the work if you use it.
 * If you annotate any of the images, contribute the annotations back. Picking up shit is a team effort.
 * When asked to build something, particularly ML systems, think about the ethical implications, and act ethically.
 * Pin the dataset on IPFS if you can.
@@ -443,8 +456,8 @@ I would also like to thank the several people that have contributed their own
 images in the contributions folder (More info on contributions will be added
 later).
 
-I want to give special thanks to my two poop machines - Honey and Bezoar - who
-inspired this project. Without them, ShitSpotter would not be possible.
+I want to give special thanks to my first two poop machines - Honey and Bezoar
+- who inspired this project. Without them, ShitSpotter would not be possible.
 
 .. Image of Honey And Bezoar
 .. image:: https://i.imgur.com/MWQVs0w.jpg
