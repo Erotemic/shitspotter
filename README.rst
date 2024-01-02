@@ -511,6 +511,17 @@ immortalized through her contributions to this dataset.
 .. bafybeibr33vb5m3ytovwputzai2vka2sjovmguktyk7yjp3emvtoihp7he bafybeic5a4kjrb37tdmc6pzlpcxe2x6hc4kggemnqm2mcdu4tmrzvir6vm/Contributor-Bezoar.jpg
 
 
+
+Roady - (2016-04-29 - ) - Adopted in 2023, Roady is the newest addition to the
+pack, and his bio will be updated as we learn more about him. He is an
+Australian Cattle Dog (Blue Healer) with tons of energy and tons of poopy.
+
+.. An Image of Roady
+.. image:: https://i.imgur.com/yaZi5bO.jpg
+   :height: 400px
+   :align: left
+
+
 .. |Pypi| image:: https://img.shields.io/pypi/v/shitspotter.svg
    :target: https://pypi.python.org/pypi/shitspotter
 
