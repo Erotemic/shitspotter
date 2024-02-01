@@ -71,6 +71,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2024-01-31 - First update of 2024. New images are being added to the validation split. New CID is ``bafybeibxxrs3w7iquirv262ctgcwgppgvaglgtvcabb76qt5iwqgwuzgv4``.
 * 2023-12-31 - Last update of 2023. We also welcome a new content contributor: Roady. Details will be added in the acknowledgements. New CID is ``bafybeihuem7qz2djallypbb6bo5z7ojqnjz5s4xj6j3c4w4aztqln4tbzu``.
 * 2023-12-20 - More images and many more annotations. Data collected next year (2024) will be part of the validation set. New CID is ``bafybeifkufkmmx3qxbvxe5hbskxr4gijkevcryxwp3mys2pqf4yjv2tobu``.
 * 2023-11-17 - More images and annotations. New CID is ``bafybeie275n5f4f64vodekmodnktbnigsvbxktffvy2xxkcfsqxlie4hrm``.
@@ -283,6 +284,8 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+-----------------------+
 | 2023-12-31  |  5330    |  ~1908              | 1360                  | 1440                  |
 +-------------+----------+---------------------+-----------------------+-----------------------+
+| 2024-01-31  |  5533    |  ~1975              | 1411                  | 1964                  |
++-------------+----------+---------------------+-----------------------+-----------------------+
 
 
 For further details, see the `Datasheet <DATASHEET.md>`_.
@@ -396,6 +399,10 @@ The URL that can be viewed in a web browser: https://ipfs.io/ipfs/bafybeigovcysm
 
 Current IPFS addresses for the top-level dataset filesystem are:
 
+.. temp
+
+
+
 .. code::
 
     bafybeieydez2b6tksq5c26l4quhx5475et5ttvipuc7hs6n5khaolomilm - shitspotter_dvc/assets/_contributions
@@ -438,9 +445,10 @@ Current IPFS addresses for the top-level dataset filesystem are:
     bafybeiew5srmawar4qjkj3iohhg7i7fnc24ik3ym5is5y4d7ftho47puoq - shitspotter_dvc/assets/poop-2023-10-19-T212018
     bafybeicqdlnupmpn54ehiqfqwhiwejh5sl5dizqsb2gsr6rk6aszszu2ue - shitspotter_dvc/assets/poop-2023-11-16-T154909
     bafybeiboaujmbfrmopu4qguc6klv2s7ubxq3z4fka2u3d5m6i7waykonuy - shitspotter_dvc/assets/poop-2023-12-19-T190904
+    bafybeieyi3erbwzu5couwg4lrgr3xynq4xwtsoho3md6rhr6qfn5icl2vu - shitspotter_dvc/assets/poop-2023-12-19-T190904
 
-    bafybeicirkqvz6pedd3mvpokyo7cwy2x3isxxnjiplzdgsi22qxs2wv6ie - shitspotter_dvc/assets
-    bafybeie275n5f4f64vodekmodnktbnigsvbxktffvy2xxkcfsqxlie4hrm - shitspotter_dvc
+    bafybeigdoerp75pscmq7veoi2quh7p5oc3doeklepyscymrvt4hlcl4yvu - shitspotter_dvc/assets
+    bafybeibxxrs3w7iquirv262ctgcwgppgvaglgtvcabb76qt5iwqgwuzgv4 - shitspotter_dvc
 
 
 Acknowledgements
@@ -515,6 +523,8 @@ immortalized through her contributions to this dataset.
 Roady - (2016-04-29 - ) - Adopted in 2023, Roady is the newest addition to the
 pack, and his bio will be updated as we learn more about him. He is an
 Australian Cattle Dog (Blue Healer) with tons of energy and tons of poopy.
+Roadies likes include: fetching the ball, staring deeply into eyes, pets, and invading personal space.
+Roadies dislikes include: dropping the ball, others not paying attention to him, and spinach.
 
 .. An Image of Roady
 .. image:: https://i.imgur.com/yaZi5bO.jpg

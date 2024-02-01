@@ -446,26 +446,43 @@ def finalize_transfer(new_dpath):
     print('# Then repin the updated dataset to IPFS')
 
     shitspotter_dvc_dpath = coco_fpath.parent
+
+    import kwutil
+    today = kwutil.util_time.datetime.coerce('now').date()
+    today_iso = today.isoformat()
+
+    new_assets_name = 'shitspotter-assets-' + new_shit_dpath.name
+    new_dataset_name = f'shitspotter-{today_iso}'
+
     command = ub.codeblock(
         f'''
         # Pin the new folder directly.
         ipfs add --pin -r {new_shit_dpath} --progress --cid-version=1 --raw-leaves=false | tee "new_pin_job.log"
-        NEW_FOLDER_CID=$(tail -n 1 new_pin_job.log | cut -d ' ' -f 2)
-        echo "NEW_FOLDER_CID=$NEW_FOLDER_CID"
+        NEW_ASSETS_CID=$(tail -n 1 new_pin_job.log | cut -d ' ' -f 2)
+        echo "NEW_ASSETS_CID=$NEW_ASSETS_CID"
+
+        # Add a name to the new pin on the local machine.
+        ipfs pin add --name {new_assets_name} --progress -- $NEW_ASSETS_CID
 
         echo "
         On MOJO run:
 
-        NEW_FOLDER_CID=$NEW_FOLDER_CID
-        ipfs pin add --progress $NEW_FOLDER_CID
+        NEW_ASSETS_CID=$NEW_ASSETS_CID
+        ipfs pin add --name {new_assets_name} --progress -- $NEW_ASSETS_CID
         "
+
+        # ---
 
         # Then re-add the root, which gives us the new CID
         ipfs add --pin -r {shitspotter_dvc_dpath} --progress --cid-version=1 --raw-leaves=false | tee "root_pin_job.log"
-
         # Programatically grab the new CID:
         NEW_ROOT_CID=$(tail -n 1 root_pin_job.log | cut -d ' ' -f 2)
         echo "NEW_ROOT_CID=$NEW_ROOT_CID"
+
+        # Add a name to the new pin on the local machine.
+
+        ipfs pin add --name shitspotter-2024-01-31 --progress -- $NEW_ROOT_CID
+        ipfs pin add --name {new_dataset_name} --progress -- $NEW_ROOT_CID
 
         # Add it to the CID revisions:
         echo "$NEW_ROOT_CID" >> "$HOME"/code/shitspotter/shitspotter/cid_revisions.txt
@@ -481,6 +498,8 @@ def finalize_transfer(new_dpath):
         # Also see: ~/code/shitspotter/dev/sync_shit.sh
         '''
     )
+    # Note:
+    # list named pinns ipfs pin ls --type="recursive" --names
     # TODO: is there another pinning service that wont flake on us?
     # # Add pin to web3 remote storage
     # ipfs pin remote add --service=web3.storage.erotemic --name=shitspotter-dvc-$DATE $NEW_ROOT_CID --background

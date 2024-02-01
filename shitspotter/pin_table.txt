@@ -1,0 +1,29 @@
+ipfs pin add --progress --name shitspotter-2024-01-31 -- bafybeibxxrs3w7iquirv262ctgcwgppgvaglgtvcabb76qt5iwqgwuzgv4
+ipfs pin add --progress --name shitspotter-2023-12-31 -- bafybeihuem7qz2djallypbb6bo5z7ojqnjz5s4xj6j3c4w4aztqln4tbzu
+ipfs pin add --progress --name shitspotter-2023-12-19 -- bafybeifkufkmmx3qxbvxe5hbskxr4gijkevcryxwp3mys2pqf4yjv2tobu
+ipfs pin add --progress --name shitspotter-2023-11-16 -- bafybeie275n5f4f64vodekmodnktbnigsvbxktffvy2xxkcfsqxlie4hrm
+ipfs pin add --progress --name shitspotter-2023-10-19 -- bafybeigovcysmghsyab6ia3raycsebbc32kea2k4qoxcsujmp52hzpsghy
+ipfs pin add --progress --name shitspotter-2023-10-15 -- bafybeief7tmoarwmd26b2petx7crtvdnz6ucccek5wpwxwdvfydanfukna
+ipfs pin add --progress --name shitspotter-2023-09-22 -- bafybeieahblb6aafomi72gnheu3ihom7nobdad4t6jcrrwhd5eb3wxkrgy
+
+ipfs pin add --progress --name shitspotter-2023-08-22 -- bafybeiczi4pn4na2iw7c66bpbf5rdr3ua3grp2qvjgrmnuzqabjjim4o2q
+ipfs pin add --progress --name shitspotter-2023-07-01 -- bafybeiflkm37altah2ey2jxko7kngquwfugyo4cl36y7xjf7o2lbrgucbi
+ipfs pin add --progress --name shitspotter-2023-04-16 -- bafybeic2ehnqled363zqimtbqbonagw6atgsyst5cqbm3wec6cg3te5ala
+ipfs pin add --progress --name shitspotter-2023-03-11 -- bafybeicjvjt2abdj7e5mpwq27itxi2u6lzcegl5dgw6nqe22363vmdsnru
+ipfs pin add --progress --name shitspotter-2023-01-01 -- bafybeihicisq66veupabzpq7gutxd2sikfe43jvtirield4wlnznpanj24
+ipfs pin add --progress --name shitspotter-2022-11-23 -- bafybeibnofjvl7amoiw6gx4hq5w3hfvl3iid2y45l4pipcqgl5nedpngzi
+ipfs pin add --progress --name shitspotter-2022-09-19 -- bafybeiedk6bu2qpl4snlu3jmtri4b2sf476tgj5kdg2ztxtm7bd6ftzqyy
+ipfs pin add --progress --name shitspotter-2022-07-16 -- bafybeihi7v7sgnxb2y57ie2dr7oobigsn5fqiwxwq56sdpmzo5on7a2xwe
+ipfs pin add --progress --name shitspotter-2022-06-20 -- bafybeihltrtb4xncqvfbipdwnlxsrxmeb4df7xmoqpjatg7jxrl3lqqk6y
+ipfs pin add --progress --name shitspotter-2022-06-08 -- bafybeihgex2fj4ethxnfmiivasw5wqsbt2pdjswu3yr554rewm6myrkq4a
+# ipfs pin add --progress --name shitspotter-2022-04-02 -- QmfStoay5rjeHMEDiyuGsreXNHsyiS5kVaexSM2fov216j
+ipfs pin add --progress --name shitspotter-2022-03-13 -- QmaSfRtzXDCiqyfmZuH6NEy2HBr7radiJNhmSjiETihoh6
+ipfs pin add --progress --name shitspotter-2022-01-27 -- QmaPPoPs7wXXkBgJeffVm49rd63ZtZw5GrhvQQbYrUbrYL
+ipfs pin add --progress --name shitspotter-2021-12-27 -- QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG
+
+
+ipfs pin ls --type="recursive" --names
+ipfs pin ls --type="recursive" --names | grep bafybeiczi4pn4na2iw7c66bpbf5rdr3ua3grp2qvjgrmnuzqabjjim4o2q
+
+#ipfs pin add --progress --name shitspotter-2022-04-02-draft QmPptXKFKi6oTJL3VeCNy5Apk8MJsHhCAAwVmegHhuRY83
+#ipfs pin add --progress --name shitspotter-2023-01-01-draft bafybeif2yoidrnrzbpofcdlvl33em5e6eoslk4ryb7pe6ployl7najdi7q

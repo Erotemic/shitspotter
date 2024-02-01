@@ -100,6 +100,11 @@ def make_splits():
     vali_split.dump()
     train_split.dump()
 
+    vali_stats = vali_split.basic_stats()
+    train_stats = train_split.basic_stats()
+    print(f'vali_stats = {ub.urepr(vali_stats, nl=1)}')
+    print(f'train_stats = {ub.urepr(train_stats, nl=1)}')
+
     ub.symlink(train_split.fpath, link_path=train_split.fpath.parent / 'train.kwcoco.zip', overwrite=True, verbose=3)
     ub.symlink(vali_split.fpath, link_path=vali_split.fpath.parent / 'vali.kwcoco.zip', overwrite=True, verbose=3)
 
