@@ -64,6 +64,16 @@ Sometimes IPFS can be slow, especially for the latest data. However, older URLs 
 https://ipfs.io/ipfs/QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG
 
 
+The the goal is to make IPFS the main distribution mechanism. However, it is
+still relatively new technology and until all of the kinks are worked out, the
+dataset will be mirrored on a centralized Girder server:
+https://data.kitware.com/#user/598a19658d777f7d33e9c18b/folder/65d6c52fb40ab0fa6c57909b
+
+Unlike IPFS, which (ideally) gives seemless access to the data, the centralized
+storate has the upload from each update grouped in its own zipfile. If
+annotations for one of these folders changes, the entire zipfile will be
+reuploaded, so there will be no mechanism for version control.
+
 
 Recent Updates
 ==============
@@ -71,8 +81,9 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2024-02-22 - Added centralized Girder download link to increase accessibility of the data with an ok-ish pretrained model.
 * 2024-01-31 - First update of 2024. New images are being added to the validation split. New CID is ``bafybeibxxrs3w7iquirv262ctgcwgppgvaglgtvcabb76qt5iwqgwuzgv4``.
-* 2023-12-31 - Last update of 2023. We also welcome a new content contributor: Roady. Details will be added in the acknowledgements. New CID is ``bafybeihuem7qz2djallypbb6bo5z7ojqnjz5s4xj6j3c4w4aztqln4tbzu``.
+* 2023-12-31 - Last update of 2023. We also welcome a new content contributor: Roadie. Details will be added in the acknowledgements. New CID is ``bafybeihuem7qz2djallypbb6bo5z7ojqnjz5s4xj6j3c4w4aztqln4tbzu``.
 * 2023-12-20 - More images and many more annotations. Data collected next year (2024) will be part of the validation set. New CID is ``bafybeifkufkmmx3qxbvxe5hbskxr4gijkevcryxwp3mys2pqf4yjv2tobu``.
 * 2023-11-17 - More images and annotations. New CID is ``bafybeie275n5f4f64vodekmodnktbnigsvbxktffvy2xxkcfsqxlie4hrm``.
 * 2023-10-19 - A few new images, the last images from Bezoar, who passed away today.
@@ -520,13 +531,14 @@ immortalized through her contributions to this dataset.
 
 
 
-Roady - (2016-04-29 - ) - Adopted in 2023, Roady is the newest addition to the
-pack, and his bio will be updated as we learn more about him. He is an
-Australian Cattle Dog (Blue Healer) with tons of energy and tons of poopy.
+Roadie - (2016-04-29 - ) - Adopted in 2023, Roadie is the newest addition to the
+pack, and his bio will be updated as we learn more about him. He is 60%
+Australian Cattle Dog (Blue Healer) mixed with some Border Collie and Husky. He
+has tons of energy and tons of poopy.
 Roadies likes include: fetching the ball, staring deeply into eyes, pets, and invading personal space.
 Roadies dislikes include: dropping the ball, others not paying attention to him, and spinach.
 
-.. An Image of Roady
+.. An Image of Roadie
 .. image:: https://i.imgur.com/yaZi5bO.jpg
    :height: 400px
    :align: left
