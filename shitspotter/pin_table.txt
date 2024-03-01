@@ -22,8 +22,21 @@ ipfs pin add --progress --name shitspotter-2022-01-27 -- QmaPPoPs7wXXkBgJeffVm49
 ipfs pin add --progress --name shitspotter-2021-12-27 -- QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG
 
 
-ipfs pin ls --type="recursive" --names
+python -c "if 1:
+    import subprocess
+    lines = subprocess.check_output('ipfs pin ls --type="recursive" --names', shell=True, universal_newlines=True).split(chr(10))
+    for line in lines:
+        line = line.strip()
+        parts = line.split(' ')
+        if len(parts) == 3:
+            cid, type_, name = parts
+            print(name, cid, type_)
+" | sort
+
+
 ipfs pin ls --type="recursive" --names | grep bafybeiczi4pn4na2iw7c66bpbf5rdr3ua3grp2qvjgrmnuzqabjjim4o2q
 
 #ipfs pin add --progress --name shitspotter-2022-04-02-draft QmPptXKFKi6oTJL3VeCNy5Apk8MJsHhCAAwVmegHhuRY83
 #ipfs pin add --progress --name shitspotter-2023-01-01-draft bafybeif2yoidrnrzbpofcdlvl33em5e6eoslk4ryb7pe6ployl7najdi7q
+
+

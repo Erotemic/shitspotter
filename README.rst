@@ -22,7 +22,7 @@ or perhaps city governments could use this to more efficiently clean public area
 This module will contain an algorithm for training a pytorch network to detect poop in images, and a script
 for detecting poop in unseen images given a pretrained model.
 
-The dataset currently contains 32GB of outdoor images taken with a phone. The general process of acquiring the dataset has been:
+The dataset currently contains 35GB of outdoor images taken with a phone. The general process of acquiring the dataset has been:
 1. My dog poops or I see a rogue poop,
 2. I take a "before" picture of the poop,
 3. I pick up the poop,
@@ -53,10 +53,10 @@ The `IPFS CID <https://docs.ipfs.tech/concepts/content-addressing/>`_ (Content I
 
 .. code::
 
-    bafybeihuem7qz2djallypbb6bo5z7ojqnjz5s4xj6j3c4w4aztqln4tbzu
+    bafybeia2gphecs3pbrccwopg63aka7lxy5vj6btcwyazf47q6jlqjgagru
 
 The dataset can be viewed in a webbrowser through an IPFS gateway:
-https://ipfs.io/ipfs/bafybeihuem7qz2djallypbb6bo5z7ojqnjz5s4xj6j3c4w4aztqln4tbzu
+https://ipfs.io/ipfs/bafybeia2gphecs3pbrccwopg63aka7lxy5vj6btcwyazf47q6jlqjgagru
 
 If you have an IPFS node, please help keep this dataset alive and available by pinning it.
 
@@ -81,6 +81,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2024-02-29 - New CID is ``bafybeia2gphecs3pbrccwopg63aka7lxy5vj6btcwyazf47q6jlqjgagru``. Going to change this year to be 1/3 validation, next update will have a new split. Will also rework this README eventually.
 * 2024-02-22 - Added centralized Girder download link to increase accessibility of the data with an ok-ish pretrained model.
 * 2024-01-31 - First update of 2024. New images are being added to the validation split. New CID is ``bafybeibxxrs3w7iquirv262ctgcwgppgvaglgtvcabb76qt5iwqgwuzgv4``.
 * 2023-12-31 - Last update of 2023. We also welcome a new content contributor: Roadie. Details will be added in the acknowledgements. New CID is ``bafybeihuem7qz2djallypbb6bo5z7ojqnjz5s4xj6j3c4w4aztqln4tbzu``.
@@ -296,6 +297,8 @@ registration via the SIFT+RANSAC algorithm.
 | 2023-12-31  |  5330    |  ~1908              | 1360                  | 1440                  |
 +-------------+----------+---------------------+-----------------------+-----------------------+
 | 2024-01-31  |  5533    |  ~1975              | 1411                  | 1964                  |
++-------------+----------+---------------------+-----------------------+-----------------------+
+| 2024-02-29  |  5771    |  ~2054              | 1479                  | 1964                  |
 +-------------+----------+---------------------+-----------------------+-----------------------+
 
 
