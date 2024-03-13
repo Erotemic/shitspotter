@@ -465,7 +465,7 @@ def finalize_transfer(new_dpath):
         ipfs pin add --name {new_assets_name} --progress -- $NEW_ASSETS_CID
 
         echo "
-        On MOJO run:
+        On IPFS server run:
 
         NEW_ASSETS_CID=$NEW_ASSETS_CID
         ipfs pin add --name {new_assets_name} --progress -- $NEW_ASSETS_CID
@@ -488,11 +488,11 @@ def finalize_transfer(new_dpath):
         echo "$NEW_ROOT_CID" >> "$HOME"/code/shitspotter/shitspotter/cid_revisions.txt
 
         echo "
-        Then on MOJO run:
+        Then on IPFS server run:
 
         NEW_ROOT_CID=$NEW_ROOT_CID
         DATE=$(date +"%Y-%m-%d")
-        ipfs pin add --progress $NEW_ROOT_CID
+        ipfs pin add --name {new_dataset_name} --progress $NEW_ROOT_CID
         "
 
         # Also see: ~/code/shitspotter/dev/sync_shit.sh

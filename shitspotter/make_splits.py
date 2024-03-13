@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+This script defines how train / validation splits are created.
+"""
 
 
 def make_splits():
@@ -10,35 +13,85 @@ def make_splits():
     coco_fpath = shitspotter.util.find_shit_coco_fpath()
     dset = kwcoco.CocoDataset(coco_fpath)
 
-    # Check on the automatic protocol
+    # This date represents the point that the protocol was changed from the 2
+    # image before / after method to the 3 image before / after / negative.
     change_point = kwutil.util_time.datetime.coerce('2021-05-11T120000')
 
     # Data from these years will belong to the validation dataset
-    validation_years = {2020, 2024}
+    # mapping specifies number of groups for each validation group
+    partial_validation_years = {
+        2020: 0,
+        2024: 2,  # Cannot change this without putting images from train into vali
+    }
 
     # Group images by cohort, and determine train / val split
     cohort_to_imgs = ub.group_items(dset.images().coco_images, key=lambda g: g['cohort'])
     cohort_to_imgs = {cohort: sorted(imgs, key=lambda g: g['datetime']) for cohort, imgs in cohort_to_imgs.items()}
     for cohort, coco_imgs in cohort_to_imgs.items():
 
+        # Ensure the cohort is sorted chronologically
+        coco_imgs = sorted(coco_imgs, key=lambda g: g['datetime'])
         cohort_start = coco_imgs[0].datetime
 
         if cohort.startswith('poop-'):
             has_annots = np.array([len(coco_img.annots()) > 0 for coco_img in coco_imgs]).astype(np.uint8)
+
+            # We want to be careful to exclude any images that could have an
+            # unannotated poop in them. To do this we will use the knowledge of
+            # the data gathering protocol.
             keep_flags = has_annots.copy()
-            if cohort_start <= change_point:
-                keep_flags + np.roll(has_annots, 1) + np.roll(has_annots, 2)
+            protocol_version = '2img' if cohort_start <= change_point else '3img'
+            if protocol_version == '2img':
+                # This cohort belongs to the 2 image protocol, if an image is
+                # annotated, we can infer that the image after it is likely a
+                # negative and include it in the split.
+                is_after_image = np.roll(has_annots, 1)
+                old_keep_flags = has_annots + is_after_image
+
+                groups, ungrouped = protocol_2img_organize(coco_imgs)
+                keep_idxs = list(ub.flatten(groups))
+                keep_flags = np.array(ub.boolmask(keep_idxs, len(coco_imgs))).astype(int)
+                assert (old_keep_flags > 0).sum() == keep_flags.sum()
+
+            elif protocol_version == '3img':
+                # This cohort belongs to the 3 image protocol, if an image is
+                # annotated, we can infer that two images after are likely a
+                # negative and include it in the split.
+                is_after_image = np.roll(has_annots, 1)
+                is_negative_image = np.roll(has_annots, 2)
+                old_keep_flags = has_annots + is_after_image + is_negative_image
+
+                groups, ungrouped = protocol_3img_organize(coco_imgs)
+                keep_idxs = list(ub.flatten(groups))
+                keep_flags = np.array(ub.boolmask(keep_idxs, len(coco_imgs))).astype(int)
+
+                assert (old_keep_flags > 0).sum() == keep_flags.sum()
             else:
-                keep_flags + np.roll(has_annots, 1)
-            keep_imgs = ub.compress(coco_imgs, keep_flags)
+                raise KeyError(protocol_version)
+            keep_imgs = list(ub.compress(coco_imgs, keep_flags))
 
+            # Determine which images go into train or validation
             cohort_year = cohort_start.date().year
-            is_validation = cohort_year in validation_years
-
-            for coco_img in keep_imgs:
-                if is_validation:
-                    coco_img.img['split'] = 'vali'
+            if cohort_year in partial_validation_years:
+                train_per_vali = partial_validation_years[cohort_year]
+                if train_per_vali == 0:
+                    for coco_img in keep_imgs:
+                        coco_img.img['split'] = 'vali'
                 else:
+                    # Split by ordinal day number, so any changes to the groups
+                    # dont impact validation membership.
+                    group_date = [coco_imgs[g[0]].datetime.date().toordinal() for g in groups]
+                    modulus = (train_per_vali + 1)
+                    is_vali_group = (np.array(group_date) % modulus) == 0
+                    is_train_group = ~is_vali_group
+                    for group in ub.compress(groups, is_vali_group):
+                        for idx in group:
+                            coco_imgs[idx].img['split'] = 'vali'
+                    for group in ub.compress(groups, is_train_group):
+                        for idx in group:
+                            coco_imgs[idx].img['split'] = 'train'
+            else:
+                for coco_img in keep_imgs:
                     coco_img.img['split'] = 'train'
         else:
             raise NotImplementedError
@@ -109,6 +162,80 @@ def make_splits():
     ub.symlink(vali_split.fpath, link_path=vali_split.fpath.parent / 'vali.kwcoco.zip', overwrite=True, verbose=3)
 
     # See ~/code/ndsampler/train.sh
+
+
+def protocol_2img_organize(coco_imgs):
+    """
+    Args:
+        coco_imgs (List[CocoImage]): sorted images in a corhot
+    """
+    # TODO: rectify this logic with the matching heuristic
+    # stuff that also looks at dates.
+    groups = []
+    ungrouped = []
+    group = None
+    idx = 0
+    try:
+        while idx < len(coco_imgs):
+            if len(coco_imgs[idx].annots()):
+                # Start a new group if we find an image with annotations
+                group = []
+                # Check to see if the group is complete
+                group.append(idx)
+                idx += 1
+                if not len(coco_imgs[idx].annots()):
+                    # Next image should not have annots to be in the groups
+                    group.append(idx)
+                    idx += 1
+                # Group is done
+                groups.append(group)
+            else:
+                # cant assign this image to a group
+                ungrouped.append(idx)
+                idx += 1
+    except IndexError:
+        if group:
+            groups.append(group)
+    return groups, ungrouped
+
+
+def protocol_3img_organize(coco_imgs):
+    """
+    Args:
+        coco_imgs (List[CocoImage]): sorted images in a corhot
+    """
+    # TODO: rectify this logic with the matching heuristic
+    # stuff that also looks at dates.
+    groups = []
+    ungrouped = []
+    idx = 0
+    group = None
+    try:
+        while idx < len(coco_imgs):
+            if len(coco_imgs[idx].annots()):
+                # Start a new group if we find an image with annotations
+                group = []
+                # Check to see if the group is complete
+                group.append(idx)
+                idx += 1
+                if not len(coco_imgs[idx].annots()):
+                    # Next image should not have annots to be in the groups
+                    group.append(idx)
+                    idx += 1
+                    if not len(coco_imgs[idx].annots()):
+                        # Next image should not have annots to be in the groups
+                        group.append(idx)
+                        idx += 1
+                # Group is done
+                groups.append(group)
+            else:
+                # cant assign this image to a group
+                ungrouped.append(idx)
+                idx += 1
+    except IndexError:
+        if group:
+            groups.append(group)
+    return groups, ungrouped
 
 
 if __name__ == '__main__':
