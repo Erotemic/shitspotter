@@ -149,39 +149,39 @@ kwcoco stats data.kwcoco.json
 
 5. **Over what timeframe was the data collected?** Does this timeframe match the creation timeframe of the data associated with the instances (e.g. recent crawl of old news articles)? If not, please describe the timeframe in which the data associated with the instances was created. Finally, list when the dataset was first published.
 
-	*Your Answer Here*
+    Work started on 2020-11-12. Collection is ongoing. The git repo was launched on 2021-11-11.
 
 7. **Were any ethical review processes conducted (e.g. by an institutional review board)?** If so, please provide a description of these review processes, including the outcomes, as well as a link or other access point to any supporting documentation.
 
-	*Your Answer Here*
+	No. This project started organically.
 
 8. **Does the dataset relate to people?** If not, you may skip the remainder of the questions in this section.
 
-	*Your Answer Here*
+	Mostly no. Some people do appear in the images.
 
 9. **Did you collect the data from the individuals in question directly, or obtain it via third parties or other sources (e.g. websites)?**
 
-	*Your Answer Here*
+	No
 
 10. **Were the individuals in question notified about the data collection?** If so, please describe (or show with screenshots or other information) how notice was provided, and provide a link or other access point to, or otherwise reproduce, the exact language of the notification itself.
 
-	*Your Answer Here*
+	No
 
 11. **Did the individuals in question consent to the collection and use of their data?** If so, please describe (or show with screenshots or other information) how consent was requested and provided, and provide a link or other access point to, or otherwise reproduce, the exact language to which the individuals consented.
 
-	*Your Answer Here*
+	No
 
 12. **If consent was obtained, were the consenting individuals provided with a mechanism to revoke their consent in the future or for certain uses?** If so, please provide a description, as well as a link or other access point to the mechanism (if appropriate).
 
-	*Your Answer Here*
+	Na
 
 13. **Has an analysis of the potential impact of the dataset and its use on data subjects (e.g. a data protection impact analysis) been conducted?** If so, please provide a description of this analysis, including the outcomes, as well as a link or other access point to any supporting documentation.
 
-	*Your Answer Here*
+	No
 
 14. **Any other comments?**
 
-	*Your Answer Here*
+	No
 
 
 ## Preprocessing / Cleaning / Labeling
@@ -190,19 +190,19 @@ kwcoco stats data.kwcoco.json
 
 1. **Was any preprocessing/cleaning/labeling of the data done (e.g. discretization or bucketing, tokenization, part-of-speech tagging, SIFT feature extraction, removal of instances, processing of missing values)?** If so, please provide a description. If not, you may skip the remainder of the questions in this section.
 
-	*Your Answer Here*
+    All data is provided as recieved. 
 
 2. **Was the "raw" data saved in addition to the preprocessed/cleaned/labeled data (e.g. to support unanticipated future uses)?** If so, please provide a link or other access point to the "raw" data.
 
-	*Your Answer Here*
+    Yes, the data is stored in its original form as given by the phone.
 
 3. **Is the software used to preprocess/clean/label the instances available?** If so, please provide a link or other access point.
 
-	*Your Answer Here*
+    Software on the phone may include post processing. I'm unaware of what these methods are.
 
 4. **Any other comments?**
 
-	*Your Answer Here*
+	No
 
 
 ## Uses
@@ -211,27 +211,34 @@ kwcoco stats data.kwcoco.json
 
 1. **Has the dataset been used for any tasks already?** If so, please provide a description.
 
-	*Your Answer Here*
+	No
 
 2. **Is there a repository that links to any or all papers or systems that use the dataset?** If so, please provide a link or other access point.
 
-	*Your Answer Here*
+    Currently there are none that I know of, but the main README will be
+    updated with this information: https://github.com/Erotemic/shitspotter
 
 3. **What (other) tasks could the dataset be used for?**
 
-	*Your Answer Here*
+    There is a potential to classify different types of poop from different
+    species.  Images contain other content such as local park scenery, grass,
+    leafs. Additional annotations could be placed on those objets for other tasks.
 
 4. **Is there anything about the composition of the dataset or the way it was collected and preprocessed/cleaned/labeled that might impact future uses?** For example, is there anything that a future user might need to know to avoid uses that could result in unfair treatment of individuals or groups (e.g. stereotyping, quality of service issues) or other undesirable harms (e.g. financial harms, legal risks) If so, please provide a description. Is there anything a future user could do to mitigate these undesirable harms?
 
-	*Your Answer Here*
+    There is a bias towards poops from certain individuals. There is a long
+    tailed distribution of identity of the pooper. Some poops are older than
+    others, that distribution is unlabeled, but a human annotator may be able
+    to guess the ages (or individual animal in some cases). It's also not 100%
+    clear if all images are dog poop. Most certainly are, but some may not be. 
 
 5. **Are there tasks for which the dataset should not be used?** If so, please provide a description.
 
-	*Your Answer Here*
+	Nothing comes to mind.
 
 6. **Any other comments?**
 
-	*Your Answer Here*
+	No
 
 
 ## Distribution
@@ -244,27 +251,27 @@ kwcoco stats data.kwcoco.json
 
 2. **How will the dataset will be distributed (e.g. tarball on website, API, GitHub)?** Does the dataset have a digital object identifier (DOI)?
 
-	*Your Answer Here*
+	No DOI. It is being made available via IPFS.
 
 3. **When will the dataset be distributed?**
 
-	*Your Answer Here*
+	I update about once a month.
 
 4. **Will the dataset be distributed under a copyright or other intellectual property (IP) license, and/or under applicable terms of use (ToU)?** If so, please describe this license and/or ToU, and provide a link or other access point to, or otherwise reproduce, any relevant licensing terms or ToU, as well as any fees associated with these restrictions.
 
-	*Your Answer Here*
+    All data is free to use under "Creative Commons Attribution 4.0 International".
 
 5. **Have any third parties imposed IP-based or other restrictions on the data associated with the instances?** If so, please describe these restrictions, and provide a link or other access point to, or otherwise reproduce, any relevant licensing terms, as well as any fees associated with these restrictions.
 
-	*Your Answer Here*
+    No
 
 6. **Do any export controls or other regulatory restrictions apply to the dataset or to individual instances?** If so, please describe these restrictions, and provide a link or other access point to, or otherwise reproduce, any supporting documentation.
 
-	*Your Answer Here*
+	No
 
 7. **Any other comments?**
 
-	*Your Answer Here*
+	No
 
 
 ## Maintenance
@@ -273,33 +280,35 @@ kwcoco stats data.kwcoco.json
 
 1. **Who is supporting/hosting/maintaining the dataset?**
 
-	*Your Answer Here*
+    Currently, the main author hosts an IPFS server. Their employer's IPFS
+    server also pins the information, and other entities may be pinning it.
 
 2. **How can the owner/curator/manager of the dataset be contacted (e.g. email address)?**
 
-	*Your Answer Here*
+	Github Issue for this project.
 
 3. **Is there an erratum?** If so, please provide a link or other access point.
 
-	*Your Answer Here*
+	No.
 
 4. **Will the dataset be updated (e.g. to correct labeling errors, add new instances, delete instances)?** If so, please describe how often, by whom, and how updates will be communicated to users (e.g. mailing list, GitHub)?
 
-	*Your Answer Here*
+	Roughly monthly with a push to github.
 
 5. **If the dataset relates to people, are there applicable limits on the retention of the data associated with the instances (e.g. were individuals in question told that their data would be retained for a fixed period of time and then deleted)?** If so, please describe these limits and explain how they will be enforced.
 
-	*Your Answer Here*
+	Na.
 
 6. **Will older versions of the dataset continue to be supported/hosted/maintained?** If so, please describe how. If not, please describe how its obsolescence will be communicated to users.
 
-	*Your Answer Here*
+    Possibly, as long as the IPFS CIDs remain alive. At the time of writing all
+    versions of the dataset should still be available. 
 
 7. **If others want to extend/augment/build on/contribute to the dataset, is there a mechanism for them to do so?** If so, please provide a description. Will these contributions be validated/verified? If so, please describe how. If not, why not? Is there a process for communicating/distributing these contributions to other users? If so, please provide a description.
 
-	*Your Answer Here*
+    Yes. Take it and do what you want: ideally something cool and good. It
+    would be nice to throw us a citation though.
 
 8. **Any other comments?**
 
-	*Your Answer Here*
-
+    No
