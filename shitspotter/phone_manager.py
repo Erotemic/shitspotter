@@ -481,7 +481,6 @@ def finalize_transfer(new_dpath):
 
         # Add a name to the new pin on the local machine.
 
-        ipfs pin add --name shitspotter-2024-01-31 --progress -- $NEW_ROOT_CID
         ipfs pin add --name {new_dataset_name} --progress -- $NEW_ROOT_CID
 
         # Add it to the CID revisions:

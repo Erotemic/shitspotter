@@ -53,10 +53,10 @@ The `IPFS CID <https://docs.ipfs.tech/concepts/content-addressing/>`_ (Content I
 
 .. code::
 
-    bafybeia2gphecs3pbrccwopg63aka7lxy5vj6btcwyazf47q6jlqjgagru
+    bafybeibw5xqmdiycd7vw5qqdf3ceidjbq3cv4taalkc3ruu3qeqmqdy6sm
 
 The dataset can be viewed in a webbrowser through an IPFS gateway:
-https://ipfs.io/ipfs/bafybeia2gphecs3pbrccwopg63aka7lxy5vj6btcwyazf47q6jlqjgagru
+https://ipfs.io/ipfs/bafybeibw5xqmdiycd7vw5qqdf3ceidjbq3cv4taalkc3ruu3qeqmqdy6sm
 
 If you have an IPFS node, please help keep this dataset alive and available by pinning it.
 
@@ -81,6 +81,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2024-03-30 - New CID is ``bafybeibw5xqmdiycd7vw5qqdf3ceidjbq3cv4taalkc3ruu3qeqmqdy6sm``. This includes recent models that have been performing reasonably well.
 * 2024-02-29 - New CID is ``bafybeia2gphecs3pbrccwopg63aka7lxy5vj6btcwyazf47q6jlqjgagru``. Going to change this year to be 1/3 validation, next update will have a new split. Will also rework this README eventually.
 * 2024-02-22 - Added centralized Girder download link to increase accessibility of the data with an ok-ish pretrained model.
 * 2024-01-31 - First update of 2024. New images are being added to the validation split. New CID is ``bafybeibxxrs3w7iquirv262ctgcwgppgvaglgtvcabb76qt5iwqgwuzgv4``.
@@ -300,6 +301,8 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+-----------------------+
 | 2024-02-29  |  5771    |  ~2054              | 1479                  | 1964                  |
 +-------------+----------+---------------------+-----------------------+-----------------------+
+| 2024-03-30  |  6019    |  ~2137              | 1549                  | 2133                  |
++-------------+----------+---------------------+-----------------------+-----------------------+
 
 
 For further details, see the `Datasheet <DATASHEET.md>`_.
@@ -388,6 +391,25 @@ training. Contributor data is also currently held out and can serve as a test
 set once annotations are placed.
 
 
+Update 2024-03-31: Recent results from model ``shitspotter_from_v027_halfres_v028-epoch=0179-step=000720-val_loss=0.005.ckpt.pt`` have been quite good. These have quantiatively been measured against the ``vali_imgs228_20928c8c.kwcoco.zip`` variant of the validation dataset. The precision recall and ROC curves for pixelwise binary poop/no-poop classification are:
+
+
+.. image:: https://i.imgur.com/rgGjAda.png
+
+And the corresponding threshold versus F1, G1, and MCC is:
+
+.. image:: https://i.imgur.com/vay6TEP.png
+
+Qualitatively some cherry-picked success cases in challenging images look like:
+
+
+.. image:: https://i.imgur.com/oWPg4CE.jpeg
+
+There still are false positives and false negatives in some of the more
+challenging images, but the algorithm is now accurate enough where it can be
+used, and it will continue to improve.
+
+
 Data Management
 ===============
 
@@ -411,7 +433,7 @@ Otherwise the data is free to use commercially or otherwise.
 
 The URL that can be viewed in a web browser: https://ipfs.io/ipfs/bafybeigovcysmghsyab6ia3raycsebbc32kea2k4qoxcsujmp52hzpsghy
 
-Current IPFS addresses for the top-level dataset filesystem are:
+Current IPFS addresses for each top-level asset group are:
 
 .. temp
 
@@ -460,9 +482,7 @@ Current IPFS addresses for the top-level dataset filesystem are:
     bafybeicqdlnupmpn54ehiqfqwhiwejh5sl5dizqsb2gsr6rk6aszszu2ue - shitspotter_dvc/assets/poop-2023-11-16-T154909
     bafybeiboaujmbfrmopu4qguc6klv2s7ubxq3z4fka2u3d5m6i7waykonuy - shitspotter_dvc/assets/poop-2023-12-19-T190904
     bafybeieyi3erbwzu5couwg4lrgr3xynq4xwtsoho3md6rhr6qfn5icl2vu - shitspotter_dvc/assets/poop-2023-12-19-T190904
-
-    bafybeigdoerp75pscmq7veoi2quh7p5oc3doeklepyscymrvt4hlcl4yvu - shitspotter_dvc/assets
-    bafybeibxxrs3w7iquirv262ctgcwgppgvaglgtvcabb76qt5iwqgwuzgv4 - shitspotter_dvc
+    bafybeicxiansxev6cipgp4lyykcfwregg3zlzlz2w4udpiggoyig7fsq3i - shitspotter_dvc/assets/poop-2024-03-30-T213537
 
 
 Acknowledgements

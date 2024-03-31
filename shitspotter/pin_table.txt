@@ -1,3 +1,5 @@
+ipfs pin add --progress --name shitspotter-2024-02-29 -- bafybeia2gphecs3pbrccwopg63aka7lxy5vj6btcwyazf47q6jlqjgagru
+
 ipfs pin add --progress --name shitspotter-2024-01-31 -- bafybeibxxrs3w7iquirv262ctgcwgppgvaglgtvcabb76qt5iwqgwuzgv4
 ipfs pin add --progress --name shitspotter-2023-12-31 -- bafybeihuem7qz2djallypbb6bo5z7ojqnjz5s4xj6j3c4w4aztqln4tbzu
 ipfs pin add --progress --name shitspotter-2023-12-19 -- bafybeifkufkmmx3qxbvxe5hbskxr4gijkevcryxwp3mys2pqf4yjv2tobu
