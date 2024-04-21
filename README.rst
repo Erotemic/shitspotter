@@ -509,17 +509,16 @@ I want to give special thanks to my first two poop machines - Honey and Bezoar
 .. image:: https://i.imgur.com/YUJjWoh.jpg
 
 
-Honey - (~2013 - ) - Adopted in 2015 and named for a
-`sweet concoction <https://en.wikipedia.org/wiki/Honey>`_ of insect
-regurgitation and enzymes, Honey is often called out for her resemblance to a
-fox and is notable for her eagerness for attention and outgoing personality.
-DNA analysis indicates that she is part Boxer, Beagle, German Shepard, and
-Golden Retriever.  Honey's likes include: breakfast, sniffing stinky things,
-digging holes, sleeping on soft things, viciously shaking small furry objects,
-and whining for absolutely no reason.  Honey's dislikes include: baths, loud
-noises, phone calls, and arguments.  Honey came to us from Ohio as a fearful
-dog, but has always been open to trusting new people.  She has grown into an
-intelligent and willful dog with a scrappy personality.
+Honey - (~2013 - ) - Adopted in 2015, Honey is often called out for her
+resemblance to a fox and is notable for her eagerness for attention and
+outgoing personality.  DNA analysis indicates that she is part Boxer, Beagle,
+German Shepard, and Golden Retriever.  Honey's likes include: breakfast,
+sniffing stinky things, digging holes, sleeping on soft things, viciously
+shaking small furry objects, and whining for absolutely no reason.  Honey's
+dislikes include: baths, loud noises, phone calls, and arguments.  Honey came
+to us from Ohio as a fearful dog, but has always been open to trusting new
+people.  She has grown into an intelligent and willful dog with a scrappy
+personality.
 
 .. An Image of Honey
 .. image:: https://i.imgur.com/gUzwgCT.jpg
@@ -554,12 +553,16 @@ immortalized through her contributions to this dataset.
 
 
 
-Roadie - (2016-04-29 - ) - Adopted in 2023, Roadie is the newest addition to the
-pack, and his bio will be updated as we learn more about him. He is 60%
-Australian Cattle Dog (Blue Healer) mixed with some Border Collie and Husky. He
-has tons of energy and tons of poopy.
-Roadies likes include: fetching the ball, staring deeply into eyes, pets, and invading personal space.
-Roadies dislikes include: dropping the ball, others not paying attention to him, and spinach.
+Roadie - (2016-04-29 - ) - Adopted in 2023, Roadie is an energetic blue healer
+who is not afraid to voice his opinions. His DNA test indicates he is 60%
+Australian Cattle Dog mixed with 20% Border Collie and small percents of Husky
+and Spaniel.  Roadie's likes include: fetching the ball, staring deeply into
+eyes, pets, and invading personal space.  Roadie's dislikes include: dropping
+the ball, steep staircases, and spinach. Roadie was originally from Texas, but
+came to us after his aging owners could no longer take care of him. Thusfar he
+has proven an excellent contributor to this project, pooping far more
+frequently than the other dogs and in novel locations that bolster the
+variation in the dataset.
 
 .. An Image of Roadie
 .. image:: https://i.imgur.com/yaZi5bO.jpg
