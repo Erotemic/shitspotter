@@ -561,8 +561,8 @@ eyes, pets, and invading personal space.  Roadie's dislikes include: dropping
 the ball, steep staircases, and spinach. Roadie was originally from Texas, but
 came to us after his aging owners could no longer take care of him. Thusfar he
 has proven an excellent contributor to this project, pooping far more
-frequently than the other dogs and in novel locations that bolster the
-variation in the dataset.
+frequently than the other dogs and in novel locations that bolster dataset
+diversity.
 
 .. An Image of Roadie
 .. image:: https://i.imgur.com/yaZi5bO.jpg
