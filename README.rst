@@ -509,7 +509,7 @@ I want to give special thanks to my first two poop machines - Honey and Bezoar
 .. image:: https://i.imgur.com/YUJjWoh.jpg
 
 
-Honey - (~2013 - ) - Adopted in 2015, Honey is often called out for her
+Honey - (~2013 - ) - Adopted in June 2015, Honey is often called out for her
 resemblance to a fox and is notable for her eagerness for attention and
 outgoing personality.  DNA analysis indicates that she is part Boxer, Beagle,
 German Shepard, and Golden Retriever.  Honey's likes include: breakfast,
@@ -527,7 +527,7 @@ personality.
 .. bafybeihuhrp6wtle5wuhsgcgf6bp7w4ol4pft7y2pcplylzly7gfag74lm bafybeic5a4kjrb37tdmc6pzlpcxe2x6hc4kggemnqm2mcdu4tmrzvir6vm/Contributor-Honey.jpg
 
 
-Bezoar - (~2018 - 2023-10-19) - Adopted in 2020 and named for a
+Bezoar - (~2018 - 2023-10-19) - Adopted in July 2020 and named for a
 `calcified hairball <https://en.wikipedia.org/wiki/Bezoar>`_, Bezoar was an
 awkward and shy dog, but grew into a curious and loving sweetheart.  Her DNA
 test indicated she was part Stafford Terrier, Cane Corso, Labrador Retriever,
@@ -553,15 +553,15 @@ immortalized through her contributions to this dataset.
 
 
 
-Roadie - (2016-04-29 - ) - Adopted in 2023, Roadie is an energetic blue healer
-who is not afraid to voice his opinions. His DNA test indicates he is 60%
-Australian Cattle Dog mixed with 20% Border Collie and small percents of Husky
-and Spaniel.  Roadie's likes include: fetching the ball, staring deeply into
-eyes, pets, and invading personal space.  Roadie's dislikes include: dropping
-the ball, steep staircases, and spinach. Roadie was originally from Texas, but
-came to us after his aging owners could no longer take care of him. Thusfar he
-has proven an excellent contributor to this project, pooping far more
-frequently than the other dogs and in novel locations that bolster dataset
+Roadie - (2016-04-29 - ) - Adopted in December 2023, Roadie is an energetic
+blue healer who is not afraid to voice his opinions. His DNA test indicates he
+is 60% Australian Cattle Dog mixed with 20% Border Collie and small percents of
+Husky and Spaniel.  Roadie's likes include: fetching the ball, staring deeply
+into eyes, pets, and invading personal space.  Roadie's dislikes include:
+dropping the ball, steep staircases, and spinach. Roadie was originally from
+Texas, but came to us after his aging owners could no longer take care of him.
+Thusfar he has proven an excellent contributor to this project, pooping far
+more frequently than the other dogs and in novel locations that bolster dataset
 diversity.
 
 .. An Image of Roadie
