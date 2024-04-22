@@ -1,0 +1,140 @@
+% WACV 2024 Paper Template
+% based on the CVPR 2023 template (https://media.icml.cc/Conferences/CVPR2023/cvpr2023-author_kit-v1_1-1.zip) with 2-track changes from the WACV 2023 template (https://github.com/wacv-pcs/WACV-2023-Author-Kit)
+% based on the CVPR template provided by Ming-Ming Cheng (https://github.com/MCG-NKU/CVPR_Template)
+% modified and extended by Stefan Roth (stefan.roth@NOSPAMtu-darmstadt.de)
+
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+%%%%%%%%% PAPER TYPE  - PLEASE UPDATE FOR FINAL VERSION
+%\usepackage[review,algorithms]{wacv}      % To produce the REVIEW version for the algorithms track
+%\usepackage[review,applications]{wacv}      % To produce the REVIEW version for the applications track
+\usepackage{wacv}              % To produce the CAMERA-READY version
+%\usepackage[pagenumbers]{wacv} % To force page numbers, e.g. for an arXiv version
+
+% Include other packages here, before hyperref.
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+
+
+% It is strongly recommended to use hyperref, especially for the review version.
+% hyperref with option pagebackref eases the reviewers' job.
+% Please disable hyperref *only* if you encounter grave issues, e.g. with the
+% file validation for the camera-ready version.
+%
+% If you comment hyperref and then uncomment it, you should delete
+% ReviewTempalte.aux before re-running LaTeX.
+% (Or just hit 'q' on the first LaTeX run, let it finish, and you
+%  should be clear).
+\usepackage[pagebackref,breaklinks,colorlinks]{hyperref}
+
+
+% Support for easy cross-referencing
+\usepackage[capitalize]{cleveref}
+\crefname{section}{Sec.}{Secs.}
+\Crefname{section}{Section}{Sections}
+\Crefname{table}{Table}{Tables}
+\crefname{table}{Tab.}{Tabs.}
+
+
+%%%%%%%%% PAPER ID  - PLEASE UPDATE
+\def\wacvPaperID{*****} % *** Enter the WACV Paper ID here
+\def\confName{WACV}
+\def\confYear{2024}
+
+
+\begin{document}
+
+\title{ShitSpotter --- A Dog Poop Detection Algorithm and Dataset}
+
+\author{Jonathan Crall\\
+Kitware\\
+{\tt\small jon.crall@kitware.com}
+%{\tt\small erotemic@gmail.com}
+% For a paper whose authors are all at the same institution,
+% omit the following lines up until the closing ``}''.
+% Additional authors and addresses can be added with ``\and'',
+% just like the second author.
+% To save space, use either the email address or home page, not both
+%\and
+%Second Author\\
+%Institution2\\
+%First line of institution2 address\\
+%{\tt\small secondauthor@i2.org}
+}
+\maketitle
+
+%%%%%%%%% ABSTRACT
+\begin{abstract}
+
+    This work chronicles one researcher's un-funded journey to build a phone
+    application that can detect dog poop in images, and make the data widely
+    available as a benchmark dataset.
+
+
+\end{abstract}
+
+%%%%%%%%% BODY TEXT
+\section{Introduction}
+\label{sec:intro}
+
+
+Poop detection is a simple problem, suitable for exploring the capabilities of
+object detection models while also containing non-trivial challenges.
+
+There are several challenges in detecting dog poop in phone-camera images.
+* Resolution
+* Distractors
+* Occlusion
+* Variation in appearance (old/new/healthy/sick)
+
+
+Hosting a dataset challenges intended for scientific use
+* Requires an institution willing to host or payment for a hosting service
+* Prone to outages (give VGG outage as example)
+* Requires updates (makes bittorrent difficult)
+
+
+%-------------------------------------------------------------------------
+\subsection{Related Work}
+
+Object detection
+
+TACO dataset <cite>
+
+MSHIT dataset <cite>
+
+Dog Poop Detection - Neeraj Madan
+
+Other poop work
+
+\subsection{Dataset Construction}
+
+Labelme for annotations with segment anything
+
+\subsection{Dataset Distribution}
+
+Discuss distributing the dataset via IPFS versus centralized distribution
+systems.
+
+\subsection{Experiments}
+
+Measure the performance of our algorithm versus a baseline.
+
+\subsection{Conclusion}
+
+IPFS is a promising solution for hosting scientific datasets, but does have pain points.
+
+Our dataset is sufficient to train an object detection network to (level of
+precision/recall).
+
+
+
+%%%%%%%%% REFERENCES
+{\small
+\bibliographystyle{ieee_fullname}
+\bibliography{egbib}
+}
+
+\end{document}

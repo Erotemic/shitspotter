@@ -153,12 +153,18 @@ I'll continue to refine this section.
 Apparently Roomba has an indoor poop dataset: https://www.engadget.com/irobot-roomba-j-7-object-poop-detection-040152887.html It would be interesting to combine the indoor / outdoor datasets, but we are more concerned about outdoor detection. Maybe Boston Dynamics and Roomba can take this dataset and do something interesting.
 
 The MSHIT fake dog poop dataset: https://www.kaggle.com/mikian/dog-poop is similar to this domain, but not the real-deal.
-This may be relevant, but I have not looked too deeply into it yet.
+THe dataset consists of 3.89GB of real images with fake poop (e.g. plastic
+poop) in controlled environments.
 
 There is Human Poop Classification: https://seed.com/poop/ and https://www.theverge.com/2019/10/29/20937108/poop-database-ai-training-photo-upload-first-mit but this is not our domain.
 
 Detect Images of Dogs Pooping: https://colab.research.google.com/github/matthewchung74/blogs/blob/dev/Dog_Pooping_Dectron.ipynb
 Unfortunately, this is detecting the action, and not the consequence.
+
+Calab Olson trained a dog-pose recognition network to detect when a specific dog was pooping.
+https://github.com/calebolson123/DogPoopDetector
+https://calebolson.com/blog/2022/01/14/dog-poop-detector.html
+https://www.youtube.com/watch?v=uWZu3rnj-kQ
 
 A Dog Poop DNA database could be used in conjunction with this work: https://www.bbc.com/news/uk-england-somerset-56324906
 
@@ -174,6 +180,7 @@ The TACO dataset is Trash Annotations in Context. It could be the case that this
 
 SnapCrap: An app to report poop on the streets of San Francisco
 https://medium.com/@miller.stowe/snapcrap-why-i-built-an-app-to-report-poop-on-the-streets-of-san-francisco-aac12382a7ce
+It is now defunct and no longer available.
 
 Other related links I haven't gone through well enough yet:
 
