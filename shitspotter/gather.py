@@ -249,6 +249,8 @@ def main():
             # labelme_data = json.loads(fpath.read_text())
             imginfo, annsinfo = labelme_to_coco_structure(labelme_data)
             image_name = imginfo['file_name'].rsplit('.', 1)[0]
+            if image_name not in coco_dset.index.name_to_img:
+                continue
             img = coco_dset.index.name_to_img[image_name]
 
             # Construct the inverted exif transform
