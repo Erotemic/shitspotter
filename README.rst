@@ -81,14 +81,14 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
-* 2024-05-21 - Slowing down release cycles. Still collecting images at roughly the same rate.
-* 2024-03-30 - New CID is ``bafybeibw5xqmdiycd7vw5qqdf3ceidjbq3cv4taalkc3ruu3qeqmqdy6sm``. This includes recent models that have been performing reasonably well.
-* 2024-02-29 - New CID is ``bafybeia2gphecs3pbrccwopg63aka7lxy5vj6btcwyazf47q6jlqjgagru``. Going to change this year to be 1/3 validation, next update will have a new split. Will also rework this README eventually.
+* 2024-05-21 - Slowing down release cycles. Still collecting images at roughly the same rate. CIDs for recent and previous releases are now in the CID table.
+* 2024-03-30 - This includes recent models that have been performing reasonably well.
+* 2024-02-29 - Going to change this year to be 1/3 validation, next update will have a new split. Will also rework this README eventually.
 * 2024-02-22 - Added centralized Girder download link to increase accessibility of the data with an ok-ish pretrained model.
-* 2024-01-31 - First update of 2024. New images are being added to the validation split. New CID is ``bafybeibxxrs3w7iquirv262ctgcwgppgvaglgtvcabb76qt5iwqgwuzgv4``.
-* 2023-12-31 - Last update of 2023. We also welcome a new content contributor: Roadie. Details will be added in the acknowledgements. New CID is ``bafybeihuem7qz2djallypbb6bo5z7ojqnjz5s4xj6j3c4w4aztqln4tbzu``.
-* 2023-12-20 - More images and many more annotations. Data collected next year (2024) will be part of the validation set. New CID is ``bafybeifkufkmmx3qxbvxe5hbskxr4gijkevcryxwp3mys2pqf4yjv2tobu``.
-* 2023-11-17 - More images and annotations. New CID is ``bafybeie275n5f4f64vodekmodnktbnigsvbxktffvy2xxkcfsqxlie4hrm``.
+* 2024-01-31 - First update of 2024. New images are being added to the validation split.
+* 2023-12-31 - Last update of 2023. We also welcome a new content contributor: Roadie. Details will be added in the acknowledgements.
+* 2023-12-20 - More images and many more annotations. Data collected next year (2024) will be part of the validation set.
+* 2023-11-17 - More images and annotations.
 * 2023-10-19 - A few new images, the last images from Bezoar, who passed away today.
 * 2023-10-15 - The next phase of the project - annotation and training - has begun. Also 82 new images.
 * 2023-08-22 - 182 new images.
