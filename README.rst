@@ -53,10 +53,10 @@ The `IPFS CID <https://docs.ipfs.tech/concepts/content-addressing/>`_ (Content I
 
 .. code::
 
-    bafybeibw5xqmdiycd7vw5qqdf3ceidjbq3cv4taalkc3ruu3qeqmqdy6sm
+    bafybeia44hiextgcpjfvglib66gxziaf7jkvno63p7h7fsqkxi5vpgpvay
 
 The dataset can be viewed in a webbrowser through an IPFS gateway:
-https://ipfs.io/ipfs/bafybeibw5xqmdiycd7vw5qqdf3ceidjbq3cv4taalkc3ruu3qeqmqdy6sm
+https://ipfs.io/ipfs/bafybeia44hiextgcpjfvglib66gxziaf7jkvno63p7h7fsqkxi5vpgpvay
 
 If you have an IPFS node, please help keep this dataset alive and available by pinning it.
 
@@ -81,6 +81,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2024-06-15 - Small image drop. Working on writeup. Training new models.
 * 2024-05-21 - Slowing down release cycles. Still collecting images at roughly the same rate. CIDs for recent and previous releases are now in the CID table.
 * 2024-03-30 - This includes recent models that have been performing reasonably well.
 * 2024-02-29 - Going to change this year to be 1/3 validation, next update will have a new split. Will also rework this README eventually.
@@ -312,6 +313,8 @@ registration via the SIFT+RANSAC algorithm.
 | 2024-03-30  | 6019     | ~2137               | 1549                  | 2133                  | bafybeibw5xqmdiycd7vw5qqdf3ceidjbq3cv4taalkc3ruu3qeqmqdy6sm  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 | 2024-05-21  | 6373     | ~2255               | 1640                  | 2252                  | bafybeidle54us5cdwpzzis4h52wjmtsk643gprx7nvvtd6g26mxq76kfjm  |
++-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
+| 2024-06-15  | 6545     | ~2313               | 1684                  | 2311                  | bafybeia44hiextgcpjfvglib66gxziaf7jkvno63p7h7fsqkxi5vpgpvay  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 
 

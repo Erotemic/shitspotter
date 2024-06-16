@@ -58,7 +58,7 @@ class RemoteFromPhoneConfig(scfg.DataConfig):
         prepared_transfer_fpath = cache_dpath / 'prepared_transfer.pkl'
         if lock_fpath.exists():
             raise Exception(
-                f'Previous transfer lockfile exists: {prepared_transfer_fpath}. '
+                f'Previous transfer lockfile exists: {lock_fpath}. '
                 'Needs to implement resume or cleanup dirty state')
         lock_fpath.touch()
 
@@ -362,6 +362,8 @@ def transfer_phone_pictures(new_dpath, needs_transfer_infos):
         """
         TODO: wrap some super fast protocol like rsync.
         Progress bars like with dvc would be neat.
+
+        TODO: see kwutil CopyManager
         """
         pass
 
