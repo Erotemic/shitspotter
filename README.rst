@@ -210,7 +210,8 @@ Known dataset biases are:
 The following scatterplot illustrates trends in the space / time distribution of the images.
 
 .. .. image:: https://ipfs.io/ipfs/bafybeibnofjvl7amoiw6gx4hq5w3hfvl3iid2y45l4pipcqgl5nedpngzi/analysis/scat_scatterplot.png
-.. image:: https://i.imgur.com/78EfIpl.png
+.. image:: https://i.imgur.com/aPvRJ3q.png
+.. .. image:: https://i.imgur.com/78EfIpl.png
 .. .. image:: https://i.imgur.com/tL1rHPP.png
 .. .. image:: https://imgur.com/DeUesAC.png
 .. .. image:: https://imgur.com/q6XzSKa.png
@@ -220,7 +221,8 @@ The following scatterplot illustrates trends in the space / time distribution of
 A visualization of the cumulative number of images collected over time is as follows:
 
 .. .. image:: /analysis/images_over_time.png
-.. image:: https://i.imgur.com/lQCNvNn.png
+.. image:: https://i.imgur.com/KkrKx7e.png
+.. .. image:: https://i.imgur.com/lQCNvNn.png
 .. .. image:: https://imgur.com/vrAzrfj.png
 .. .. image:: https://imgur.com/C2X1NCt.png
 .. .. image:: https://i.imgur.com/ppPXo6X.png
