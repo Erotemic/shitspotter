@@ -96,12 +96,28 @@ Hosting a dataset challenges intended for scientific use
 * Requires updates (makes bittorrent difficult)
 
 
+Compare and Contrast:
+* Centralized
+* BitTorrent
+* IPFS
+
+% https://gist.github.com/liamzebedee/4be7d3a551c6cddb24a279c4621db74c
+% https://gist.github.com/liamzebedee/224494052fb6037d07a4293ceca9d6e7
+
+
+% https://arxiv.org/abs/1803.09010
+Data is released with a datasheet describing its characteristics \cite{gebru_datasheets_2021}.
+
+% BitTorrent can be vulnerable to MITM:
+% https://www.reddit.com/r/technology/comments/1dpinuw/south_korean_telecom_company_attacks_torrent/
+
+
 %-------------------------------------------------------------------------
 \subsection{Related Work}
 
 Object detection
 
-TACO dataset <cite>
+TACO dataset: \cite{proenca_taco_2020}
 
 MSHIT dataset <cite>
 
@@ -111,7 +127,12 @@ Other poop work
 
 \subsection{Dataset Construction}
 
-Labelme for annotations with segment anything
+Labelme \cite{wada_labelmeailabelme_nodate} for annotations with segment anything \cite{kirillov_segment_2023}.
+
+Anecdotal note: SAM worked well to automatically segment the poop, many of
+these needed adjustments, especially in regions of shadows, but there were
+cases that required a completely manual approach. Unfortunately a clean record
+of what cases these were does not exist. 
 
 \subsection{Dataset Distribution}
 
@@ -132,14 +153,28 @@ Observations:
 IPFS vs BitTorrent:
 https://gist.github.com/liamzebedee/224494052fb6037d07a4293ceca9d6e7
 
+Kademlia - distributed hash table [Steiner, En-Najjary, Biersack 2022]
+
+The Mainline Tracker is a DHT for bittorrent.
+
+% See Also:
+% Long Term Study of Peer Behavior in the KAD DHT
+% https://git.gnunet.org/bibliography.git/plain/docs/Long_Term_Study_of_Peer_Behavior_in_the_kad_DHT.pdf
+% We have been crawling the entire KAD network once a day for more than a year to track end-users with static
+% IP addresses, which allows us to estimate end-user lifetime and the fraction of end-users changing their KAD ID.
+
 
 \subsection{Experiments}
 
 Measure the performance of our algorithm versus a baseline.
 
+Measure the speed of IPFS vs bittorrent.
+
 \subsection{Conclusion}
 
 IPFS is a promising solution for hosting scientific datasets, but does have pain points.
+In contrast bittorrent can do X/Y/Z, but ...
+Lastly there are centralized systems which ...
 
 Our dataset is sufficient to train an object detection network to (level of
 precision/recall).

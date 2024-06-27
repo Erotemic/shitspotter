@@ -24,7 +24,6 @@ inspect_kwcoco_files(){
     #geowatch stats "$TRAIN_FPATH" "$VALI_FPATH"
 }
 
-inspect_kwcoco_files
 EXPERIMENT_NAME="shitspotter_v1"
 
 CHANNELS="phone:(red|green|blue)"
