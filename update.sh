@@ -31,4 +31,3 @@ python -m shitspotter.matching autofind_pair_hueristic
 
 # The plots script
 python -m shitspotter.plots update_analysis_plots
-

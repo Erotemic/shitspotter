@@ -53,10 +53,10 @@ The `IPFS CID <https://docs.ipfs.tech/concepts/content-addressing/>`_ (Content I
 
 .. code::
 
-    bafybeia44hiextgcpjfvglib66gxziaf7jkvno63p7h7fsqkxi5vpgpvay
+    bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y
 
 The dataset can be viewed in a webbrowser through an IPFS gateway:
-https://ipfs.io/ipfs/bafybeia44hiextgcpjfvglib66gxziaf7jkvno63p7h7fsqkxi5vpgpvay
+https://ipfs.io/ipfs/bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y
 
 If you have an IPFS node, please help keep this dataset alive and available by pinning it.
 
@@ -74,13 +74,13 @@ storate has the upload from each update grouped in its own zipfile. If
 annotations for one of these folders changes, the entire zipfile will be
 reuploaded, so there will be no mechanism for version control.
 
-
 Recent Updates
 ==============
 
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2024-07-03 - Happy 4th 🎆, my dogs are shitting themselves.
 * 2024-06-15 - Small image drop. Working on writeup. Training new models.
 * 2024-05-21 - Slowing down release cycles. Still collecting images at roughly the same rate. CIDs for recent and previous releases are now in the CID table.
 * 2024-03-30 - This includes recent models that have been performing reasonably well.
@@ -318,6 +318,9 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 | 2024-06-15  | 6545     | ~2313               | 1684                  | 2311                  | bafybeia44hiextgcpjfvglib66gxziaf7jkvno63p7h7fsqkxi5vpgpvay  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
+| 2024-07-03  | 6648     | ~2347               | 1711                  | 2346                  | bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y  |
++-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
+
 
 
 For further details, see the `Datasheet <DATASHEET.md>`_.
