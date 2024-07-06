@@ -2,7 +2,7 @@
 __doc__="
 "
 
-#export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=0
 DVC_DATA_DPATH=$HOME/data/dvc-repos/shitspotter_dvc
 DVC_EXPT_DPATH=$HOME/data/dvc-repos/shitspotter_expt_dvc
 WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER
@@ -22,13 +22,13 @@ inspect_kwcoco_files(){
     #geowatch stats "$TRAIN_FPATH" "$VALI_FPATH"
 }
 #inspect_kwcoco_files
-EXPERIMENT_NAME="shitspotter_scratch_20240618_noboxes_v3"
+EXPERIMENT_NAME="shitspotter_scratch_20240618_noboxes_v4"
 
 CHANNELS="phone:(red|green|blue)"
 DEFAULT_ROOT_DIR=$WORKDIR/$DATASET_CODE/runs/$EXPERIMENT_NAME
-TARGET_LR=1e-3
+TARGET_LR=1e-4
 WEIGHT_DECAY=$(python -c "print($TARGET_LR * 0.01)")
-PERTERB_SCALE=$(python -c "print($TARGET_LR * 0.003)")
+PERTERB_SCALE=$(python -c "print($TARGET_LR * 0.0003)")
 DEVICES=$(python -c "if 1:
     import os
     n = len(os.environ.get('CUDA_VISIBLE_DEVICES', '').split(','))

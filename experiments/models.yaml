@@ -1,0 +1,20 @@
+
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_fromv28_newdata_20240615_v1/lightning_logs/version_0/checkpoints/epoch=0000-step=000043-val_loss=0.008.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_fromv28_newdata_20240615_v1/lightning_logs/version_0/checkpoints/epoch=0002-step=000129-val_loss=0.008.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_fromv28_newdata_20240615_v1/lightning_logs/version_2/checkpoints/epoch=0004-step=000215-val_loss=0.017.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_fromv28_newdata_20240615_v1/lightning_logs/version_2/checkpoints/epoch=0005-step=000258-val_loss=0.016.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_fromv28_newdata_20240615_v1/lightning_logs/version_2/checkpoints/epoch=0012-step=000559-val_loss=0.017.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_fromv28_newdata_20240615_v1/lightning_logs/version_3/checkpoints/epoch=0017-step=012294-val_loss=0.017.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_fromv28_newdata_20240615_v1/lightning_logs/version_3/checkpoints/epoch=0024-step=017075-val_loss=0.016.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_fromv28_newdata_20240615_v1/lightning_logs/version_3/checkpoints/epoch=0026-step=018441-val_loss=0.017.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_fromv28_newdata_20240615_v1/lightning_logs/version_3/checkpoints/epoch=0034-step=023905-val_loss=0.018.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_fromv28_newdata_20240615_v1/lightning_logs/version_3/checkpoints/epoch=0037-step=025954-val_loss=0.017.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v2/lightning_logs/version_0/checkpoints/epoch=0041-step=057372-val_loss=0.022.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v2/lightning_logs/version_0/checkpoints/epoch=0062-step=086058-val_loss=0.022.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v2/lightning_logs/version_0/checkpoints/epoch=0063-step=087424-val_loss=0.021.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v2/lightning_logs/version_0/checkpoints/epoch=0065-step=090156-val_loss=0.022.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v2/lightning_logs/version_0/checkpoints/epoch=0072-step=099718-val_loss=0.022.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_dvc/models/shitspotter_from_v027_halfres_v028-epoch=0121-step=000488-val_loss=0.005.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_dvc/models/shitspotter_from_v027_halfres_v028-epoch=0179-step=000720-val_loss=0.005.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_dvc/models/shitspotter_scratch_v025-version_2-epoch=1277-step=005112-val_loss=0.600.ckpt.pt
+

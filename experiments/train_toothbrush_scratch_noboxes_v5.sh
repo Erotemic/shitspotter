@@ -22,12 +22,12 @@ inspect_kwcoco_files(){
     #geowatch stats "$TRAIN_FPATH" "$VALI_FPATH"
 }
 #inspect_kwcoco_files
-EXPERIMENT_NAME="shitspotter_scratch_20240618_noboxes_v3"
+EXPERIMENT_NAME="shitspotter_scratch_20240618_noboxes_v4"
 
 CHANNELS="phone:(red|green|blue)"
 DEFAULT_ROOT_DIR=$WORKDIR/$DATASET_CODE/runs/$EXPERIMENT_NAME
-TARGET_LR=1e-3
-WEIGHT_DECAY=$(python -c "print($TARGET_LR * 0.01)")
+TARGET_LR=1e-4
+WEIGHT_DECAY=$(python -c "print($TARGET_LR * 0.1)")
 PERTERB_SCALE=$(python -c "print($TARGET_LR * 0.003)")
 DEVICES=$(python -c "if 1:
     import os
