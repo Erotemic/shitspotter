@@ -182,7 +182,7 @@ python -m geowatch.mlops.aggregate \
         - heatmap_eval
     " \
     --stdout_report="
-        top_k: 10000
+        top_k: 100
         per_group: 1
         macro_analysis: 0
         analyze: 0
@@ -194,16 +194,17 @@ python -m geowatch.mlops.aggregate \
     --plot_params="
         enabled: 1
         stats_ranking: 0
-        min_variations: 1
-        max_variations: 8
+        min_variations: 2
+        max_variations: 40
         min_support: 2
-        #params_of_interest:
-        #    - resolved_params.heatmap_pred_fit.model.init_args.arch_name
-        #    - resolved_params.heatmap_pred_fit.model.init_args.learning_rate
-        #    - resolved_params.heatmap_pred_fit.model.init_args.weight_decay
-        #    - resolved_params.heatmap_pred_fit.model.init_args.weight_decay
-        #    - resolved_params.heatmap_pred_fit.model.init_args.perterb_scale
-    " \
-    --query="
-    df['resolved_params.heatmap_pred_fit.trainer.default_root_dir'].apply(lambda p: str(p).split('/')[-1]).str.contains('noboxes')
+        params_of_interest:
+            - resolved_params.heatmap_pred_fit.model.init_args.arch_name
+            - resolved_params.heatmap_pred_fit.model.init_args.perterb_scale
+            - resolved_params.heatmap_pred_fit.optimizer.init_args.lr
+            - resolved_params.heatmap_pred_fit.optimizer.init_args.weight_decay
+            - resolved_params.heatmap_pred_fit.trainer.default_root_dir
     "
+    #\
+    #--query="
+    #df['resolved_params.heatmap_pred_fit.trainer.default_root_dir'].apply(lambda p: str(p).split('/')[-1]).str.contains('noboxes')
+    #"

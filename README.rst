@@ -22,18 +22,20 @@ or perhaps city governments could use this to more efficiently clean public area
 This module will contain an algorithm for training a pytorch network to detect poop in images, and a script
 for detecting poop in unseen images given a pretrained model.
 
-The dataset currently contains 35GB of outdoor images taken with a phone. The general process of acquiring the dataset has been:
+The dataset currently contains mostly outdoor images taken with a phone. The general process of acquiring the dataset has been:
 1. My dog poops or I see a rogue poop,
 2. I take a "before" picture of the poop,
 3. I pick up the poop,
 4. I take an "after" picture as a high-correlation negative, and
 5. I take a 3rd image of a different nearby area to get a lower-correlation-negative.
-The dataset is currently unannotated, but but before/after pairs will help with bootstrapping.
-Annotations and the data manifest will be managed using kwcoco.
+New data is added roughly each month, and each new set of data adds about 1GB
+to the dataset size.
+Most of the dataset is unannotated with segmentation polygons.
+Annotations and the data manifest are managed using kwcoco.
 
-Both the code and the dataset will be open source.
-The code will be published as it is written to this repo.
-The data and pretrained models will be made public on IPFS.
+The code and the dataset are open source with permissive licensing.
+The data and pretrained models are distributed via IPFS, BitTorrent, and
+centralized mechanisms.
 
 
 Downloading
@@ -70,7 +72,7 @@ dataset will be mirrored on a centralized Girder server:
 https://data.kitware.com/#user/598a19658d777f7d33e9c18b/folder/65d6c52fb40ab0fa6c57909b
 
 Unlike IPFS, which (ideally) gives seemless access to the data, the centralized
-storate has the upload from each update grouped in its own zipfile. If
+storage has the upload from each update grouped in its own zipfile. If
 annotations for one of these folders changes, the entire zipfile will be
 reuploaded, so there will be no mechanism for version control.
 
