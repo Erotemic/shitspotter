@@ -37,14 +37,14 @@ https://forum.transmissionbt.com/viewtopic.php?t=9778
    cat $TORRENT_FPATH
 
    # Start seeding the torrent
-   transmission-cli "$TORRENT_FPATH" -w $(dirname $DATA_DPATH)
+   # transmission-cli "$TORRENT_FPATH" -w $(dirname $DATA_DPATH)
 
    # Do we need additional flags to tell transmission we have the data already?
    # --download-dir tmpdata
 
    # On remote machine
    rsync toothbrush:tmp/create-torrent-demo/shared-demo-data.torrent .
-   transmission-cli shared-demo-data.torrent --download-dir tmpdata
+   transmission-cli shared-demo-data.torrent --download-dir DATA_DPATH
 
 
 
@@ -53,6 +53,9 @@ Machine Setup
 -------------
 
 Ensure that the torrent port is open and correctly fowarded.
+
+This may require configuring your router to forward port 51413 to the seeding
+machine.
 
 .. code::
 
@@ -77,9 +80,6 @@ Install the transmission bittorrent client.
     # Install Transmission
     sudo apt-get install transmission-daemon transmission-cli
 
-    # Install the GUI as well, although this is not needed.
-    sudo apt install transmission-gtk
-
 
 Configure transmission to allow for local peer discovery
 
@@ -100,11 +100,16 @@ Configure transmission to allow for local peer discovery
     # Verify the status of the daemon
     systemctl status transmission-daemon.service
 
+Optional Install a GUI:
+
+.. code::
+
+    # Install the GUI as well, although this is not needed.
+    sudo apt install transmission-gtk
+
 
 Small Demo to Verify Torrents Download Correctly
 ------------------------------------------------
-
-(Not Working Yet, FIXME)
 
 On the seeding machine
 
@@ -112,8 +117,8 @@ On the seeding machine
 
    # Create a dummy set of data that will be shared
    WORKING_DPATH=$HOME/tmp/create-torrent-demo
-   DATA_DPATH=$WORKING_DPATH/shared-demo-data-v1
-   TORRENT_FPATH=$WORKING_DPATH/shared-demo-data-v1.torrent
+   DATA_DPATH=$WORKING_DPATH/shared-demo-data-v001
+   TORRENT_FPATH=$WORKING_DPATH/shared-demo-data-v001.torrent
 
    mkdir -p "$WORKING_DPATH"
    cd $WORKING_DPATH
@@ -123,9 +128,69 @@ On the seeding machine
    echo "some data" > $DATA_DPATH/data2.txt
    echo "some other data" > $DATA_DPATH/data3.txt
 
-   transmission-create --comment "a demo torrent v1" --outfile "$TORRENT_FPATH" "$DATA_DPATH"
+   # A list of open tracker URLS is:
+   # https://gist.github.com/mcandre/eab4166938ed4205bef4
+   TRACKER_URL=udp://tracker.openbittorrent.com:80
+   COMMENT="a demo torrent v1"
+
+   transmission-create --comment "$COMMENT" --tracker "$TRACKER_URL" --outfile "$TORRENT_FPATH" "$DATA_DPATH"
 
    cat "$TORRENT_FPATH"
+
+   tree -f $DATA_DPATH
+
+   # Start seeding the transmission daemon
+   transmission-remote --auth transmission:transmission --add "$TORRENT_FPATH" --download-dir "$(dirname $DATA_DPATH)"
+
+   # Show Registered Torrents to verify success
+   transmission-remote --auth transmission:transmission --list
+
+   # DEBUGGING
+   # https://forum.transmissionbt.com/viewtopic.php?t=11830
+
+   # Start the torrent
+   transmission-remote --auth transmission:transmission --torrent 1 --start
+   transmission-remote --auth transmission:transmission -t1 -i
+   transmission-remote --auth transmission:transmission --list
+
+   # Alternative: start seeding the torrent
+   # Ensure that the download directory contains the data to be seeded
+   # transmission-cli --verify --download-dir "$(dirname $DATA_DPATH)" $TORRENT_FPATH
+
+
+On the downloading machine
+
+.. code:: bash
+
+   SEEDING_MACHINE_NAME=some_remote_name
+   # SEEDING_MACHINE_NAME=toothbrush
+   SEEDING_MACHINE_NAME=jojo
+
+   rsync $SEEDING_MACHINE_NAME:tmp/create-torrent-demo/shared-demo-data-v001.torrent .
+
+   TEST_DOWNLOAD_DPATH="$HOME/tmp/transmission-dl"
+   mkdir -p "$TEST_DOWNLOAD_DPATH"
+   transmission-remote --auth transmission:transmission --add "shared-demo-data-v001.torrent" -w "$TEST_DOWNLOAD_DPATH"
+   transmission-remote --auth transmission:transmission --list
+
+   tree $TEST_DOWNLOAD_DPATH
+
+   # Show Registered Torrents to verify success
+   transmission-remote --auth transmission:transmission --list
+
+   # transmission-cli shared-demo-data-v1.torrent
+   transmission-remote --auth transmission:transmission -t3 -i
+
+
+Misc Notes
+----------
+
+Other notes that are not well organized yet
+
+.. code:: bash
+   ###################################
+   # Work In Progress After This Point
+   ###################################
 
    # Start seeding the torrent
    # Ensure that the download directory contains the data to be seeded
@@ -155,26 +220,35 @@ On the seeding machine
    transmission-remote --auth transmission:transmission -tall -f
    transmission-remote --auth transmission:transmission -tall --get all
 
-
-
    transmission-remote --auth transmission:transmission --add "$TORRENT_FPATH" --download-dir "$(dirname $DATA_DPATH)"
 
 On the downloading machine, do something to transfer the torrent file itself.
 
 .. code:: bash
 
-   SEEDING_MACHINE_NAME=remote
-   SEEDING_MACHINE_NAME=toothbrush
+   SEEDING_MACHINE_NAME=some_remote_name
+   # SEEDING_MACHINE_NAME=toothbrush
+   SEEDING_MACHINE_NAME=jojo
 
-   SEEDING_MACHINE_NAME=remote
    rsync $SEEDING_MACHINE_NAME:tmp/create-torrent-demo/shared-demo-data-v1.torrent .
 
-   transmission-cli shared-demo-data-v1.torrent
+   TEST_DOWNLOAD_DPATH="$HOME/tmp/transmission-dl"
+   transmission-remote --auth transmission:transmission --add "shared-demo-data-v1.torrent" -w "$TEST_DOWNLOAD_DPATH"
 
-   rsync toothbrush:shitspotter.torrent .
-   transmission-remote --auth transmission:transmission --add "shitspotter.torrent"
-   transmission-remote --auth transmission:transmission --add "shitspotter.torrent" -w "$HOME/data/dvc-repos"
+   # transmission-cli shared-demo-data-v1.torrent
+
+
+   # Shistposter test
+
+   #rsync toothbrush:shitspotter.torrent .
+   #transmission-remote --auth transmission:transmission --add "shitspotter.torrent"
+   #transmission-remote --auth transmission:transmission --add "shitspotter.torrent" -w "$HOME/data/dvc-repos"
    # transmission-remote --auth transmission:transmission --add "shared-demo-data-v1.torrent"
+
+   transmission-remote --auth transmission:transmission --add "$TORRENT_FPATH" --download-dir "$(dirname $DATA_DPATH)"
+
+   # Show Registered Torrents to verify success
+   transmission-remote --auth transmission:transmission --list
 
 
 
@@ -188,17 +262,26 @@ Instructions To Create The Torrent
     Install Instructions Are Modified ChatGPT outputs
     (which was very helpful here).
 
-.. code::
+.. code:: bash
 
     # Install Transmission CLI
     sudo apt-get install transmission-daemon transmission-cli
 
     # Create a new torrent
     DVC_DATA_DPATH=$HOME/data/dvc-repos/shitspotter_dvc
-    transmission-create -o shitspotter.torrent $HOME/data/dvc-repos/shitspotter_dvc
+    cd $DVC_DATA_DPATH
+
+    TRACKER_URL=udp://tracker.openbittorrent.com:80
+    transmission-create \
+        --outfile shitspotter_dvc.torrent \
+        --tracker "$TRACKER_URL" \
+        --comment "first shitspotter torrent" \
+        $HOME/data/dvc-repos/shitspotter_dvc
 
     # Start seeding the torrent
-    transmission-cli shitspotter.torrent --download-dir tmpdata
+    transmission-remote --auth transmission:transmission --add shitspotter_dvc.torrent --download-dir $HOME/data/dvc-repos
+
+    transmission-remote --auth transmission:transmission --list
 
     # Enable local peer discovery in the settings
     cat ~/.config/transmission/settings.json | grep lpd
@@ -212,10 +295,14 @@ Testing On Local Network
 ------------------------
 
 
-.. code::
+.. code:: bash
 
-    rysnc jojo:shitspotter.torrent .
-    transmission-cli shitspotter.torrent --download-dir tmpdata
+    rsync jojo:data/dvc-repos/shitspotter_dvc/shitspotter_dvc.torrent .
+
+    mkdir -p ./tmpdata
+    transmission-remote --auth transmission:transmission --add shitspotter_dvc.torrent --download-dir $PWD/tmpdata
+    transmission-remote --auth transmission:transmission --list
+    #transmission-cli shitspotter.torrent --download-dir tmpdata
 
 
 Instructions To Download/Seed The Torrent

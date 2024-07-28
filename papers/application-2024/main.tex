@@ -83,49 +83,49 @@ Kitware\\
 Poop detection is a simple problem, suitable for exploring the capabilities of
 object detection models while also containing non-trivial challenges.
 
-There are several challenges in detecting dog poop in phone-camera images.
-* Resolution
-* Distractors
-* Occlusion
-* Variation in appearance (old/new/healthy/sick)
+There are several challenges in detecting dog poop in phone-camera images:
+resolution,
+distractors,
+occlusion,
+variation in appearance (old/new/healthy/sick).
 
+Discuss building the dataset
 
-Hosting a dataset challenges intended for scientific use
-* Requires an institution willing to host or payment for a hosting service
-* Prone to outages (give VGG outage as example)
-* Requires updates (makes bittorrent difficult)
+Discuss building the segmentation models
 
+For a dataset to be of scientific use it must be accessible. 
 
-Compare and Contrast:
-* Centralized
-* BitTorrent
-* IPFS
+Centralized methods are the typical choice and offer very good speeds, 
+but they requires an institution willing to host or payment for a hosting service,
+can prone to outages (give VGG outage as example),
+and version control is not built in.
+
+Decentralized methods allow volunteers to host data offers ability to validate
+data integrity. This motivates us to compare and contrast Cloud Services,
+BitTorrent, and IPFS as mechanisms for distributing datasets.
+
+Our contributions are:
+1. A challenging new \textbf{open dataset} of images with polygon segmentations.
+2. An experimental \textbf{evaluation of baseline training} methods.
+3. An experimental \textbf{comparison of dataset distribution} methods.
+4. \textbf{Open code and models}.
+Related work is discussed at the end.
 
 % https://gist.github.com/liamzebedee/4be7d3a551c6cddb24a279c4621db74c
 % https://gist.github.com/liamzebedee/224494052fb6037d07a4293ceca9d6e7
 
 
+\section{Dataset}
+
+Our first contribution is the collection of a new open dataset.
+
+
 % https://arxiv.org/abs/1803.09010
 Data is released with a datasheet describing its characteristics \cite{gebru_datasheets_2021}.
 
-% BitTorrent can be vulnerable to MITM:
-% https://www.reddit.com/r/technology/comments/1dpinuw/south_korean_telecom_company_attacks_torrent/
+Challenges
 
-
-%-------------------------------------------------------------------------
-\subsection{Related Work}
-
-Object detection
-
-TACO dataset: \cite{proenca_taco_2020}
-
-MSHIT dataset <cite>
-
-Dog Poop Detection - Neeraj Madan
-
-Other poop work
-
-\subsection{Dataset Construction}
+\paragraph{Construction}
 
 Labelme \cite{wada_labelmeailabelme_nodate} for annotations with segment anything \cite{kirillov_segment_2023}.
 
@@ -134,20 +134,83 @@ these needed adjustments, especially in regions of shadows, but there were
 cases that required a completely manual approach. Unfortunately a clean record
 of what cases these were does not exist. 
 
-\subsection{Dataset Distribution}
+\paragraph{Analysis}
+
+Number of images, annotations, and other stats.
+
+
+\section{Models}
+
+Our second contribution is an evaluation of several trained models to serve as
+a baseline.
+
+We use the training and evaluation system of \cite{crall_igarss_2024}, which
+can be trained to predict heatmaps from polygons and can evaluate those
+heatmaps on a pixelwise-level. 
+
+The baseline architecture is a variant of a vision-transformer \cite{vit,split-attention,greenwell_wacv_2023}.
+
+Number of parameters.
+Memory at train time.
+Memory at predict time.
+
+We train several models and vary the learning rate, weight decay, 
+shrink-and-perterb regularization \cite{warmstart}, as well as other 
+ad hoc experiment settings.
+%\textbf{Static Parameters}:
+
+\subsection{Model Experiments}
+
+After finding a reasonable performing starting point, we performed an ablation
+over learning rate and regularization parameters. 
+
+This restricted set is illustrated in \Cref{fig:scatter-subset}.
+
+We evaluate each model with standard pixelwise segmentation metrics with a
+focus on average-precision (AP) and  area under the ROC curve (AUC)
+\cite{metrics} .
+
+\Cref{fig:scatter-all} illustrates the AP and AUC of all baseline models trained.
+These include ad-hoc parameters settings when searching for a stable training
+configuration.
+
+The resources used are given in \Cref{fig:resource}.
+
+\section{Distribution}
+
+% BitTorrent can be vulnerable to MITM:
+% https://www.reddit.com/r/technology/comments/1dpinuw/south_korean_telecom_company_attacks_torrent/
+
+Our third contribution is an exploration of distributed and centralized data distribution methods. 
+
+Cloud storage for a modest amount of data can be expensive.
+
+Decentralized methods can allow information to persist so long as at least 1
+person has the data.
+
+BitTorrent is a well known distributed system.
+
+IPFS is a new similar tool.
+
+
+
+
+In order to 
 
 Discuss distributing the dataset via IPFS versus centralized distribution
 systems.
 
-Decentralized Method - IPFS
+Decentralized Method - IPFS and BitTorrent.
 Centralized Method - Girder
 
 Observations:
-* IPFS via https using gateways does not always work well.
-* IPFS usually works well if you use the CLI.
-* IPFS is easier to update.
-* IPFS does rehash every file, which induces an O(N) scalability constraint.
-* IPFS does rehash every file, which induces an O(N) scalability constraint.
+\begin{itemize}
+    \item IPFS via https using gateways does not always work well.
+    \item IPFS usually works well if you use the CLI.
+    \item IPFS is easier to update.
+    \item IPFS does rehash every file, which induces an O(N) scalability constraint.
+    \item IPFS does rehash every file, which induces an O(N) scalability constraint.
+\end{itemize}
 
 
 IPFS vs BitTorrent:
@@ -169,43 +232,51 @@ Dataset is (will be) tracked on Academic Torrents \cite{academic_torrents_Cohen2
 https://academictorrents.com/docs/about.html
 
 
-\subsection{Experiments}
+\subsection{Distribution Experiments}
 
 Measure the performance of our algorithm versus a baseline.
 
 Measure the speed of IPFS vs bittorrent.
 
-Define Model - Separated Attention Transformer
+%-------------------------------------------------------------------------
+\section{Related Work}
 
-Define training protocol
+Object detection
 
-Define Parameter Search Space - Learning Rate / 
+TACO dataset: \cite{proenca_taco_2020}. Trash bounding box annotations.
 
-Define quality metrics - Pixel IoU
+MSHIT dataset <cite>
 
-Plot Scatter Plots and Box Plots
+Dog Poop Detection - Neeraj Madan
 
-Make any inferences
+Other poop work
 
+\section{Conclusion}
 
-\subsection{Future}
+The ShitSpotter dataset is 42GB of images with polygon segmentations of dog
+poop. 
 
-The future of the project will:
-
-* Add lightweight object-level head and test object detection metrics
-* Optimize model architectures for mobile devices
-* Launch phone application
-* Improve distributed distribution mechanisms
-
-\subsection{Conclusion}
-
-IPFS is a promising solution for hosting scientific datasets, but does have pain points.
-In contrast bittorrent can do X/Y/Z, but ...
-Lastly there are centralized systems which ...
+We train and evaluate several baseline segmentation models, the best of which 
+achieve an AP/AUC of ...
 
 Our dataset is sufficient to train an object detection network to (level of
 precision/recall).
 
+We make data and models available over 3 distribution mechanisms: 
+cloud storage, bit-torrent, and IPFS.
+
+Decentralized methods are feasible methods of distribution, with strong
+security but they can be slow.
+IPFS is a promising solution for hosting scientific datasets, but does have pain points.
+In contrast bittorrent can do X/Y/Z, but ...
+Lastly centralized cloud storage can give the best speeds, but sacrifices some
+security and can be less robust.
+
+Directions for future research / development are:
+1. Add lightweight object-level head and test object detection metrics.
+2. Optimize model architectures for mobile devices.
+3. Launch phone application.
+4. Improve model / data distribution.
 
 
 %%%%%%%%% REFERENCES
