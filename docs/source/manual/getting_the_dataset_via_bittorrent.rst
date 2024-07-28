@@ -104,6 +104,8 @@ Configure transmission to allow for local peer discovery
 Small Demo to Verify Torrents Download Correctly
 ------------------------------------------------
 
+(Not Working Yet, FIXME)
+
 On the seeding machine
 
 .. code:: bash

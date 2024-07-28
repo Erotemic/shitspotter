@@ -22,7 +22,7 @@ inspect_kwcoco_files(){
     #geowatch stats "$TRAIN_FPATH" "$VALI_FPATH"
 }
 #inspect_kwcoco_files
-EXPERIMENT_NAME="shitspotter_scratch_20240618_noboxes_v4"
+EXPERIMENT_NAME="shitspotter_scratch_20240618_noboxes_v5"
 
 CHANNELS="phone:(red|green|blue)"
 DEFAULT_ROOT_DIR=$WORKDIR/$DATASET_CODE/runs/$EXPERIMENT_NAME
