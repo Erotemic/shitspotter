@@ -7,7 +7,7 @@ class CocoAnnotationStatsCLI(scfg.DataConfig):
     """
     Inspect properties of annotations write stdout and programatic reports.
     """
-    src = scfg.Value(None, help='path to kwcoco file')
+    src = scfg.Value(None, help='path to kwcoco file', position=1)
     dst_fpath = scfg.Value('auto', help='manifest of results. If unspecfied defaults to dst_dpath / "stats.json"')
     dst_dpath = scfg.Value('./coco_annot_stats', help='directory to dump results')
 
@@ -133,7 +133,7 @@ def draw_plots(plots_dpath, perannot_data, perimage_data, polys, boxes):
     sns.kdeplot(data=perannot_data, x='centroid_x', y='centroid_y', ax=ax)
     sns.scatterplot(data=perannot_data, x='centroid_x', y='centroid_y', ax=ax, hue='rt_area', alpha=0.9)
     ax.set_aspect('equal')
-    ax.set_title('Polygon Absolute Centroid Position Distribution')
+    ax.set_title('Polygon Absolute Centroid Positions')
     #ax.set_xlim(0, max_width)
     #ax.set_ylim(0, max_height)
     ax.set_xlim(0, ax.get_xlim()[1])
@@ -149,7 +149,7 @@ def draw_plots(plots_dpath, perannot_data, perimage_data, polys, boxes):
     sns.kdeplot(data=perannot_data, x='rel_centroid_x', y='rel_centroid_y', ax=ax)
     sns.scatterplot(data=perannot_data, x='rel_centroid_x', y='rel_centroid_y', ax=ax, hue='rt_area', alpha=0.9)
     ax.set_aspect('equal')
-    ax.set_title('Polygon Relative Centroid Position Distribution')
+    ax.set_title('Polygon Relative Centroid Positions')
     figman.labels.relabel(ax)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
@@ -165,8 +165,7 @@ def draw_plots(plots_dpath, perannot_data, perimage_data, polys, boxes):
     sns.scatterplot(data=perannot_data, x='obox_major', y='obox_minor', ax=ax)
     #ax.set_xscale('log')
     #ax.set_yscale('log')
-    ax.set_aspect('equal')
-    ax.set_title('Oriented Bounding Box Size Distribution')
+    ax.set_title('Oriented Bounding Box Sizes')
     ax.set_aspect('equal')
     ax.set_xlim(0, ax.get_xlim()[1])
     ax.set_ylim(0, ax.get_ylim()[1])
@@ -189,8 +188,9 @@ def draw_plots(plots_dpath, perannot_data, perimage_data, polys, boxes):
     ax = figman.figure(fnum=1, doclf=True).gca()
     sns.histplot(data=perannot_data, x='rt_area', ax=ax, kde=True)
     figman.labels.relabel(ax)
-    ax.set_title('Polygon sqrt(Area) Hisogram')
+    ax.set_title('Polygon sqrt(Area) Histogram')
     ax.set_xlim(0, ax.get_xlim()[1])
+    ax.set_ylabel('Number of Annotations')
     ax.set_yscale('symlog')
     figman.finalize('polygon_area_histogram.png')
     # ---
@@ -198,7 +198,8 @@ def draw_plots(plots_dpath, perannot_data, perimage_data, polys, boxes):
     # ---
     ax = figman.figure(fnum=1, doclf=True).gca()
     sns.histplot(data=perannot_data, x='num_vertices', ax=ax)
-    ax.set_title('Polygon Number of Vertices Hisogram')
+    ax.set_title('Polygon Number of Vertices Histogram')
+    ax.set_ylabel('Number of Annotations')
     ax.set_xlim(0, ax.get_xlim()[1])
     ax.set_yscale('linear')
     figman.labels.relabel(ax)
@@ -220,7 +221,7 @@ def draw_plots(plots_dpath, perannot_data, perimage_data, polys, boxes):
     # ---
     ax = figman.figure(fnum=1, doclf=True).gca()
     edgecolor = 'black'
-    facecolor = 'baby shit brown'
+    facecolor = 'baby shit brown'  # its a real color!
     #edgecolor = 'darkblue'
     #facecolor = 'lawngreen'
     #edgecolor = kwimage.Color.coerce('kitware_darkblue').as01()
@@ -228,7 +229,7 @@ def draw_plots(plots_dpath, perannot_data, perimage_data, polys, boxes):
     polys.draw(alpha=0.5, edgecolor=edgecolor, facecolor=facecolor)
     ax.set_xlabel('Image X Coordinate')
     ax.set_ylabel('Image Y Coordinate')
-    ax.set_title('All Polygons Boxes')
+    ax.set_title('All Polygons')
     ax.set_aspect('equal')
     ax.set_xlim(0, annot_max_x)
     ax.set_ylim(0, annot_max_y)
@@ -288,6 +289,6 @@ if __name__ == '__main__':
 
     CommandLine:
         python ~/code/shitspotter/shitspotter/cli/coco_annotation_stats.py
-        python -m shitspotter.cli.coco_annotation_stats
+        python -m shitspotter.cli.coco_annotation_stats $HOME/data/dvc-repos/shitspotter_dvc/data.kwcoco.json
     """
     __cli__.main()
