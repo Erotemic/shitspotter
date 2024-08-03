@@ -144,6 +144,10 @@ distractors,
 occlusion,
 variation in appearance (old/new/healthy/sick).
 
+Towards these ends we introduce a dataset suitable for training poop detection
+models in order to enable applications that require detecting or localizing
+poop in images. \Cref{fig:AllPolygons}.
+
 Discuss building the dataset
 
 Discuss building the segmentation models
@@ -158,6 +162,7 @@ and version control is not built in.
 Decentralized methods allow volunteers to host data offers ability to validate
 data integrity. This motivates us to compare and contrast Cloud Services,
 BitTorrent, and IPFS as mechanisms for distributing datasets.
+
 
 Our contributions are:
 1. A challenging new \textbf{open dataset} of images with polygon segmentations.
@@ -198,6 +203,10 @@ scene.
 
 There are some cases where the before / after / negative protocol was not followed, but this can be identified.
 
+Additionally, the dataset also contains a few dozen (84ish) images contributed
+by friends and family. These images are images largely do not follow the
+before/after protocol and are marked for use only in testing.
+
 
 \begin{figure}[h]
 \centering
@@ -223,10 +232,10 @@ Challenges
 Labelme \cite{wada_labelmeailabelme_nodate} for annotations with segment anything \cite{kirillov_segment_2023}.
 The boundaries of all annotated polygons are illustrated in \Cref{fig:AllPolygons}.
 
-Anecdotal note: SAM worked well to automatically segment the poop, many of
-these needed adjustments, especially in regions of shadows, but there were
-cases that required a completely manual approach. Unfortunately a clean record
-of what cases these were does not exist. 
+Anecdotal note: SAM \cite{kirillov_segment_2023} worked well to automatically
+segment the poop, many of these needed adjustments, especially in regions of
+shadows, but there were cases that required a completely manual approach.
+Unfortunately a clean record of what cases these were does not exist. 
 
 % python -m shitspotter.cli.coco_annotation_stats $HOME/data/dvc-repos/shitspotter_dvc/data.kwcoco.json
 
