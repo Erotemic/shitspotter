@@ -111,7 +111,7 @@ class CocoAnnotationStatsCLI(scfg.DataConfig):
 
 def draw_plots(plots_dpath, perannot_data, perimage_data, polys, boxes):
     import kwplot
-    sns = kwplot.autosns()
+    sns = kwplot.autosns(verbose=3)
 
     annot_max_x = boxes.br_x.max()
     annot_max_y = boxes.br_y.max()
@@ -123,8 +123,8 @@ def draw_plots(plots_dpath, perannot_data, perimage_data, polys, boxes):
         'num_vertices': 'Num Polygon Vertices',
         'centroid_x': 'Polygon Centroid X',
         'centroid_y': 'Polygon Centroid Y',
-        'obox_major': 'Oriented Bounding Box Major Axes Length',
-        'obox_minor': 'Oriented Bounding Box Minor Axes Length',
+        'obox_major': 'OBox Major Axes Length',
+        'obox_minor': 'OBox Minor Axes Length',
         'rt_area': 'Polygon sqrt(Area)'
     })
 
@@ -151,10 +151,10 @@ def draw_plots(plots_dpath, perannot_data, perimage_data, polys, boxes):
     ax.set_aspect('equal')
     ax.set_title('Polygon Relative Centroid Positions')
     figman.labels.relabel(ax)
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1)
     ax.set_aspect('equal')
     figman.labels.relabel(ax)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
     ax.invert_yaxis()
     figman.finalize('centroid_relative_distribution.png')
     # ---
@@ -233,9 +233,9 @@ def draw_plots(plots_dpath, perannot_data, perimage_data, polys, boxes):
     ax.set_aspect('equal')
     ax.set_xlim(0, annot_max_x)
     ax.set_ylim(0, annot_max_y)
-    ax.invert_yaxis()
     figman.labels.relabel(ax)
     ax.set_ylim(0, annot_max_y)  # not sure why this needs to be after the relabel, should ideally fix that.
+    ax.invert_yaxis()
     figman.finalize('all_polygons.png', tight_layout=0)  # tight layout seems to cause issues here
     # ---
 

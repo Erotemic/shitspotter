@@ -2,7 +2,7 @@
 __doc__="
 "
 
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=1
 DVC_DATA_DPATH=$HOME/data/dvc-repos/shitspotter_dvc
 DVC_EXPT_DPATH=$HOME/data/dvc-repos/shitspotter_expt_dvc
 WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER

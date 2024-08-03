@@ -113,6 +113,33 @@ echo "
 - $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_0/checkpoints/epoch=0010-step=015026-val_loss=0.040.ckpt.pt
 - $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_0/checkpoints/epoch=0012-step=017758-val_loss=0.037.ckpt.pt
 - $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_0/checkpoints/epoch=0013-step=019124-val_loss=0.038.ckpt.pt
+
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v2/lightning_logs/version_0/checkpoints/last.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v3/lightning_logs/version_4/checkpoints/last.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v4/lightning_logs/version_0/checkpoints/last.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v5/lightning_logs/version_0/checkpoints/last.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v6/lightning_logs/version_0/checkpoints/last.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_0/checkpoints/last.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/last.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_0/checkpoints/epoch=0063-step=087424-val_loss=0.018.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_0/checkpoints/epoch=0067-step=092888-val_loss=0.018.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_0/checkpoints/epoch=0072-step=099718-val_loss=0.018.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_0/checkpoints/epoch=0073-step=101084-val_loss=0.017.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/epoch=0076-step=105182-val_loss=0.020.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/epoch=0078-step=107914-val_loss=0.016.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/epoch=0081-step=112012-val_loss=0.020.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/epoch=0084-step=116110-val_loss=0.020.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/epoch=0089-step=122940-val_loss=0.019.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_0/checkpoints/epoch=0022-step=031418-val_loss=0.027.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_0/checkpoints/epoch=0030-step=042346-val_loss=0.026.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_0/checkpoints/epoch=0032-step=045078-val_loss=0.026.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_0/checkpoints/epoch=0033-step=046444-val_loss=0.026.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_0/checkpoints/epoch=0034-step=047810-val_loss=0.027.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_1/checkpoints/epoch=0036-step=050542-val_loss=0.024.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_1/checkpoints/epoch=0049-step=068300-val_loss=0.023.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_1/checkpoints/epoch=0057-step=079228-val_loss=0.024.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_1/checkpoints/epoch=0069-step=095620-val_loss=0.022.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_1/checkpoints/epoch=0073-step=101084-val_loss=0.023.ckpt.pt
 " > "$HOME"/code/shitspotter/experiments/models.yaml
 
 
@@ -126,14 +153,14 @@ VALI_FPATH=$KWCOCO_BUNDLE_DPATH/vali_imgs228_20928c8c.kwcoco.zip
 EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals
 python -m geowatch.mlops.schedule_evaluation \
     --params="
-        # pipeline: 'shitspotter.pipelines.heatmap_evaluation_pipeline()'
-        pipeline: 'shitspotter.pipelines.polygon_evaluation_pipeline()'
+        pipeline: 'shitspotter.pipelines.heatmap_evaluation_pipeline()'
+        #pipeline: 'shitspotter.pipelines.polygon_evaluation_pipeline()'
         matrix:
             heatmap_pred.package_fpath:
                 # - $HOME/code/shitspotter/experiments/first_chosen_eval_batch1.yaml
-                # - $HOME/code/shitspotter/experiments/models.yaml
+                 - $HOME/code/shitspotter/experiments/models.yaml
                 # - $DVC_DATA_DPATH/models/shitspotter_scratch_v025-version_2-epoch=1277-step=005112-val_loss=0.600.ckpt.pt
-                - $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v4/lightning_logs/version_1/checkpoints/epoch=0076-step=105182-val_loss=0.018.ckpt.pt
+                #- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v4/lightning_logs/version_1/checkpoints/epoch=0076-step=105182-val_loss=0.018.ckpt.pt
             heatmap_pred.test_dataset:
                 - $VALI_FPATH
             heatmap_eval.workers: 1
@@ -141,9 +168,9 @@ python -m geowatch.mlops.schedule_evaluation \
             heatmap_eval.draw_curves: True
     " \
     --root_dpath="$EVAL_PATH" \
-    --devices="0," --tmux_workers=1 \
+    --devices="1," --tmux_workers=1 \
     --backend=tmux --skip_existing=1 \
-    --run=0
+    --run=1
 
 
 # Simple no-dependency result readout
@@ -182,29 +209,29 @@ python -m geowatch.mlops.aggregate \
         - heatmap_eval
     " \
     --stdout_report="
-        top_k: 100
+        top_k: 10
         per_group: 1
         macro_analysis: 0
         analyze: 0
         print_models: True
         reference_region: final
-        concise: 1
+        concise: 0
         show_csv: 0
     " \
     --plot_params="
-        enabled: 1
+        enabled: 0
         stats_ranking: 0
         min_variations: 2
         max_variations: 40
-        min_support: 2
+        min_support: 1
         params_of_interest:
             - resolved_params.heatmap_pred_fit.model.init_args.arch_name
             - resolved_params.heatmap_pred_fit.model.init_args.perterb_scale
             - resolved_params.heatmap_pred_fit.optimizer.init_args.lr
             - resolved_params.heatmap_pred_fit.optimizer.init_args.weight_decay
             - resolved_params.heatmap_pred_fit.trainer.default_root_dir
+            - params.heatmap_pred.package_fpath
+    " \
+    --query="
+    df['resolved_params.heatmap_pred_fit.trainer.default_root_dir'].apply(lambda p: str(p).split('/')[-1]).str.contains('noboxes')
     "
-    #\
-    #--query="
-    #df['resolved_params.heatmap_pred_fit.trainer.default_root_dir'].apply(lambda p: str(p).split('/')[-1]).str.contains('noboxes')
-    #"
