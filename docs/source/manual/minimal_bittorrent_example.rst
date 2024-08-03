@@ -60,21 +60,15 @@ On the seeding machine
    transmission-lookup-torrent-id(){
        # Helper function to lookup the id for a torrent by its name
        python3 -c "if 1:
-           import subprocess
-           import sys
+           import subprocess, sys, re
            # This command may need to be modified
            out = subprocess.check_output(
                'transmission-remote --auth transmission:transmission --list',
                shell=True, universal_newlines=True)
-           import re
            splitpat = re.compile('   *')
            for line in out.split(chr(10)):
                line_ = line.strip()
-               if not line_:
-                   continue
-               if line_.startswith('Sum:'):
-                   continue
-               if line_.startswith('ID'):
+               if not line_ or line_.startswith(('Sum:', 'ID')):
                    continue
                row_vals = splitpat.split(line_)
                name = row_vals[-1]
@@ -192,7 +186,13 @@ On the downloading machine
 
    # Register the torrent with the transmission-daemon
    # TODO: configure where you will download
-   TEST_DOWNLOAD_DPATH="$HOME/tmp/transmission-dl"
-   mkdir -p "$TEST_DOWNLOAD_DPATH"
-   transmission-remote --auth transmission:transmission --add "$TORRENT_NAME.torrent" -w "$TEST_DOWNLOAD_DPATH"
+   # TEST_DOWNLOAD_DPATH="$HOME/tmp/transmission-dl"
+   # mkdir -p "$TEST_DOWNLOAD_DPATH"
+   # Download the torrent to the var lib folder to try and avoid permission issues
+   transmission-remote --auth transmission:transmission --add "$TORRENT_NAME.torrent" -w "/var/lib/transmission-daemon/downloads"
    transmission-remote --auth transmission:transmission --list
+
+   # Lookup a torrent ID by its name
+   TORRENT_ID=$(transmission-lookup-torrent-id "$TORRENT_NAME")
+   echo $TORRENT_ID
+   transmission-remote --auth transmission:transmission --torrent $TORRENT_ID --info
