@@ -12,12 +12,6 @@
 \usepackage{wacv}              % To produce the CAMERA-READY version
 %\usepackage[pagenumbers]{wacv} % To force page numbers, e.g. for an arXiv version
 
-% Include other packages here, before hyperref.
-\usepackage{graphicx}
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{booktabs}
-
 
 % It is strongly recommended to use hyperref, especially for the review version.
 % hyperref with option pagebackref eases the reviewers' job.
@@ -30,6 +24,26 @@
 %  should be clear).
 \usepackage[pagebackref,breaklinks,colorlinks]{hyperref}
 
+
+% Include other packages here, before hyperref.
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+
+
+\usepackage{url}            % simple URL typesetting
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{lipsum}         % Can be removed after putting your text content
+\usepackage[numbers]{natbib}
+\usepackage{doi}
+
+%% extra
+\usepackage{listings}
+\usepackage{amsmath} 
+\usepackage{xcolor}
 
 % Support for easy cross-referencing
 \usepackage[capitalize]{cleveref}
@@ -69,10 +83,30 @@ Kitware\\
 %%%%%%%%% ABSTRACT
 \begin{abstract}
 
-    This work chronicles one researcher's un-funded journey to build a phone
-    application that can detect dog poop in images, and make the data widely
-    available as a benchmark dataset.
+%This work chronicles one researcher's un-funded journey to build a phone
+%application that can detect dog poop in images, and make the data widely
+%available as a benchmark dataset.
+We introduce a new --- currently 42GB --- "living" dataset of phone images of
+dog poop with manually traced or adjusted polygon labels.
+The collection and annotation of this data started in late 2020 and is planned
+to continue indefinitely.
 
+The most recent snapshot of dataset is made publicly available across three
+different distribution methods: one centralized and two decentralized (IPFS and
+BitTorrent).
+We perform an analysis and experimental comparison of the trade-offs between
+distribution methods and discuss the feasibility of each with respect to
+sharing open scientific data.
+
+A baseline vision transformer is trained to segment the objects of interest
+under a grid of hyperparameters, and we evaluate their impact. The best model
+achieves a pixelwise mean average precision of ~0.8ish. 
+Model weights are made publicly available with the dataset. 
+
+Code to reproduce experiments is hosted on GitHub.
+
+%A phone application to detect poop with these models is being developed and 
+%will be made freely available.
 
 \end{abstract}
 
@@ -80,9 +114,29 @@ Kitware\\
 \section{Introduction}
 \label{sec:intro}
 
+Applications of a computer vision system able to detect and localize poop in
+images are numerous.
+Automated waste disposal to keep parks and backyards clean.
+A part of a system for using feces to monitor wildlife populations.
+A warning system in smart-glasses to prevent people from stepping in poop.
+Simply helping a dog owner find their dog's poop in a leafy park so they can pick it up.
+Many of these applications can be realized with modern object detection and
+segmentation methods (cite modern object detection and segmentation methods)
+and a large labeled dataset to train on.
 
-Poop detection is a simple problem, suitable for exploring the capabilities of
-object detection models while also containing non-trivial challenges.
+Poop detection is also a simple problem with a narrower scope (just a single
+class), suitable for exploring the capabilities of object detection models that
+focus on a single labeled class while also containing non-trivial challenges.
+
+
+\begin{figure}[h]
+\centering
+\includegraphics[height=200pt]{/data/joncrall/dvc-repos/shitspotter_dvc/analysis/viz_three_images.jpg}
+\caption[]{
+    The "before/after/negative" process.
+}
+\label{fig:AllPolygons}
+\end{figure}
 
 There are several challenges in detecting dog poop in phone-camera images:
 resolution (quality of camera, distance to the camera),
@@ -118,7 +172,45 @@ Related work is discussed at the end.
 
 \section{Dataset}
 
-Our first contribution is the collection of a new open dataset.
+Our first contribution is the collection of a new open dataset consisting of
+dog poop images in a mostly urban environment and primary from three specific
+dogs. Indoor images and poop from other dogs are present in the dataset but
+were encountered less often and thus are less frequent.
+
+The majority of the dataset was collected using the "before/after/negative"
+protocol.
+When we encountered a poop in the wild --- usually from our own dogs, but
+sometimes from other dogs --- before we dispose of it we 
+take a "before" picture containing the poop.
+Then we pick up the poop and take an "after" picture of the same area. 
+Then we find a nearby area or perhaps something else in the nearby environment
+that might act as a confuser (e.g. pine cone or leaf) and take a third
+"negative" picture.
+
+The majority of images in the dataset follow this pattern. However, there are exceptions.
+The first 6 months of data collection only involved the "before/after" part of the protocol.
+Sometimes the researcher failed or was unable to take the 2nd or 3rd image.
+
+
+Only roughly 1/3 of the dataset has annotations due to the other 2/3 of the
+images being taken in a way where the object of interest was removed from the
+scene.
+
+There are some cases where the before / after / negative protocol was not followed, but this can be identified.
+
+
+\begin{figure}[h]
+\centering
+\includegraphics[height=160pt]{/home/joncrall/code/shitspotter/coco_annot_stats/annot_stat_plots/anns_per_image_histogram.png}
+\caption[]{
+    Histogram of the number of annotations per image. 
+    Only 35\% (2346) of the images contain annotations, the other 65\% (4302)
+    are known not to contain poop. Of these 4302 about half of them were taken
+    directly after the poop was picked up, and the other half are pictures of a
+    nearby location. 
+}
+\label{fig:AnnotsPerImage}
+\end{figure}
 
 
 % https://arxiv.org/abs/1803.09010
@@ -129,11 +221,25 @@ Challenges
 \paragraph{Construction}
 
 Labelme \cite{wada_labelmeailabelme_nodate} for annotations with segment anything \cite{kirillov_segment_2023}.
+The boundaries of all annotated polygons are illustrated in \Cref{fig:AllPolygons}.
 
 Anecdotal note: SAM worked well to automatically segment the poop, many of
 these needed adjustments, especially in regions of shadows, but there were
 cases that required a completely manual approach. Unfortunately a clean record
 of what cases these were does not exist. 
+
+% python -m shitspotter.cli.coco_annotation_stats $HOME/data/dvc-repos/shitspotter_dvc/data.kwcoco.json
+
+\begin{figure}[h]
+\centering
+\includegraphics[height=230pt]{/home/joncrall/code/shitspotter/coco_annot_stats/annot_stat_plots/all_polygons.png}
+\caption[]{
+    All annotations drawn on a single images with 0.8 opacity to demonstrate
+    the distribution in annotation location, shape, and size with respect to
+    image coordinates.
+}
+\label{fig:AllPolygons}
+\end{figure}
 
 \paragraph{Analysis}
 
@@ -145,19 +251,20 @@ Number of images, annotations, and other stats.
 Our second contribution is an evaluation of several trained models to serve as
 a baseline.
 
-We use the training and evaluation system of \cite{crall_igarss_2024}, which
+We use the training and evaluation system of \cite{Greenwell_2024_WACV}, which
 can be trained to predict heatmaps from polygons and can evaluate those
 heatmaps on a pixelwise-level. 
 
-The baseline architecture is a variant of a vision-transformer \cite{vit,split-attention,greenwell_wacv_2023}.
+The baseline architecture is a variant of a vision-transformer \cite{vit,split-attention,greenwell_watch_2024}.
 
 Number of parameters.
 Memory at train time.
 Memory at predict time.
+Model size on disk.
 
-We train several models and vary the learning rate, weight decay, 
-shrink-and-perterb regularization \cite{warmstart}, as well as other 
-ad hoc experiment settings.
+We train several models and vary the learning rate, weight decay,
+shrink-and-perterb regularization \cite{ash_warm_starting_2020}, as well as
+other ad hoc experiment settings.
 %\textbf{Static Parameters}:
 
 \subsection{Model Experiments}
@@ -194,10 +301,6 @@ BitTorrent is a well known distributed system.
 IPFS is a new similar tool.
 
 
-
-
-In order to 
-
 Discuss distributing the dataset via IPFS versus centralized distribution
 systems.
 
@@ -215,9 +318,18 @@ Observations:
 
 
 IPFS vs BitTorrent:
-https://gist.github.com/liamzebedee/224494052fb6037d07a4293ceca9d6e7
 
-Kademlia - distributed hash table [Steiner, En-Najjary, Biersack 2022]
+Both of which have the ability to use the Kademlia - distributed hash table (DHT) \cite{maymounkov_kademlia_2002}.
+IPFS always uses its DHT, where as BitTorrent the Kademlia-based Mainline
+Tracker can be disabled in favor of 3rd party trackers.
+
+An excellent overview of protocols details can be found \cite{zebedee_comparing_2023}.
+Our comparison is going to focus on measurements.
+
+% Much of the 
+% https://gist.github.com/liamzebedee/224494052fb6037d07a4293ceca9d6e7
+
+%[Steiner, En-Najjary, Biersack 2022]
 
 The Mainline Tracker is a DHT for bittorrent.
 
@@ -228,29 +340,44 @@ The Mainline Tracker is a DHT for bittorrent.
 % IP addresses, which allows us to estimate end-user lifetime and the fraction of end-users changing their KAD ID.
 
 
-Dataset is (will be) tracked on Academic Torrents \cite{academic_torrents_Cohen2014}.
-
-https://academictorrents.com/docs/about.html
+% https://academictorrents.com/docs/about.html
+Dataset (is / will be) tracked on Academic Torrents \cite{academic_torrents_Cohen2014}.
 
 
 \subsection{Distribution Experiments}
 
 Measure the performance of our algorithm versus a baseline.
 
-Measure the speed of IPFS vs bittorrent.
+Measure the speed of IPFS vs BitTorrent.
+
+Time to create torrent vs time to pin to IPFS.
 
 %-------------------------------------------------------------------------
 \section{Related Work}
 
 Object detection
 
-TACO dataset: \cite{proenca_taco_2020}. Trash bounding box annotations.
+Waste detection is an important problem but with relatively few open datasets.
+%  https://paperswithcode.com/dataset/zerowaste
+The ZeroWaste dataset \cite{bashkirova_zerowaste_2022} contains 1,800 segmented
+video frames and 6000 unlabeled frames in a recycling facility.
+% https://paperswithcode.com/dataset/taco
+The TACO dataset \cite{proenca_taco_2020} is another "living" dataset
+containing 1500 images with 4,784 annotations over 60 classes.
+% TrashCan https://paperswithcode.com/dataset/trashcan
+% Top Datasets on paperwith code
+% https://paperswithcode.com/datasets?mod=images&task=semantic-segmentation&page=2
 
-MSHIT dataset <cite>
 
-Dog Poop Detection - Neeraj Madan
-
-Other poop work
+While ours is the largest publicly available poop dataset that we are aware of,
+it is not the first.
+A dataset of 100 dog poop images was collected and used to train a FasterRCNN
+model in 2019 but this dataset and model are not publicly available \cite{neeraj_madan_dog_2019}.
+The MSHIT dataset \cite{mshit_2020} consists of 3.89GB of real images with fake
+poop (e.g. plastic poop) in controlled environments.
+The company iRobot has a dataset of annotated indoor poop images used to train
+Roomba j7+ to avoid collisions, but as far as we are aware, this is not
+available \cite{roomba_2021}.
 
 \section{Conclusion}
 
@@ -264,7 +391,7 @@ Our dataset is sufficient to train an object detection network to (level of
 precision/recall).
 
 We make data and models available over 3 distribution mechanisms: 
-cloud storage, bit-torrent, and IPFS.
+cloud storage, BitTorrent, and IPFS.
 
 Decentralized methods are feasible methods of distribution, with strong
 security but they can be slow.
@@ -283,7 +410,9 @@ Directions for future research / development are:
 %%%%%%%%% REFERENCES
 {\small
 \bibliographystyle{ieee_fullname}
-\bibliography{egbib}
+\bibliography{citations}
 }
+%\bibliographystyle{unsrtnat}
+%\bibliography{references}  %%% Uncomment this line and comment out the ``thebibliography'' section below to use the external .bib file (using bibtex) .
 
 \end{document}

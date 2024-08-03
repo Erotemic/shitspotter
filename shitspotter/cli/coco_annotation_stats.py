@@ -63,8 +63,20 @@ class CocoAnnotationStatsCLI(scfg.DataConfig):
         max_width = max(image_widths)  # NOQA
         max_height = max(image_heights)  # NOQA
 
+        anns_per_image = np.array(images.n_annots)
+        images_with_eq0_anns = (anns_per_image == 0).sum()
+        images_with_ge1_anns = (anns_per_image >= 1).sum()
+        scalar_stats = {
+            **dset.basic_stats(),
+            'images_with_eq0_anns': images_with_eq0_anns,
+            'images_with_ge1_anns': images_with_ge1_anns,
+            'frac_images_with_ge1_anns': images_with_ge1_anns / len(images),
+            'frac_images_with_eq0_anns': images_with_eq0_anns / len(images),
+        }
+        print(f'scalar_stats = {ub.urepr(scalar_stats, nl=1)}')
+
         perimage_data = pd.DataFrame({
-            'anns_per_image': images.n_annots,
+            'anns_per_image': anns_per_image,
             'width': image_widths,
             'height': image_heights,
         })
@@ -118,6 +130,8 @@ def draw_plots(plots_dpath, perannot_data, perimage_data, polys, boxes):
 
     figman = kwplot.FigureManager(
         dpath=plots_dpath,
+        dpi=300,
+        # dpi=300,
     )
     figman.labels.add_mapping({
         'num_vertices': 'Num Polygon Vertices',
@@ -229,7 +243,7 @@ def draw_plots(plots_dpath, perannot_data, perimage_data, polys, boxes):
     polys.draw(alpha=0.5, edgecolor=edgecolor, facecolor=facecolor)
     ax.set_xlabel('Image X Coordinate')
     ax.set_ylabel('Image Y Coordinate')
-    ax.set_title('All Polygons')
+    ax.set_title(f'All {len(polys)} Polygons')
     ax.set_aspect('equal')
     ax.set_xlim(0, annot_max_x)
     ax.set_ylim(0, annot_max_y)

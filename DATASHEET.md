@@ -56,7 +56,7 @@ date
 kwcoco stats data.kwcoco.json 
 
   n_anns  n_cats  n_imgs  n_tracks  n_videos
-    1986       1    5141         0         0
+    4386       3    6648         0         0
 
 ```
 
@@ -120,7 +120,7 @@ kwcoco stats data.kwcoco.json
 
 16. **Does the dataset contain data that might be considered sensitive in any way (e.g. data that reveals racial or ethnic origins, sexual orientations, religious beliefs, political opinions or union memberships, or locations; financial or health data; biometric or genetic data; forms of government identification, such as social security numbers; criminal history)?** If so, please provide a description.
 
-    I don't think that images of poop qualify as sensitive. 
+    No. I don't think that images of poop qualify as sensitive. 
 
 17. **Any other comments?**
 
