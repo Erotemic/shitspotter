@@ -32,10 +32,7 @@ def update_analysis_plots():
 
     doggos(dump_dpath / 'doggos.jpg')
 
-    fig = show_3_images(coco_dset)
-    fig.set_size_inches(np.array([6.4, 4.8]) * 1.5)
-    fig.tight_layout()
-    fig.savefig(dump_dpath / 'viz_three_images.jpg')
+    fig = show_3_images(coco_dset, dump_dpath)
 
     dump_demo_warp_img(coco_dset, dump_dpath)
 
@@ -52,7 +49,6 @@ def data_over_time(coco_dset, fnum=1):
     img_df = pd.DataFrame(rows)
 
     img_df = img_df.sort_values('datetime')
-    img_df['collection_size'] = np.arange(1, len(img_df) + 1)
     img_df['collection_size'] = np.arange(1, len(img_df) + 1)
 
     img_df['pd_datetime'] = pd.to_datetime(img_df.datetime)
@@ -325,7 +321,12 @@ def show_data_diversity(coco_dset):
     kwplot.imshow(canvas, fnum=1)
 
 
-def show_3_images(coco_dset):
+def show_3_images(coco_dset, dump_dpath):
+    """
+    import shitspotter
+    coco_dset = shitspotter.open_shit_coco()
+    dump_dpath = (ub.Path(coco_dset.bundle_dpath) / 'analysis').ensuredir()
+    """
     import kwimage
     import kwplot
     kwplot.autompl()
@@ -344,8 +345,14 @@ def show_3_images(coco_dset):
 
     images = []
     import numpy as np
-    for coco_img in coco_dset.images(chosen_gids).coco_images:
+    coco_images = coco_dset.images(chosen_gids).coco_images
+    for coco_img in coco_images:
         imdata = coco_img.delay().finalize()
+        if 1:
+            truth = coco_img.annots().detections
+            if len(truth):
+                enlarged = truth.boxes.scale(2.0, about='centroid').astype(int)
+                imdata = enlarged.draw_on(imdata, color='kitware_orange', thickness=32)
         rchip, sf_info = kwimage.imresize(imdata, max_dim=800, return_info=True)
         rchip = np.rot90(rchip, k=3)
         images.append(rchip)
@@ -355,9 +362,17 @@ def show_3_images(coco_dset):
     images[2] = kwimage.draw_header_text(images[2], 'Negative')
 
     canvas = kwimage.stack_images(images, pad=10, axis=1)
-    fig = kwplot.figure(fnum=1, doclf=True)
-    kwplot.imshow(canvas, fnum=1)
-    return fig
+    fpath = dump_dpath / 'viz_three_images.jpg'
+    kwimage.imwrite(fpath, canvas)
+
+    # figman = kwplot.FigureManager()
+    # fig = kwplot.figure(fnum=1, doclf=True)
+    # kwplot.imshow(canvas, fnum=1)
+
+    # fig.set_size_inches(np.array([6.4, 4.8]) * 1.5)
+    # fig.tight_layout()
+    # figman.finalize(fpath, fig=fig)
+    # return fig
 
 
 def dump_demo_warp_img(coco_dset, dump_dpath):

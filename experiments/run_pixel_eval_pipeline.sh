@@ -140,6 +140,11 @@ echo "
 - $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_1/checkpoints/epoch=0057-step=079228-val_loss=0.024.ckpt.pt
 - $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_1/checkpoints/epoch=0069-step=095620-val_loss=0.022.ckpt.pt
 - $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_1/checkpoints/epoch=0073-step=101084-val_loss=0.023.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_2/checkpoints/epoch=0093-step=128404-val_loss=0.033.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_2/checkpoints/epoch=0094-step=129770-val_loss=0.033.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_2/checkpoints/epoch=0096-step=132502-val_loss=0.032.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_2/checkpoints/epoch=0097-step=133868-val_loss=0.032.ckpt.pt
+- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_2/checkpoints/epoch=0103-step=142064-val_loss=0.034.ckpt.pt
 " > "$HOME"/code/shitspotter/experiments/models.yaml
 
 
@@ -168,7 +173,7 @@ python -m geowatch.mlops.schedule_evaluation \
             heatmap_eval.draw_curves: True
     " \
     --root_dpath="$EVAL_PATH" \
-    --devices="1," --tmux_workers=1 \
+    --devices="0,1," --tmux_workers=1 \
     --backend=tmux --skip_existing=1 \
     --run=1
 

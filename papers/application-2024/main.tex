@@ -30,6 +30,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{booktabs}
+\usepackage{comment}
 
 
 \usepackage{url}            % simple URL typesetting
@@ -80,14 +81,22 @@ Kitware\\
 }
 \maketitle
 
+
+\begin{comment}
+    cd $HOME/code/shitspotter
+    python -m shitspotter.cli.coco_annotation_stats $HOME/data/dvc-repos/shitspotter_dvc/data.kwcoco.json \
+        --dst_fpath $HOME/code/shitspotter/coco_annot_stats/stats.json \
+        --dst_dpath $HOME/code/shitspotter/coco_annot_stats
+\end{comment}
+
 %%%%%%%%% ABSTRACT
 \begin{abstract}
 
 %This work chronicles one researcher's un-funded journey to build a phone
 %application that can detect dog poop in images, and make the data widely
 %available as a benchmark dataset.
-We introduce a new --- currently 42GB --- "living" dataset of phone images of
-dog poop with manually traced or adjusted polygon labels.
+We introduce a new --- currently 42 gigabyte --- "living" dataset of phone images of
+dog poop with manually drawn or AI-assisted polygon labels.
 The collection and annotation of this data started in late 2020 and is planned
 to continue indefinitely.
 
@@ -119,49 +128,62 @@ images are numerous.
 Automated waste disposal to keep parks and backyards clean.
 A part of a system for using feces to monitor wildlife populations.
 A warning system in smart-glasses to prevent people from stepping in poop.
-Simply helping a dog owner find their dog's poop in a leafy park so they can pick it up.
+The motivating use case is to help a dog owner find their dog's poop in a leafy
+park so they can pick it up.
 Many of these applications can be realized with modern object detection and
 segmentation methods (cite modern object detection and segmentation methods)
 and a large labeled dataset to train on.
 
-Poop detection is also a simple problem with a narrower scope (just a single
-class), suitable for exploring the capabilities of object detection models that
-focus on a single labeled class while also containing non-trivial challenges.
+
+In addition to enabling several applications, poop detection is an interesting benchmark problem. 
+It it a reasonable simple problem with a narrower scope (just a single class),
+suitable for exploring the capabilities of object detection models that focus
+on a single labeled class while also containing non-trivial challenges like:
+resolution (quality of camera, distance to the camera),
+distractors (leafs, pine cones, dirt and mud),
+occlusion (bushes, overgrown grass),
+variation in appearance (old, new, healthy, sick).
+Investigation into cases where this problem is difficult may provide insight
+into how to better train object detection and segmentation networks.
 
 
 \begin{figure}[h]
 \centering
-\includegraphics[height=200pt]{/data/joncrall/dvc-repos/shitspotter_dvc/analysis/viz_three_images.jpg}
+\includegraphics[width=0.49\textwidth]{/data/joncrall/dvc-repos/shitspotter_dvc/analysis/viz_three_images.jpg}
 \caption[]{
     The "before/after/negative" process.
+    The orange box highlights the location of the poop (note the
+    actual annotation is a polygon) in the "before" image.
+    In the "after" image, it is the same scene but the poop has been removed.
+    The "negative" image is a nearby similar scene, potentially with a distractor.
 }
-\label{fig:AllPolygons}
+\label{fig:ThreeImages}
 \end{figure}
-
-There are several challenges in detecting dog poop in phone-camera images:
-resolution (quality of camera, distance to the camera),
-distractors,
-occlusion,
-variation in appearance (old/new/healthy/sick).
 
 Towards these ends we introduce a dataset suitable for training poop detection
 models in order to enable applications that require detecting or localizing
-poop in images. \Cref{fig:AllPolygons}.
+poop in images. In order to allow to assist with annotation we collect images
+using a "before/after/negative" protocol as shown in \Cref{fig:ThreeImages}. 
 
-Discuss building the dataset
+Our goal is to train an algorithm to classify which pixels contain poop, and
+which don't. We train a segmentation model to provide a baseline on how
+difficult this problem is. Our models show strong performance, although there
+are notable failure cases indicating this problem is difficult even for modern
+computer vision algorithms.
 
-Discuss building the segmentation models
-
-For a dataset to be of scientific use it must be accessible. 
-
+In order to allow other researchers to improve on our results the dataset must
+be accessible and at least one entity needs to be willing to host it.
 Centralized methods are the typical choice and offer very good speeds, 
-but they requires an institution willing to host or payment for a hosting service,
-can prone to outages (give VGG outage as example),
-and version control is not built in.
-
-Decentralized methods allow volunteers to host data offers ability to validate
-data integrity. This motivates us to compare and contrast Cloud Services,
+but they can be expensive for an individual, so it usually requires an
+institution willing to host or payment for a hosting service,
+can prone to outages and version control is not built in.
+In contrast, decentralized methods allow volunteers to host data offers ability
+to validate data integrity. 
+This motivates us to compare and contrast centralized cloud services,
 BitTorrent, and IPFS as mechanisms for distributing datasets.
+
+% VGG2 face got removed.
+% https://github.com/ox-vgg/vgg_face2/issues/52
 
 
 Our contributions are:
@@ -182,6 +204,11 @@ dog poop images in a mostly urban environment and primary from three specific
 dogs. Indoor images and poop from other dogs are present in the dataset but
 were encountered less often and thus are less frequent.
 
+In addition to this description, details covering the motivation, composition,
+collection, preprocessing, uses, distribution, and maintenance are provided in
+a standardized datasheet \cite{gebru_datasheets_2021}.
+
+\subsection{Dataset Collection Protocol}
 The majority of the dataset was collected using the "before/after/negative"
 protocol.
 When we encountered a poop in the wild --- usually from our own dogs, but
@@ -192,56 +219,43 @@ Then we find a nearby area or perhaps something else in the nearby environment
 that might act as a confuser (e.g. pine cone or leaf) and take a third
 "negative" picture.
 
-The majority of images in the dataset follow this pattern. However, there are exceptions.
+The majority of images in the dataset follow this pattern.
+However, there are exceptions.
 The first 6 months of data collection only involved the "before/after" part of the protocol.
 Sometimes the researcher failed or was unable to take the 2nd or 3rd image.
+These cases where the before / after / negative protocol can be
+programmatically this can be identified.
 
-
-Only roughly 1/3 of the dataset has annotations due to the other 2/3 of the
-images being taken in a way where the object of interest was removed from the
-scene.
-
-There are some cases where the before / after / negative protocol was not followed, but this can be identified.
-
-Additionally, the dataset also contains a few dozen (84ish) images contributed
-by friends and family. These images are images largely do not follow the
+Additionally, the dataset also contains a few dozen (84) images contributed
+by friends and family. These images are images mostly do not follow the
 before/after protocol and are marked for use only in testing.
 
 
-\begin{figure}[h]
-\centering
-\includegraphics[height=160pt]{/home/joncrall/code/shitspotter/coco_annot_stats/annot_stat_plots/anns_per_image_histogram.png}
-\caption[]{
-    Histogram of the number of annotations per image. 
-    Only 35\% (2346) of the images contain annotations, the other 65\% (4302)
-    are known not to contain poop. Of these 4302 about half of them were taken
-    directly after the poop was picked up, and the other half are pictures of a
-    nearby location. 
-}
-\label{fig:AnnotsPerImage}
-\end{figure}
-
-
-% https://arxiv.org/abs/1803.09010
-Data is released with a datasheet describing its characteristics \cite{gebru_datasheets_2021}.
 
 Challenges
 
-\paragraph{Construction}
+\subsection{Dataset Annotation}
 
-Labelme \cite{wada_labelmeailabelme_nodate} for annotations with segment anything \cite{kirillov_segment_2023}.
-The boundaries of all annotated polygons are illustrated in \Cref{fig:AllPolygons}.
+Images were annotated using labelme \cite{wada_labelmeailabelme_nodate}. 
+The boundaries of 4386 annotated polygons are illustrated in \Cref{fig:AllPolygons}.
+Most annotations were initialized using the segment anything (SAM) AI assistant
+\cite{kirillov_segment_2023}. 
+All AI polygons were manually reviewed, many SAM polygons were adjusted, and in
+some cases SAM did not work and manual annotations were faster or needed.
+Regions with shadows seemed to cause SAM the most trouble, but there were other
+failure cases. Unfortunately, there is no metadata to indicate which polygons
+were manually created or done using AI.  However, the number of vertices may be
+a reasonable proxy to estimate this, as SAM tends to have higher fidelity
+boundaries. 
 
-Anecdotal note: SAM \cite{kirillov_segment_2023} worked well to automatically
-segment the poop, many of these needed adjustments, especially in regions of
-shadows, but there were cases that required a completely manual approach.
-Unfortunately a clean record of what cases these were does not exist. 
-
-% python -m shitspotter.cli.coco_annotation_stats $HOME/data/dvc-repos/shitspotter_dvc/data.kwcoco.json
+%Anecdotal note: SAM \cite{kirillov_segment_2023} worked well to automatically
+%segment the poop, many of these needed adjustments, especially in regions of
+%shadows, but there were cases that required a completely manual approach.
+%Unfortunately a clean record of what cases these were does not exist. 
 
 \begin{figure}[h]
 \centering
-\includegraphics[height=230pt]{/home/joncrall/code/shitspotter/coco_annot_stats/annot_stat_plots/all_polygons.png}
+\includegraphics[width=0.4\textwidth]{/home/joncrall/code/shitspotter/coco_annot_stats/annot_stat_plots/all_polygons.png}
 \caption[]{
     All annotations drawn on a single images with 0.8 opacity to demonstrate
     the distribution in annotation location, shape, and size with respect to
@@ -250,9 +264,55 @@ Unfortunately a clean record of what cases these were does not exist.
 \label{fig:AllPolygons}
 \end{figure}
 
-\paragraph{Analysis}
+\subsection{Dataset Stats and Analysis}
 
-Number of images, annotations, and other stats.
+% Number of images, annotations, and other stats.
+
+The dataset currently contains 6648 images and 4386 annotations and has spanned
+4 years. Data was captured over 4 years at a mostly uniformly rate.  Most data
+is localized to parks and sidewalks in a small city.  Weather conditions varied
+between snowy, sunny, rainy.  The distribution of seasons, time-of-day,
+daylight, and capture rate is illustrated in \Cref{fig:TimeOfDayDistribution}.
+
+Roughly 1/3 of the dataset has annotations due to the other 2/3 of the
+images being taken in a way where the object of interest was removed from the
+scene.
+
+Some images contain more than one annotation, and some images contain zero annotations.
+The number of annotations per images is illustrated in \Cref{fig:AnnotsPerImage}.
+Many images do contain more than one poop, and this can be for several reasons:
+    1. a single poop broke into multiple disjoint parts (the exact criteria for this is sometimes ambiguous), 
+    2. two dogs pooped nearby each other (this happens frequently). 
+    3. one or more dogs has pooped in the same area over some period of
+       time (some cases can be difficult to determine if it is poop or dirt).
+
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.4\textwidth]{/home/joncrall/code/shitspotter/coco_annot_stats/annot_stat_plots/images_timeofday_distribution.png}
+\caption[]{
+    Distribution of the time of year and time of day each image was taken.
+    For images with geolocation and timestamp (assuming the timezone is local
+    or given and correct) we also estimate the amount of daylight as indicated
+    by the color of each dot. While the majority of the images are taken in
+    daylight, there are a sizable number of nighttime images.
+}
+\label{fig:TimeOfDayDistribution}
+\end{figure}
+
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.4\textwidth]{/home/joncrall/code/shitspotter/coco_annot_stats/annot_stat_plots/anns_per_image_histogram_splity.png}
+\caption[]{
+    Histogram of the number of annotations per image. 
+    Only 35\% (2346) of the images contain annotations, the other 65\% (4302)
+    are known not to contain poop. Of these 4302 about half of them were taken
+    directly after the poop was picked up, and the other half are pictures of a
+    nearby location.
+}
+\label{fig:AnnotsPerImage}
+\end{figure}
 
 
 \section{Models}
@@ -278,8 +338,50 @@ other ad hoc experiment settings.
 
 \subsection{Model Experiments}
 
+\begin{comment}
+    SeeAlso:
+    ~/code/shitspotter/experiments/run_pixel_eval_pipeline.sh
+
+    ~/code/shitspotter/dev/poc/estimate_train_resources.py
+
+\end{comment}
+
 After finding a reasonable performing starting point, we performed an ablation
 over learning rate and regularization parameters. 
+\begin{figure}[h]
+\centering
+
+\includegraphics[width=0.4\textwidth]{/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/aggregate/plots/macro-plots-macro_01_c1edce/params/resolved_params.heatmap_pred_fit.trainer.default_root_dir/scatter_nolegend/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_vs_metrics.heatmap_eval.salient_AUC_PLT02_scatter_nolegend.png}
+\caption[]{
+    The pixelwise AP and AUC of the top evaluated checkpoints.
+    For each training run we ran evaluation on a subset of checkpoints that
+    achieved low validation loss.
+    Points with the same color represent checkpoints from the same training run
+    with with the same hyperparameters.
+}
+\label{fig:apauc_scatter}
+\end{figure}
+
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.4\textwidth]{/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/aggregate/plots/macro-plots-macro_01_c1edce/params/resolved_params.heatmap_pred_fit.trainer.default_root_dir/box/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_PLT04_box.png}
+\caption{
+    The range of AP values over the evaluated checkpoints.
+}
+\label{fig:ap_boxplot}
+\end{figure}
+
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.4\textwidth]{/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/aggregate/plots/macro-plots-macro_01_c1edce/params/resolved_params.heatmap_pred_fit.trainer.default_root_dir/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_PLT05_table.png}
+\caption{
+    The table mapping short names to the default root directory.
+    TODO: create a table that shows an overview of the varied hyperparameters.
+}
+\label{fig:scatter_legend}
+\end{figure}
 
 This restricted set is illustrated in \Cref{fig:scatter-subset}.
 
@@ -291,9 +393,55 @@ focus on average-precision (AP) and  area under the ROC curve (AUC)
 These include ad-hoc parameters settings when searching for a stable training
 configuration.
 
-The resources used are given in \Cref{fig:resource}.
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.4\textwidth]{/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/aggregate/plots/resources.png}
+\caption[]{
+    Time and energy resources used to perform model evaluation.
 
-\section{Distribution}
+    Note: this table does not include training time, which was not measured
+    directly at the time. Our stated train time estimates are based on.
+
+}
+\label{fig:resource}
+\end{figure}
+
+
+We trained 7 models from scratch with varied hyperparameters.
+
+All models were trained on a single machine with an 11900k CPU and a 3090 GPU.
+
+We measure the predict-time resources using codecarbon \cite{lacoste2019codecarbon} and report them in \Cref{fig:resource}.
+
+Handling these measurements at train time is still in development, but we
+estimate the time of each training run using timestamps on checkpoint and log
+files.  Using indirect measurements based on timestamps of log and checkpoint
+files, we estimate that each of the 7 training runs took about 5 days and 15
+hours, totaling about 49.2 GPU days. Using the maximum 350W power draw of a
+3090 GPU, we estimate energy usage of 17.2 kilowatt hours, assuming a 0.21
+conversion ratio is 3.6 kilograms of CO2.
+
+\begin{comment}
+import kwutil.util_units
+
+reg = kwutil.util_units.unit_registry()
+gpu_power = 350 * reg.watt
+time = 49.2 * reg.hour
+
+co2kg_per_kwh = 0.210
+energy_usage = (gpu_power *  time).to(reg.kilowatt * reg.hour)
+
+co2_kg = energy_usage.m * co2kg_per_kwh
+print(f'{round(co2_kg, 1)} CO2 kg')
+
+dollar_per_kg = 0.015
+
+cost_to_offset = dollar_per_kg * co2_kg
+print(f'cost_to_offset = ${cost_to_offset:4.2f}')
+\end{comment}
+
+
+\section{Distribution / Sharing}
 
 % BitTorrent can be vulnerable to MITM:
 % https://www.reddit.com/r/technology/comments/1dpinuw/south_korean_telecom_company_attacks_torrent/
@@ -398,6 +546,8 @@ achieve an AP/AUC of ...
 
 Our dataset is sufficient to train an object detection network to (level of
 precision/recall).
+Our experimental evaluation is limited by lack of model diversity, but it
+serves as a baseline for future exploration.
 
 We make data and models available over 3 distribution mechanisms: 
 cloud storage, BitTorrent, and IPFS.

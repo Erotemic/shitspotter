@@ -26,13 +26,18 @@ Organization: Kitware
 	The primary author - Jon Crall - collected most images. 
     Several contributions have been made by other people: friends, familly, acquaintances, colleagues. 
 
+    There is no entity this is on behalf of.
+
 3. **What support was needed to make this dataset?** (e.g. who funded the creation of the dataset? If there is an associated grant, provide the name of the grantor and the grant name and number, or if it was supported by a company or government agency, give those details.)
 
     There is currently no funding. All effort is based on volunteer time.
 
 4. **Any other comments?**
 
-	See the README.
+    The main reason Jon Crall started collecting the dataset was because 
+    he wasn't able to find where his dogs in the fall because of all the leafs.
+
+    See the README.
 
 
 ## Composition
@@ -41,8 +46,15 @@ Organization: Kitware
 
 1. **What do the instances that comprise the dataset represent (e.g. documents, photos, people, countries)?** Are there multiple types of instances (e.g. movies, users, and ratings; people and interactions between them; nodes and edges)? Please provide a description.
 
+    The exact answer to this question may change as the dataset grows.
+
     Mostly dog feces. Feces from other species are represented, but not well
-    supported by labels yet.
+    supported by labels yet. Specifically, there are images of horse and racoon
+    poop. It is possible that some of the images labeled as dog poop are
+    actually feces from another species. If another animal pooped in 
+    a public area and a contributor came across it, it may be mistaken for 
+    dog poop. It would be interesting of some of these cases could be
+    identified.
 
 2. **How many instances are there in total (of each type, if appropriate)?**
 
@@ -141,7 +153,7 @@ kwcoco stats data.kwcoco.json
 
 3. **If the dataset is a sample from a larger set, what was the sampling strategy (e.g. deterministic, probabilistic with specific sampling probabilities)?**
 
-	It is a subset of the set of all possible images of dog poop. 
+	It is a subset of the set of all possible images of dog poop. It is not a subset or generated from some other dataset, these are all original phone images taken for the purpose of constructing this dataset.
 
 4. **Who was involved in the data collection process (e.g. students, crowdworkers, contractors) and how were they compensated (e.g. how much were crowdworkers paid)?**
 
@@ -202,7 +214,9 @@ kwcoco stats data.kwcoco.json
 
 4. **Any other comments?**
 
-	No
+    Several attributes like precomputed homographies between the "before/after" images are
+    provided in the IPFS distribution as a lightweight cache, and the shitspotter codebase 
+    contains 
 
 
 ## Uses
@@ -238,7 +252,13 @@ kwcoco stats data.kwcoco.json
 
 6. **Any other comments?**
 
-	No
+    The motivating use case is to build a phone application that can help dog
+    owners find lost poops. There are several other use cases I can imagine, some
+    more elaborate than others.
+
+    * Automatic waste cleanup robots
+    * "Smart glasses" augmented reality to warn you before you step in poop.
+    * As suplemental data for species identification from images of feces.
 
 
 ## Distribution
@@ -247,7 +267,7 @@ kwcoco stats data.kwcoco.json
 
 1. **Will the dataset be distributed to third parties outside of the entity (e.g. company, institution, organization) on behalf of which the dataset was created?** If so, please provide a description.
 
-	*Your Answer Here*
+    It will be freely available as long as someone is willing to host it.
 
 2. **How will the dataset will be distributed (e.g. tarball on website, API, GitHub)?** Does the dataset have a digital object identifier (DOI)?
 
