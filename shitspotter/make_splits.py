@@ -96,6 +96,7 @@ def make_splits():
         else:
             raise NotImplementedError
 
+    # Hack
     for img in dset.dataset['images']:
         img['sensor_coarse'] = 'phone'
         img['datetime_captured'] = img['datetime']

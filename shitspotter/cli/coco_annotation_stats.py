@@ -3,6 +3,11 @@ import scriptconfig as scfg
 import ubelt as ub
 import os
 
+try:
+    from line_profiler import profile
+except ImportError:
+    profile = ub.identity
+
 
 class CocoAnnotationStatsCLI(scfg.DataConfig):
     """
@@ -34,6 +39,7 @@ class CocoAnnotationStatsCLI(scfg.DataConfig):
         run(config)
 
 
+@profile
 def run(config):
     import json
     import kwutil
@@ -69,7 +75,7 @@ def run(config):
         json.dump(tables_data, fp)
 
     print('Preparing plots')
-    rich.print(f'Plots Directory: [link={plots_dpath}]{plots_dpath}[/link]')
+    rich.print(f'Will write plots to: [link={plots_dpath}]{plots_dpath}[/link]')
     plot_functions = _define_plot_functions(
         plots_dpath, tables_data, nonsaved_data, dpi=config.dpi)
 
@@ -83,6 +89,7 @@ def run(config):
         for key in pman.ProgIter(plot_func_keys, desc='plot'):
             func = plot_functions[key]
             func()
+    rich.print(f'Finished writing plots to: [link={plots_dpath}]{plots_dpath}[/link]')
 
     # Write manifest of all data written to disk
     summary_data = {}
@@ -103,6 +110,7 @@ def run(config):
         json.dump(summary_data, fp, indent='    ')
 
 
+@profile
 def build_stats_data(config):
     import kwcoco
     import kwimage
@@ -155,89 +163,12 @@ def build_stats_data(config):
 
     ESTIMATE_SUNLIGHT = 1
     if ESTIMATE_SUNLIGHT:
-        from shitspotter.util.util_math import Rational
+        from shitspotter.util.util_gis import coco_estimate_sunlight
         try:
-            import suntime
-            import timezonefinder
-            tzfinder = timezonefinder.TimezoneFinder()
-            import pytz
-        except ImportError:
-            ...
-        else:
-            sunlight_values = []
-            for gid, img in dset.index.imgs.items():
-                if 'geos_point' in img:
-                    geos_point = img['geos_point']
-                    if isinstance(geos_point, dict):
-                        coords = geos_point['coordinates']
-                        point = [Rational.coerce(x) for x in coords]
-                        lon, lat = point
-                        sun = suntime.Sun(lat, lon)
-                        timezone_str = tzfinder.timezone_at(lng=lon, lat=lat)
-                        timezone = pytz.timezone(timezone_str)
-
-                        import kwutil
-                        datetime = kwutil.datetime.coerce(img['datetime'], default_timezone=timezone)
-                        one_day = kwutil.timedelta.coerce('1 day')
-                        one_hour = kwutil.timedelta.coerce('1 hour')
-                        yesterday = datetime - one_day
-                        tomorrow = datetime + one_day
-                        # print(yesterday)
-                        # print(datetime)
-                        # print(tomorrow)
-                        # print('---')
-
-                        yesterday_sunset = sun.get_sunset_time(yesterday, timezone)
-                        today_sunrise = sun.get_sunrise_time(datetime, timezone)
-                        today_sunset = sun.get_sunset_time(today_sunrise, timezone)
-                        if today_sunset < today_sunrise:
-                            # hack to work around a bug in suntime
-                            # https://github.com/SatAgro/suntime/issues/30
-                            today_sunset = sun.get_sunset_time(today_sunrise + one_day, timezone)
-                        tomorrow_sunrise = sun.get_sunrise_time(tomorrow, timezone)
-                        # print(yesterday_sunset)
-                        # print(today_sunrise)
-                        # print(today_sunset)
-                        # print(tomorrow_sunrise)
-
-                        # Hacky linear interpolation to guestimate the amount of light
-                        # based on sun times. Could do better if we had the elevation
-                        # and then we could get the sun angle in the sky. Linear
-                        # interpolation is probably the wrong assumption, fixme later.
-                        values = [
-                            {'time': yesterday_sunset + one_hour , 'light': 0.0},
-                            {'time': today_sunrise - one_hour    , 'light': 0.0},
-                            {'time': today_sunrise               , 'light': 0.5},
-                            {'time': today_sunrise + one_hour    , 'light': 1.0},
-
-                            {'time': today_sunset - one_hour     , 'light': 1.0},
-                            {'time': today_sunset                , 'light': 0.5},
-                            {'time': today_sunset + one_hour     , 'light': 0.0},
-                            {'time': tomorrow_sunrise - one_hour , 'light': 0.0},
-                        ]
-                        keytimes = pd.DataFrame(values)
-
-                        from scipy import interpolate
-                        xs = [x.timestamp() for x in keytimes['time']]
-                        ys = keytimes['light']
-                        interp = interpolate.interp1d(xs, ys, kind='linear')
-                        sunlight = interp(datetime.timestamp())
-
-                        if 0:
-                            test_xs = np.linspace(xs[0], xs[-1], 100)
-                            test_ys = interp(test_xs)
-                            import kwplot
-                            kwplot.autompl()
-                            kwplot.plt.plot(test_xs, test_ys)
-                            kwplot.plt.plot(xs, ys, 'o')
-                            kwplot.plt.plot(keytimes['time'].apply(lambda x: x.timestamp()), keytimes.light, 'o')
-                    else:
-                        sunlight = np.nan
-                else:
-                    sunlight = np.nan
-                sunlight_values.append(sunlight)
-            sunlight_values = np.array(sunlight_values)
+            sunlight_values = coco_estimate_sunlight(dset, image_ids=images)
             perimage_data['sunlight'] = sunlight_values
+        except ImportError:
+            print('Unable to estimate sunlight')
 
     perannot_data = gpd.GeoDataFrame({
         'geometry': [p.to_shapely() for p in polys],
@@ -270,6 +201,7 @@ def build_stats_data(config):
     return tables_data, nonsaved_data
 
 
+@profile
 def _define_plot_functions(plots_dpath, tables_data, nonsaved_data, dpi=300):
     """
     Defines plot functions as closures, to make it easier to share common
@@ -315,11 +247,56 @@ def _define_plot_functions(plots_dpath, tables_data, nonsaved_data, dpi=300):
         'rt_area': 'Polygon sqrt(Area)'
     })
 
+    def _split_histplot(data, x):
+        """
+        TODO: generalize, if there is not a huge delta between histogram
+        values, then fallback to just a single histogram plot.
+        Need to figure out:
+        is it possible to pass this an existing figure, so we don't always
+        create a new one with plt.subplots?
+
+        References:
+            https://stackoverflow.com/questions/32185411/break-in-x-axis-of-matplotlib
+            https://stackoverflow.com/questions/63726234/how-to-draw-a-broken-y-axis-catplot-graphes-with-seaborn
+        """
+        plt = kwplot.plt
+        fig, (ax_top, ax_bottom) = plt.subplots(ncols=1, nrows=2, sharex=True, gridspec_kw={'hspace': 0.05})
+
+        split_point = 'auto'
+        if split_point == 'auto':
+            histogram = data[x].value_counts()
+            small_values = histogram[histogram < histogram.mean()]
+            split_point = int(small_values.max() * 1.5)
+
+        sns.histplot(data=data, x=x, ax=ax_top, binwidth=1, discrete=True)
+        sns.histplot(data=data, x=x, ax=ax_bottom, binwidth=1, discrete=True)
+
+        sns.despine(ax=ax_bottom)
+        sns.despine(ax=ax_top, bottom=True)
+        ax = ax_top
+        d = .015  # how big to make the diagonal lines in axes coordinates
+        # arguments to pass to plot, just so we don't keep repeating them
+        kwargs = dict(transform=ax.transAxes, color='k', clip_on=False)
+        ax.plot((-d, +d), (-d, +d), **kwargs)        # top-left diagonal
+
+        ax2 = ax_bottom
+        kwargs.update(transform=ax2.transAxes)  # switch to the bottom axes
+        ax2.plot((-d, +d), (1 - d, 1 + d), **kwargs)  # bottom-left diagonal
+
+        #remove one of the legend
+        if ax_bottom.legend_ is not None:
+            ax_bottom.legend_.remove()
+
+        ax_top.set_ylabel('')
+        ax_top.set_ylim(bottom=split_point)   # those limits are fake
+        ax_bottom.set_ylim(0, split_point)
+        return ax_top, ax_bottom
+
     @register
     def polygon_centroid_distribution():
         ax = figman.figure(fnum=1, doclf=True).gca()
         sns.kdeplot(data=perannot_data, x='centroid_x', y='centroid_y', ax=ax)
-        sns.scatterplot(data=perannot_data, x='centroid_x', y='centroid_y', ax=ax, hue='rt_area', alpha=0.9)
+        sns.scatterplot(data=perannot_data, x='centroid_x', y='centroid_y', ax=ax, hue='rt_area', alpha=0.8)
         ax.set_aspect('equal')
         ax.set_title('Polygon Absolute Centroid Positions')
         #ax.set_xlim(0, max_width)
@@ -330,6 +307,21 @@ def _define_plot_functions(plots_dpath, tables_data, nonsaved_data, dpi=300):
         ax.set_aspect('equal')
         ax.invert_yaxis()
         figman.finalize('centroid_absolute_distribution.png')
+
+    @register
+    def image_size_distribution():
+        # ax = figman.figure(fnum=1, doclf=True).gca()
+        img_dsizes = [f'{w}✕{h}' for w, h in zip(perimage_data['width'], perimage_data['height'])]
+        perimage_data['img_dsizes'] = img_dsizes
+        # sns.histplot(data=perimage_data, x='img_dsizes', ax=ax)
+        data = perimage_data
+        x = 'img_dsizes'
+        ax_top, ax_bottom = _split_histplot(data=data, x=x)
+        ax_bottom.set_xlabel('Image Width ✕ Height')
+        ax_bottom.set_ylabel('Number of Images')
+        # ax.set_aspect('equal')
+        ax_top.set_title('Image Size Histogram')
+        figman.finalize('image_size_distribution.png')
 
     @register
     def obox_size_distribution():
@@ -401,6 +393,8 @@ def _define_plot_functions(plots_dpath, tables_data, nonsaved_data, dpi=300):
         # ax = figman.figure(fnum=1, doclf=True).gca()
         plt = kwplot.plt
         fig, (ax_top, ax_bottom) = plt.subplots(ncols=1, nrows=2, sharex=True, gridspec_kw={'hspace': 0.05})
+
+        # ax_top, ax_bottom = _split_histplot(data=data, x=x)
 
         sns.histplot(data=perimage_data, x='anns_per_image', ax=ax_top, binwidth=1, discrete=True)
         sns.histplot(data=perimage_data, x='anns_per_image', ax=ax_bottom, binwidth=1, discrete=True)
@@ -581,7 +575,7 @@ if __name__ == '__main__':
     CommandLine:
         python ~/code/shitspotter/shitspotter/cli/coco_annotation_stats.py
 
-        python -m shitspotter.cli.coco_annotation_stats $HOME/data/dvc-repos/shitspotter_dvc/data.kwcoco.json \
+        LINE_PROFILE=1 python -m shitspotter.cli.coco_annotation_stats $HOME/data/dvc-repos/shitspotter_dvc/data.kwcoco.json \
             --dst_fpath $HOME/code/shitspotter/coco_annot_stats/stats.json \
             --dst_dpath $HOME/code/shitspotter/coco_annot_stats
     """

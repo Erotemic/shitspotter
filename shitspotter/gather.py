@@ -16,31 +16,70 @@ import xdev
 from shitspotter.util import Rational, extract_exif_metadata
 
 
-def main():
+def gather_test_rows(dpath):
     """
-    Used to update the images in the kwcoco file, reconstructs the entire
-    thing.
-
-    Walk the coco bundle dpath and reconstruct the kwcoco file with all
-    currently available images.
-
-    from shitspotter.gather import *  # NOQA
+    The data in the test set.
     """
-    import shitspotter
-    coco_fpath = shitspotter.util.find_shit_coco_fpath()
-
-    dpath = coco_fpath.parent
-
+    contrip_dpath = (dpath / 'assets/_contributions')
     image_rows = []
     seen = set()
     all_fpaths = []
-    change_point = dateutil.parser.parse('2021-05-11T120000')
     walk_prog = ub.ProgIter(desc='walking')
-
     extensions = set()
-
     block_extensions = ('.mp4', '.json')
+    with walk_prog:
+        for r, ds, fs in os.walk(contrip_dpath, followlinks=True):
+            walk_prog.step()
+            dname = ub.Path(r).stem
+            if dname.startswith('racoon-poop'):
+                continue
 
+            for fname in fs:
+                gpath = join(r, fname)
+                all_fpaths.append(gpath)
+                if fname.endswith(block_extensions):
+                    continue
+                if fname in seen:
+                    print('SEEN fname = {!r}'.format(fname))
+                    continue
+
+                ext = fname.split('.')[-1]
+
+                if ext == 'shitspotter':
+                    raise Exception
+
+                labelme_sidecar_fpath = ub.Path(gpath).augment(ext='.json')
+                has_labelme = labelme_sidecar_fpath.exists()
+
+                extensions.add(ext)
+                seen.add(fname)
+                image_info = {
+                    'gpath': gpath,
+                    'name': pathlib.Path(fname).stem,
+                    'cohort': dname,
+                    'has_labelme': has_labelme,
+                }
+                image_rows.append(image_info)
+    # Only take test images with annotations
+    image_rows = [r for r in image_rows if r['has_labelme']]
+    return image_rows
+
+
+def gather_learn_rows(dpath):
+    """
+    The data we are allowed to learn from.
+
+    Ignore:
+        import shitspotter
+        dpath = shitspotter.util.find_shit_coco_fpath().parent
+    """
+    image_rows = []
+    seen = set()
+    all_fpaths = []
+    protocol_change_point = dateutil.parser.parse('2021-05-11T120000')
+    walk_prog = ub.ProgIter(desc='walking')
+    extensions = set()
+    block_extensions = ('.mp4', '.json')
     with walk_prog:
         for r, ds, fs in os.walk(dpath, followlinks=True):
             walk_prog.step()
@@ -49,7 +88,7 @@ def main():
                 timestr = dname.split('poop-')[1]
                 datestamp = dateutil.parser.parse(timestr)
 
-                is_double = datestamp < change_point
+                is_double = datestamp < protocol_change_point
 
                 for fname in fs:
                     gpath = join(r, fname)
@@ -79,7 +118,6 @@ def main():
                         'has_labelme': has_labelme,
                     }
                     image_rows.append(image_info)
-
     cohort_to_num_labels = {}
     total_numer = 0
     total_denom = 0
@@ -145,7 +183,7 @@ def main():
         # Dont remove, because I'm afraid to do that programtically atm
         # just move to a trash folder
         # pathlib.Path('/data/store/data/shit-pics/_trash_dups')
-        trash_dpath = coco_fpath.parent / 'assets/_trash_dups'
+        trash_dpath = dpath / 'assets/_trash_dups'
         trash_dpath.mkdir(exist_ok=True)
         import shutil
         for p in to_remove:
@@ -163,7 +201,10 @@ def main():
         with ub.Timer('imread-o1'):
             imdata = kwimage.imread(fpath, overview=2, backend='gdal')
             print('imdata.shape = {!r}'.format(imdata.shape))
+    return image_rows
 
+
+def process_image_rows(image_rows):
     for row in ub.ProgIter(image_rows):
         gpath = row['gpath']
         row['nbytes'] = os.stat(gpath).st_size
@@ -176,12 +217,15 @@ def main():
             # parse_datetime(exif['DateTime'])
             exif_datetime = exif['DateTime']
             dt = datetime.datetime.strptime(exif_datetime, '%Y:%m:%d %H:%M:%S')
+        except KeyError:
+            ...
         except Exception:
             # dt = date_parser.parse(exif['DateTime'])
             # row['datetime'] = dt.isoformat()
             raise
-        # TODO: exif 'OffsetTime': '-05:00',
-        row['datetime'] = dt.isoformat()
+        else:
+            # TODO: exif 'OffsetTime': '-05:00',
+            row['datetime'] = dt.isoformat()
 
         exif_ori = exif.get('Orientation', None)
         row['exif_ori'] = exif_ori
@@ -212,104 +256,168 @@ def main():
         row.pop('datestamp', None)
         coco_dset.add_image(**row)
 
+    # Hacks so geowatch handles the dataset nicely
+    # In the future geowatch should be more robust
+    for img in coco_dset.dataset['images']:
+        img['sensor_coarse'] = 'phone'
+        img['datetime_captured'] = img['datetime']
+        img['channels'] = 'red|green|blue'
+
     coco_dset.conform(workers=8)
     coco_dset.validate()
-
-    coco_dset.fpath = str(coco_fpath)
     coco_dset._check_json_serializable()
     coco_dset._ensure_json_serializable()
-    print('coco_dset.fpath = {!r}'.format(coco_dset.fpath))
-    coco_dset.reroot(absolute=False)
-    coco_dset.clear_annotations()
+    return coco_dset
 
-    ADD_LABELME_ANNOTS = 1
-    if ADD_LABELME_ANNOTS:
-        import json
-        import kwimage
-        json_fpaths = sorted((dpath / 'assets').glob('*/*.json'))
-        for fpath in ub.ProgIter(json_fpaths):
 
-            if True:
-                # Fixup labelme json files
-                # Remove image data, fix bad labels
-                labelme_data = json.loads(fpath.read_text())
-                needs_write = 0
-                if labelme_data.get('imageData', None) is not None:
-                    labelme_data['imageData'] = None
-                    needs_write = 1
-
-                for shape in labelme_data['shapes']:
-                    if shape['label'] == 'poop;':
-                        shape['label'] = 'poop'
-                        needs_write = 1
-
-                if needs_write:
-                    fpath.write_text(json.dumps(labelme_data))
-
-            # labelme_data = json.loads(fpath.read_text())
-            imginfo, annsinfo = labelme_to_coco_structure(labelme_data)
-            image_name = imginfo['file_name'].rsplit('.', 1)[0]
-            if image_name not in coco_dset.index.name_to_img:
-                continue
-            img = coco_dset.index.name_to_img[image_name]
-
-            # Construct the inverted exif transform
-            # (From exif space -> raw space)
-            rot_ccw = 0
-            flip_axis = None
-            if img['exif_ori'] == 8:
-                rot_ccw = 3
-            elif img['exif_ori'] == 3:
-                rot_ccw = 2
-            elif img['exif_ori'] == 6:
-                rot_ccw = 1
-            elif img['exif_ori'] == 7:
-                flip_axis = 1
-                rot_ccw = 3
-            elif img['exif_ori'] == 4:
-                flip_axis = 1
-                rot_ccw = 2
-            elif img['exif_ori'] == 5:
-                flip_axis = 1
-                rot_ccw = 1
-            exif_canvas_dsize = (labelme_data['imageWidth'], labelme_data['imageHeight'])
-            inv_exif = kwimage.Affine.fliprot(
-                flip_axis=flip_axis, rot_k=rot_ccw,
-                canvas_dsize=exif_canvas_dsize
-            )
-
-            for ann in annsinfo:
-                ann = ann.copy()
-                poly = kwimage.Polygon.from_coco(ann['segmentation'])
-
-                if not inv_exif.isclose_identity():
-                    # if img['id'] not in {0}:
-                    #     raise Exception(img['id'])
-                    # LabelMe Polygons are annotated in EXIF space, but
-                    # we need them in raw space for kwcoco.
-                    poly = poly.warp(inv_exif)
-
-                ann['segmentation'] = poly.to_coco(style='new')
-                ann['bbox'] = poly.box().quantize().to_coco()
-
+def read_ann_labelme_anns_into_coco(coco_dset):
+    bundle_dpath = ub.Path(coco_dset.bundle_dpath)
+    for img in coco_dset.dataset['images']:
+        if img['has_labelme']:
+            for ann in load_labelme_anns(bundle_dpath, img):
                 catname = ann.pop('category_name')
                 cid = coco_dset.ensure_category(catname)
                 ann['category_id'] = cid
-                ann['image_id'] = img['id']
                 coco_dset.add_annotation(**ann)
 
-            if 0:
-                import kwplot
-                kwplot.autompl(recheck=1, force='QtAgg')
-                if not inv_exif.isclose_identity():
-                    coco_dset.show_image(img['id'])
-                    if img['id'] not in {0, 1575, 7, 1554}:
-                        raise Exception(img['id'])
-    #
-    print('coco_dset = {}'.format(ub.urepr(coco_dset, nl=1)))
-    print('coco_dset.fpath = {}'.format(ub.urepr(coco_dset.fpath, nl=1)))
-    print(ub.urepr(coco_dset.stats(extended=True), nl=2))
-    coco_dset.dump(coco_dset.fpath, newlines=True)
+            # if 0:
+            #     import kwplot
+            #     kwplot.autompl(recheck=1, force='QtAgg')
+            #     if not inv_exif.isclose_identity():
+            #         coco_dset.show_image(img['id'])
+            #         if img['id'] not in {0, 1575, 7, 1554}:
+            #             raise Exception(img['id'])
+
+
+def load_labelme_anns(bundle_dpath, img):
+    import kwimage
+    gpath = bundle_dpath / img['file_name']
+    labelme_fpath = gpath.augment(ext='.json')
+    assert labelme_fpath.exists()
+
+    labelme_data = read_labelme_data(labelme_fpath)
+
+    # labelme_data = json.loads(fpath.read_text())
+    imginfo, annsinfo = labelme_to_coco_structure(labelme_data)
+    # image_name = imginfo['file_name'].rsplit('.', 1)[0]
+
+    # Construct the inverted exif transform
+    # (From exif space -> raw space)
+    rot_ccw = 0
+    flip_axis = None
+    if img['exif_ori'] == 8:
+        rot_ccw = 3
+    elif img['exif_ori'] == 3:
+        rot_ccw = 2
+    elif img['exif_ori'] == 6:
+        rot_ccw = 1
+    elif img['exif_ori'] == 7:
+        flip_axis = 1
+        rot_ccw = 3
+    elif img['exif_ori'] == 4:
+        flip_axis = 1
+        rot_ccw = 2
+    elif img['exif_ori'] == 5:
+        flip_axis = 1
+        rot_ccw = 1
+    exif_canvas_dsize = (labelme_data['imageWidth'], labelme_data['imageHeight'])
+    inv_exif = kwimage.Affine.fliprot(
+        flip_axis=flip_axis, rot_k=rot_ccw,
+        canvas_dsize=exif_canvas_dsize
+    )
+
+    for ann in annsinfo:
+        ann = ann.copy()
+        poly = kwimage.Polygon.from_coco(ann['segmentation'])
+
+        if not inv_exif.isclose_identity():
+            # if img['id'] not in {0}:
+            #     raise Exception(img['id'])
+            # LabelMe Polygons are annotated in EXIF space, but
+            # we need them in raw space for kwcoco.
+            poly = poly.warp(inv_exif)
+
+        ann['segmentation'] = poly.to_coco(style='new')
+        ann['bbox'] = poly.box().quantize().to_coco()
+
+        ann['image_id'] = img['id']
+        yield ann
+
+
+def read_labelme_data(labelme_fpath):
+    import json
+    # Fixup labelme json files
+    # Remove image data, fix bad labels
+    labelme_data = json.loads(labelme_fpath.read_text())
+    needs_write = 0
+    if labelme_data.get('imageData', None) is not None:
+        labelme_data['imageData'] = None
+        needs_write = 1
+
+    for shape in labelme_data['shapes']:
+        if shape['label'] == 'poop;':
+            shape['label'] = 'poop'
+            needs_write = 1
+
+    if needs_write:
+        labelme_fpath.write_text(json.dumps(labelme_data))
+    return labelme_data
+
+
+def main():
+    """
+    Used to update the images in the kwcoco file, reconstructs the entire
+    thing.
+
+    Walk the coco bundle dpath and reconstruct the kwcoco file with all
+    currently available images.
+
+    Ignore:
+        from shitspotter.gather import *  # NOQA
+    """
+    import shitspotter
+    coco_fpath = shitspotter.util.find_shit_coco_fpath()
+
+    dpath = coco_fpath.parent
+    image_rows = gather_learn_rows(dpath)
+    coco_dset = process_image_rows(image_rows)
+    coco_dset.fpath = str(coco_fpath)
+
+    dpath = coco_fpath.parent
+    test_image_rows = gather_test_rows(dpath)
+    test_coco_dset = process_image_rows(test_image_rows)
+    test_coco_dset.fpath = str(coco_fpath.augment(stem='test', multidot=True))
+
+    print(f'test_coco_dset.fpath={test_coco_dset.fpath}')
+    print(f'coco_dset.fpath={coco_dset.fpath}')
+    coco_dset.reroot(absolute=False)
+    test_coco_dset.reroot(absolute=False)
+    # coco_dset.clear_annotations()
+
+    ADD_LABELME_ANNOTS = 1
+    if ADD_LABELME_ANNOTS:
+        read_ann_labelme_anns_into_coco(coco_dset)
+        read_ann_labelme_anns_into_coco(test_coco_dset)
+
+    # learn_code = build_code(coco_dset)
+    test_code = build_code(test_coco_dset)
+    test_coco_dset.fpath = os.fspath(dpath / ('test_' + test_code + '.kwcoco.zip'))
+
+    import rich
+    for dset in [coco_dset, test_coco_dset]:
+        rich.print('dset = {}'.format(ub.urepr(dset, nl=1)))
+        rich.print('dset.fpath = {}'.format(ub.urepr(dset.fpath, nl=1)))
+        rich.print(ub.urepr(dset.stats(extended=True), nl=2))
+        dset.dump(dset.fpath, newlines=True)
+
+    print('Wrote:')
+    for dset in [coco_dset, test_coco_dset]:
+        rich.print('dset.fpath = {}'.format(ub.urepr(dset.fpath, nl=1)))
+
+
+def build_code(coco_dset):
+    hashid = coco_dset._build_hashid()[0:8]
+    return f'imgs{coco_dset.n_images}_{hashid}'
 
 
 def labelme_to_coco_structure(labelme_data):

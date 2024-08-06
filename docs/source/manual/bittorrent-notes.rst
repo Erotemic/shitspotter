@@ -75,6 +75,28 @@ Other notes that are not well organized yet
 
 
 
+    ### Attempt to enable more logs in the service
+    # https://askubuntu.com/questions/397589/enable-logging-for-service
+    # https://www.cviorel.com/enable-transmission-daemon-logging-to-file/
+    SERVICE_FPATH=/lib/systemd/system/transmission-daemon.service
+    cat $SERVICE_FPATH
+
+    sudo sed -i 's|ExecStart.*|ExecStart=/usr/bin/transmission-daemon -f --log-debug --logfile /var/log/transmission.log|g' $SERVICE_FPATH
+    sudo touch /var/log/transmission.log
+    sudo chown debian-transmission /var/log/transmission.log
+    sudo chmod 644 /var/log/transmission.log
+
+    sudo systemctl daemon-reload
+    sudo service transmission-daemon restart
+
+    watch tail /var/log/transmission.log
+
+    # Maybe try giving the transmission-daemon permission to the user group?
+    sudo usermod -a -G $USER debian-transmission
+
+
+
+
 References:
 
     https://askubuntu.com/questions/397589/enable-logging-for-service

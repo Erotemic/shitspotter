@@ -142,6 +142,10 @@ On the seeding machine
 
    # Show info about a torrent
    transmission-remote --auth transmission:transmission --torrent $TORRENT_ID --info
+   transmission-remote --auth transmission:transmission --torrent $TORRENT_ID --info-files
+   transmission-remote --auth transmission:transmission --torrent $TORRENT_ID --info-trackers
+   transmission-remote --auth transmission:transmission --torrent $TORRENT_ID --info-pieces
+   transmission-remote --auth transmission:transmission --torrent $TORRENT_ID --info-peers
 
    # Verify the torrent
    transmission-remote --auth transmission:transmission --torrent $TORRENT_ID --verify
@@ -153,7 +157,7 @@ On the seeding machine
    transmission-remote --auth transmission:transmission --torrent $TORRENT_ID --find /var/lib/transmission-daemon/downloads
 
    # CONTEXTUAL: start the torrent
-   # transmission-remote --auth transmission:transmission --torrent $TORRENT_ID --start
+   transmission-remote --auth transmission:transmission --torrent $TORRENT_ID --start
 
    # CONTEXTUAL: remove the torrent
    # transmission-remote --auth transmission:transmission --torrent $TORRENT_ID --remove

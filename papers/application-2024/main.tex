@@ -6,11 +6,12 @@
 \documentclass[10pt,twocolumn,letterpaper]{article}
 
 %%%%%%%%% PAPER TYPE  - PLEASE UPDATE FOR FINAL VERSION
+
 \usepackage[T1]{fontenc}    % use 8-bit T1 fonts
 %\usepackage[review,algorithms]{wacv}      % To produce the REVIEW version for the algorithms track
 %\usepackage[review,applications]{wacv}      % To produce the REVIEW version for the applications track
-\usepackage{wacv}              % To produce the CAMERA-READY version
-%\usepackage[pagenumbers]{wacv} % To force page numbers, e.g. for an arXiv version
+%\usepackage{wacv}              % To produce the CAMERA-READY version
+\usepackage[pagenumbers]{wacv} % To force page numbers, e.g. for an arXiv version
 
 
 % It is strongly recommended to use hyperref, especially for the review version.
@@ -57,7 +58,7 @@
 %%%%%%%%% PAPER ID  - PLEASE UPDATE
 \def\wacvPaperID{*****} % *** Enter the WACV Paper ID here
 \def\confName{WACV}
-\def\confYear{2024}
+\def\confYear{2025}
 
 
 \begin{document}
@@ -128,8 +129,8 @@ images are numerous.
 Automated waste disposal to keep parks and backyards clean.
 A part of a system for using feces to monitor wildlife populations.
 A warning system in smart-glasses to prevent people from stepping in poop.
-The motivating use case is to help a dog owner find their dog's poop in a leafy
-park so they can pick it up.
+The motivating use case is to develop a phone application that can help a dog
+owner find their dog's poop in a leafy park so they can pick it up.
 Many of these applications can be realized with modern object detection and
 segmentation methods (cite modern object detection and segmentation methods)
 and a large labeled dataset to train on.
@@ -238,8 +239,8 @@ Challenges
 
 Images were annotated using labelme \cite{wada_labelmeailabelme_nodate}. 
 The boundaries of 4386 annotated polygons are illustrated in \Cref{fig:AllPolygons}.
-Most annotations were initialized using the segment anything (SAM) AI assistant
-\cite{kirillov_segment_2023}. 
+Most annotations were initialized using the Segment Anything Model (SAM)
+\cite{kirillov_segment_2023} and a point prompt. 
 All AI polygons were manually reviewed, many SAM polygons were adjusted, and in
 some cases SAM did not work and manual annotations were faster or needed.
 Regions with shadows seemed to cause SAM the most trouble, but there were other
@@ -286,6 +287,8 @@ Many images do contain more than one poop, and this can be for several reasons:
     3. one or more dogs has pooped in the same area over some period of
        time (some cases can be difficult to determine if it is poop or dirt).
 
+Almost all images have a width/height of 4032 x 3024 (which could be rotated
+based on EXIF data) with 6 being 4008 x 5344 and one being 768 x 1024.
 
 \begin{figure}[h]
 \centering
@@ -324,16 +327,46 @@ We use the training and evaluation system of \cite{Greenwell_2024_WACV}, which
 can be trained to predict heatmaps from polygons and can evaluate those
 heatmaps on a pixelwise-level. 
 
-The baseline architecture is a variant of a vision-transformer \cite{vit,split-attention,greenwell_watch_2024}.
+
+Specifically, we use the file named train\_imgs5747\_1e73d54f.kwcoco.zip with
+5747 images to train and vali\_imgs691\_99b22ad0.kwcoco.zip which contains 691
+images is our experimental test set.
+In this paper we do not make use of the contributor data
+
+
+The baseline architecture is a variant of a vision-transformer \cite{dosovitskiy_image_2021,bertasius2021space,Greenwell_2024_WACV}.
 
 Number of parameters.
 Memory at train time.
 Memory at predict time.
 Model size on disk.
 
-We train several models and vary the learning rate, weight decay,
-shrink-and-perterb regularization \cite{ash_warm_starting_2020}, as well as
-other ad hoc experiment settings.
+In all experiments, we use half-resolution images, which means most images have
+an effective width/height of 2016 x 1512. The network is given a widow size of
+416,416, which means that multiple windows are needed to predict on entire
+images.
+
+Our model is a 12 layer encoder backbone with 384 channels, and 8 attention
+heads. 
+The segmentation head is a 4 layer MLP using encoder features.
+Loss is computed pixelwise using FocalLoss \cite{ross2017focal} with a small
+downweighting of pixels towards the edge of the window.
+The optimizer is AdamW, and we vary learning rate, weight decay, and
+perturb-scale (note: weight decay combined with a non-zero perterb scale
+implements the shrink perturb trick: \cite{ash_warm_starting_2020}).
+We use a OneCycle learning rate scheduler with a cosine annealing strategy and
+starting fraction of 0.3.
+Our effective batch size is 24 with a real batch size of 2 and 12 accumulate
+gradient steps.
+
+
+All regions without an annotation were available at train time, but we used an
+undersampling strategy to randomly choose equal numbers of negative windows as
+there were positive windows (i.e. windows with annotations in them).
+
+This used about 20-22 GB of the 24 GB available on the 3090 throughout
+training.
+
 %\textbf{Static Parameters}:
 
 \subsection{Model Experiments}
@@ -342,9 +375,14 @@ other ad hoc experiment settings.
     SeeAlso:
     ~/code/shitspotter/experiments/run_pixel_eval_pipeline.sh
 
-    ~/code/shitspotter/dev/poc/estimate_train_resources.py
+    python ~/code/shitspotter/dev/poc/estimate_train_resources.py
 
 \end{comment}
+
+Our experiments are meant mean to provide a reasonable baseline, and not a
+comprehensive evaluation of state of the art models on this dataset.
+
+Exact scripts to reproduce these experiments are in the code repo.
 
 After finding a reasonable performing starting point, we performed an ablation
 over learning rate and regularization parameters. 
@@ -383,11 +421,35 @@ over learning rate and regularization parameters.
 \label{fig:scatter_legend}
 \end{figure}
 
+% Scatterplot for all experiments used in this work.
+% file:///home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/full_aggregate/plots/macro-plots-macro_01_c1edce/params/resolved_params.heatmap_pred_fit.trainer.default_root_dir/scatter_nolegend/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_vs_metrics.heatmap_eval.salient_AUC_PLT02_scatter_nolegend.png
+
+
+\begin{table*}[t]
+\centering
+\begin{tabular}{llllrr}
+\toprule
+                       default\_root\_dir &      lr & weight\_decay & perterb\_scale &  salient\_AP &  salient\_AUC \\
+\midrule
+shitspotter\_scratch\_20240618\_noboxes\_v7 &  0.0001 &     0.000001 &      0.000003 &    0.832460 &     0.992721 \\
+shitspotter\_scratch\_20240618\_noboxes\_v6 &  0.0001 &          0.0 &           0.0 &    0.822544 &     0.979457 \\
+shitspotter\_scratch\_20240618\_noboxes\_v5 &  0.0001 &      0.00001 &           0.0 &    0.820307 &     0.967862 \\
+shitspotter\_scratch\_20240618\_noboxes\_v4 &  0.0001 &     0.000001 &           0.0 &    0.815864 &     0.987229 \\
+shitspotter\_scratch\_20240618\_noboxes\_v2 &  0.0003 &     0.000003 &      0.000001 &    0.810662 &     0.968507 \\
+shitspotter\_scratch\_20240618\_noboxes\_v3 &   0.001 &      0.00001 &      0.000003 &    0.766480 &     0.989868 \\
+shitspotter\_scratch\_20240618\_noboxes\_v8 &  0.0001 &     0.000001 &           0.0 &    0.745779 &     0.966297 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+
 This restricted set is illustrated in \Cref{fig:scatter-subset}.
 
-We evaluate each model with standard pixelwise segmentation metrics with a
-focus on average-precision (AP) and  area under the ROC curve (AUC)
-\cite{metrics} .
+We evaluate each model with standard pixelwise segmentation metrics, where each
+pixel is is considered as a binary classification example (poop-vs-background).
+For each pixel the truth is compared to its predicted score, and we compute
+standard metrics of average-precision (AP) and  area under the ROC curve (AUC)
+\cite{powers_evaluation_2011}.
 
 \Cref{fig:scatter-all} illustrates the AP and AUC of all baseline models trained.
 These include ad-hoc parameters settings when searching for a stable training
@@ -441,6 +503,47 @@ print(f'cost_to_offset = ${cost_to_offset:4.2f}')
 \end{comment}
 
 
+However, the experiments presented here were not the only ones performed in
+determining the hyperparameters we held constant here. 
+
+The path to the presented experiments involved trying over 42 training run with
+a wider variation of parameters. In total we estimate the total GPU time as
+158.9 days with an average of 3.75 days per run, which is emits roughly 280.4
+CO2 kg with a cost of about \$4.21 to offset.
+
+
+
+
+\begin{table*}[t]
+\begin{tabular}{llllr}
+\toprule
+        node & resource &           total &            mean &  num \\
+\midrule
+heatmap\_eval & duration & 0 days 07:52:02 & 0 days 00:13:29 &   35 \\
+heatmap\_pred & duration & 0 days 04:23:34 & 0 days 00:07:32 &   35 \\
+heatmap\_pred &   co2\_kg &        0.667817 &         0.01908 &   35 \\
+heatmap\_pred &      kwh &        3.172888 &        0.090654 &   35 \\
+\bottomrule
+\end{tabular}
+\caption{All experiments table}
+\end{table*}
+
+
+\begin{table*}[t]
+\begin{tabular}{llllr}
+\toprule
+        node & resource &           total &            mean &  num \\
+\midrule
+heatmap\_eval & duration & 4 days 14:37:02 & 0 days 00:20:07 &  330 \\
+heatmap\_pred & duration & 6 days 06:52:11 & 0 days 00:27:31 &  329 \\
+heatmap\_pred &   co2\_kg &       17.954668 &        0.054573 &  329 \\
+heatmap\_pred &      kwh &       85.305086 &        0.259286 &  329 \\
+\bottomrule
+\end{tabular}
+\caption{Limited experiments chosen for}
+\end{table*}
+
+
 \section{Distribution / Sharing}
 
 % BitTorrent can be vulnerable to MITM:
@@ -455,7 +558,7 @@ person has the data.
 
 BitTorrent is a well known distributed system.
 
-IPFS is a new similar tool.
+IPFS is a new similar tool \cite{benet_ipfs_2014,bieri_overview_2021}.
 
 
 Discuss distributing the dataset via IPFS versus centralized distribution
@@ -463,6 +566,11 @@ systems.
 
 Decentralized Method - IPFS and BitTorrent.
 Centralized Method - Girder
+
+
+The specific version of the dataset used in this paper was snap-shotted on
+2024-07-03 and has the IPFS content ID of:
+bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y.
 
 Observations:
 \begin{itemize}

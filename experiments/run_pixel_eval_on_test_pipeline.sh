@@ -11,10 +11,8 @@ setup(){
     sdvc registery list
     DVC_DATA_DPATH=$(geowatch_dvc --tags="shitspotter_data")
     DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
-
     python -m geowatch.mlops.manager "status" --expt_dvc_dpath "$DVC_EXPT_DPATH"
     python -m geowatch.mlops.manager "list" --expt_dvc_dpath "$DVC_EXPT_DPATH"
-    python -m geowatch.mlops.manager "repackage checkpoints" --expt_dvc_dpath "$DVC_EXPT_DPATH"
 }
 export CUDA_VISIBLE_DEVICES=0,1
 DVC_DATA_DPATH=$(geowatch_dvc --tags="shitspotter_data")
@@ -25,32 +23,12 @@ test -e "$DVC_DATA_DPATH" || echo "CANNOT FIND DATA"
 
 #WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER
 KWCOCO_BUNDLE_DPATH=$DVC_DATA_DPATH
-VALI_FPATH=$KWCOCO_BUNDLE_DPATH/vali_imgs228_20928c8c.kwcoco.zip
-EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals
+TEST_FPATH=$KWCOCO_BUNDLE_DPATH/test_imgs30_d8988f8c.kwcoco.zip
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_test_evals
 
 
-
-# TODO: script to subselect models based on train-time validation metrics.
-
-
-## Use geowatch mlops to define a grid of bash jobs to run evaluation over
-## specified models
-#python -m geowatch.mlops.schedule_evaluation \
-#    --params="
-#        pipeline: 'shitspotter.pipelines.heatmap_evaluation_pipeline()'
-#        matrix:
-#            heatmap_pred.package_fpath:
-#                - $DVC_DATA_DPATH/models/shitspotter_scratch_v025-version_2-epoch=1277-step=005112-val_loss=0.600.ckpt.pt
-#            heatmap_pred.test_dataset:
-#                - $VALI_FPATH
-#            heatmap_eval.workers: 4
-#            heatmap_eval.draw_heatmaps: True
-#            heatmap_eval.draw_curves: True
-#    " \
-#    --root_dpath="$EVAL_PATH" \
-#    --devices="0,1" --tmux_workers=2 \
-#    --backend=serial --skip_existing=0 \
-#    --run=0
+#" > "$HOME"/code/shitspotter/experiments/models.yaml
+#echo "
 
 
 echo "
@@ -72,9 +50,6 @@ echo "
 - $DVC_DATA_DPATH/models/shitspotter_from_v027_halfres_v028-epoch=0121-step=000488-val_loss=0.005.ckpt.pt
 - $DVC_DATA_DPATH/models/shitspotter_from_v027_halfres_v028-epoch=0179-step=000720-val_loss=0.005.ckpt.pt
 - $DVC_DATA_DPATH/models/shitspotter_scratch_v025-version_2-epoch=1277-step=005112-val_loss=0.600.ckpt.pt
-" > "$HOME"/code/shitspotter/experiments/models.yaml
-
-echo "
 - $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v3/lightning_logs/version_3/checkpoints/epoch=0019-step=027320-val_loss=0.031.ckpt.pt
 - $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v3/lightning_logs/version_3/checkpoints/epoch=0020-step=028686-val_loss=0.031.ckpt.pt
 - $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v3/lightning_logs/version_3/checkpoints/epoch=0021-step=030052-val_loss=0.033.ckpt.pt
@@ -145,7 +120,7 @@ echo "
 - $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_2/checkpoints/epoch=0096-step=132502-val_loss=0.032.ckpt.pt
 - $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_2/checkpoints/epoch=0097-step=133868-val_loss=0.032.ckpt.pt
 - $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_2/checkpoints/epoch=0103-step=142064-val_loss=0.034.ckpt.pt
-" > "$HOME"/code/shitspotter/experiments/models.yaml
+" > "$HOME"/code/shitspotter/experiments/test-models.yaml
 
 
 
@@ -154,8 +129,8 @@ DVC_DATA_DPATH=$(geowatch_dvc --tags="shitspotter_data")
 DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
 #WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER
 KWCOCO_BUNDLE_DPATH=$DVC_DATA_DPATH
-VALI_FPATH=$KWCOCO_BUNDLE_DPATH/vali_imgs228_20928c8c.kwcoco.zip
-EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals
+TEST_FPATH=$KWCOCO_BUNDLE_DPATH/test_imgs30_d8988f8c.kwcoco.zip
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_test_evals
 python -m geowatch.mlops.schedule_evaluation \
     --params="
         pipeline: 'shitspotter.pipelines.heatmap_evaluation_pipeline()'
@@ -163,24 +138,25 @@ python -m geowatch.mlops.schedule_evaluation \
         matrix:
             heatmap_pred.package_fpath:
                 # - $HOME/code/shitspotter/experiments/first_chosen_eval_batch1.yaml
-                 - $HOME/code/shitspotter/experiments/models.yaml
+                 - $HOME/code/shitspotter/experiments/test-models.yaml
                 # - $DVC_DATA_DPATH/models/shitspotter_scratch_v025-version_2-epoch=1277-step=005112-val_loss=0.600.ckpt.pt
                 #- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v4/lightning_logs/version_1/checkpoints/epoch=0076-step=105182-val_loss=0.018.ckpt.pt
             heatmap_pred.test_dataset:
-                - $VALI_FPATH
+                - $TEST_FPATH
             heatmap_eval.workers: 1
             heatmap_eval.draw_heatmaps: 0
             heatmap_eval.draw_curves: True
     " \
     --root_dpath="$EVAL_PATH" \
-    --devices="0,1," --tmux_workers=1 \
+    --devices="0,1," --tmux_workers=2 \
     --backend=tmux --skip_existing=1 \
     --run=1
 
 
 # Simple no-dependency result readout
 DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
-EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_test_evals
+
 python -c "if 1:
     import ubelt as ub
     eval_fpaths = list(ub.Path('$EVAL_PATH/eval/flat/heatmap_eval').glob('*/pxl_eval.json'))
@@ -194,14 +170,15 @@ python -c "if 1:
 
         package_fpath = ub.Path(data['meta']['info'][-2]['properties']['config']['package_fpath'])
 
-        if 'noboxes_v' in ub.Path(root_dir).name:
-            print(data['nocls_measures']['ap'], root_dir, data['path'])
+        #if 'noboxes_v' in ub.Path(root_dir).name:
+        print(data['nocls_measures']['ap'], root_dir, data['path'])
 "
 
 
 # Result aggregation and reporting
 DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
-EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_test_evals
+
 python -m geowatch.mlops.aggregate \
     --pipeline='shitspotter.pipelines.heatmap_evaluation_pipeline()' \
     --target "
@@ -241,7 +218,8 @@ python -m geowatch.mlops.aggregate \
 
 # Result aggregation and reporting
 DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
-EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_test_evals
+
 python -m geowatch.mlops.aggregate \
     --pipeline='shitspotter.pipelines.heatmap_evaluation_pipeline()' \
     --target "
@@ -327,3 +305,4 @@ python -m geowatch.mlops.aggregate \
             subtable = subtable.sort_values(['salient_AP'], ascending=False)
             print(subtable.to_latex(index=False))
     "
+
