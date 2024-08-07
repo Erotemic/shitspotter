@@ -1,0 +1,112 @@
+# This file is manual record of network speed measurments to study the
+# differences betweend distribution methods.
+---
+
+machine_info:
+  - name: toothbrush
+    cpu_max_mhz: 5300.0000
+    cpu_min_mhz: 800.0000
+  - name: jojo
+    cpu_max_mhz: 1800.0000
+    cpu_min_mhz: 600.0000
+  - name: ooo
+    cpu_max_mhz: 3800.0000
+    cpu_min_mhz: 1600.0000
+  - name: namek
+    cpu_max_mhz: 3000.0000
+    cpu_min_mhz: 1200.0000
+
+network_measurements:
+  - recording_time: 2024-08-06T190810-5
+    action: transfer
+    method: bittorrent
+    src_machine: jojo
+    dst_machine: namek
+    multiple_seeders: unlikely
+    history.date_added: "Sun Aug  4 19:36:53 2024"
+    history.date_started: "Sun Aug  4 19:36:53 2024"
+    history.latest_activity: "Mon Aug  5 02:09:41 2024"
+    history.downloading_time: "2 days, 11 hours (215176 seconds)"
+    transfer.percent_done: "99.9%"
+    name: shitspotter_dvc
+    hash: 040b6645b16518de50278f5d4b2584b3a18438d5
+    magnet: "magnet:?xt=urn:btih:040b6645b16518de50278f5d4b2584b3a18438d5&dn=shitspotter%5Fdvc&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80"
+    origins.date_created: Sat Jul 27 22:02:08 2024
+    origins.public_torrent: true
+    origins.comment: first shitspotter torrent
+    origins.creator: Transmission/3.00 (bb6b5a062e)
+    origins.piece_count: 20454
+    origins.piece_size: 2.00 MiB
+
+  - recording_time: 2024-08-06T192625-5
+    action: transfer
+    method: rsync
+    src_machine: toothbrush
+    dst_machine: toothbrush
+    multiple_seeders: null
+    time.real: "0m41.013s"
+    time.user: "0m11.660s"
+    time.sys: "0m41.786s"
+    rsync.output: "sent 45,016,353,426 bytes  received 174,242 bytes  1,084,735,606.46 bytes/sec"
+    command: "time rsync -avprPR --chmod=Du=rwx,Dg=rwx,Do=rwx,Fu=rw,Fg=rw,Fo=rw $HOME/data/dvc-repos/./shitspotter_dvc /var/lib/transmission-daemon/downloads/"
+
+  - recording_time: 2024-08-06T193000-5
+    action: create-torrent
+    machine: toothbrush
+    command: "time transmission-create --outfile /var/lib/transmission-daemon/downloads/shitspotter_dvc_v3.torrent --tracker udp://open.tracker.cl:1337/announce --comment 'shitspotter torrent v3' /var/lib/transmission-daemon/downloads/shitspotter_dvc"
+    time.real: "0m45.057s"
+    time.user: "0m24.288s"
+    time.sys: "0m12.644s"
+    data_size: "42G"
+
+  - recording_time: 2024-08-06T193400-5
+    action: create-torrent
+    machine: jojo
+    command: "time transmission-create --outfile /var/lib/transmission-daemon/downloads/shitspotter_dvc_v3.torrent --tracker udp://open.tracker.cl:1337/announce --comment 'shitspotter torrent v3' /var/lib/transmission-daemon/downloads/shitspotter_dvc"
+    time.real: "20m4.330s"
+    time.user: "5m52.390s"
+    time.sys: "1m41.123s"
+    data_size: "42G"
+
+  - recording_time: 2024-08-06T211010-5
+    action: add_torrent_existing_data
+    method: bittorrent
+    machine: jojo
+    command: "transmission-remote --auth transmission:transmission --add /var/lib/transmission-daemon/downloads/shitspotter_dvc_v3.torrent --download-dir /var/lib/transmission-daemon/downloads"
+    scratch: -|
+      import kwutil
+      d = kwutil.datetime.coerce
+      t = kwutil.timedelta.coerce
+      print((d('2024-08-06T21:28:57') - t('109 seconds')) - d('2024-08-06T21:10:10'))
+    time: 16.966 minutes
+    notes: "Started verifying, which is taking time. 27% done 5.3 minutes ((21:28:57 - 109 seconds) - 21:10:10)"
+    torrent.magnent: "magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&dn=shitspotter%5Fdvc&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce"
+    torrent.hash: "ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49"
+
+  - recording_time: 2024-08-06T203326-5
+    action: add_torrent_for_download
+    method: bittorrent
+    machine: namek
+    command: "transmission-remote --auth transmission:transmission --add 'magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&dn=shitspotter%5Fdvc&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce' --download-dir /var/lib/transmission-daemon/downloads"
+
+
+  - recording_time: 2024-08-07T085722-5
+    action: transfer
+    method: bittorrent
+    src_machine: jojo
+    dst_machine: namek
+    multiple_seeders: unlikely
+    history.date_added: Tue Aug  6 21:33:35 2024
+    history.date_finished: Wed Aug  7 03:20:56 2024
+    history.date_started: Tue Aug  6 21:56:16 2024
+    history.latest_activity: Wed Aug  7 03:20:56 2024
+    history.downloading_time: 6 hours (24725 seconds)
+    history.seeding_time: 8 hours (29334 seconds)
+
+    transfer.percent_done: "100%"
+    name: shitspotter_dvc
+    hash: ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49
+    magnet: "magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&dn=shitspotter%5Fdvc&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce"
+    origins.public_torrent: Yes
+    origins.piece_count: 21434
+    origins.piece_size: 2.00 MiB

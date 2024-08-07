@@ -1,6 +1,4 @@
 #!/bin/bash
-#rsync -avrpRPL "$HOME/data/dvc-repos/./shitspotter_dvc" "ooo:/data/dvc-repos/"
-#rsync -avrpRPL toothbrush:data/dvc-repos/./shitspotter_dvc "$HOME/data/dvc-repos/"
 #rsync -avrpRPL ooo:data/dvc-repos/./shitspotter_dvc "$HOME/data/dvc-repos/"
 
 
@@ -26,6 +24,15 @@
 
 #ooo:/data/Pictures
 #toothbrush:/data/store/Pictures
+
+# Sync from here (local toothbrush) to Ooo
+rsync -avrpRPL  "$HOME/data/dvc-repos/./shitspotter_dvc" "ooo:/data/dvc-repos/"
+
+# Sync from toothbrush to here (local ooo).
+rsync -avrpRPL toothbrush:data/dvc-repos/./shitspotter_dvc "$HOME/data/dvc-repos/"
+
+# Sync from here (local toothbrush) to jojo and handle transmission permissions
+rsync -ogavrpRPL --chmod=Du=rwx,Dg=rwx,Do=rwx,Fu=rw,Fg=rw,Fo=rw "$HOME/data/dvc-repos/./shitspotter_dvc" "jojo:/var/lib/transmission-daemon/downloads"
 
 ### Ooo changed to mimic toothbrush paths
 rsync -avrpRPn toothbrush:/data/store/./Pictures /data/store

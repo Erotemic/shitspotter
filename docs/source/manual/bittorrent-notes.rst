@@ -1,5 +1,51 @@
+Notes
+-----
+
+https://antrikshy.com/code/seeding-torrents-using-transmission-cli
+https://forum.transmissionbt.com/viewtopic.php?t=9778
 
 
+.. code::
+
+   apt show transmission-daemon
+   apt show transmission-cli
+   apt show transmission-remote
+   apt show transmission-qt
+
+
+
+.. code::
+
+   sudo apt install transmission-gtk
+   sudo apt install transmission-qt
+   sudo apt-get install transmission-daemon transmission-cli
+
+   # Create a dummy set of data that will be shared
+   WORKING_DPATH=$HOME/tmp/create-torrent-demo
+   DATA_DPATH=$WORKING_DPATH/shared-demo-data
+   TORRENT_FPATH=$WORKING_DPATH/shared-demo-data.torrent
+
+   mkdir -p "$WORKING_DPATH"
+   cd $WORKING_DPATH
+
+   mkdir -p "$DATA_DPATH"
+   echo "some data" > $DATA_DPATH/data1.txt
+   echo "some data" > $DATA_DPATH/data2.txt
+   echo "some other data" > $DATA_DPATH/data3.txt
+
+   transmission-create --comment "a demo torrent" --outfile "$TORRENT_FPATH" "$DATA_DPATH"
+
+   cat $TORRENT_FPATH
+
+   # Start seeding the torrent
+   # transmission-cli "$TORRENT_FPATH" -w $(dirname $DATA_DPATH)
+
+   # Do we need additional flags to tell transmission we have the data already?
+   # --download-dir tmpdata
+
+   # On remote machine
+   rsync toothbrush:tmp/create-torrent-demo/shared-demo-data.torrent .
+   transmission-cli shared-demo-data.torrent --download-dir DATA_DPATH
 
 
 

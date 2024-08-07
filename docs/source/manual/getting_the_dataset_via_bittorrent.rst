@@ -1,53 +1,3 @@
-Notes
------
-
-https://antrikshy.com/code/seeding-torrents-using-transmission-cli
-https://forum.transmissionbt.com/viewtopic.php?t=9778
-
-
-.. code::
-
-   apt show transmission-daemon
-   apt show transmission-cli
-   apt show transmission-remote
-   apt show transmission-qt
-
-
-.. code::
-
-   sudo apt install transmission-gtk
-   sudo apt install transmission-qt
-   sudo apt-get install transmission-daemon transmission-cli
-
-   # Create a dummy set of data that will be shared
-   WORKING_DPATH=$HOME/tmp/create-torrent-demo
-   DATA_DPATH=$WORKING_DPATH/shared-demo-data
-   TORRENT_FPATH=$WORKING_DPATH/shared-demo-data.torrent
-
-   mkdir -p "$WORKING_DPATH"
-   cd $WORKING_DPATH
-
-   mkdir -p "$DATA_DPATH"
-   echo "some data" > $DATA_DPATH/data1.txt
-   echo "some data" > $DATA_DPATH/data2.txt
-   echo "some other data" > $DATA_DPATH/data3.txt
-
-   transmission-create --comment "a demo torrent" --outfile "$TORRENT_FPATH" "$DATA_DPATH"
-
-   cat $TORRENT_FPATH
-
-   # Start seeding the torrent
-   # transmission-cli "$TORRENT_FPATH" -w $(dirname $DATA_DPATH)
-
-   # Do we need additional flags to tell transmission we have the data already?
-   # --download-dir tmpdata
-
-   # On remote machine
-   rsync toothbrush:tmp/create-torrent-demo/shared-demo-data.torrent .
-   transmission-cli shared-demo-data.torrent --download-dir DATA_DPATH
-
-
-
 
 Machine Setup
 -------------
@@ -127,7 +77,7 @@ Instructions To Create The Torrent
     # cd $DVC_DATA_DPATH
 
     # Hack put the data in transmission downloads folder to avoid perm issues
-    rsync -avprPR --chmod=Du=rwx,Dg=rwx,Do=rwx,Fu=rw,Fg=rw,Fo=rw \
+    time rsync -avprPR --chmod=Du=rwx,Dg=rwx,Do=rwx,Fu=rw,Fg=rw,Fo=rw \
         $HOME/data/dvc-repos/./shitspotter_dvc \
         /var/lib/transmission-daemon/downloads/
 
@@ -136,22 +86,24 @@ Instructions To Create The Torrent
     # WORKING_DPATH=$HOME/data/dvc-repos
     # TORRENT_FPATH=$HOME/data/dvc-repos/shitspotter_dvc_v1.torrent
     WORKING_DPATH=/var/lib/transmission-daemon/downloads
-    TORRENT_NAME=shitspotter_dvc_v2
+    TORRENT_NAME=shitspotter_dvc_v3
     TORRENT_FPATH=$WORKING_DPATH/$TORRENT_NAME.torrent
-    COMMENT="shitspotter torrent v2"
+    COMMENT="shitspotter torrent v3"
+    #TRACKER_URL=udp://tracker.openbittorrent.com:80
+    TRACKER_URL=udp://open.tracker.cl:1337/announce
 
     cd $WORKING_DPATH
 
-    #TRACKER_URL=udp://tracker.openbittorrent.com:80
-    TRACKER_URL=udp://open.tracker.cl:1337/announce
-    transmission-create \
+    set -x
+    time transmission-create \
         --outfile "$TORRENT_FPATH" \
         --tracker "$TRACKER_URL" \
         --comment "$COMMENT" \
         "$WORKING_DPATH/shitspotter_dvc"
+    set +x
 
     # Start seeding the torrent
-    echo transmission-remote --auth transmission:transmission --add $TORRENT_FPATH --download-dir $WORKING_DPATH
+    transmission-remote --auth transmission:transmission --add $TORRENT_FPATH --download-dir $WORKING_DPATH
 
     transmission-remote --auth transmission:transmission --list
 
