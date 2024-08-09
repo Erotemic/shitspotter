@@ -44,6 +44,10 @@ ipfs pin ls --type="recursive" --names | grep bafybeiczi4pn4na2iw7c66bpbf5rdr3ua
 #ipfs pin add --progress --name shitspotter-2023-01-01-draft bafybeif2yoidrnrzbpofcdlvl33em5e6eoslk4ryb7pe6ployl7najdi7q
 
 
+# To list existing
+ipfs pin ls --type="recursive" --names
+ipfs pin ls --type="recursive" --names | grep bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y
+
 
 ipfs pin add --name shitspotter-assets-poop-2024-06-15-T163943 --progress -- bafybeie2sfu46vhjnjtamf6a2fsep64anoasqsi4yp5wc3r5trcaf6zkke
 ipfs pin add --name shitspotter-2024-06-16 --progress bafybeia44hiextgcpjfvglib66gxziaf7jkvno63p7h7fsqkxi5vpgpvay
