@@ -693,3 +693,16 @@ Directions for future research / development are:
 %\bibliography{references}  %%% Uncomment this line and comment out the ``thebibliography'' section below to use the external .bib file (using bibtex) .
 
 \end{document}
+
+
+\begin{comment}
+    cd $HOME/code/shitspotter
+    python -m shitspotter.cli.coco_annotation_stats $HOME/data/dvc-repos/shitspotter_dvc/data.kwcoco.json \
+        --dst_fpath $HOME/code/shitspotter/coco_annot_stats/stats.json \
+        --dst_dpath $HOME/code/shitspotter/coco_annot_stats
+
+    SeeAlso:
+    ~/code/shitspotter/experiments/run_pixel_eval_pipeline.sh
+
+    python ~/code/shitspotter/dev/poc/estimate_train_resources.py
+\end{comment}
