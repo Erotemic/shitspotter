@@ -89,7 +89,6 @@ network_measurements:
     machine: namek
     command: "transmission-remote --auth transmission:transmission --add 'magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&dn=shitspotter%5Fdvc&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce' --download-dir /var/lib/transmission-daemon/downloads"
 
-
   - recording_time: 2024-08-07T085722-5
     action: transfer
     method: bittorrent
@@ -111,18 +110,61 @@ network_measurements:
     origins.piece_count: 21434
     origins.piece_size: 2.00 MiB
 
-
-  - recording_time: 2024-08-07T085722-5
+  - recording_time: 2024-08-08T21:10:00-5
     action: transfer
     method: ipfs
     src_machine: jojo
     dst_machine: namek
-    multiple_seeders: most-data
     cid: bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y
-    command: |-
+    notes:
+    multiple_seeders: likely-partial
+    command: -|
       date
       time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y
       date
+    notes: -|
+      Namek responded quickly and got to 8050 but then got stuck. 2 hours in I
+      realized jojo's ipfs server was off. Hopefully it will pick up jojo as a
+      peer soon. I grew impatient with this run, killed it, and restarted.
 
-    notes: "Namek responded quickly and got to 8050 but then got stuck. 2 hours in I realized jojo's ipfs server was off. Hopefully it will pick up jojo as a peer soon."
+      startup took a very long time, and it hung for hours until I manually
+      forced namek to connect to jojo via running this on namek
+      ipfs swarm connect /p2p/12D3KooWCFcfiBevjQD42aRAELMUZXAGScRiN2NcAthokF4dMnVU
+      This was at 2024-08-08T23:38:00-5
+      I should measure the time from announce to the time an unconnected peer
+      figures out the correct peer to connect to via the network
+    time.real: "279m3.068s"
+    time.user: "0m14.143s"
+    time.sys: "0m2.202s"
+    time.start_date: "Thu 08 Aug 2024 09:10:56 PM EDT"
+    time.end_date: "Fri 09 Aug 2024 01:49:59 AM EDT"
 
+  - recording_time: 2024-08-09T10:49:00-5
+    action: transfer
+    method: ipfs
+    src_machine: jojo
+    dst_machine: namek
+    multiple_seeders: likely-partial
+    command: -|
+      date && time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y && date
+    notes: -|
+      second run of pin that should be primed to go.
+    time.real:    107m50.797s
+    time.user:    0m3.163s
+    time.sys:     0m1.343s
+    time.start_date: Fri 09 Aug 2024 10:49:42 AM EDT
+    time.end_date:   Fri 09 Aug 2024 12:37:33 PM EDT
+
+  - recording_time: 2024-08-09T13:03:00-5
+    action: transfer
+    method: rsync
+    src_machine: toothbrush
+    dst_machine: namek
+    multiple_seeders: na
+    command: -|
+      date && time rsync -avprPR $HOME/data/dvc-repos/./shitspotter_dvc namek:data/dvc-repos && date
+    time.real    365m52.482s
+    time.user    24m34.053s
+    time.sys     1m35.558s
+    time.start_date: Fri Aug  9 01:06:10 PM EDT 2024  
+    time.end_date: Fri Aug  9 07:12:02 PM EDT 2024
