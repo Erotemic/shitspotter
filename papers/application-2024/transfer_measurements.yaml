@@ -168,3 +168,75 @@ network_measurements:
     time.sys     1m35.558s
     time.start_date: Fri Aug  9 01:06:10 PM EDT 2024  
     time.end_date: Fri Aug  9 07:12:02 PM EDT 2024
+
+
+  - recording_time: 2024-08-09T200812-5
+    action: upload
+    method: girder-web-interface
+    src_machine: toothbrush
+    dst_machine: data.kitware.com
+    result: nan
+    notes: -|
+      Uploaded shitspotter-snapshot-2024-08-09T185233-5, I started this log a
+      few minutes after I started the actual upload. Dont think I will get
+      an accurate measurement here. 
+
+      I dont know if data.kitware.com handles de-duplication or if that
+      is even something that could be used with the zip strategy.
+
+      At 2024-08-09T201009-5 I am 700.2 MB / 41.36 GB uploaded
+      At 2024-08-09T201141-5 I am 900.8 MB / 41.36 GB uploaded
+      At 2024-08-09T201226-5 I am 1001.1 MB / 41.36 GB uploaded
+
+      import kwutil
+      from kwutil.util_units import unit_registry
+      ureg = unit_registry()
+      total = 41.36 * ureg.gigabyte
+      rows = [
+        {'time': kwutil.datetime.coerce('2024-08-09T201009-5'), 'amount': 700.2 * ureg.megabyte},
+        {'time': kwutil.datetime.coerce('2024-08-09T201141-5'), 'amount': 900.8 * ureg.megabyte},
+        {'time': kwutil.datetime.coerce('2024-08-09T201226-5'), 'amount': 1001.1 * ureg.megabyte},
+        {'time': kwutil.datetime.coerce('2024-08-09T202000-5'), 'amount': 1.9 * ureg.gigabyte},
+      ]
+      rates = []
+      for r1, r2 in ub.iter_window(rows, 2):
+        time_delta = (r2['time'] - r1['time']).total_seconds() * ureg.seconds
+        data_delta = r2['amount'] - r1['amount']
+        rates.append(data_delta / time_delta)
+      avg_rate = sum(rates) / len(rates)
+      est_seconds = (total / avg_rate).to(ureg.second)
+      est_hours = est_seconds.to(ureg.hour)
+      print(est_hours)
+
+      upload failed due to storage quota issues
+
+  - recording_time: 2024-08-09T220343-5
+    action: upload
+    method: girder-web-interface
+    src_machine: toothbrush
+    dst_machine: data.kitware.com
+    result: nan
+    notes: -|
+      # For the first 34 non-assets
+      #{'time': kwutil.datetime.coerce('2024-08-09T220451-5'), 'amount': 0.0 * ureg.megabyte},
+      #{'time': kwutil.datetime.coerce('2024-08-09T220509-5'), 'amount': 30.4 * ureg.megabyte},
+      import kwutil
+      from kwutil.util_units import unit_registry
+      ureg = unit_registry()
+      total = 41.36 * ureg.gigabyte
+      rows = [
+        # For the assets
+        {'time': kwutil.datetime.coerce('2024-08-09T220558-5'), 'amount': 0. * ureg.megabyte},
+        {'time': kwutil.datetime.coerce('2024-08-09T220741-5'), 'amount': 230.7 * ureg.megabyte},
+      ]
+      rates = []
+      for r1, r2 in ub.iter_window(rows, 2):
+        time_delta = (r2['time'] - r1['time']).total_seconds() * ureg.seconds
+        data_delta = r2['amount'] - r1['amount']
+        rates.append(data_delta / time_delta)
+      avg_rate = sum(rates) / len(rates)
+      est_seconds = (total / avg_rate).to(ureg.second)
+      est_hours = est_seconds.to(ureg.hour)
+      print(est_hours)
+
+      upload failed due to storage quota issues
