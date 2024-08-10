@@ -73,7 +73,7 @@ network_measurements:
     method: bittorrent
     machine: jojo
     command: "transmission-remote --auth transmission:transmission --add /var/lib/transmission-daemon/downloads/shitspotter_dvc_v3.torrent --download-dir /var/lib/transmission-daemon/downloads"
-    scratch: -|
+    scratch: |-
       import kwutil
       d = kwutil.datetime.coerce
       t = kwutil.timedelta.coerce
@@ -110,3 +110,19 @@ network_measurements:
     origins.public_torrent: Yes
     origins.piece_count: 21434
     origins.piece_size: 2.00 MiB
+
+
+  - recording_time: 2024-08-07T085722-5
+    action: transfer
+    method: ipfs
+    src_machine: jojo
+    dst_machine: namek
+    multiple_seeders: most-data
+    cid: bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y
+    command: |-
+      date
+      time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y
+      date
+
+    notes: "Namek responded quickly and got to 8050 but then got stuck. 2 hours in I realized jojo's ipfs server was off. Hopefully it will pick up jojo as a peer soon."
+

@@ -76,13 +76,14 @@ class HeatmapPrediction(ProcessNode):
         from geowatch.mlops import smart_result_parser
         from geowatch.mlops.aggregate_loader import new_process_context_parser
         from geowatch.utils import util_dotdict
-        from kwutil import util_pattern
+        # from kwutil import util_pattern
         node_type = self.name
-        pat = util_pattern.Pattern.coerce(node_dpath / 'pred.kwcoco.*')
-        found = list(pat.paths())
-        if len(found) == 0:
-            raise FileNotFoundError(f'Unable to find expected kwcoco file in {node_type} node_dpath: {node_dpath}')
-        fpath = found[0]
+        # pat = util_pattern.Pattern.coerce(node_dpath / 'pred.kwcoco.*')
+        # found = list(pat.paths())
+        # if len(found) == 0:
+        #     raise FileNotFoundError(f'Unable to find expected kwcoco file in {node_type} node_dpath: {node_dpath}')
+        # fpath = found[0]
+        fpath = node_dpath / self.out_paths[self.primary_out_key]
         bas_pxl_info = smart_result_parser.parse_json_header(fpath)
         proc_item = smart_result_parser.find_pred_pxl_item(bas_pxl_info)
         nest_resolved = new_process_context_parser(proc_item)
