@@ -1,1 +1,4 @@
 ubelt>=1.3.3
+python_dateutil>=2.8.2
+rich>=12.3.0
+scriptconfig >= 0.7.7
