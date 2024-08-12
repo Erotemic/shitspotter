@@ -224,7 +224,7 @@ python -m geowatch.mlops.aggregate \
         show_csv: 0
     " \
     --plot_params="
-        enabled: 1
+        enabled: 0
         stats_ranking: 0
         min_variations: 2
         max_variations: 40

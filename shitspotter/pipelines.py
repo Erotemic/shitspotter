@@ -304,8 +304,7 @@ class HeatmapEvaluation(ProcessNode):
         return flat_resolved
 
     def _default_metrics(self):
-        _display_metrics_suffixes = []
-        _primary_metrics_suffixes = [
+        _primary_metrics_suffixes = _display_metrics_suffixes = [
             'salient_AP',
             # 'salient_APUC',
             'salient_AUC',

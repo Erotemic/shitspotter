@@ -198,6 +198,10 @@ network_measurements:
         {'time': kwutil.datetime.coerce('2024-08-09T201226-5'), 'amount': 1001.1 * ureg.megabyte},
         {'time': kwutil.datetime.coerce('2024-08-09T202000-5'), 'amount': 1.9 * ureg.gigabyte},
       ]
+
+      max_time = kwutil.datetime.coerce('2024-08-10T08:57:44.853000+00:00')
+      (max_time - rows[0]['time']).total_seconds() / 60 / 60
+
       rates = []
       for r1, r2 in ub.iter_window(rows, 2):
         time_delta = (r2['time'] - r1['time']).total_seconds() * ureg.seconds
@@ -216,6 +220,7 @@ network_measurements:
     src_machine: toothbrush
     dst_machine: data.kitware.com
     result: nan
+    duration: 5.88 hours
     notes: -|
       # For the first 34 non-assets
       #{'time': kwutil.datetime.coerce('2024-08-09T220451-5'), 'amount': 0.0 * ureg.megabyte},
@@ -228,6 +233,9 @@ network_measurements:
         # For the assets
         {'time': kwutil.datetime.coerce('2024-08-09T220558-5'), 'amount': 0. * ureg.megabyte},
         {'time': kwutil.datetime.coerce('2024-08-09T220741-5'), 'amount': 230.7 * ureg.megabyte},
+        {'time': kwutil.datetime.coerce('2024-08-09T223926-5'), 'amount': 4. * ureg.gigabyte},
+        {'time': kwutil.datetime.coerce('2024-08-09T224733-5'), 'amount': 5. * ureg.gigabyte},
+        {'time': kwutil.datetime.coerce('2024-08-10T005451-5'), 'amount': 19.68 * ureg.gigabyte},
       ]
       rates = []
       for r1, r2 in ub.iter_window(rows, 2):
@@ -239,4 +247,18 @@ network_measurements:
       est_hours = est_seconds.to(ureg.hour)
       print(est_hours)
 
-      upload failed due to storage quota issues
+      # girder-client --api-url https://data.kitware.com/api/v1 list 66b6d906f87a980650f41fd0 --json > girder-data.json
+
+      import kwutil
+      data = kwutil.Json.coerce('girder-data.json')
+      data['this_record']
+      data['parent_record']
+
+      start_time = rows[0]['time']
+
+      from kwutil.util_units import unit_registry
+      ureg = unit_registry()
+      update_dates = [kwutil.datetime.coerce(item['updated']) for item in data['item_children']]
+      max_update = max(update_dates)
+      min_update = min(update_dates)
+      total_time = ((max_update - start_time).total_seconds() * ureg.seconds).to(ureg.hours)

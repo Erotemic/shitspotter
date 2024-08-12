@@ -334,7 +334,7 @@ images is our experimental test set.
 In this paper we do not make use of the contributor data
 
 
-The baseline architecture is a variant of a vision-transformer \cite{dosovitskiy_image_2021,bertasius2021space,Greenwell_2024_WACV}.
+The baseline architecture is a variant \cite{bertasius2021space,Greenwell_2024_WACV} of a vision-transformer \cite{dosovitskiy_image_2021}.
 
 Number of parameters.
 Memory at train time.
@@ -455,19 +455,6 @@ standard metrics of average-precision (AP) and  area under the ROC curve (AUC)
 These include ad-hoc parameters settings when searching for a stable training
 configuration.
 
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.4\textwidth]{/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/aggregate/plots/resources.png}
-\caption[]{
-    Time and energy resources used to perform model evaluation.
-
-    Note: this table does not include training time, which was not measured
-    directly at the time. Our stated train time estimates are based on.
-
-}
-\label{fig:resource}
-\end{figure}
-
 
 We trained 7 models from scratch with varied hyperparameters.
 
@@ -511,6 +498,120 @@ a wider variation of parameters. In total we estimate the total GPU time as
 158.9 days with an average of 3.75 days per run, which is emits roughly 280.4
 CO2 kg with a cost of about \$4.21 to offset.
 
+\subsubsection{Results}
+
+
+\begin{comment}
+import kwimage
+import ubelt as ub
+paths = '''
+/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-15.jpg
+/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-8.jpg
+/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-10.jpg
+/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-23.jpg
+/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-26.jpg
+/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-30.jpg
+/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-24.jpg
+/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-1.jpg
+/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-6.jpg
+/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-4.jpg
+'''.strip().split(chr(10))
+images = [kwimage.imread(p) for p in paths if p]
+canvas = kwimage.stack_images(images, axis=1, resize='larger', pad=100, bg_value='white')
+dpath = ub.Path('/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689')
+fpath = dpath / 'test_result_heatmaps.jpg'
+canvas = kwimage.imresize(canvas, max_dim=4096)
+print(f'canvas.shape={canvas.shape}')
+
+kwimage.imwrite(fpath, canvas)
+
+
+
+import kwimage
+import ubelt as ub
+paths = '''
+/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-5513.jpg
+/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-12.jpg
+/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-113.jpg
+/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-156.jpg
+/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-99.jpg
+/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-90.jpg
+/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-5460.jpg
+/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-177.jpg
+/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-18.jpg
+/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-121.jpg
+/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-74.jpg
+'''.strip().split(chr(10))
+images = [kwimage.imread(p) for p in paths if p]
+canvas = kwimage.stack_images(images, axis=1, resize='larger', pad=100, bg_value='white')
+dpath = ub.Path('/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74')
+fpath = dpath / 'vali_result_heatmaps.jpg'
+canvas = kwimage.imresize(canvas, max_dim=4096)
+print(f'canvas.shape={canvas.shape}')
+
+kwimage.imwrite(fpath, canvas)
+\end{comment}
+
+\begin{figure*}[h]
+\centering
+\includegraphics[width=1.0\textwidth]{/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/test_result_heatmaps.jpg}
+\caption[]{
+    Qualitative results on a representative test set sample using the highest
+    scoring model on the test set.
+    Success cases are on the left, and failures increase towards the right.
+    The confusion 
+
+    The top rows shows true positive pixels in white, false positive pixels in
+    red, false negative pixels in teal, and true negative pixels in black.  For
+    visualization purposes, the threshold to binarize the prediction is chosen
+    to maximize the f1 for each image, thus the top row is in some sense the
+    best possible classification of the heatmap, which is shown in the middle
+    row. The final row is the input image.
+
+    Most images in the (small, 30 image) test set are qualitatively good.
+    Failure cases are limited to close up images of older sometimes
+    partially-deteriorated poops.
+}
+\label{fig:test_results}
+\end{figure*}
+
+\end{comment}
+\begin{figure*}[h]
+    % /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/
+\centering
+\includegraphics[width=1.0\textwidth]{/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/vali_result_heatmaps.jpg}
+\caption[]{
+    Qualitative results on select validation images using the highest scoring
+    model on the validation set.
+
+    Success cases are on the left, and failures increase towards the right.
+    The confusion 
+
+    The top rows shows true positive pixels in white, false positive pixels in
+    red, false negative pixels in teal, and true negative pixels in black.  For
+    visualization purposes, the threshold to binarize the prediction is chosen
+    to maximize the f1 for each image, thus the top row is in some sense the
+    best possible classification of the heatmap, which is shown in the middle
+    row. The final row is the input image.
+
+}
+\label{fig:vali_results}
+\end{figure*}
+
+Qualitative results for the test set are shown in \cref{fig:test_results} and the validation set in \cref{fig:vali_results}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.4\textwidth]{/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/aggregate/plots/resources.png}
+\caption[]{
+    Time and energy resources used to perform model evaluation.
+
+    Note: this table does not include training time, which was not measured
+    directly at the time. Our stated train time estimates are based on.
+
+}
+\label{fig:resource}
+\end{figure}
 
 
 
@@ -703,6 +804,7 @@ Directions for future research / development are:
 
     SeeAlso:
     ~/code/shitspotter/experiments/run_pixel_eval_pipeline.sh
+    ~/code/shitspotter/experiments/run_pixel_eval_on_test_pipeline.sh
 
     python ~/code/shitspotter/dev/poc/estimate_train_resources.py
 \end{comment}
