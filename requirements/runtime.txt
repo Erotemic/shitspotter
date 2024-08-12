@@ -1,7 +1,1 @@
 ubelt>=1.3.3
-geowatch>=0.18.2
-vtool_ibeis>=2.3.0
-pyhesaff>=2.1.0
-pyflann_ibeis>=2.4.0
-plottool_ibeis>=2.4.0
-vtool_ibeis_ext>=0.1.1
