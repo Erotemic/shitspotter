@@ -80,7 +80,7 @@ network_measurements:
       print((d('2024-08-06T21:28:57') - t('109 seconds')) - d('2024-08-06T21:10:10'))
     time: 16.966 minutes
     notes: "Started verifying, which is taking time. 27% done 5.3 minutes ((21:28:57 - 109 seconds) - 21:10:10)"
-    torrent.magnent: "magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&dn=shitspotter%5Fdvc&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce"
+    torrent.magnet: "magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&dn=shitspotter%5Fdvc&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce"
     torrent.hash: "ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49"
 
   - recording_time: 2024-08-06T203326-5
@@ -163,9 +163,9 @@ network_measurements:
     multiple_seeders: na
     command: -|
       date && time rsync -avprPR $HOME/data/dvc-repos/./shitspotter_dvc namek:data/dvc-repos && date
-    time.real    365m52.482s
-    time.user    24m34.053s
-    time.sys     1m35.558s
+    time.real:    365m52.482s
+    time.user:    24m34.053s
+    time.sys:     1m35.558s
     time.start_date: Fri Aug  9 01:06:10 PM EDT 2024  
     time.end_date: Fri Aug  9 07:12:02 PM EDT 2024
 
@@ -262,3 +262,13 @@ network_measurements:
       max_update = max(update_dates)
       min_update = min(update_dates)
       total_time = ((max_update - start_time).total_seconds() * ureg.seconds).to(ureg.hours)
+
+
+  - recording_time: 2024-08-12T092252-5
+    action: transfer
+    method: bittorrent
+    src_machine: jojo
+    dst_machine: namek
+    multiple_seeders: unlikely
+    command: |
+      transmission-remote --auth transmission:transmission --add 'magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&dn=shitspotter%5Fdvc&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce' --download-dir /var/lib/transmission-daemon/downloads

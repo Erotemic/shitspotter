@@ -94,3 +94,7 @@ ENV/
 profile_output.*
 _skbuild
 pip-wheel-metadata/
+
+shitspotter_dvc
+shitspotter_data
+shitspotter_expt
