@@ -150,7 +150,7 @@ into how to better train object detection and segmentation networks.
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.49\textwidth]{/data/joncrall/dvc-repos/shitspotter_dvc/analysis/viz_three_images.jpg}
+\includegraphics[width=0.49\textwidth]{figures/viz_three_images.jpg}
 \caption[]{
     The "before/after/negative" process.
     The orange box highlights the location of the poop (note the
@@ -256,7 +256,7 @@ boundaries.
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.4\textwidth]{/home/joncrall/code/shitspotter/coco_annot_stats/annot_stat_plots/all_polygons.png}
+\includegraphics[width=0.4\textwidth]{figures/all_polygons.png}
 \caption[]{
     All annotations drawn on a single images with 0.8 opacity to demonstrate
     the distribution in annotation location, shape, and size with respect to
@@ -292,7 +292,7 @@ based on EXIF data) with 6 being 4008 x 5344 and one being 768 x 1024.
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.4\textwidth]{/home/joncrall/code/shitspotter/coco_annot_stats/annot_stat_plots/images_timeofday_distribution.png}
+\includegraphics[width=0.4\textwidth]{figures/images_timeofday_distribution.png}
 \caption[]{
     Distribution of the time of year and time of day each image was taken.
     For images with geolocation and timestamp (assuming the timezone is local
@@ -306,7 +306,7 @@ based on EXIF data) with 6 being 4008 x 5344 and one being 768 x 1024.
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.4\textwidth]{/home/joncrall/code/shitspotter/coco_annot_stats/annot_stat_plots/anns_per_image_histogram_splity.png}
+\includegraphics[width=0.4\textwidth]{figures/anns_per_image_histogram_splity.png}
 \caption[]{
     Histogram of the number of annotations per image. 
     Only 35\% (2346) of the images contain annotations, the other 65\% (4302)
@@ -389,7 +389,7 @@ over learning rate and regularization parameters.
 \begin{figure}[h]
 \centering
 
-\includegraphics[width=0.4\textwidth]{/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/aggregate/plots/macro-plots-macro_01_c1edce/params/resolved_params.heatmap_pred_fit.trainer.default_root_dir/scatter_nolegend/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_vs_metrics.heatmap_eval.salient_AUC_PLT02_scatter_nolegend.png}
+\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_vs_metrics.heatmap_eval.salient_AUC_PLT02_scatter_nolegend.png}
 \caption[]{
     The pixelwise AP and AUC of the top evaluated checkpoints.
     For each training run we ran evaluation on a subset of checkpoints that
@@ -403,7 +403,7 @@ over learning rate and regularization parameters.
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.4\textwidth]{/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/aggregate/plots/macro-plots-macro_01_c1edce/params/resolved_params.heatmap_pred_fit.trainer.default_root_dir/box/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_PLT04_box.png}
+\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_PLT04_box.png}
 \caption{
     The range of AP values over the evaluated checkpoints.
 }
@@ -413,7 +413,7 @@ over learning rate and regularization parameters.
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.4\textwidth]{/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/aggregate/plots/macro-plots-macro_01_c1edce/params/resolved_params.heatmap_pred_fit.trainer.default_root_dir/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_PLT05_table.png}
+\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_PLT05_table.png}
 \caption{
     The table mapping short names to the default root directory.
     TODO: create a table that shows an overview of the varied hyperparameters.
@@ -554,7 +554,7 @@ kwimage.imwrite(fpath, canvas)
 
 \begin{figure*}[h]
 \centering
-\includegraphics[width=1.0\textwidth]{/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/test_result_heatmaps.jpg}
+\includegraphics[width=1.0\textwidth]{figures/test_result_heatmaps.jpg}
 \caption[]{
     Qualitative results on a representative test set sample using the highest
     scoring model on the test set.
@@ -575,11 +575,12 @@ kwimage.imwrite(fpath, canvas)
 \label{fig:test_results}
 \end{figure*}
 
+
 \end{comment}
 \begin{figure*}[h]
     % /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/
 \centering
-\includegraphics[width=1.0\textwidth]{/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/vali_result_heatmaps.jpg}
+\includegraphics[width=1.0\textwidth]{figures/vali_result_heatmaps.jpg}
 \caption[]{
     Qualitative results on select validation images using the highest scoring
     model on the validation set.
@@ -602,7 +603,7 @@ Qualitative results for the test set are shown in \cref{fig:test_results} and th
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.4\textwidth]{/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/aggregate/plots/resources.png}
+\includegraphics[width=0.4\textwidth]{figures/resources.png}
 \caption[]{
     Time and energy resources used to perform model evaluation.
 
@@ -793,8 +794,6 @@ Directions for future research / development are:
 %\bibliographystyle{unsrtnat}
 %\bibliography{references}  %%% Uncomment this line and comment out the ``thebibliography'' section below to use the external .bib file (using bibtex) .
 
-\end{document}
-
 
 \begin{comment}
     cd $HOME/code/shitspotter
@@ -807,4 +806,8 @@ Directions for future research / development are:
     ~/code/shitspotter/experiments/run_pixel_eval_on_test_pipeline.sh
 
     python ~/code/shitspotter/dev/poc/estimate_train_resources.py
+
+    See: ./localize_figures.sh
 \end{comment}
+
+\end{document}

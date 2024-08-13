@@ -272,3 +272,5 @@ network_measurements:
     multiple_seeders: unlikely
     command: |
       transmission-remote --auth transmission:transmission --add 'magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&dn=shitspotter%5Fdvc&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce' --download-dir /var/lib/transmission-daemon/downloads
+      # A little while later (11:20AM), after no progress
+      transmission-remote --auth transmission:transmission --t5 --start
