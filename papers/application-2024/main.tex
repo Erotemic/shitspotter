@@ -82,7 +82,6 @@ Kitware\\
 }
 \maketitle
 
-
 \begin{comment}
     cd $HOME/code/shitspotter
     python -m shitspotter.cli.coco_annotation_stats $HOME/data/dvc-repos/shitspotter_dvc/data.kwcoco.json \
@@ -194,9 +193,6 @@ Our contributions are:
 4. \textbf{Open code and models}.
 Related work is discussed at the end.
 
-% https://gist.github.com/liamzebedee/4be7d3a551c6cddb24a279c4621db74c
-% https://gist.github.com/liamzebedee/224494052fb6037d07a4293ceca9d6e7
-
 
 \section{Dataset}
 
@@ -230,7 +226,6 @@ programmatically this can be identified.
 Additionally, the dataset also contains a few dozen (84) images contributed
 by friends and family. These images are images mostly do not follow the
 before/after protocol and are marked for use only in testing.
-
 
 
 Challenges
@@ -376,7 +371,6 @@ training.
     ~/code/shitspotter/experiments/run_pixel_eval_pipeline.sh
 
     python ~/code/shitspotter/dev/poc/estimate_train_resources.py
-
 \end{comment}
 
 Our experiments are meant mean to provide a reasonable baseline, and not a
@@ -460,8 +454,11 @@ We trained 7 models from scratch with varied hyperparameters.
 
 All models were trained on a single machine with an 11900k CPU and a 3090 GPU.
 
-We measure the predict-time resources using codecarbon \cite{lacoste2019codecarbon} and report them in \Cref{fig:resource}.
+We measure the predict-time resources using codecarbon \cite{lacoste2019codecarbon} and report them in 
+\Cref{tab:limited_resources}.
 
+
+% See: ./scripts/estimate_training_resources.py
 Handling these measurements at train time is still in development, but we
 estimate the time of each training run using timestamps on checkpoint and log
 files.  Using indirect measurements based on timestamps of log and checkpoint
@@ -469,25 +466,6 @@ files, we estimate that each of the 7 training runs took about 5 days and 15
 hours, totaling about 49.2 GPU days. Using the maximum 350W power draw of a
 3090 GPU, we estimate energy usage of 17.2 kilowatt hours, assuming a 0.21
 conversion ratio is 3.6 kilograms of CO2.
-
-\begin{comment}
-import kwutil.util_units
-
-reg = kwutil.util_units.unit_registry()
-gpu_power = 350 * reg.watt
-time = 49.2 * reg.hour
-
-co2kg_per_kwh = 0.210
-energy_usage = (gpu_power *  time).to(reg.kilowatt * reg.hour)
-
-co2_kg = energy_usage.m * co2kg_per_kwh
-print(f'{round(co2_kg, 1)} CO2 kg')
-
-dollar_per_kg = 0.015
-
-cost_to_offset = dollar_per_kg * co2_kg
-print(f'cost_to_offset = ${cost_to_offset:4.2f}')
-\end{comment}
 
 
 However, the experiments presented here were not the only ones performed in
@@ -500,58 +478,7 @@ CO2 kg with a cost of about \$4.21 to offset.
 
 \subsubsection{Results}
 
-
-\begin{comment}
-import kwimage
-import ubelt as ub
-paths = '''
-/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-15.jpg
-/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-8.jpg
-/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-10.jpg
-/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-23.jpg
-/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-26.jpg
-/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-30.jpg
-/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-24.jpg
-/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-1.jpg
-/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-6.jpg
-/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/heatmaps/_loose_images/_loose_images-None-4.jpg
-'''.strip().split(chr(10))
-images = [kwimage.imread(p) for p in paths if p]
-canvas = kwimage.stack_images(images, axis=1, resize='larger', pad=100, bg_value='white')
-dpath = ub.Path('/data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689')
-fpath = dpath / 'test_result_heatmaps.jpg'
-canvas = kwimage.imresize(canvas, max_dim=4096)
-print(f'canvas.shape={canvas.shape}')
-
-kwimage.imwrite(fpath, canvas)
-
-
-
-import kwimage
-import ubelt as ub
-paths = '''
-/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-5513.jpg
-/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-12.jpg
-/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-113.jpg
-/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-156.jpg
-/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-99.jpg
-/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-90.jpg
-/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-5460.jpg
-/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-177.jpg
-/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-18.jpg
-/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-121.jpg
-/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/_loose_images-None-74.jpg
-'''.strip().split(chr(10))
-images = [kwimage.imread(p) for p in paths if p]
-canvas = kwimage.stack_images(images, axis=1, resize='larger', pad=100, bg_value='white')
-dpath = ub.Path('/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74')
-fpath = dpath / 'vali_result_heatmaps.jpg'
-canvas = kwimage.imresize(canvas, max_dim=4096)
-print(f'canvas.shape={canvas.shape}')
-
-kwimage.imwrite(fpath, canvas)
-\end{comment}
-
+% See: ./scripts/gather_heatmap_examples.py
 \begin{figure*}[h]
 \centering
 \includegraphics[width=1.0\textwidth]{figures/test_result_heatmaps.jpg}
@@ -576,7 +503,6 @@ kwimage.imwrite(fpath, canvas)
 \end{figure*}
 
 
-\end{comment}
 \begin{figure*}[h]
     % /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/
 \centering
@@ -594,26 +520,11 @@ kwimage.imwrite(fpath, canvas)
     to maximize the f1 for each image, thus the top row is in some sense the
     best possible classification of the heatmap, which is shown in the middle
     row. The final row is the input image.
-
 }
 \label{fig:vali_results}
 \end{figure*}
 
 Qualitative results for the test set are shown in \cref{fig:test_results} and the validation set in \cref{fig:vali_results}.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.4\textwidth]{figures/resources.png}
-\caption[]{
-    Time and energy resources used to perform model evaluation.
-
-    Note: this table does not include training time, which was not measured
-    directly at the time. Our stated train time estimates are based on.
-
-}
-\label{fig:resource}
-\end{figure}
-
 
 
 \begin{table*}[t]
@@ -627,7 +538,7 @@ heatmap\_pred &   co2\_kg &        0.667817 &         0.01908 &   35 \\
 heatmap\_pred &      kwh &        3.172888 &        0.090654 &   35 \\
 \bottomrule
 \end{tabular}
-\caption{All experiments table}
+\caption[]{All experiments table}
 \end{table*}
 
 
@@ -642,7 +553,13 @@ heatmap\_pred &   co2\_kg &       17.954668 &        0.054573 &  329 \\
 heatmap\_pred &      kwh &       85.305086 &        0.259286 &  329 \\
 \bottomrule
 \end{tabular}
-\caption{Limited experiments chosen for}
+\label{tab:limited_resources}
+\caption[]{
+    Time and energy resources used to perform model evaluation.
+
+    Note: this table does not include training time, which was not measured
+    directly at the time. Our stated train time estimates are based on.
+}
 \end{table*}
 
 
@@ -693,8 +610,9 @@ Tracker can be disabled in favor of 3rd party trackers.
 An excellent overview of protocols details can be found \cite{zebedee_comparing_2023}.
 Our comparison is going to focus on measurements.
 
-% Much of the 
+% Overview and comparison of protocols via github gist:
 % https://gist.github.com/liamzebedee/224494052fb6037d07a4293ceca9d6e7
+% https://gist.github.com/liamzebedee/4be7d3a551c6cddb24a279c4621db74c
 
 %[Steiner, En-Najjary, Biersack 2022]
 
