@@ -345,16 +345,18 @@ network_measurements:
       date && time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y && date
       # on ipfs
       ipfs swarm connect /p2p/12D3KooWS612EDC67bmFD4pyoAUmW93G1QW9GYCkqDg71bdBRgri
+    duration: null
+    status: failed
     time.real:    9m31.502s
     time.user:    0m0.152s
     time.sys:    0m0.035s
     time.end_date: Fri Aug 16 03:28:20 UTC 2024
-    notes: man... even with peer connect it didnt grab anything.
+    notes: man... even with peer connect it didnt grab anything. quit
         
   - recording_time: Fri Aug 16 20:22:50 EDT 2024
     action: transfer
     method: ipfs
-    src_machine: jojo
+    src_machine: jojo/ipfs
     dst_machine: calculex
     multiple_seeders: likely
     command: |-
@@ -366,11 +368,21 @@ network_measurements:
       ipfs swarm connect /p2p/12D3KooWPyQK2JEXnqK1QxiV9Y7bG3UsUQC5iQvDxn8bV1uqvsbi
       # Then start the timed download
       date && time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y && date
-      # on ipfs
+    duration:    357m25.220s
     time.start_date: Fri Aug 16 08:22:59 PM EDT 2024
-    time.real:    9m31.502s
-    time.user:    0m0.152s
-    time.sys:    0m0.035s
-    time.end_date: Fri Aug 16 03:28:20 UTC 2024
-    notes: man... even with peer connect it didnt grab anything.
-        
+    time.real:    357m25.220s
+    time.user:    0m12.010s
+    time.sys:     0m1.067s
+    time.end_date: Sat Aug 17 02:20:24 AM EDT 2024
+    notes: after updating to kubo 0.29 and manually connecting to pinners it worked.
+    
+  - recording_time: 2024-08-17T115756-5
+    action: transfer
+    method: rsync
+    src_machine: namek
+    dst_machine: calculex
+    multiple_seeders: na
+    command: |-
+      rm -rf $HOME/data/dvc-repos/shitspotter_dvc
+      date && time rsync -avprPR namek:data/dvc-repos/./shitspotter_dvc $HOME/data/dvc-repos && date
+    time.start_date: Sat Aug 17 01:01:18 PM EDT 2024                                                           
