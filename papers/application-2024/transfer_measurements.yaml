@@ -1,9 +1,27 @@
 # This file is manual record of network speed measurments to study the
 # differences betweend distribution methods.
 #
-# SeeAlso:
-#     ~/code/shitspotter/papers/application-2024/scripts/gather_measurements.py
 ---
+
+.__doc__: |-
+   SeeAlso:
+       ~/code/shitspotter/papers/application-2024/scripts/gather_measurements.py
+
+   Create a new record:
+     new_record(){
+       python -c "if 1:
+         import uuid
+         import ubelt as ub
+         print('  - recording_time: ' + str(ub.timestamp()))
+         print('    uuid: ' + str(uuid.uuid4()))
+         print('    action: null')
+         print('    method: null')
+         print('    duration: null')
+         print('    status: null')
+      "
+     }
+     new_record
+
 
 machine_info:
   - name: toothbrush
@@ -21,6 +39,7 @@ machine_info:
 
 network_measurements:
   - recording_time: 2024-08-06T190810-5
+    uuid: 165f5b08-2742-4065-af66-67665c48ead7
     action: transfer
     method: bittorrent
     src_machine: jojo
@@ -45,6 +64,7 @@ network_measurements:
   - recording_time: 2024-08-06T192625-5
     action: transfer
     method: rsync
+    uuid: 412179dc-0865-4117-a061-62db15ce574c
     src_machine: toothbrush
     dst_machine: toothbrush
     multiple_seeders: null
@@ -54,8 +74,10 @@ network_measurements:
     duration: "41.013s"
     rsync.output: "sent 45,016,353,426 bytes  received 174,242 bytes  1,084,735,606.46 bytes/sec"
     command: "time rsync -avprPR --chmod=Du=rwx,Dg=rwx,Do=rwx,Fu=rw,Fg=rw,Fo=rw $HOME/data/dvc-repos/./shitspotter_dvc /var/lib/transmission-daemon/downloads/"
+    status: success
 
   - recording_time: 2024-08-06T193000-5
+    uuid: 317bca43-c62f-4a09-92f3-c758bd78e434
     action: create-torrent
     machine: toothbrush
     command: "time transmission-create --outfile /var/lib/transmission-daemon/downloads/shitspotter_dvc_v3.torrent --tracker udp://open.tracker.cl:1337/announce --comment 'shitspotter torrent v3' /var/lib/transmission-daemon/downloads/shitspotter_dvc"
@@ -64,8 +86,10 @@ network_measurements:
     time.user: "0m24.288s"
     time.sys: "0m12.644s"
     data_size: "42G"
+    status: success
 
   - recording_time: 2024-08-06T193400-5
+    uuid: bad72ecc-4f58-438f-933f-4cd4cf63865b
     action: create-torrent
     machine: jojo
     command: "time transmission-create --outfile /var/lib/transmission-daemon/downloads/shitspotter_dvc_v3.torrent --tracker udp://open.tracker.cl:1337/announce --comment 'shitspotter torrent v3' /var/lib/transmission-daemon/downloads/shitspotter_dvc"
@@ -74,8 +98,10 @@ network_measurements:
     time.user: "5m52.390s"
     time.sys: "1m41.123s"
     data_size: "42G"
+    status: success
 
   - recording_time: 2024-08-06T211010-5
+    uuid: 5c149480-6c69-4c28-8410-c00c40275734
     action: add_torrent_existing_data
     method: bittorrent
     machine: jojo
@@ -89,14 +115,18 @@ network_measurements:
     notes: "Started verifying, which is taking time. 27% done 5.3 minutes ((21:28:57 - 109 seconds) - 21:10:10)"
     torrent.magnet: "magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&dn=shitspotter%5Fdvc&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce"
     torrent.hash: "ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49"
+    status: success
 
   - recording_time: 2024-08-06T203326-5
+    uuid: 982ca2b5-1493-428f-9c7a-f2d87eb4b582
     action: add_torrent_for_download
     method: bittorrent
     machine: namek
     command: "transmission-remote --auth transmission:transmission --add 'magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&dn=shitspotter%5Fdvc&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce' --download-dir /var/lib/transmission-daemon/downloads"
+    status: success
 
   - recording_time: 2024-08-07T085722-5
+    uuid: 5f483131-468a-4c4f-ba55-b5855cbd01fc
     action: transfer
     method: bittorrent
     src_machine: jojo
@@ -109,7 +139,6 @@ network_measurements:
     history.downloading_time: 6 hours (24725 seconds)
     duration: 24725 seconds
     history.seeding_time: 8 hours (29334 seconds)
-
     transfer.percent_done: "100%"
     name: shitspotter_dvc
     hash: ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49
@@ -117,8 +146,10 @@ network_measurements:
     origins.public_torrent: Yes
     origins.piece_count: 21434
     origins.piece_size: 2.00 MiB
+    status: success
 
   - recording_time: 2024-08-08T21:10:00-5
+    uuid: b48578f8-6fbc-4ba5-8e0a-df21ba26984f
     action: transfer
     method: ipfs
     src_machine: jojo
@@ -146,8 +177,10 @@ network_measurements:
     duration: 279m3.068s
     time.start_date: "Thu 08 Aug 2024 09:10:56 PM EDT"
     time.end_date: "Fri 09 Aug 2024 01:49:59 AM EDT"
+    status: outlier
 
   - recording_time: 2024-08-09T10:49:00-5
+    uuid: db6dfa14-799a-453e-ad0c-bac568eccbdd
     action: transfer
     method: ipfs
     src_machine: jojo
@@ -163,8 +196,10 @@ network_measurements:
     duration: 107m50.797s
     time.start_date: Fri 09 Aug 2024 10:49:42 AM EDT
     time.end_date:   Fri 09 Aug 2024 12:37:33 PM EDT
+    status: unclear
 
   - recording_time: 2024-08-09T13:03:00-5
+    uuid: df925c9b-9e89-4c8c-90e4-a93076c3317c
     action: transfer
     method: rsync
     src_machine: toothbrush
@@ -178,13 +213,16 @@ network_measurements:
     time.sys:     1m35.558s
     time.start_date: Fri Aug  9 01:06:10 PM EDT 2024  
     time.end_date: Fri Aug  9 07:12:02 PM EDT 2024
+    status: success
 
   - recording_time: 2024-08-09T200812-5
     action: upload
+    uuid: 64a9ddfa-65e9-488c-a345-2837a1dc90e1
     method: girder-upload-GUI
     src_machine: toothbrush
     dst_machine: data.kitware.com
     duration: nan
+    status: failed
     notes: |
       Uploaded shitspotter-snapshot-2024-08-09T185233-5, I started this log a
       few minutes after I started the actual upload. Dont think I will get
@@ -225,7 +263,9 @@ network_measurements:
     method: girder-upload-GUI
     src_machine: toothbrush
     dst_machine: data.kitware.com
+    uuid: c4b02470-aa2d-4195-a8f3-560ff7ce096d
     duration: 5.88 hours
+    status: success
     notes: |-
       # For the first 34 non-assets
       #{'time': kwutil.datetime.coerce('2024-08-09T220451-5'), 'amount': 0.0 * ureg.megabyte},
@@ -270,9 +310,10 @@ network_measurements:
 
   - recording_time: 2024-08-12T092252-5
     action: transfer
-    method: ipfs
+    method: bittorrent
     src_machine: jojo
     dst_machine: namek
+    uuid: 9165ebfe-4e46-4d92-8d44-cbd857ea8e91
     multiple_seeders: unlikely
     command: |
       transmission-remote --auth transmission:transmission --add 'magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&dn=shitspotter%5Fdvc&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce' --download-dir /var/lib/transmission-daemon/downloads
@@ -281,6 +322,7 @@ network_measurements:
       transmission-remote --auth transmission:transmission --list
       transmission-remote --auth transmission:transmission -t1 --info
     duration: 51816 seconds
+    status: success
     history.date_added:       Mon Aug 12 10:22:51 2024
     history.date_finished:    Mon Aug 12 22:38:57 2024
     history.date_started:     Mon Aug 12 20:04:04 2024
@@ -291,6 +333,7 @@ network_measurements:
   - recording_time: 2024-08-08T21:10:00-5
     action: transfer
     method: ipfs
+    uuid: ac60d591-cd80-41ad-8e18-7c90b18c91d0
     src_machine: jojo
     dst_machine: namek
     cid: bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y
@@ -307,6 +350,8 @@ network_measurements:
       ipfs swarm connect /p2p/12D3KooWCFcfiBevjQD42aRAELMUZXAGScRiN2NcAthokF4dMnVU
     notes: |-
       After nearly a day of waiting, it still did not find my node
+    status: outlier
+    duration:    1477m19.885s
     time.real:    1477m19.885s
     time.user:    0m18.891s
     time.sys:     0m25.336s
@@ -317,6 +362,7 @@ network_measurements:
     action: update
     method: ipfs
     src_machine: ipfs
+    uuid: 3e761faa-f97c-4294-bcff-9edd0c3770f2
     dst_machine: ipfs
     multiple_seeders: likely
     time.start_date: Fri Aug 16 03:18:49 UTC 2024
@@ -329,10 +375,12 @@ network_measurements:
     time.user:    0m0.152s
     time.sys:    0m0.035s
     time.end_date: Fri Aug 16 03:28:20 UTC 2024
+    status: success
         
   - recording_time: 2024-08-15T223738-5
     action: transfer
     method: ipfs
+    uuid: 40d91d8d-4f91-4173-8b49-9104ce15234a
     src_machine: ipfs
     dst_machine: calculex
     multiple_seeders: likely
@@ -356,6 +404,7 @@ network_measurements:
   - recording_time: Fri Aug 16 20:22:50 EDT 2024
     action: transfer
     method: ipfs
+    uuid: e0d12dfe-88da-47b4-b525-40af5e0a28ef
     src_machine: jojo/ipfs
     dst_machine: calculex
     multiple_seeders: likely
@@ -375,13 +424,16 @@ network_measurements:
     time.sys:     0m1.067s
     time.end_date: Sat Aug 17 02:20:24 AM EDT 2024
     notes: after updating to kubo 0.29 and manually connecting to pinners it worked.
+    status: success
     
   - recording_time: 2024-08-17T115756-5
-    action: transfer
+    uuid: a7bebd4d-5145-4f9f-82b8-6e203226ee2d
     method: rsync
+    action: transfer
+    duration: null
+    status: null
     src_machine: namek
     dst_machine: calculex
-    multiple_seeders: na
     command: |-
       rm -rf $HOME/data/dvc-repos/shitspotter_dvc
       date && time rsync -avprPR namek:data/dvc-repos/./shitspotter_dvc $HOME/data/dvc-repos && date

@@ -37,10 +37,11 @@ def main():
         'time.start_date',
         'time.end_date',
         'history.downloading_time',
+        'status',
     ]
 
     subtable2 = subtable[rows_of_interest]
-    subtable2['duration'] = subtable2['duration'].apply(lambda d: kwutil.timedelta.coerce(d, nan_policy='return-nan'))
+    subtable2['duration'] = subtable2['duration'].apply(lambda d: kwutil.timedelta.coerce(d, nan_policy='return-nan', none_policy='return-nan'))
     rich.print(subtable2.to_string())
 
     groups = subtable2.groupby('method')
