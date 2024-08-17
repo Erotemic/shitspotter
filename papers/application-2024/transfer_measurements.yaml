@@ -60,6 +60,7 @@ network_measurements:
     origins.creator: Transmission/3.00 (bb6b5a062e)
     origins.piece_count: 20454
     origins.piece_size: 2.00 MiB
+    status: outlier
 
   - recording_time: 2024-08-06T192625-5
     action: transfer
@@ -177,7 +178,7 @@ network_measurements:
     duration: 279m3.068s
     time.start_date: "Thu 08 Aug 2024 09:10:56 PM EDT"
     time.end_date: "Fri 09 Aug 2024 01:49:59 AM EDT"
-    status: outlier
+    status: unclear
 
   - recording_time: 2024-08-09T10:49:00-5
     uuid: db6dfa14-799a-453e-ad0c-bac568eccbdd
@@ -190,12 +191,12 @@ network_measurements:
       date && time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y && date
     notes: |-
       second run of pin that should be primed to go.
-    time.real:    107m50.797s
-    time.user:    0m3.163s
-    time.sys:     0m1.343s
+    time.real: 107m50.797s
+    time.user: 0m3.163s
+    time.sys: 0m1.343s
     duration: 107m50.797s
     time.start_date: Fri 09 Aug 2024 10:49:42 AM EDT
-    time.end_date:   Fri 09 Aug 2024 12:37:33 PM EDT
+    time.end_date: Fri 09 Aug 2024 12:37:33 PM EDT
     status: unclear
 
   - recording_time: 2024-08-09T13:03:00-5
@@ -208,10 +209,10 @@ network_measurements:
     command: |-
       date && time rsync -avprPR $HOME/data/dvc-repos/./shitspotter_dvc namek:data/dvc-repos && date
     duration: 365m52.482s
-    time.real:    365m52.482s
-    time.user:    24m34.053s
-    time.sys:     1m35.558s
-    time.start_date: Fri Aug  9 01:06:10 PM EDT 2024  
+    time.real: 365m52.482s
+    time.user: 24m34.053s
+    time.sys: 1m35.558s
+    time.start_date: Fri Aug  9 01:06:10 PM EDT 2024
     time.end_date: Fri Aug  9 07:12:02 PM EDT 2024
     status: success
 
@@ -226,7 +227,7 @@ network_measurements:
     notes: |
       Uploaded shitspotter-snapshot-2024-08-09T185233-5, I started this log a
       few minutes after I started the actual upload. Dont think I will get
-      an accurate measurement here. 
+      an accurate measurement here.
 
       I dont know if data.kitware.com handles de-duplication or if that
       is even something that could be used with the zip strategy.
@@ -309,11 +310,11 @@ network_measurements:
       total_time = ((max_update - start_time).total_seconds() * ureg.seconds).to(ureg.hours)
 
   - recording_time: 2024-08-12T092252-5
+    uuid: 9165ebfe-4e46-4d92-8d44-cbd857ea8e91
     action: transfer
     method: bittorrent
     src_machine: jojo
     dst_machine: namek
-    uuid: 9165ebfe-4e46-4d92-8d44-cbd857ea8e91
     multiple_seeders: unlikely
     command: |
       transmission-remote --auth transmission:transmission --add 'magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&dn=shitspotter%5Fdvc&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce' --download-dir /var/lib/transmission-daemon/downloads
@@ -323,13 +324,13 @@ network_measurements:
       transmission-remote --auth transmission:transmission -t1 --info
     duration: 51816 seconds
     status: success
-    history.date_added:       Mon Aug 12 10:22:51 2024
-    history.date_finished:    Mon Aug 12 22:38:57 2024
-    history.date_started:     Mon Aug 12 20:04:04 2024
-    history.latest_activity:  Mon Aug 12 22:38:57 2024
+    history.date_added: Mon Aug 12 10:22:51 2024
+    history.date_finished: Mon Aug 12 22:38:57 2024
+    history.date_started: Mon Aug 12 20:04:04 2024
+    history.latest_activity: Mon Aug 12 22:38:57 2024
     history.downloading_time: 14 hours (51816 seconds)
-    history.seeding_time:     1 day, 21 hours (163556 seconds)
-        
+    history.seeding_time: 1 day, 21 hours (163556 seconds)
+
   - recording_time: 2024-08-08T21:10:00-5
     action: transfer
     method: ipfs
@@ -351,10 +352,10 @@ network_measurements:
     notes: |-
       After nearly a day of waiting, it still did not find my node
     status: outlier
-    duration:    1477m19.885s
-    time.real:    1477m19.885s
-    time.user:    0m18.891s
-    time.sys:     0m25.336s
+    duration: 1477m19.885s
+    time.real: 1477m19.885s
+    time.user: 0m18.891s
+    time.sys: 0m25.336s
     time.start_date: Wed 14 Aug 2024 06:00:14 PM EDT
     time.end_date: Thu 15 Aug 2024 06:37:34 PM EDT
 
@@ -371,12 +372,12 @@ network_measurements:
       # Then start the timed download
       date && time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y && date
     duration: 9m31.502sreal
-    time.real:    9m31.502s
-    time.user:    0m0.152s
-    time.sys:    0m0.035s
+    time.real: 9m31.502s
+    time.user: 0m0.152s
+    time.sys: 0m0.035s
     time.end_date: Fri Aug 16 03:28:20 UTC 2024
     status: success
-        
+
   - recording_time: 2024-08-15T223738-5
     action: transfer
     method: ipfs
@@ -395,12 +396,12 @@ network_measurements:
       ipfs swarm connect /p2p/12D3KooWS612EDC67bmFD4pyoAUmW93G1QW9GYCkqDg71bdBRgri
     duration: null
     status: failed
-    time.real:    9m31.502s
-    time.user:    0m0.152s
-    time.sys:    0m0.035s
+    time.real: 9m31.502s
+    time.user: 0m0.152s
+    time.sys: 0m0.035s
     time.end_date: Fri Aug 16 03:28:20 UTC 2024
     notes: man... even with peer connect it didnt grab anything. quit
-        
+
   - recording_time: Fri Aug 16 20:22:50 EDT 2024
     action: transfer
     method: ipfs
@@ -417,24 +418,53 @@ network_measurements:
       ipfs swarm connect /p2p/12D3KooWPyQK2JEXnqK1QxiV9Y7bG3UsUQC5iQvDxn8bV1uqvsbi
       # Then start the timed download
       date && time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y && date
-    duration:    357m25.220s
+    duration: 357m25.220s
     time.start_date: Fri Aug 16 08:22:59 PM EDT 2024
-    time.real:    357m25.220s
-    time.user:    0m12.010s
-    time.sys:     0m1.067s
+    time.real: 357m25.220s
+    time.user: 0m12.010s
+    time.sys: 0m1.067s
     time.end_date: Sat Aug 17 02:20:24 AM EDT 2024
     notes: after updating to kubo 0.29 and manually connecting to pinners it worked.
     status: success
-    
+
   - recording_time: 2024-08-17T115756-5
     uuid: a7bebd4d-5145-4f9f-82b8-6e203226ee2d
     method: rsync
     action: transfer
-    duration: null
-    status: null
+    duration: 186m5.775s
+    status: success
     src_machine: namek
     dst_machine: calculex
     command: |-
       rm -rf $HOME/data/dvc-repos/shitspotter_dvc
       date && time rsync -avprPR namek:data/dvc-repos/./shitspotter_dvc $HOME/data/dvc-repos && date
-    time.start_date: Sat Aug 17 01:01:18 PM EDT 2024                                                           
+    time.start_date: Sat Aug 17 01:01:18 PM EDT 2024
+    time.real: 186m5.775s
+    time.user: 16m36.532s
+    time.sys: 10m22.126s
+    time.end_time: Sat Aug 17 04:07:23 PM EDT 2024
+
+
+  - recording_time: 2024-08-17T172032-5
+    uuid: 8ed56468-3ed5-44a1-a21b-2ddcd139ec89
+    action: transfer
+    method: bittorrent
+    duration: null
+    status: null
+    src_machine: jojo
+    dst_machine: namek
+    multiple_seeders: unlikely
+    command: |
+      # First remove the torrent data from namek
+      transmission-remote --auth transmission:transmission --list
+      transmission-remote --auth transmission:transmission -t1 --remove
+      rm -rf /var/lib/transmission-daemon/downloads/shitspotter_dvc
+      # Then add the data
+      date
+      transmission-remote --auth transmission:transmission --add 'magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&dn=shitspotter%5Fdvc&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce' --download-dir /var/lib/transmission-daemon/downloads
+
+      transmission-remote --auth transmission:transmission --list
+      transmission-remote --auth transmission:transmission -t2 --start
+      transmission-remote --auth transmission:transmission -t2 --info
+    note: |-
+      seems to take awhile before it starts to download the data.

@@ -1,4 +1,7 @@
 """
+CommandLine:
+    python ~/code/shitspotter/papers/application-2024/scripts/gather_measurements.py
+
 SeeAlso:
     ~/code/shitspotter/papers/application-2024/transfer_measurements.yaml
 """
@@ -31,20 +34,35 @@ def main():
 
     rows_of_interest = [
         'recording_time',
+        'uuid',
         'method',
         'action',
         'duration',
         'time.start_date',
         'time.end_date',
-        'history.downloading_time',
+        'src_machine',
+        'dst_machine',
+        # 'history.downloading_time',
         'status',
     ]
 
     subtable2 = subtable[rows_of_interest]
-    subtable2['duration'] = subtable2['duration'].apply(lambda d: kwutil.timedelta.coerce(d, nan_policy='return-nan', none_policy='return-nan'))
+
+    def normalize_timedelta(data):
+        return kwutil.timedelta.coerce(data, nan_policy='return-nan', none_policy='return-nan')
+
+    def normalize_datetime(data):
+        return kwutil.datetime.coerce(data, nan_policy='return-nan', none_policy='return-nan')
+
+    subtable2['duration'] = subtable2['duration'].apply(normalize_timedelta)
+    subtable2['recording_time'] = subtable2['recording_time'].apply(normalize_datetime)
+    subtable2['uuid'] = subtable2['uuid'].apply(lambda x: str(x)[0:8])
+    subtable2['time.start_date'] = subtable2['time.start_date'].apply(normalize_datetime)
+    subtable2['time.end_date'] = subtable2['time.end_date'].apply(normalize_datetime)
     rich.print(subtable2.to_string())
 
-    groups = subtable2.groupby('method')
+    subtable3 = subtable2[subtable2['status'] != 'outlier']
+    groups = subtable3.groupby('method')
     for method, group in groups:
         rich.print('-----')
         rich.print(method)
@@ -62,7 +80,10 @@ def main():
 
     rich.print(display_table)
 
-    latex_text = display_table.to_latex()
+    total_time = subtable2['duration'].sum()
+    print(total_time)
+
+    latex_text = display_table.style.to_latex()
     print(latex_text)
 
 
