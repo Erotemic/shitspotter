@@ -54,6 +54,8 @@
 \Crefname{table}{Table}{Tables}
 \crefname{table}{Tab.}{Tabs.}
 
+\newcommand{\cotwo}{\ensuremath{\mathrm{CO_2}}}
+
 
 %%%%%%%%% PAPER ID  - PLEASE UPDATE
 \def\wacvPaperID{*****} % *** Enter the WACV Paper ID here
@@ -103,7 +105,7 @@ to continue indefinitely.
 The most recent snapshot of dataset is made publicly available across three
 different distribution methods: one centralized and two decentralized (IPFS and
 BitTorrent).
-We perform an analysis and experimental comparison of the trade-offs between
+We perform an analysis and observational comparison of the trade-offs between
 distribution methods and discuss the feasibility of each with respect to
 sharing open scientific data.
 
@@ -189,7 +191,7 @@ BitTorrent, and IPFS as mechanisms for distributing datasets.
 Our contributions are:
 1. A challenging new \textbf{open dataset} of images with polygon segmentations.
 2. An experimental \textbf{evaluation of baseline training} methods.
-3. An experimental \textbf{comparison of dataset distribution} methods.
+3. An observational \textbf{comparison of dataset distribution} methods.
 4. \textbf{Open code and models}.
 Related work is discussed at the end.
 
@@ -385,7 +387,7 @@ over learning rate and regularization parameters.
 
 \includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_vs_metrics.heatmap_eval.salient_AUC_PLT02_scatter_nolegend.png}
 \caption[]{
-    The pixelwise AP and AUC of the top evaluated checkpoints.
+    The pixelwise AP and AUC of the top-5 checkpoints evaluated on the validation set.
     For each training run we ran evaluation on a subset of checkpoints that
     achieved low validation loss.
     Points with the same color represent checkpoints from the same training run
@@ -399,21 +401,22 @@ over learning rate and regularization parameters.
 \centering
 \includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_PLT04_box.png}
 \caption{
-    The range of AP values over the evaluated checkpoints.
+    The range of AP values over the top-5 checkpoints evaluated on the validation set.
+    TODO: link this to the table of parameters
 }
 \label{fig:ap_boxplot}
 \end{figure}
 
 
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_PLT05_table.png}
-\caption{
-    The table mapping short names to the default root directory.
-    TODO: create a table that shows an overview of the varied hyperparameters.
-}
-\label{fig:scatter_legend}
-\end{figure}
+%\begin{figure}[h]
+%\centering
+%\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_PLT05_table.png}
+%\caption{
+%    The table mapping short names to the default root directory.
+%    TODO: create a table that shows an overview of the varied hyperparameters.
+%}
+%\label{fig:scatter_legend}
+%\end{figure}
 
 % Scatterplot for all experiments used in this work.
 % file:///home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/full_aggregate/plots/macro-plots-macro_01_c1edce/params/resolved_params.heatmap_pred_fit.trainer.default_root_dir/scatter_nolegend/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_vs_metrics.heatmap_eval.salient_AUC_PLT02_scatter_nolegend.png
@@ -434,10 +437,14 @@ shitspotter\_scratch\_20240618\_noboxes\_v3 &   0.001 &      0.00001 &      0.00
 shitspotter\_scratch\_20240618\_noboxes\_v8 &  0.0001 &     0.000001 &           0.0 &    0.745779 &     0.966297 \\
 \bottomrule
 \end{tabular}
+\caption{
+    Scores for the best top model on the validation set for each of the 7 hyperarameter configurations.
+}
+\label{tab:parameters_and_results}
 \end{table*}
 
 
-This restricted set is illustrated in \Cref{fig:scatter-subset}.
+This restricted set is illustrated in \Cref{tab:parameters_and_results}.
 
 We evaluate each model with standard pixelwise segmentation metrics, where each
 pixel is is considered as a binary classification example (poop-vs-background).
@@ -445,7 +452,7 @@ For each pixel the truth is compared to its predicted score, and we compute
 standard metrics of average-precision (AP) and  area under the ROC curve (AUC)
 \cite{powers_evaluation_2011}.
 
-\Cref{fig:scatter-all} illustrates the AP and AUC of all baseline models trained.
+\Cref{fig:parameters_and_results} illustrates the AP and AUC of all baseline models trained.
 These include ad-hoc parameters settings when searching for a stable training
 configuration.
 
@@ -474,57 +481,109 @@ determining the hyperparameters we held constant here.
 The path to the presented experiments involved trying over 42 training run with
 a wider variation of parameters. In total we estimate the total GPU time as
 158.9 days with an average of 3.75 days per run, which is emits roughly 280.4
-CO2 kg with a cost of about \$4.21 to offset.
+\cotwo{} kg with a cost of about \$4.21 to offset.
 
 \subsubsection{Results}
 
 % See: ./scripts/gather_heatmap_examples.py
+%\begin{figure*}[h]
+%\centering
+%\includegraphics[width=1.0\textwidth]{figures/test_heatmaps_with_best_test_model.jpg}
+%\caption[]{
+%    Qualitative results on a representative test set sample using the highest
+%    scoring model on the test set.
+%    Success cases are on the left, and failures increase towards the right.
+%    The confusion 
+
+%    The top rows shows true positive pixels in white, false positive pixels in
+%    red, false negative pixels in teal, and true negative pixels in black.  For
+%    visualization purposes, the threshold to binarize the prediction is chosen
+%    to maximize the F1 for each image, thus the top row is in some sense the
+%    best possible classification of the heatmap, which is shown in the middle
+%    row. The final row is the input image.
+
+%    Most images in the (small, 30 image) test set are qualitatively good.
+%    Failure cases are limited to close up images of older sometimes
+%    partially-deteriorated poops.
+%}
+%\label{fig:test_heatmaps_with_best_test_model}
+%\end{figure*}
+
+
 \begin{figure*}[h]
 \centering
-\includegraphics[width=1.0\textwidth]{figures/test_result_heatmaps.jpg}
+\includegraphics[width=1.0\textwidth]{figures/test_heatmaps_with_best_vali_model}%
+\hfill
+(a) test set
+\includegraphics[width=1.0\textwidth]{figures/vali_heatmaps_with_best_vali_model.jpg}%
+\hfill
+(b) validation set
+\includegraphics[width=1.0\textwidth]{figures/train_heatmaps_with_best_vali_model.jpg}%
+\hfill
+(c) training set
 \caption[]{
-    Qualitative results on a representative test set sample using the highest
-    scoring model on the test set.
+    Qualitative results using the highest scoring model on the validation set
+    on a selection of images from (a) the test test, (b) the validation set and
+    (c) the training set.
     Success cases are on the left, and failures increase towards the right.
-    The confusion 
-
-    The top rows shows true positive pixels in white, false positive pixels in
-    red, false negative pixels in teal, and true negative pixels in black.  For
-    visualization purposes, the threshold to binarize the prediction is chosen
-    to maximize the f1 for each image, thus the top row is in some sense the
-    best possible classification of the heatmap, which is shown in the middle
-    row. The final row is the input image.
-
+    %
+    In each figure, the top rows shows true positive pixels in white, false
+    positive pixels in red, false negative pixels in teal, and true negative
+    pixels in black.  For visualization purposes, the threshold to binarize the
+    prediction is chosen to maximize the F1 for each image, thus the top row is
+    in some sense the best possible classification of the heatmap, which is
+    shown in the middle row. The final row is the input image.
+    %
     Most images in the (small, 30 image) test set are qualitatively good.
     Failure cases are limited to close up images of older sometimes
     partially-deteriorated poops.
 }
-\label{fig:test_results}
+\label{fig:test_heatmaps_with_best_vali_model}
 \end{figure*}
 
 
-\begin{figure*}[h]
-    % /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/
-\centering
-\includegraphics[width=1.0\textwidth]{figures/vali_result_heatmaps.jpg}
-\caption[]{
-    Qualitative results on select validation images using the highest scoring
-    model on the validation set.
+%\begin{figure*}[h]
+%    % /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/
+%\centering
+%\caption[]{
+%    Qualitative results on select validation images using the highest scoring
+%    model on the validation set.
 
-    Success cases are on the left, and failures increase towards the right.
-    The confusion 
+%    Success cases are on the left, and failures increase towards the right.
+%    The confusion 
 
-    The top rows shows true positive pixels in white, false positive pixels in
-    red, false negative pixels in teal, and true negative pixels in black.  For
-    visualization purposes, the threshold to binarize the prediction is chosen
-    to maximize the f1 for each image, thus the top row is in some sense the
-    best possible classification of the heatmap, which is shown in the middle
-    row. The final row is the input image.
-}
-\label{fig:vali_results}
-\end{figure*}
+%    The top rows shows true positive pixels in white, false positive pixels in
+%    red, false negative pixels in teal, and true negative pixels in black.  For
+%    visualization purposes, the threshold to binarize the prediction is chosen
+%    to maximize the F1 for each image, thus the top row is in some sense the
+%    best possible classification of the heatmap, which is shown in the middle
+%    row. The final row is the input image.
+%}
+%\label{fig:vali_results}
+%\end{figure*}
 
-Qualitative results for the test set are shown in \cref{fig:test_results} and the validation set in \cref{fig:vali_results}.
+
+%\begin{figure*}[h]
+%\centering
+%\caption[]{
+%    Qualitative results on select train images using the highest scoring model
+%    on the validation set.
+
+%    Cases on the left are easier and get progressively harder
+
+%    The top rows shows true positive pixels in white, false positive pixels in
+%    red, false negative pixels in teal, and true negative pixels in black.  For
+%    visualization purposes, the threshold to binarize the prediction is chosen
+%    to maximize the F1 for each image, thus the top row is in some sense the
+%    best possible classification of the heatmap, which is shown in the middle
+%    row. The final row is the input image.
+%}
+%\label{fig:train_results}
+%\end{figure*}
+
+
+
+Qualitative results for the test, validation, and training set are shown in \cref{fig:test_heatmaps_with_best_vali_model}. 
 
 
 \begin{table*}[t]
@@ -629,13 +688,33 @@ The Mainline Tracker is a DHT for bittorrent.
 Dataset (is / will be) tracked on Academic Torrents \cite{academic_torrents_Cohen2014}.
 
 
-\subsection{Distribution Experiments}
+\subsection{Distribution Observations}
 
 Measure the performance of our algorithm versus a baseline.
 
 Measure the speed of IPFS vs BitTorrent.
 
 Time to create torrent vs time to pin to IPFS.
+
+
+\begin{table}[t]
+\begin{tabular}{llllll}
+\toprule
+{} & count &   mean &    std &   min &    max \\
+method        &       &        &        &       &        \\
+\midrule
+bittorrent    &     2 &  33.32 &  37.41 &  6.87 &  59.77 \\
+girder-upload-GUI &     1 &   5.88 &    nan &  5.88 &   5.88 \\
+ipfs          &     2 &   3.22 &   2.02 &  1.80 &   4.65 \\
+rsync         &     1 &   6.10 &    nan &  6.10 &   6.10 \\
+rsync-local   &     1 &   0.01 &    nan &  0.01 &   0.01 \\
+\bottomrule
+\end{tabular}
+\caption[]{
+    Number of hours of transfer speeds of entire dataset averaged of n trials.
+}
+\end{table}
+
 
 %-------------------------------------------------------------------------
 \section{Related Work}
@@ -722,10 +801,25 @@ Directions for future research / development are:
     SeeAlso:
     ~/code/shitspotter/experiments/run_pixel_eval_pipeline.sh
     ~/code/shitspotter/experiments/run_pixel_eval_on_test_pipeline.sh
+    ~/code/shitspotter/experiments/run_pixel_eval_on_train_pipeline.sh
 
     python ~/code/shitspotter/dev/poc/estimate_train_resources.py
 
     See: ./localize_figures.sh
+
+
+    Best Validation Model:
+        /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/epoch=0089-step=122940-val_loss=0.019.ckpt.pt
+        # Best Rank:  33.0 pyzvffmyjcrq
+        Lives in /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_0f613533/pxl_eval.json heatmap_eval           pyzvffmyjcrq    0.505110     0.912509
+        
+
+    Best Test Model:
+        /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v6/lightning_logs/version_0/checkpoints/epoch=0073-step=101084-val_loss=0.017.ckpt.pt
+        is Rank 3 on the validation dataset.
+    
+
+
 \end{comment}
 
 \end{document}

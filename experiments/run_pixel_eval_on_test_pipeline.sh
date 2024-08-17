@@ -191,12 +191,12 @@ python -m geowatch.mlops.aggregate \
         - heatmap_eval
     " \
     --stdout_report="
-        top_k: 10
-        per_group: 1
+        top_k: 100
+        per_group: null
         macro_analysis: 0
         analyze: 0
         print_models: True
-        reference_region: final
+        reference_region: null
         concise: 0
         show_csv: 0
     " \

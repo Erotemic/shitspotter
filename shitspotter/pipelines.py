@@ -67,6 +67,7 @@ class HeatmapPrediction(ProcessNode):
         'num_workers': 2,
         'devices': '0,',
         'batch_size': 1,
+        'memmap': False,
     }
 
     algo_params = {
@@ -281,6 +282,8 @@ class HeatmapEvaluation(ProcessNode):
         'draw_curves': True,
         'draw_heatmaps': False,
         'viz_thresh': 'auto',
+        'draw_legend': True,
+        'draw_weights': False,
     }
 
     def load_result(self, node_dpath):

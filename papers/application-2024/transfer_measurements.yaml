@@ -1,5 +1,8 @@
 # This file is manual record of network speed measurments to study the
 # differences betweend distribution methods.
+#
+# SeeAlso:
+#     ~/code/shitspotter/papers/application-2024/scripts/gather_measurements.py
 ---
 
 machine_info:
@@ -23,6 +26,7 @@ network_measurements:
     src_machine: jojo
     dst_machine: namek
     multiple_seeders: unlikely
+    duration: "215176 seconds"
     history.date_added: "Sun Aug  4 19:36:53 2024"
     history.date_started: "Sun Aug  4 19:36:53 2024"
     history.latest_activity: "Mon Aug  5 02:09:41 2024"
@@ -47,6 +51,7 @@ network_measurements:
     time.real: "0m41.013s"
     time.user: "0m11.660s"
     time.sys: "0m41.786s"
+    duration: "41.013s"
     rsync.output: "sent 45,016,353,426 bytes  received 174,242 bytes  1,084,735,606.46 bytes/sec"
     command: "time rsync -avprPR --chmod=Du=rwx,Dg=rwx,Do=rwx,Fu=rw,Fg=rw,Fo=rw $HOME/data/dvc-repos/./shitspotter_dvc /var/lib/transmission-daemon/downloads/"
 
@@ -54,6 +59,7 @@ network_measurements:
     action: create-torrent
     machine: toothbrush
     command: "time transmission-create --outfile /var/lib/transmission-daemon/downloads/shitspotter_dvc_v3.torrent --tracker udp://open.tracker.cl:1337/announce --comment 'shitspotter torrent v3' /var/lib/transmission-daemon/downloads/shitspotter_dvc"
+    duration: "0m45.057s"
     time.real: "0m45.057s"
     time.user: "0m24.288s"
     time.sys: "0m12.644s"
@@ -63,6 +69,7 @@ network_measurements:
     action: create-torrent
     machine: jojo
     command: "time transmission-create --outfile /var/lib/transmission-daemon/downloads/shitspotter_dvc_v3.torrent --tracker udp://open.tracker.cl:1337/announce --comment 'shitspotter torrent v3' /var/lib/transmission-daemon/downloads/shitspotter_dvc"
+    duration: "20m4.330s"
     time.real: "20m4.330s"
     time.user: "5m52.390s"
     time.sys: "1m41.123s"
@@ -78,7 +85,7 @@ network_measurements:
       d = kwutil.datetime.coerce
       t = kwutil.timedelta.coerce
       print((d('2024-08-06T21:28:57') - t('109 seconds')) - d('2024-08-06T21:10:10'))
-    time: 16.966 minutes
+    duration: 16.966 minutes
     notes: "Started verifying, which is taking time. 27% done 5.3 minutes ((21:28:57 - 109 seconds) - 21:10:10)"
     torrent.magnet: "magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&dn=shitspotter%5Fdvc&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce"
     torrent.hash: "ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49"
@@ -100,6 +107,7 @@ network_measurements:
     history.date_started: Tue Aug  6 21:56:16 2024
     history.latest_activity: Wed Aug  7 03:20:56 2024
     history.downloading_time: 6 hours (24725 seconds)
+    duration: 24725 seconds
     history.seeding_time: 8 hours (29334 seconds)
 
     transfer.percent_done: "100%"
@@ -116,13 +124,12 @@ network_measurements:
     src_machine: jojo
     dst_machine: namek
     cid: bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y
-    notes:
     multiple_seeders: likely-partial
-    command: -|
+    command: |-
       date
       time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y
       date
-    notes: -|
+    notes: |-
       Namek responded quickly and got to 8050 but then got stuck. 2 hours in I
       realized jojo's ipfs server was off. Hopefully it will pick up jojo as a
       peer soon. I grew impatient with this run, killed it, and restarted.
@@ -136,6 +143,7 @@ network_measurements:
     time.real: "279m3.068s"
     time.user: "0m14.143s"
     time.sys: "0m2.202s"
+    duration: 279m3.068s
     time.start_date: "Thu 08 Aug 2024 09:10:56 PM EDT"
     time.end_date: "Fri 09 Aug 2024 01:49:59 AM EDT"
 
@@ -145,13 +153,14 @@ network_measurements:
     src_machine: jojo
     dst_machine: namek
     multiple_seeders: likely-partial
-    command: -|
+    command: |-
       date && time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y && date
-    notes: -|
+    notes: |-
       second run of pin that should be primed to go.
     time.real:    107m50.797s
     time.user:    0m3.163s
     time.sys:     0m1.343s
+    duration: 107m50.797s
     time.start_date: Fri 09 Aug 2024 10:49:42 AM EDT
     time.end_date:   Fri 09 Aug 2024 12:37:33 PM EDT
 
@@ -161,22 +170,22 @@ network_measurements:
     src_machine: toothbrush
     dst_machine: namek
     multiple_seeders: na
-    command: -|
+    command: |-
       date && time rsync -avprPR $HOME/data/dvc-repos/./shitspotter_dvc namek:data/dvc-repos && date
+    duration: 365m52.482s
     time.real:    365m52.482s
     time.user:    24m34.053s
     time.sys:     1m35.558s
     time.start_date: Fri Aug  9 01:06:10 PM EDT 2024  
     time.end_date: Fri Aug  9 07:12:02 PM EDT 2024
 
-
   - recording_time: 2024-08-09T200812-5
     action: upload
-    method: girder-web-interface
+    method: girder-upload-GUI
     src_machine: toothbrush
     dst_machine: data.kitware.com
-    result: nan
-    notes: -|
+    duration: nan
+    notes: |
       Uploaded shitspotter-snapshot-2024-08-09T185233-5, I started this log a
       few minutes after I started the actual upload. Dont think I will get
       an accurate measurement here. 
@@ -198,10 +207,8 @@ network_measurements:
         {'time': kwutil.datetime.coerce('2024-08-09T201226-5'), 'amount': 1001.1 * ureg.megabyte},
         {'time': kwutil.datetime.coerce('2024-08-09T202000-5'), 'amount': 1.9 * ureg.gigabyte},
       ]
-
       max_time = kwutil.datetime.coerce('2024-08-10T08:57:44.853000+00:00')
       (max_time - rows[0]['time']).total_seconds() / 60 / 60
-
       rates = []
       for r1, r2 in ub.iter_window(rows, 2):
         time_delta = (r2['time'] - r1['time']).total_seconds() * ureg.seconds
@@ -211,17 +218,15 @@ network_measurements:
       est_seconds = (total / avg_rate).to(ureg.second)
       est_hours = est_seconds.to(ureg.hour)
       print(est_hours)
-
       upload failed due to storage quota issues
 
   - recording_time: 2024-08-09T220343-5
     action: upload
-    method: girder-web-interface
+    method: girder-upload-GUI
     src_machine: toothbrush
     dst_machine: data.kitware.com
-    result: nan
     duration: 5.88 hours
-    notes: -|
+    notes: |-
       # For the first 34 non-assets
       #{'time': kwutil.datetime.coerce('2024-08-09T220451-5'), 'amount': 0.0 * ureg.megabyte},
       #{'time': kwutil.datetime.coerce('2024-08-09T220509-5'), 'amount': 30.4 * ureg.megabyte},
@@ -263,10 +268,9 @@ network_measurements:
       min_update = min(update_dates)
       total_time = ((max_update - start_time).total_seconds() * ureg.seconds).to(ureg.hours)
 
-
   - recording_time: 2024-08-12T092252-5
     action: transfer
-    method: bittorrent
+    method: ipfs
     src_machine: jojo
     dst_machine: namek
     multiple_seeders: unlikely
@@ -274,3 +278,99 @@ network_measurements:
       transmission-remote --auth transmission:transmission --add 'magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&dn=shitspotter%5Fdvc&tr=udp%3A%2F%2Fopen.tracker.cl%3A1337%2Fannounce' --download-dir /var/lib/transmission-daemon/downloads
       # A little while later (11:20AM), after no progress
       transmission-remote --auth transmission:transmission --t5 --start
+      transmission-remote --auth transmission:transmission --list
+      transmission-remote --auth transmission:transmission -t1 --info
+    duration: 51816 seconds
+    history.date_added:       Mon Aug 12 10:22:51 2024
+    history.date_finished:    Mon Aug 12 22:38:57 2024
+    history.date_started:     Mon Aug 12 20:04:04 2024
+    history.latest_activity:  Mon Aug 12 22:38:57 2024
+    history.downloading_time: 14 hours (51816 seconds)
+    history.seeding_time:     1 day, 21 hours (163556 seconds)
+        
+  - recording_time: 2024-08-08T21:10:00-5
+    action: transfer
+    method: ipfs
+    src_machine: jojo
+    dst_machine: namek
+    cid: bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y
+    multiple_seeders: likely-partial
+    command: |-
+      # First remove all pins on namek
+      systemctl start ipfs.service
+      ipfs pin ls --type="recursive" --names
+      ipfs pin ls --type recursive | cut -d ' ' -f1 | xargs -n1 ipfs pin rm
+      ipfs repo gc
+      # Then start the timed download
+      date && time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y && date
+      # Force it to connect to jojo (on 2024-08-15T115624-5)
+      ipfs swarm connect /p2p/12D3KooWCFcfiBevjQD42aRAELMUZXAGScRiN2NcAthokF4dMnVU
+    notes: |-
+      After nearly a day of waiting, it still did not find my node
+    time.real:    1477m19.885s
+    time.user:    0m18.891s
+    time.sys:     0m25.336s
+    time.start_date: Wed 14 Aug 2024 06:00:14 PM EDT
+    time.end_date: Thu 15 Aug 2024 06:37:34 PM EDT
+
+  - recording_time: 2024-08-15T218949-5
+    action: update
+    method: ipfs
+    src_machine: ipfs
+    dst_machine: ipfs
+    multiple_seeders: likely
+    time.start_date: Fri Aug 16 03:18:49 UTC 2024
+    command: |-
+      systemctl start ipfs.service
+      # Then start the timed download
+      date && time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y && date
+    duration: 9m31.502sreal
+    time.real:    9m31.502s
+    time.user:    0m0.152s
+    time.sys:    0m0.035s
+    time.end_date: Fri Aug 16 03:28:20 UTC 2024
+        
+  - recording_time: 2024-08-15T223738-5
+    action: transfer
+    method: ipfs
+    src_machine: ipfs
+    dst_machine: calculex
+    multiple_seeders: likely
+    time.start_date: Thu Aug 15 11:37:31 PM EDT 2024
+    command: |-
+      systemctl start ipfs.service
+      ipfs config --json Identity.PeerID
+      ipfs swarm connect /p2p/12D3KooWPyQK2JEXnqK1QxiV9Y7bG3UsUQC5iQvDxn8bV1uqvsbi
+      # Then start the timed download
+      date && time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y && date
+      # on ipfs
+      ipfs swarm connect /p2p/12D3KooWS612EDC67bmFD4pyoAUmW93G1QW9GYCkqDg71bdBRgri
+    time.real:    9m31.502s
+    time.user:    0m0.152s
+    time.sys:    0m0.035s
+    time.end_date: Fri Aug 16 03:28:20 UTC 2024
+    notes: man... even with peer connect it didnt grab anything.
+        
+  - recording_time: Fri Aug 16 20:22:50 EDT 2024
+    action: transfer
+    method: ipfs
+    src_machine: jojo
+    dst_machine: calculex
+    multiple_seeders: likely
+    command: |-
+      systemctl start ipfs.service
+      systemctl status ipfs.service
+      ipfs config --json Identity.PeerID
+      ipfs swarm connect /p2p/12D3KooWS612EDC67bmFD4pyoAUmW93G1QW9GYCkqDg71bdBRgri
+      ipfs swarm connect /p2p/12D3KooWCFcfiBevjQD42aRAELMUZXAGScRiN2NcAthokF4dMnVU
+      ipfs swarm connect /p2p/12D3KooWPyQK2JEXnqK1QxiV9Y7bG3UsUQC5iQvDxn8bV1uqvsbi
+      # Then start the timed download
+      date && time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y && date
+      # on ipfs
+    time.start_date: Fri Aug 16 08:22:59 PM EDT 2024
+    time.real:    9m31.502s
+    time.user:    0m0.152s
+    time.sys:    0m0.035s
+    time.end_date: Fri Aug 16 03:28:20 UTC 2024
+    notes: man... even with peer connect it didnt grab anything.
+        

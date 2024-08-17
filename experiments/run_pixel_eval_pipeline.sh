@@ -215,11 +215,11 @@ python -m geowatch.mlops.aggregate \
     " \
     --stdout_report="
         top_k: 10
-        per_group: 1
+        per_group: null
         macro_analysis: 0
         analyze: 0
         print_models: True
-        reference_region: final
+        reference_region: null
         concise: 0
         show_csv: 0
     " \
