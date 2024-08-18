@@ -262,6 +262,45 @@ boundaries.
 \label{fig:AllPolygons}
 \end{figure}
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.4\textwidth]{figures/images_timeofday_distribution.png}
+\caption[]{
+    Scatterplot of the time-of-year vs time-of-day each image was taken.  For
+    images with geolocation and timestamp (assuming the timezone is local or
+    given and correct) we also estimate the amount of daylight as indicated by
+    the color of each dot. While the majority of the images are taken in
+    daylight, there are a sizable number of nighttime images.
+}
+\label{fig:TimeOfDayDistribution}
+\end{figure}
+
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.4\textwidth]{figures/anns_per_image_histogram_splity.png}
+\caption[]{
+    Histogram of the number of annotations per image. 
+    Only 35\% (2346) of the images contain annotations, the other 65\% (4302)
+    are known not to contain poop. Of these 4302 about half of them were taken
+    directly after the poop was picked up, and the other half are pictures of a
+    nearby location.
+}
+\label{fig:AnnotsPerImage}
+\end{figure}
+
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.4\textwidth]{figures/spectra.png}
+\caption[]{
+    The spectra of the dataset.
+    The dataset rgb  mean is $[116.605578, 123.928146, 99.526968]$ and std is
+    $[61.489357, 59.412513, 63.333678]$.
+}
+\label{fig:spectra}
+\end{figure}
+
 \subsection{Dataset Stats and Analysis}
 
 % Number of images, annotations, and other stats.
@@ -286,33 +325,6 @@ Many images do contain more than one poop, and this can be for several reasons:
 
 Almost all images have a width/height of 4032 x 3024 (which could be rotated
 based on EXIF data) with 6 being 4008 x 5344 and one being 768 x 1024.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.4\textwidth]{figures/images_timeofday_distribution.png}
-\caption[]{
-    Distribution of the time of year and time of day each image was taken.
-    For images with geolocation and timestamp (assuming the timezone is local
-    or given and correct) we also estimate the amount of daylight as indicated
-    by the color of each dot. While the majority of the images are taken in
-    daylight, there are a sizable number of nighttime images.
-}
-\label{fig:TimeOfDayDistribution}
-\end{figure}
-
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.4\textwidth]{figures/anns_per_image_histogram_splity.png}
-\caption[]{
-    Histogram of the number of annotations per image. 
-    Only 35\% (2346) of the images contain annotations, the other 65\% (4302)
-    are known not to contain poop. Of these 4302 about half of them were taken
-    directly after the poop was picked up, and the other half are pictures of a
-    nearby location.
-}
-\label{fig:AnnotsPerImage}
-\end{figure}
 
 
 \section{Models}
@@ -392,26 +404,24 @@ over learning rate and regularization parameters.
 \begin{figure}[h]
 \centering
 
-\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_vs_metrics.heatmap_eval.salient_AUC_PLT02_scatter_nolegend.png}
+\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_vs_metrics.heatmap_eval.salient_AUC_PLT02_scatter_nolegend.png}%
+(a)
+\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_PLT04_box.png}%
+(b)
 \caption[]{
-    The pixelwise AP and AUC of the top-5 checkpoints evaluated on the validation set.
+    (a) A scatterplot of the pixelwise AP and AUC of the top-5 checkpoints evaluated on the validation set.
     For each training run we ran evaluation on a subset of checkpoints that
     achieved low validation loss.
     Points with the same color represent checkpoints from the same training run
     with with the same hyperparameters.
+
+    (b) The range of AP values over the top-5 checkpoints evaluated on the validation set.
+    TODO: link this to the table of parameters
+
+    \Cref{tab:parameters_and_results} provides more details about the maximum
+    AP points per run.
 }
 \label{fig:apauc_scatter}
-\end{figure}
-
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_PLT04_box.png}
-\caption{
-    The range of AP values over the top-5 checkpoints evaluated on the validation set.
-    TODO: link this to the table of parameters
-}
-\label{fig:ap_boxplot}
 \end{figure}
 
 
@@ -435,23 +445,24 @@ over learning rate and regularization parameters.
 \toprule
                        default\_root\_dir &      lr & weight\_decay & perterb\_scale &  salient\_AP &  salient\_AUC \\
 \midrule
-shitspotter\_scratch\_20240618\_noboxes\_v7 &  0.0001 &     0.000001 &      0.000003 &    0.832460 &     0.992721 \\
-shitspotter\_scratch\_20240618\_noboxes\_v6 &  0.0001 &          0.0 &           0.0 &    0.822544 &     0.979457 \\
-shitspotter\_scratch\_20240618\_noboxes\_v5 &  0.0001 &      0.00001 &           0.0 &    0.820307 &     0.967862 \\
-shitspotter\_scratch\_20240618\_noboxes\_v4 &  0.0001 &     0.000001 &           0.0 &    0.815864 &     0.987229 \\
-shitspotter\_scratch\_20240618\_noboxes\_v2 &  0.0003 &     0.000003 &      0.000001 &    0.810662 &     0.968507 \\
-shitspotter\_scratch\_20240618\_noboxes\_v3 &   0.001 &      0.00001 &      0.000003 &    0.766480 &     0.989868 \\
-shitspotter\_scratch\_20240618\_noboxes\_v8 &  0.0001 &     0.000001 &           0.0 &    0.745779 &     0.966297 \\
+scratch\_20240618\_noboxes\_v7 &  0.0001 &     0.000001 &      0.000003 &    0.832460 &     0.992721 \\
+scratch\_20240618\_noboxes\_v6 &  0.0001 &          0.0 &           0.0 &    0.822544 &     0.979457 \\
+scratch\_20240618\_noboxes\_v5 &  0.0001 &      0.00001 &           0.0 &    0.820307 &     0.967862 \\
+scratch\_20240618\_noboxes\_v4 &  0.0001 &     0.000001 &           0.0 &    0.815864 &     0.987229 \\
+scratch\_20240618\_noboxes\_v2 &  0.0003 &     0.000003 &      0.000001 &    0.810662 &     0.968507 \\
+scratch\_20240618\_noboxes\_v3 &   0.001 &      0.00001 &      0.000003 &    0.766480 &     0.989868 \\
+scratch\_20240618\_noboxes\_v8 &  0.0001 &     0.000001 &           0.0 &    0.745779 &     0.966297 \\
 \bottomrule
 \end{tabular}
 \caption{
-    Scores for the best top model on the validation set for each of the 7 hyperarameter configurations.
+    Scores for the best top model on the validation set for each of the 7 hyperarameter configurations. These correspond to the maximum AP 
+    of each run in \Cref{fig:apauc_scatter}.
 }
 \label{tab:parameters_and_results}
 \end{table*}
 
 
-This restricted set is illustrated in \Cref{tab:parameters_and_results}.
+This restricted of the top-5 checkpoints per training run is illustrated in \Cref{fig:apauc_scatter} and details for the best checkpoint and hyper-parameters are given in \Cref{tab:parameters_and_results}.
 
 We evaluate each model with standard pixelwise segmentation metrics, where each
 pixel is is considered as a binary classification example (poop-vs-background).
@@ -545,40 +556,43 @@ snow.
 
 
 
-\begin{table*}[t]
+\begin{table}[t]
 \begin{tabular}{llllr}
 \toprule
         node & resource &           total &            mean &  num \\
 \midrule
-heatmap\_eval & duration & 0 days 07:52:02 & 0 days 00:13:29 &   35 \\
-heatmap\_pred & duration & 0 days 04:23:34 & 0 days 00:07:32 &   35 \\
+heatmap\_eval & time & 07:52:02 &  00:13:29 &   35 \\
+heatmap\_pred & time & 04:23:34 &  00:07:32 &   35 \\
 heatmap\_pred &   co2\_kg &        0.667817 &         0.01908 &   35 \\
 heatmap\_pred &      kwh &        3.172888 &        0.090654 &   35 \\
 \bottomrule
 \end{tabular}
 \caption[]{All experiments table}
-\end{table*}
+\end{table}
 
 
-\begin{table*}[t]
+\begin{table}[t]
 \begin{tabular}{llllr}
 \toprule
         node & resource &           total &            mean &  num \\
 \midrule
-heatmap\_eval & duration & 4 days 14:37:02 & 0 days 00:20:07 &  330 \\
-heatmap\_pred & duration & 6 days 06:52:11 & 0 days 00:27:31 &  329 \\
-heatmap\_pred &   co2\_kg &       17.954668 &        0.054573 &  329 \\
-heatmap\_pred &      kwh &       85.305086 &        0.259286 &  329 \\
+eval & time & 4 days 14:37:02 & 00:20:07 &  330 \\
+pred & time & 6 days 06:52:11 & 00:27:31 &  329 \\
+pred &   co2\_kg &       17.954668 &        0.054573 &  329 \\
+pred &      kwh &       85.305086 &        0.259286 &  329 \\
 \bottomrule
 \end{tabular}
 \label{tab:limited_resources}
 \caption[]{
     Time and energy resources used to perform model evaluation.
 
+    The pred node is the heatmap prediction step in the pipeline.
+    The eval node is the pixelwise evaluation step in the pipline. 
+
     Note: this table does not include training time, which was not measured
     directly at the time. Our stated train time estimates are based on.
 }
-\end{table*}
+\end{table}
 
 
 \section{Distribution / Sharing}
@@ -615,7 +629,19 @@ Observations:
     \item IPFS usually works well if you use the CLI.
     \item IPFS is easier to update.
     \item IPFS does rehash every file, which induces an O(N) scalability constraint.
-    \item IPFS does rehash every file, which induces an O(N) scalability constraint.
+
+    \item BitTorrent and IPFS seem to both take awhile to establish connection
+          to a peer when there are a small number of pinners/seeders.
+
+          IPFS has a mechanism to directly connect to a peer, which seems to
+          work fairly quickly, but not immediately.
+
+          This issue is mitigated as the number of seeders/pinners grows.
+          A test download of ImageNet LSVRC 2017 dataset from academic torrents
+          almost immediately connected to 2 seeders.
+
+    \item Centralized solutions depend on an organization providing a service,
+          and that organization can choose to stop providing that service.
 \end{itemize}
 
 
@@ -662,11 +688,9 @@ Time to create torrent vs time to pin to IPFS.
 {} & count &   mean &    std &   min &    max \\
 method        &       &        &        &       &        \\
 \midrule
-bittorrent    &     2 &  33.32 &  37.41 &  6.87 &  59.77 \\
-girder-upload-GUI &     1 &   5.88 &    nan &  5.88 &   5.88 \\
-ipfs          &     2 &   3.22 &   2.02 &  1.80 &   4.65 \\
-rsync         &     1 &   6.10 &    nan &  6.10 &   6.10 \\
-rsync-local   &     1 &   0.01 &    nan &  0.01 &   0.01 \\
+bittorrent & 3 & 11.41 & 4.00 & 6.87 & 14.39 \\
+ipfs & 3 & 4.14 & 2.13 & 1.80 & 5.96 \\
+rsync & 2 & 4.60 & 2.12 & 3.10 & 6.10 \\
 \bottomrule
 \end{tabular}
 \caption[]{
@@ -677,6 +701,11 @@ rsync-local   &     1 &   0.01 &    nan &  0.01 &   0.01 \\
 
 %-------------------------------------------------------------------------
 \section{Related Work}
+
+
+The ImageNet dataset \cite{ILSVRC15}.
+
+The MSCOCO dataset \cite{lin_microsoft_2014}.
 
 Object detection
 
@@ -690,6 +719,16 @@ containing 1500 images with 4,784 annotations over 60 classes.
 % TrashCan https://paperswithcode.com/dataset/trashcan
 % Top Datasets on paperwith code
 % https://paperswithcode.com/datasets?mod=images&task=semantic-segmentation&page=2
+
+
+% Domestic Trash / Garbage Dataset
+% Looks like the full dataset is behind a paywall
+% https://paperswithcode.com/dataset/domestic-trash-garbage-dataset
+
+
+% https://universe.roboflow.com/dataset-vmyna/poop-yxidr/dataset/1
+% 102 train images, 22 validation images, 0 test images.
+% human poop
 
 
 While ours is the largest publicly available poop dataset that we are aware of,
@@ -777,6 +816,10 @@ Directions for future research / development are:
         /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v6/lightning_logs/version_0/checkpoints/epoch=0073-step=101084-val_loss=0.017.ckpt.pt
         is Rank 3 on the validation dataset.
     
+
+    cd /home/joncrall/code/shitspotter/shitspotter_dvc
+    geowatch spectra --src data.kwcoco.json --workers=16 --cache_dpath=_spectra_cache --dst spectra.png --bins 64 --valid_range=0:255
+    cp spectra.png ~/code/shitspotter/papers/application-2024/figures/spectra.png
 
 
 \end{comment}

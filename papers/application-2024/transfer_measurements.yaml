@@ -444,13 +444,10 @@ network_measurements:
     time.sys: 10m22.126s
     time.end_time: Sat Aug 17 04:07:23 PM EDT 2024
 
-
   - recording_time: 2024-08-17T172032-5
     uuid: 8ed56468-3ed5-44a1-a21b-2ddcd139ec89
     action: transfer
     method: bittorrent
-    duration: null
-    status: null
     src_machine: jojo
     dst_machine: namek
     multiple_seeders: unlikely
@@ -468,3 +465,62 @@ network_measurements:
       transmission-remote --auth transmission:transmission -t2 --info
     note: |-
       seems to take awhile before it starts to download the data.
+      2024-08-17T222244-5 - still at 0%
+    time.date_added:       Sat Aug 17 18:24:45 2024
+    time.date_finished:    Sun Aug 18 06:40:10 2024
+    time.date_started:     Sat Aug 17 22:12:50 2024
+    time.latest_activity:  Sun Aug 18 06:40:10 2024
+    time.downloading_time: 12 hours (46659 seconds)
+    duration: 46659 seconds
+    time.seeding_time: 5 hours (19914 seconds)
+    status: success
+      
+  - recording_time: 2024-08-18T143702-5
+    uuid: 6493e133-c8ab-440b-a9ba-c8a7ad945ecf
+    action: download-imagenet-ILSVRC2017_CLS-LOC.tar.gz
+    method: bittorrent
+    duration: 10667 seconds
+    status: success
+    name.name: ILSVRC2017_CLS-LOC.tar.gz
+    name.hash: 943977d8c96892d24237638335e481f3ccd54cfb
+    name.magnet: magnet:?xt=urn:btih:943977d8c96892d24237638335e481f3ccd54cfb&dn=ILSVRC2017%5FCLS-LOC.tar.gz&tr=https%3A%2F%2Facademictorrents.com%2Fannounce.php&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce
+    history.date_added:       Sun Aug 18 14:00:17 2024
+    history.date_finished:    Sun Aug 18 16:24:26 2024
+    history.date_started:     Sun Aug 18 16:33:09 2024
+    history.latest_activity:  Sun Aug 18 16:24:26 2024
+    history.downloading_time: 2 hours, 57 minutes (10667 seconds)
+    history.seeding_time:     4 minutes (292 seconds)
+      
+    command: |-
+      # Download the ImageNet Large Scale Visual Recognition Challenge (V2017) (166GB)
+      transmission-remote --auth transmission:transmission \
+          --download-dir /flash/debian-transmission-downloads \
+          --add 'magnet:?xt=urn:btih:943977d8c96892d24237638335e481f3ccd54cfb&tr=https%3A%2F%2Facademictorrents.com%2Fannounce.php&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce'
+    notes: |-
+      started and nearly immediately connected to 2 seeders, then expanded to 5, and then to 7.
+    origins.public_torrent: Yes
+    origins.piece_count: 39622
+    origins.piece_size: 4.00 MiB
+    transfer.download_speed: 22.21 MB/s
+    transfer.upload_speed: 0 kB/s
+    transfer.availability: 100%
+    transfer.total_size: 166.0 GB (166.0 GB wanted)
+
+  - recording_time: 2024-08-18T154608-5
+    uuid: 47d3c213-1e80-4acb-9043-0f6e0708ece1
+    action: download-coco2014
+    method: bittorrent
+    duration: null
+    status: null
+      
+    command: |-
+      # MSCoco 2014
+      transmission-remote --auth transmission:transmission \
+          --download-dir /flash/debian-transmission-downloads \
+          --add 'magnet:?xt=urn:btih:f993c01f3c268b5d57219a38f8ec73ee7524421a&tr=https%3A%2F%2Facademictorrents.com%2Fannounce.php%3Fpasskey%3D&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce'
+    notes: |-
+      started and nearly immediately connected to 1 seeders
+    name.name: coco2014
+    name.hash: f993c01f3c268b5d57219a38f8ec73ee7524421a
+    name.magnet: magnet:?xt=urn:btih:f993c01f3c268b5d57219a38f8ec73ee7524421a&dn=coco2014&tr=https%3A%2F%2Facademictorrents.com%2Fannounce.php%3Fpasskey%3D&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce
+        
