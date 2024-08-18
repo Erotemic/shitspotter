@@ -49,10 +49,10 @@ python -m geowatch.mlops.schedule_evaluation \
             heatmap_eval.draw_legend: 0
             heatmap_eval.draw_curves: True
     " \
-    --root_dpath="$EVAL_PATH" \
+    --root_dpath="${EVAL_PATH}" \
     --devices="0,1," --tmux_workers=2 \
     --backend=tmux --skip_existing=1 \
-    --run=1
+    --run=0
 
 
 # Simple no-dependency result readout
@@ -207,5 +207,4 @@ python -m geowatch.mlops.aggregate \
             subtable = subtable.sort_values(['salient_AP'], ascending=False)
             print(subtable.to_latex(index=False))
     "
-
 #

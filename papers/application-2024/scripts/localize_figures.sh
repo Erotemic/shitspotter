@@ -12,3 +12,6 @@ cp $HOME/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/aggregate/plots/
 cp $HOME/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/aggregate/plots/macro-plots-macro_01_c1edce/params/resolved_params.heatmap_pred_fit.trainer.default_root_dir/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_PLT05_table.png "$FIGURE_DPATH"
 cp $HOME/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/heatmap_eval/heatmap_eval_id_37a99689/test_result_heatmaps.jpg "$FIGURE_DPATH"
 cp $HOME/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/aggregate/plots/resources.png "$FIGURE_DPATH"
+
+
+rsync -avprPR toothbrush:code/shitspotter/papers/application-2024/./figures "$HOME"/code/shitspotter/papers/application-2024/

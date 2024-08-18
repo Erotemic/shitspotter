@@ -333,10 +333,17 @@ In this paper we do not make use of the contributor data
 
 The baseline architecture is a variant \cite{bertasius2021space,Greenwell_2024_WACV} of a vision-transformer \cite{dosovitskiy_image_2021}.
 
-Number of parameters.
-Memory at train time.
-Memory at predict time.
-Model size on disk.
+\begin{comment}
+geowatch model_stats /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/epoch=0089-step=122940-val_loss=0.019.ckpt.pt
+\end{commend}
+
+Number of parameters: 25,543,369.
+Memory at train time: ~20GB
+Memory at predict time: 1.961GB.
+Model size on disk: 114.19 MB.
+
+Rate of patches on 3090 with 1 background worker: 20.93Hz
+GPU hits 94% utilization at predict time.
 
 In all experiments, we use half-resolution images, which means most images have
 an effective width/height of 2016 x 1512. The network is given a widow size of
@@ -485,31 +492,6 @@ a wider variation of parameters. In total we estimate the total GPU time as
 
 \subsubsection{Results}
 
-% See: ./scripts/gather_heatmap_examples.py
-%\begin{figure*}[h]
-%\centering
-%\includegraphics[width=1.0\textwidth]{figures/test_heatmaps_with_best_test_model.jpg}
-%\caption[]{
-%    Qualitative results on a representative test set sample using the highest
-%    scoring model on the test set.
-%    Success cases are on the left, and failures increase towards the right.
-%    The confusion 
-
-%    The top rows shows true positive pixels in white, false positive pixels in
-%    red, false negative pixels in teal, and true negative pixels in black.  For
-%    visualization purposes, the threshold to binarize the prediction is chosen
-%    to maximize the F1 for each image, thus the top row is in some sense the
-%    best possible classification of the heatmap, which is shown in the middle
-%    row. The final row is the input image.
-
-%    Most images in the (small, 30 image) test set are qualitatively good.
-%    Failure cases are limited to close up images of older sometimes
-%    partially-deteriorated poops.
-%}
-%\label{fig:test_heatmaps_with_best_test_model}
-%\end{figure*}
-
-
 \begin{figure*}[h]
 \centering
 \includegraphics[width=1.0\textwidth]{figures/test_heatmaps_with_best_vali_model}%
@@ -537,53 +519,30 @@ a wider variation of parameters. In total we estimate the total GPU time as
     Most images in the (small, 30 image) test set are qualitatively good.
     Failure cases are limited to close up images of older sometimes
     partially-deteriorated poops.
+
+    These examples were manually selected and ordered by hand. (could recompute
+    the order based on some measure).
 }
 \label{fig:test_heatmaps_with_best_vali_model}
 \end{figure*}
 
 
-%\begin{figure*}[h]
-%    % /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/eval/flat/heatmap_eval/heatmap_eval_id_6b952f74/heatmaps/_loose_images/
-%\centering
-%\caption[]{
-%    Qualitative results on select validation images using the highest scoring
-%    model on the validation set.
+Qualitative results for the test, validation, and training set are shown in
+\cref{fig:test_heatmaps_with_best_vali_model}. These examples illustrate
+success and failure cases. The test and validation set both show clear
+responses to the objects of interest. 
 
-%    Success cases are on the left, and failures increase towards the right.
-%    The confusion 
+Notably the much larger training set also contains errors. This indicates that
+there is still more information that can be extracted from this dataset,
+perhaps with hard mining techniques.
 
-%    The top rows shows true positive pixels in white, false positive pixels in
-%    red, false negative pixels in teal, and true negative pixels in black.  For
-%    visualization purposes, the threshold to binarize the prediction is chosen
-%    to maximize the F1 for each image, thus the top row is in some sense the
-%    best possible classification of the heatmap, which is shown in the middle
-%    row. The final row is the input image.
-%}
-%\label{fig:vali_results}
-%\end{figure*}
+Even though focal loss was used, the current learning curriculum is likely
+under weighting smaller distant objects. Our pixelwise evaluation metric is
+biased against it, which is a current limitation.
 
+There are clear difficult cases in certain sticks, leafs, and dark areas on
+snow.
 
-%\begin{figure*}[h]
-%\centering
-%\caption[]{
-%    Qualitative results on select train images using the highest scoring model
-%    on the validation set.
-
-%    Cases on the left are easier and get progressively harder
-
-%    The top rows shows true positive pixels in white, false positive pixels in
-%    red, false negative pixels in teal, and true negative pixels in black.  For
-%    visualization purposes, the threshold to binarize the prediction is chosen
-%    to maximize the F1 for each image, thus the top row is in some sense the
-%    best possible classification of the heatmap, which is shown in the middle
-%    row. The final row is the input image.
-%}
-%\label{fig:train_results}
-%\end{figure*}
-
-
-
-Qualitative results for the test, validation, and training set are shown in \cref{fig:test_heatmaps_with_best_vali_model}. 
 
 
 \begin{table*}[t]
