@@ -512,17 +512,17 @@ network_measurements:
   - recording_time: 2024-08-20T072714-5
     uuid: f54372d5-3331-4e1f-9da6-ad609616bfcf
     action: unpack-girder
-    method: null
-    duration: null
-    status: null
+    method: unzip
+    duration: 0m56.242s
+    status: success
     command: |-
       date && (time fd .zip -x unzip)
       date
     time.start_time: Tue Aug 20 08:28:12 AM EDT 2024
     time.end_time: Tue Aug 20 08:29:08 AM EDT 2024
-    time.real    0m56.242s
-    time.user    3m17.015s
-    time.sys     0m38.482s
+    time.real:    0m56.242s
+    time.user:    3m17.015s
+    time.sys:     0m38.482s
       
   - recording_time: 2024-08-20T073307-5
     uuid: 64559c37-c239-4ede-a6d2-e2fa5eff79af
@@ -530,12 +530,15 @@ network_measurements:
     method: girder
     src_machine: girder
     dst_machine: toothbrush
-    duration: null
-    status: null
+    duration: 79m59.489s
+    status: success
     command: |-
         date && time girder-client --api-url https://data.kitware.com/api/v1 download 66b6bc34f87a980650f41f90 . && date
     time.start_time: Tue Aug 20 08:33:16 AM EDT 2024
-
+    time.real:    79m59.489s
+    time.user:    3m59.366s
+    time.sys:     3m5.385s
+    time.end_date: Mon Aug 19 09:33:20 PM EDT 2024
 
   - recording_time: 2024-08-20T083557-5
     uuid: 213faef0-4edc-42f6-be9e-b1f69f277549
@@ -561,15 +564,16 @@ network_measurements:
 
       
 .__doc__: |-
-     python -c "if 1:
-       import uuid
-       import ubelt as ub
-       print('  - recording_time: ' + str(ub.timestamp()))
-       print('    uuid: ' + str(uuid.uuid4()))
-       print('    action: null')
-       print('    method: null')
-       print('    duration: null')
-       print('    status: null')
-       print('    command: |-')
-       print('        >')
-    "
+
+       python -c "if 1:
+         import uuid
+         import ubelt as ub
+         print('  - recording_time: ' + str(ub.timestamp()))
+         print('    uuid: ' + str(uuid.uuid4()))
+         print('    action: null')
+         print('    method: null')
+         print('    duration: null')
+         print('    status: null')
+         print('    command: |-')
+         print('        >')
+      "
