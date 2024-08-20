@@ -156,6 +156,10 @@ Instructions To Create The Torrent
     transmission-remote --auth transmission:transmission --torrent $TORRENT_ID \
         --tracker-add "$TRACKER_URL"
 
+    TRACKER_URL=https://academictorrents.com/announce.php
+    transmission-remote --auth transmission:transmission --torrent $TORRENT_ID \
+        --tracker-add "$TRACKER_URL"
+
     transmission-remote --auth transmission:transmission --torrent $TORRENT_ID --find $HOME/data/dvc-repos
 
 

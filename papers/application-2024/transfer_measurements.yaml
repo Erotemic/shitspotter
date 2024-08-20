@@ -506,21 +506,32 @@ network_measurements:
     transfer.availability: 100%
     transfer.total_size: 166.0 GB (166.0 GB wanted)
 
-  - recording_time: 2024-08-18T154608-5
-    uuid: 47d3c213-1e80-4acb-9043-0f6e0708ece1
-    action: download-coco2014
-    method: bittorrent
+  - recording_time: 2024-08-19T191006-5
+    uuid: dc6ec804-13b8-496a-9659-3f6ce9537516
+    action: transfer
+    method: girder
+    src_machine: girder
+    dst_machine: toothbrush
+    status: success
+    duration: 79m59.489s
+    command: |-
+        # https://data.kitware.com/#user/598a19658d777f7d33e9c18b/folder/66b6bc34f87a980650f41f90
+        date && time girder-client --api-url https://data.kitware.com/api/v1 download 66b6bc34f87a980650f41f90 ./shitspotter-snapshot-2024-08-09T185233-5 && date
+    time.start_date: Mon Aug 19 08:13:20 PM EDT 2024
+    time.real:   79m59.489s
+    time.user:   3m59.366s
+    time.sys:    3m5.385s
+    time.end_date: Mon Aug 19 09:33:20 PM EDT 2024
+
+  - recording_time: 2024-08-19T222940-5
+    uuid: 51189f46-dc5c-449a-9d67-0f6a03b0d966
+    action: transfer
+    method: girder
+    src_machine: girder
+    dst_machine: toothbrush
     duration: null
     status: null
-      
     command: |-
-      # MSCoco 2014
-      transmission-remote --auth transmission:transmission \
-          --download-dir /flash/debian-transmission-downloads \
-          --add 'magnet:?xt=urn:btih:f993c01f3c268b5d57219a38f8ec73ee7524421a&tr=https%3A%2F%2Facademictorrents.com%2Fannounce.php%3Fpasskey%3D&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce'
-    notes: |-
-      started and nearly immediately connected to 1 seeders
-    name.name: coco2014
-    name.hash: f993c01f3c268b5d57219a38f8ec73ee7524421a
-    name.magnet: magnet:?xt=urn:btih:f993c01f3c268b5d57219a38f8ec73ee7524421a&dn=coco2014&tr=https%3A%2F%2Facademictorrents.com%2Fannounce.php%3Fpasskey%3D&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce
-        
+        # https://data.kitware.com/#user/598a19658d777f7d33e9c18b/folder/66b6bc34f87a980650f41f90
+        date && time girder-client --api-url https://data.kitware.com/api/v1 download 66b6bc34f87a980650f41f90 . && date
+    time.start_date: Mon Aug 19 11:30:15 PM EDT 2024
