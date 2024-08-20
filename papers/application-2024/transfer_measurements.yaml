@@ -474,37 +474,6 @@ network_measurements:
     duration: 46659 seconds
     time.seeding_time: 5 hours (19914 seconds)
     status: success
-      
-  - recording_time: 2024-08-18T143702-5
-    uuid: 6493e133-c8ab-440b-a9ba-c8a7ad945ecf
-    action: download-imagenet-ILSVRC2017_CLS-LOC.tar.gz
-    method: bittorrent
-    duration: 10667 seconds
-    status: success
-    name.name: ILSVRC2017_CLS-LOC.tar.gz
-    name.hash: 943977d8c96892d24237638335e481f3ccd54cfb
-    name.magnet: magnet:?xt=urn:btih:943977d8c96892d24237638335e481f3ccd54cfb&dn=ILSVRC2017%5FCLS-LOC.tar.gz&tr=https%3A%2F%2Facademictorrents.com%2Fannounce.php&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce
-    history.date_added:       Sun Aug 18 14:00:17 2024
-    history.date_finished:    Sun Aug 18 16:24:26 2024
-    history.date_started:     Sun Aug 18 16:33:09 2024
-    history.latest_activity:  Sun Aug 18 16:24:26 2024
-    history.downloading_time: 2 hours, 57 minutes (10667 seconds)
-    history.seeding_time:     4 minutes (292 seconds)
-      
-    command: |-
-      # Download the ImageNet Large Scale Visual Recognition Challenge (V2017) (166GB)
-      transmission-remote --auth transmission:transmission \
-          --download-dir /flash/debian-transmission-downloads \
-          --add 'magnet:?xt=urn:btih:943977d8c96892d24237638335e481f3ccd54cfb&tr=https%3A%2F%2Facademictorrents.com%2Fannounce.php&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce'
-    notes: |-
-      started and nearly immediately connected to 2 seeders, then expanded to 5, and then to 7.
-    origins.public_torrent: Yes
-    origins.piece_count: 39622
-    origins.piece_size: 4.00 MiB
-    transfer.download_speed: 22.21 MB/s
-    transfer.upload_speed: 0 kB/s
-    transfer.availability: 100%
-    transfer.total_size: 166.0 GB (166.0 GB wanted)
 
   - recording_time: 2024-08-19T191006-5
     uuid: dc6ec804-13b8-496a-9659-3f6ce9537516
@@ -529,9 +498,78 @@ network_measurements:
     method: girder
     src_machine: girder
     dst_machine: toothbrush
-    duration: null
-    status: null
+    duration: 62m51.838s
+    status: success
     command: |-
         # https://data.kitware.com/#user/598a19658d777f7d33e9c18b/folder/66b6bc34f87a980650f41f90
         date && time girder-client --api-url https://data.kitware.com/api/v1 download 66b6bc34f87a980650f41f90 . && date
     time.start_date: Mon Aug 19 11:30:15 PM EDT 2024
+    time.real:    62m51.838s
+    time.user:    4m47.510s
+    time.sys:     3m40.750s
+    time.end_date: Tue Aug 20 12:33:07 AM EDT 2024
+      
+  - recording_time: 2024-08-20T072714-5
+    uuid: f54372d5-3331-4e1f-9da6-ad609616bfcf
+    action: unpack-girder
+    method: null
+    duration: null
+    status: null
+    command: |-
+      date && (time fd .zip -x unzip)
+      date
+    time.start_time: Tue Aug 20 08:28:12 AM EDT 2024
+    time.end_time: Tue Aug 20 08:29:08 AM EDT 2024
+    time.real    0m56.242s
+    time.user    3m17.015s
+    time.sys     0m38.482s
+      
+  - recording_time: 2024-08-20T073307-5
+    uuid: 64559c37-c239-4ede-a6d2-e2fa5eff79af
+    action: transfer
+    method: girder
+    src_machine: girder
+    dst_machine: toothbrush
+    duration: null
+    status: null
+    command: |-
+        date && time girder-client --api-url https://data.kitware.com/api/v1 download 66b6bc34f87a980650f41f90 . && date
+    time.start_time: Tue Aug 20 08:33:16 AM EDT 2024
+
+
+  - recording_time: 2024-08-20T083557-5
+    uuid: 213faef0-4edc-42f6-be9e-b1f69f277549
+    action: transfer
+    method: bittorrent
+    src_machine: jojo/multi
+    dst_machine: namek
+    multiple_seeders: likely
+    command: |
+      # First remove the torrent data from namek
+      transmission-remote --auth transmission:transmission --list
+      transmission-remote --auth transmission:transmission -t2 --remove
+      sudo rm -rf /var/lib/transmission-daemon/downloads/shitspotter_dvc
+      # Then add the data
+      date
+      transmission-remote --auth transmission:transmission --add 'magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&tr=https%3A%2F%2Facademictorrents.com%2Fannounce.php%3Fpasskey%3D9ffbb169f882f3be1330a48ea87416e7&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce' --download-dir /var/lib/transmission-daemon/downloads
+
+      transmission-remote --auth transmission:transmission --list
+      transmission-remote --auth transmission:transmission -t3 --info
+    note: |-
+      First measurements after uploading to academic torrents. 
+      It was found and started very quickly.
+
+      
+.__doc__: |-
+     python -c "if 1:
+       import uuid
+       import ubelt as ub
+       print('  - recording_time: ' + str(ub.timestamp()))
+       print('    uuid: ' + str(uuid.uuid4()))
+       print('    action: null')
+       print('    method: null')
+       print('    duration: null')
+       print('    status: null')
+       print('    command: |-')
+       print('        >')
+    "
