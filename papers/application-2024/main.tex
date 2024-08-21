@@ -164,8 +164,8 @@ into how to better train object detection and segmentation networks.
 
 Towards these ends we introduce a dataset suitable for training poop detection
 models in order to enable applications that require detecting or localizing
-poop in images. In order to allow to assist with annotation we collect images
-using a "before/after/negative" protocol as shown in \Cref{fig:ThreeImages}. 
+poop in images. In order to assist with annotation we collect images using a
+"before/after/negative" protocol as shown in \Cref{fig:ThreeImages}. 
 
 Our goal is to train an algorithm to classify which pixels contain poop, and
 which don't. We train a segmentation model to provide a baseline on how
@@ -204,41 +204,55 @@ derived from three specific dogs. Indoor images and poop from other dogs are
 present in the dataset but were encountered less often and thus are less
 frequent.
 
-In addition to this description, details covering the motivation, composition,
-collection, preprocessing, uses, distribution, and maintenance are provided in
-a standardized datasheet \cite{gebru_datasheets_2021}.
+More details about the dataset are available in a standardized datasheet
+\cite{gebru_datasheets_2021} that covers the motivation, composition,
+collection, preprocessing, uses, distribution, and maintenance. This will be
+distributed with the data itself, and is provided in supplemental material.
 
-\subsection{Dataset Collection Protocol}
-The majority of the dataset was collected using the "before/after/negative"
-protocol.
-When we encountered a poop in the wild --- usually from our own dogs, but
-sometimes from other dogs --- before we dispose of it we 
-take a "before" picture containing the poop.
-Then we pick up the poop and take an "after" picture of the same area. 
-Then we find a nearby area or perhaps something else in the nearby environment
-that might act as a confuser (e.g. pine cone or leaf) and take a third
-"negative" picture.
+\subsection{Dataset Collection}
 
-The majority of images in the dataset follow this pattern.
-However, there are exceptions.
-The first 6 months of data collection only involved the "before/after" part of the protocol.
-Sometimes the researcher failed or was unable to take the 2nd or 3rd image.
-These cases where the before / after / negative protocol can be
-programmatically this can be identified.
+The dataset was primarily collected by a single researcher while walking their
+dogs. When they encountered a poop in the wild --- usually freshly created by
+one of their own dogs, but sometimes from other dogs --- they would take an
+image of the poop. Most often they would take the image from wherever they
+first saw it, but sometimes they would move further or closer in an effort to
+add variation to the dataset. After they took a photo they would pick up the
+poop and dispose of it.
 
-Additionally, the dataset also contains a few dozen (84) images contributed
-by friends and family. These images are images mostly do not follow the
-before/after protocol and are marked for use only in testing.
+As previously mentioned, the majority of the dataset was collected using the
+"before/after/negative" (B/A/N) protocol. The first image of the poop is the
+"before" image. After picking up the poop, an "after" picture of the same area
+was taken. Effort was made to reproduce the same angle and distance, but the
+quality of the image alignment varies. The last step in the protocol is to take
+a "negative" image, which is of a nearby area or perhaps something else in the
+environment that might act as a confuser (e.g. pine cones, leafs, sticks, dark
+areas on snow). While we do not make explicit use of these "B/A/N" triples in
+this work, we believe they may be useful to construct some sort of
+triplet-style loss \cite{schroff_facenet_2015}.
 
+The majority of images in the dataset follow this triple-pattern.  However,
+there are exceptions.  The first 6 months of data collection only involved the
+"before/after" part of the protocol.  We started to collect the 3rd negative
+image when a colleague suggested it.  Additionally, the researcher sometimes
+failed or was unable to take the 2nd or 3rd image. The cases where the "B/A/N"
+protocol was not followed were programmatically identified.
 
-Challenges
+Additionally, the dataset also contains a 84 images contributed by friends and
+family. These images are images mostly do not follow the B/A/N protocol and are
+marked for use only in testing and are \emph{not} included in the following
+analysis unless explicitly noted.
+
 
 \subsection{Dataset Annotation}
 
-Images were annotated using labelme \cite{wada_labelmeailabelme_nodate}. 
-The boundaries of 4386 annotated polygons are illustrated in \Cref{fig:AllPolygons}.
-Most annotations were initialized using the Segment Anything Model (SAM)
-\cite{kirillov_segment_2023} and a point prompt. 
+Originally the "before" and "after" images were meant to help with automatic
+annotation, but this idea was not successful due to unreliable image-alignment.
+However, with the development of the Segment Anything Model (SAM)
+\cite{kirillov_segment_2023} model, we were able to efficiently annotation the
+dataset. 
+
+Specifically, images were annotated using labelme \cite{wada_labelmeailabelme_nodate}. 
+Most annotations were initialized using the SAM and a point prompt. 
 All AI polygons were manually reviewed. In most cases only small manual
 adjustments were needed, but there were a significant number of cases where SAM
 did not work well and fully manual annotations were needed.
@@ -246,7 +260,8 @@ Regions with shadows seemed to cause SAM the most trouble, but there were other
 failure cases. Unfortunately, there is no metadata to indicate which polygons
 were manually created or done using AI.  However, the number of vertices may be
 a reasonable proxy to estimate this, as polygons generated by SAM tend to have
-higher fidelity boundaries. 
+higher fidelity boundaries.  The boundaries of 4386 annotated polygons are
+illustrated in \Cref{fig:AllPolygons}.
 
 %Anecdotal note: SAM \cite{kirillov_segment_2023} worked well to automatically
 %segment the poop, many of these needed adjustments, especially in regions of
@@ -271,13 +286,25 @@ higher fidelity boundaries.
 \centering
 \includegraphics[width=0.4\textwidth]{figures/images_timeofday_distribution.png}
 \caption[]{
-    Scatterplot of the time-of-year vs time-of-day each image was taken.  For
-    images with geolocation and timestamp (assuming the timezone is local or
-    given and correct) we also estimate the amount of daylight as indicated by
-    the color of each dot. While the majority of the images are taken in
-    daylight, there are a sizable number of nighttime images.
+    Scatterplot of the time-of-year vs time-of-day each image was taken. On the
+    x-axis 0 is January 1st. On the y-axis 0 is midnight. For images with
+    geolocation and timestamp (assuming the timezone is local or given and
+    correct) we also estimate the amount of daylight as indicated by the color
+    of each dot. While the majority of the images are taken in daylight, there
+    are a sizable number of nighttime images.
 }
 \label{fig:TimeOfDayDistribution}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.4\textwidth]{figures/spectra.png}
+\caption[]{
+    The "spectra" or histogram of the pixel intensities in the dataset. 
+    The dataset rgb  mean/std is $[117, 124, 100], [61, 59, 63]$.
+    % (for reference the imagenet mean/std is $[124, 116, 104], [58, 57, 57]$).
+}
+\label{fig:spectra}
 \end{figure}
 
 
@@ -295,100 +322,91 @@ higher fidelity boundaries.
 \end{figure}
 
 
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.4\textwidth]{figures/spectra.png}
-\caption[]{
-    The "spectra" or histogram of the pixel intensities in the dataset. 
-    The dataset rgb  mean/std is $[117, 124, 100], [61, 59, 63]$ (for reference
-    the imagenet mean/std is $[124, 116, 104], [58, 57, 57]$).
-}
-\label{fig:spectra}
-\end{figure}
-
 \subsection{Dataset Stats and Analysis}
 
 % Number of images, annotations, and other stats.
+As of 2024-07-03, the primary (i.e. training and validation) dataset contains
+6648 images and 4386 annotations and has spanned 4 years. Data was captured
+over 4 years at a mostly uniformly rate.  Most data is localized to parks and
+sidewalks in a small city.  Weather conditions varied between snowy, sunny,
+rainy.  The distribution of seasons, time-of-day, daylight, and capture rate is
+illustrated in \Cref{fig:TimeOfDayDistribution}.
 
-The dataset currently contains 6648 images and 4386 annotations and has spanned
-4 years. Data was captured over 4 years at a mostly uniformly rate.  Most data
-is localized to parks and sidewalks in a small city.  Weather conditions varied
-between snowy, sunny, rainy.  The distribution of seasons, time-of-day,
-daylight, and capture rate is illustrated in \Cref{fig:TimeOfDayDistribution}.
+The dataset images are provided in full resolution and have not been resampled.
+Almost all images were captured using the same phone-camera and have a
+width/height of 4032 x 3024 (which could be rotated based on EXIF data) with 6
+being 4008 x 5344 and one being 768 x 1024. Images are stored as 8-bit JPEGs
+with RGB channels, and most also contain overviews (i.e.  an image pyramid),
+which makes loading a downscaled versions very fast.  The distribution of image
+pixel intensities is shown in \Cref{fig:spectra}.
 
-Roughly 1/3 of the dataset has annotations due to the other 2/3 of the
-images being taken in a way where the object of interest was removed from the
-scene.
 
-Some images contain more than one annotation, and some images contain zero annotations.
-The number of annotations per images is illustrated in \Cref{fig:AnnotsPerImage}.
-Many images do contain more than one poop, and this can be for several reasons:
-    1. a single poop broke into multiple disjoint parts (the exact criteria for this is sometimes ambiguous), 
-    2. two dogs pooped nearby each other (this happens frequently). 
-    3. one or more dogs has pooped in the same area over some period of
+Due to the "B/A/N"-protocol, roughly 1/3 of the dataset has annotations due to
+the other 2/3 of the images being taken in a way where the object of interest
+was removed from the scene. Thus, most images have no annotations. The next
+most frequent number of annotations is one, but images do often contain
+multiple annotations.
+There can be for several reasons for this:
+    1) a single poop broke into multiple disjoint parts (the exact criteria for this is sometimes ambiguous), 
+    2) two dogs pooped nearby each other. 
+    3) one or more dogs has pooped in the same area over some period of
        time (some cases can be difficult to determine if it is poop or dirt).
+The number of annotations per images is illustrated in
+\Cref{fig:AnnotsPerImage}.
 
-Almost all images have a width/height of 4032 x 3024 (which could be rotated
-based on EXIF data) with 6 being 4008 x 5344 and one being 768 x 1024.
+\subsection{Dataset Splits}
 
+Data from 2021, 2022, 2023 are in the training set. Data from 2020 is used for
+validation. Data from 2024 is split between training and validation. On the $n$th
+day of the year, images are in the validation set if $n \% 3 == 0$ else they
+are in the training set.
+
+Specifically, in this paper our training dataset has 5747 images and can be
+identified by a suffix of 1e73d54f, which is the prefix of a hash of its
+contents.  The validation set contains 691 images and has a suffix of 99b22ad0.
+The test set has a suffix of d8988f8c and consists of the 30 contributor images
+that have at least one annotation.
 
 \section{Models}
 
 Our second contribution is an evaluation of several trained models to serve as
-a baseline.
-
-We use the training and evaluation system of \cite{Greenwell_2024_WACV}, which
-can be trained to predict heatmaps from polygons and can evaluate those
-heatmaps on a pixelwise-level. 
-
-
-Specifically, we use the file named train\_imgs5747\_1e73d54f.kwcoco.zip with
-5747 images to train and vali\_imgs691\_99b22ad0.kwcoco.zip which contains 691
-images is our experimental test set.
-In this paper we do not make use of the contributor data
-
-
-The baseline architecture is a variant \cite{bertasius2021space,Greenwell_2024_WACV} of a vision-transformer \cite{dosovitskiy_image_2021}.
-
-\begin{comment}
-geowatch model_stats /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/epoch=0089-step=122940-val_loss=0.019.ckpt.pt
-\end{commend}
-
-Number of parameters: 25,543,369.
-Memory at train time: ~20GB
-Memory at predict time: 1.961GB.
-Model size on disk: 114.19 MB.
-
-Rate of patches on 3090 with 1 background worker: 20.93Hz
-GPU hits 94% utilization at predict time.
+a baseline.  We use the training and evaluation system of
+\cite{Greenwell_2024_WACV}, which can be trained to predict heatmaps from
+polygons and can evaluate those heatmaps on a pixelwise-level.
 
 In all experiments, we use half-resolution images, which means most images have
-an effective width/height of 2016 x 1512. The network is given a widow size of
-416,416, which means that multiple windows are needed to predict on entire
-images.
+an effective width/height of 2016 $\times$ 1512. The network is given a widow
+size of 416 $\times$ 416, which means that multiple windows are needed to
+predict on entire images.  
 
-Our model is a 12 layer encoder backbone with 384 channels, and 8 attention
-heads. 
+Due to the imbalance of positive/negative (i.e. patches that do or don't
+intersect an annotation) in the dataset we used a balanced sampling strategy.
+Each "epoch" consisted of randomly sampling 32,768 patches from the dataset
+with replacement.  The sampling was balanced so the number of positives and
+negatives were roughly equal. In total each network trained for 163,840
+gradient steps. For data augmentation we use random crops and flips.
+
+The baseline architecture is a variant
+\cite{bertasius2021space,Greenwell_2024_WACV} of a vision-transformer
+\cite{dosovitskiy_image_2021}. The model has a 12 layer encoder backbone with
+384 channels, and 8 attention heads. 
 The segmentation head is a 4 layer MLP using encoder features.
+The model has 25,543,369 parameters and a size of 114.19 MB on disk.
+At predict time the model uses 1.961GB of GPU RAM.
+
 Loss is computed pixelwise using FocalLoss \cite{ross2017focal} with a small
-downweighting of pixels towards the edge of the window.
-The optimizer is AdamW, and we vary learning rate, weight decay, and
-perturb-scale (note: weight decay combined with a non-zero perterb scale
-implements the shrink perturb trick: \cite{ash_warm_starting_2020}).
-We use a OneCycle learning rate scheduler with a cosine annealing strategy and
-starting fraction of 0.3.
-Our effective batch size is 24 with a real batch size of 2 and 12 accumulate
-gradient steps.
+downweighting of pixels towards the edge of the window.  The optimizer is
+AdamW, and we vary learning rate, weight decay, and perturb-scale (note: weight
+decay combined with a non-zero perterb scale implements the shrink perturb
+trick: \cite{ash_warm_starting_2020}).  We use a OneCycle learning rate
+scheduler with a cosine annealing strategy and starting fraction of 0.3.  Our
+effective batch size is 24 with a real batch size of 2 and 12 accumulate
+gradient steps. At train time this consumes ~20GB of GPU RAM.
 
+%\begin{comment}
+%geowatch model_stats /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/epoch=0089-step=122940-val_loss=0.019.ckpt.pt
+%\end{commend}
 
-All regions without an annotation were available at train time, but we used an
-undersampling strategy to randomly choose equal numbers of negative windows as
-there were positive windows (i.e. windows with annotations in them).
-
-This used about 20-22 GB of the 24 GB available on the 3090 throughout
-training.
-
-%\textbf{Static Parameters}:
 
 \subsection{Model Experiments}
 
@@ -406,9 +424,9 @@ Exact scripts to reproduce these experiments are in the code repo.
 
 After finding a reasonable performing starting point, we performed an ablation
 over learning rate and regularization parameters. 
+
 \begin{figure}[h]
 \centering
-
 \includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_vs_metrics.heatmap_eval.salient_AUC_PLT02_scatter_nolegend.png}%
 (a)
 \includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_PLT04_box.png}%
@@ -429,34 +447,19 @@ over learning rate and regularization parameters.
 \label{fig:apauc_scatter}
 \end{figure}
 
-
-%\begin{figure}[h]
-%\centering
-%\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_PLT05_table.png}
-%\caption{
-%    The table mapping short names to the default root directory.
-%    TODO: create a table that shows an overview of the varied hyperparameters.
-%}
-%\label{fig:scatter_legend}
-%\end{figure}
-
-% Scatterplot for all experiments used in this work.
-% file:///home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/full_aggregate/plots/macro-plots-macro_01_c1edce/params/resolved_params.heatmap_pred_fit.trainer.default_root_dir/scatter_nolegend/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_vs_metrics.heatmap_eval.salient_AUC_PLT02_scatter_nolegend.png
-
-
 \begin{table*}[t]
 \centering
 \begin{tabular}{llllrr}
 \toprule
-                       default\_root\_dir &      lr & weight\_decay & perterb\_scale &  salient\_AP &  salient\_AUC \\
+config name &      lr & weight\_decay & perterb\_scale &  salient\_AP &  salient\_AUC \\
 \midrule
-scratch\_20240618\_v7 &  0.0001 &     0.000001 &      0.000003 &    0.8325&     0.9927\\
-scratch\_20240618\_v6 &  0.0001 &          0.0 &           0.0 &    0.8225&     0.9795\\
-scratch\_20240618\_v5 &  0.0001 &      0.00001 &           0.0 &    0.8203&     0.9678\\
-scratch\_20240618\_v4 &  0.0001 &     0.000001 &           0.0 &    0.8159&     0.9872\\
-scratch\_20240618\_v2 &  0.0003 &     0.000003 &      0.000001 &    0.8107&     0.9685\\
-scratch\_20240618\_v3 &   0.001 &      0.00001 &      0.000003 &    0.7665&     0.9899\\
-scratch\_20240618\_v8 &  0.0001 &     0.000001 &           0.0 &    0.7458&     0.9662\\
+D05 &  0.0001 &     0.000001 &      0.000003 &    0.8325&     0.9927\\
+D04 &  0.0001 &          0.0 &           0.0 &    0.8225&     0.9795\\
+D03 &  0.0001 &      0.00001 &           0.0 &    0.8203&     0.9678\\
+D02 &  0.0001 &     0.000001 &           0.0 &    0.8159&     0.9872\\
+D00 &  0.0003 &     0.000003 &      0.000001 &    0.8107&     0.9685\\
+D01 &   0.001 &      0.00001 &      0.000003 &    0.7665&     0.9899\\
+D06 &  0.0001 &     0.000001 &           0.0 &    0.7458&     0.9662\\
 \bottomrule
 \end{tabular}
 \caption{
@@ -483,28 +486,27 @@ configuration.
 We trained 7 models from scratch with varied hyperparameters.
 
 All models were trained on a single machine with an 11900k CPU and a 3090 GPU.
+At predict time, using 1 background worker, our models processed 416 $\times$
+416 patches at a rate of 20.93Hz with 94\% GPU utilization.
 
-We measure the predict-time resources using codecarbon \cite{lacoste2019codecarbon} and report them in 
-\Cref{tab:resources}.
+We measure the predict-time resource usage using codecarbon
+\cite{lacoste2019codecarbon} and report them in \Cref{tab:resources}.
 
 
 % See: ./scripts/estimate_training_resources.py
-Handling these measurements at train time is still in development, but we
-estimate the time of each training run using timestamps on checkpoint and log
-files.  Using indirect measurements based on timestamps of log and checkpoint
-files, we estimate that each of the 7 training runs took about 5 days and 15
-hours, totaling about 49.2 GPU days. Using the maximum 350W power draw of a
-3090 GPU, we estimate energy usage of 17.2 kilowatt hours, assuming a 0.21
-conversion ratio is 3.6 kilograms of CO2.
-
+Measuring resource usage directly at train time is still in development, but we
+estimate the time of each training run using indirect measurements: timestamps
+on checkpoint and log files. We estimate that each of the 7 training runs took
+about 5 days and 15 hours, totaling about 49.2 GPU days. Using the maximum 350W
+power draw of a 3090 GPU, we estimate energy usage of 17.2 kilowatt hours,
+assuming a 0.21 conversion ratio is 3.6 kilograms of CO2.
 
 However, the experiments presented here were not the only ones performed in
 determining the hyperparameters we held constant here. 
-
 The path to the presented experiments involved trying over 42 training run with
 a wider variation of parameters. In total we estimate the total GPU time as
 158.9 days with an average of 3.75 days per run, which is emits roughly 280.4
-\cotwo{} kg with a cost of about \$4.21 to offset.
+\cotwo{} kg with a cost of about \$4.21 to offset. 
 
 \subsubsection{Results}
 
@@ -569,8 +571,8 @@ snow.
 \midrule
 eval & time & 07:52:02 &  00:13:29 &   35 \\
 pred & time & 04:23:34 &  00:07:32 &   35 \\
-pred &   co2\_kg &        0.6678&         0.0191 &   35 \\
 pred &      kwh &        3.1729&        0.0907&   35 \\
+pred &   co2\_kg &        0.6678&         0.0191 &   35 \\
 \bottomrule
 \end{tabular}
 
@@ -582,8 +584,8 @@ pred &      kwh &        3.1729&        0.0907&   35 \\
 \midrule
 eval & time & 4 days 14:37:02 & 00:20:07 &  330 \\
 pred & time & 6 days 06:52:11 & 00:27:31 &  329 \\
-pred &   co2\_kg &       17.9547&        0.0546 &  329 \\
 pred &      kwh &       85.3051&        0.2599 &  329 \\
+pred &   co2\_kg &       17.9547&        0.0546 &  329 \\
 \bottomrule
 \end{tabular}
 
@@ -592,16 +594,17 @@ pred &      kwh &       85.3051&        0.2599 &  329 \\
 \label{tab:resources}
 \caption[]{
 Time and energy resources used to perform model evaluation.
-
-The pred node is the heatmap prediction step in the pipeline.
-The eval node is the pixelwise evaluation step in the pipline. 
-
 (a) resources used in the presented evaluations.
 (b) resources used in hyperparameter tuning beforehand.
-
-Note: this table does not include training time, which was not measured
-directly at the time. Our stated train time estimates are based on.
-
+The pred node is the heatmap prediction (i.e. running the deep network) step in
+the pipeline.  The eval node is the pixelwise evaluation step (i.e.
+accumulating and scoring confusion matrices) in the pipline. 
+The "time" resource indicates how long each particular step took, both in total
+and on average. The "kwh" is the measured kilowatt hours used by our
+experimental machines and "co2\_kg" is the estimated carbon footprint of that
+energy usage. 
+%Note: this table does not include training time, which was not measured
+%directly at the time. Our stated train time estimates are based on.
 }
 \end{table}
 

@@ -99,8 +99,10 @@ kwcoco stats data.kwcoco.json
 
 8. **Are there recommended data splits (e.g. training, development/validation, testing)?** If so, please provide a description of these splits, explaining the rationale behind them.
 
-    Yes, we are currently suggesting that data from 2020 and 2024 are used as
-    validation. Data from 2021, 2022, 2023 are in the training set. 
+    Yes, we are currently suggesting that data from 2021, 2022, 2023 are in the
+    training set. Data from 2020 is used for validation. Data from 2024 is
+    split between training and validation. On the nth day of the year, images
+    are in the validation set if n % 3 == 0 else they are in the training set.
 
 9. **Are there any errors, sources of noise, or redundancies in the dataset?** If so, please provide a description.
 
