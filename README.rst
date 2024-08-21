@@ -69,7 +69,9 @@ https://ipfs.io/ipfs/QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG
 The the goal is to make IPFS the main distribution mechanism. However, it is
 still relatively new technology and until all of the kinks are worked out, the
 dataset will be mirrored on a centralized Girder server:
-https://data.kitware.com/#user/598a19658d777f7d33e9c18b/folder/65d6c52fb40ab0fa6c57909b
+https://data.kitware.com/#user/598a19658d777f7d33e9c18b/folder/66b6bc34f87a980650f41f90
+
+.. .. OLD and broken (its a dead link!): https://data.kitware.com/#user/598a19658d777f7d33e9c18b/folder/65d6c52fb40ab0fa6c57909b
 
 Unlike IPFS, which (ideally) gives seemless access to the data, the centralized
 storage has the upload from each update grouped in its own zipfile. If
