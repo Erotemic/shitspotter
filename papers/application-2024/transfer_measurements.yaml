@@ -546,6 +546,8 @@ network_measurements:
     method: bittorrent
     src_machine: jojo/multi
     dst_machine: namek
+    duration: 7965 seconds
+    status: success
     multiple_seeders: likely
     command: |
       # First remove the torrent data from namek
@@ -561,19 +563,47 @@ network_measurements:
     note: |-
       First measurements after uploading to academic torrents. 
       It was found and started very quickly.
+    time.date_added:       Tue Aug 20 09:37:54 2024
+    time.date_finished:    Tue Aug 20 11:41:39 2024
+    time.date_started:     Tue Aug 20 09:38:49 2024
+    time.downloading_time: 2 hours, 12 minutes (7965 seconds)
+
+
+  - recording_time: 2024-08-20T164511-5
+    uuid: a43821d7-3a2f-40d8-9fc0-7414840ae7f7
+    action: transfer
+    method: bittorrent
+    src_machine: jojo/multi
+    dst_machine: namek
+    duration: null
+    status: null
+    multiple_seeders: likely
+    command: |
+      # First remove the torrent data from namek
+      transmission-remote --auth transmission:transmission --list
+      transmission-remote --auth transmission:transmission -t3 --remove
+      sudo rm -rf /var/lib/transmission-daemon/downloads/shitspotter_dvc
+      # Then add the data
+      date
+      transmission-remote --auth transmission:transmission --add 'magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&tr=https%3A%2F%2Facademictorrents.com%2Fannounce.php%3Fpasskey%3D9ffbb169f882f3be1330a48ea87416e7&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce' --download-dir /var/lib/transmission-daemon/downloads
+
+      transmission-remote --auth transmission:transmission --list
+      transmission-remote --auth transmission:transmission -t3 --info
+    time.date_started: Tue 20 Aug 2024 05:46:37 PM EDT
+      
 
       
-.__doc__: |-
+.__taildoc__: |-
 
-       python -c "if 1:
-         import uuid
-         import ubelt as ub
-         print('  - recording_time: ' + str(ub.timestamp()))
-         print('    uuid: ' + str(uuid.uuid4()))
-         print('    action: null')
-         print('    method: null')
-         print('    duration: null')
-         print('    status: null')
-         print('    command: |-')
-         print('        >')
-      "
+     python -c "if 1:
+       import uuid
+       import ubelt as ub
+       print('  - recording_time: ' + str(ub.timestamp()))
+       print('    uuid: ' + str(uuid.uuid4()))
+       print('    action: null')
+       print('    method: null')
+       print('    duration: null')
+       print('    status: null')
+       print('    command: |-')
+       print('        >')
+     "
