@@ -134,13 +134,19 @@ EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_test_evals
 python -m geowatch.mlops.schedule_evaluation \
     --params="
         pipeline: 'shitspotter.pipelines.heatmap_evaluation_pipeline()'
-        #pipeline: 'shitspotter.pipelines.polygon_evaluation_pipeline()'
         matrix:
             heatmap_pred.package_fpath:
                 # - $HOME/code/shitspotter/experiments/first_chosen_eval_batch1.yaml
-                 - $HOME/code/shitspotter/experiments/test-models.yaml
+                # - $HOME/code/shitspotter/experiments/test-models.yaml
                 # - $DVC_DATA_DPATH/models/shitspotter_scratch_v025-version_2-epoch=1277-step=005112-val_loss=0.600.ckpt.pt
                 #- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v4/lightning_logs/version_1/checkpoints/epoch=0076-step=105182-val_loss=0.018.ckpt.pt
+                - '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/epoch=0089-step=122940-val_loss=0.019.ckpt.pt'
+                - '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v4/lightning_logs/version_1/checkpoints/epoch=0076-step=105182-val_loss=0.018.ckpt.pt'
+                - '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v5/lightning_logs/version_0/checkpoints/epoch=0078-step=107914-val_loss=0.019.ckpt.pt'
+                - '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v6/lightning_logs/version_0/checkpoints/epoch=0076-step=105182-val_loss=0.018.ckpt.pt'
+                - '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v2/lightning_logs/version_0/checkpoints/epoch=0065-step=090156-val_loss=0.022.ckpt.pt'
+                - '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v3/lightning_logs/version_4/checkpoints/epoch=0103-step=142064-val_loss=0.021.ckpt.pt'
+                - '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_2/checkpoints/epoch=0096-step=132502-val_loss=0.032.ckpt.pt'
             heatmap_pred.test_dataset:
                 - $TEST_FPATH
             heatmap_eval.workers: 1
@@ -150,7 +156,7 @@ python -m geowatch.mlops.schedule_evaluation \
     --root_dpath="$EVAL_PATH" \
     --devices="0,1," --tmux_workers=2 \
     --backend=tmux --skip_existing=1 \
-    --run=1
+    --run=0
 
 
 # Simple no-dependency result readout
@@ -242,7 +248,7 @@ python -m geowatch.mlops.aggregate \
         show_csv: 0
     " \
     --plot_params="
-        enabled: 1
+        enabled: 0
         stats_ranking: 0
         min_variations: 2
         max_variations: 40
@@ -259,16 +265,16 @@ python -m geowatch.mlops.aggregate \
     df['resolved_params.heatmap_pred_fit.trainer.default_root_dir'].apply(lambda p: str(p).split('/')[-1]).str.contains('noboxes')
     " \
     --custom_query="
-        new_eval_type_to_aggregator = {}
-        for key, agg in eval_type_to_aggregator.items():
-            chosen_idxs = []
-            for group_id, group in agg.table.groupby('resolved_params.heatmap_pred_fit.trainer.default_root_dir'):
-                group['metrics.heatmap_eval.salient_AP'].argsort()
-                keep_idxs = group['metrics.heatmap_eval.salient_AP'].sort_values()[-5:].index
-                chosen_idxs.extend(keep_idxs)
-            new_agg = agg.filterto(index=chosen_idxs)
-            rich.print(f'Special filter {key} filtered to {len(new_agg)}/{len(agg)} rows')
-            new_eval_type_to_aggregator[key] = new_agg
+        #new_eval_type_to_aggregator = {}
+        #for key, agg in eval_type_to_aggregator.items():
+        #    chosen_idxs = []
+        #    for group_id, group in agg.table.groupby('resolved_params.heatmap_pred_fit.trainer.default_root_dir'):
+        #        group['metrics.heatmap_eval.salient_AP'].argsort()
+        #        keep_idxs = group['metrics.heatmap_eval.salient_AP'].sort_values()[-5:].index
+        #        chosen_idxs.extend(keep_idxs)
+        #    new_agg = agg.filterto(index=chosen_idxs)
+        #    rich.print(f'Special filter {key} filtered to {len(new_agg)}/{len(agg)} rows')
+        #    new_eval_type_to_aggregator[key] = new_agg
 
         if 1:
             new_agg.table
@@ -284,25 +290,72 @@ python -m geowatch.mlops.aggregate \
                 'resolved_params.heatmap_pred_fit.model.init_args.perterb_scale',
                 'metrics.heatmap_eval.salient_AP',
                 'metrics.heatmap_eval.salient_AUC',
+                'params.heatmap_pred.package_fpath',
             ]
             new_agg.table[subcols]
 
             from geowatch.utils.util_pandas import pandas_shorten_columns, pandas_condense_paths
+            # Hack print out data for the corrresponding validation runs
+            import kwarray
+            validation_order = [
+                '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/epoch=0089-step=122940-val_loss=0.019.ckpt.pt',
+                '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v6/lightning_logs/version_0/checkpoints/last.pt',
+                '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v5/lightning_logs/version_0/checkpoints/last.pt',
+                '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v4/lightning_logs/version_1/checkpoints/epoch=0076-step=105182-val_loss=0.018.ckpt.pt',
+                '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v2/lightning_logs/version_0/checkpoints/last.pt',
+                '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v3/lightning_logs/version_4/checkpoints/last.pt',
+                '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_2/checkpoints/epoch=0096-step=132502-val_loss=0.032.ckpt.pt',
+            ]
 
             chosen_idxs = []
+            import kwarray
             for group_id, group in agg.table.groupby('resolved_params.heatmap_pred_fit.trainer.default_root_dir'):
                 group['metrics.heatmap_eval.salient_AP'].argsort()
-                keep_idxs = group['metrics.heatmap_eval.salient_AP'].sort_values()[-1:].index
+                if 0:
+                    keep_idxs = group['metrics.heatmap_eval.salient_AP'].sort_values()[-1:].index
+                else:
+                    flags = kwarray.isect_flags(group['params.heatmap_pred.package_fpath'], validation_order)
+                    keep_idxs = flags[flags].index
                 chosen_idxs.extend(keep_idxs)
 
             table = new_agg.table.safe_drop(['resolved_params.heatmap_pred_fit.trainer.callbacks'], axis=1)
             varied = table.varied_value_counts(min_variations=2)
             print(list(varied.keys()))
-
             subtable = new_agg.table.loc[chosen_idxs, subcols]
+            print(subtable)
+
             subtable = pandas_shorten_columns(subtable)
+            subtable = subtable.set_index('package_fpath').reorder(validation_order, axis=0)
+            subtable = subtable.reset_index(drop=True)
+
+            x = subtable[['default_root_dir', 'salient_AP', 'salient_AUC']]
+
             subtable['default_root_dir'] = pandas_condense_paths(subtable['default_root_dir'])[0]
-            subtable = subtable.sort_values(['salient_AP'], ascending=False)
+            #subtable = subtable.sort_values(['salient_AP'], ascending=False)
             print(subtable.to_latex(index=False))
-    "
+
+            from kwcoco.metrics.drawing import concice_si_display
+            def format_scientific_notation(val, precision=2):
+                val_str = ('{:.' + str(precision) + 'e}').format(val)
+                lhs, rhs = val_str.split('e')
+                import re
+                trailing_zeros = re.compile(r'\.0*$')
+                rhs = rhs.replace('+', '')
+                rhs = rhs.lstrip('0')
+                rhs = rhs.replace('-0', '-')
+                lhs = trailing_zeros.sub('', lhs)
+                rhs = trailing_zeros.sub('', rhs)
+                val_str = lhs + 'e' + rhs
+                return val_str
+            subtable_display = subtable.copy()
+            si_params = ['lr', 'weight_decay', 'perterb_scale']
+            for p in si_params:
+                subtable_display[p] = subtable[p].apply(format_scientific_notation)
+            metric_params = ['salient_AP', 'salient_AUC']
+            for p in metric_params:
+                subtable_display[p] = subtable[p].apply(lambda x: '{:0.4f}'.format(x))
+
+            #subtable_display = subtable_display.drop(['package_fpath'], axis=1)
+            print(subtable_display.to_latex(index=False))
+    " --embed
 

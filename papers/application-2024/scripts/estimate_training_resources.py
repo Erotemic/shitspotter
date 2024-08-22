@@ -1,5 +1,6 @@
 """
 python ~/code/shitspotter/papers/application-2024/scripts/estimate_training_resources.py
+python ~/code/shitspotter/dev/poc/estimate_train_resources.py
 """
 import kwutil.util_units
 

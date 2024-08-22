@@ -121,6 +121,7 @@ class EstimateTrainResourcesCLI(scfg.DataConfig):
             time = num_hours * reg.hour
             co2kg_per_kwh = 0.210
             energy_usage = (gpu_power *  time).to(reg.kilowatt * reg.hour)
+            print('kwh: ', energy_usage)
             co2_kg = energy_usage.m * co2kg_per_kwh
             print(f'{round(co2_kg, 1)} CO2 kg')
             dollar_per_kg = 0.015
@@ -134,8 +135,12 @@ class EstimateTrainResourcesCLI(scfg.DataConfig):
         print('all sums')
         print(f'num_expts={num_expts}')
         total_gpu_hours = all_durations.sum()
-        print(total_gpu_hours)
-        print(all_durations.mean())
+
+        import kwutil
+        import kwutil.util_units
+        ureg = kwutil.util_units.unit_registry()
+        print((total_gpu_hours.total_seconds() * ureg.seconds).to(ureg.day))
+        print((all_durations.mean().total_seconds() * ureg.seconds).to(ureg.day))
         find_offset_cost(total_gpu_hours)
 
         if True:
@@ -150,6 +155,8 @@ class EstimateTrainResourcesCLI(scfg.DataConfig):
             total_gpu_hours = subdurations.sum()
             print(total_gpu_hours)
             print(subdurations.mean())
+            print((total_gpu_hours.total_seconds() * ureg.seconds).to(ureg.day))
+            print((subdurations.mean().total_seconds() * ureg.seconds).to(ureg.day))
             find_offset_cost(total_gpu_hours)
 
 

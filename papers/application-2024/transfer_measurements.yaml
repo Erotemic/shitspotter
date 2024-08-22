@@ -575,8 +575,8 @@ network_measurements:
     method: bittorrent
     src_machine: jojo/multi
     dst_machine: namek
-    duration: null
-    status: null
+    duration: 19402 seconds
+    status: success
     multiple_seeders: likely
     command: |
       # First remove the torrent data from namek
@@ -588,12 +588,17 @@ network_measurements:
       transmission-remote --auth transmission:transmission --add 'magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&tr=https%3A%2F%2Facademictorrents.com%2Fannounce.php%3Fpasskey%3D9ffbb169f882f3be1330a48ea87416e7&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce' --download-dir /var/lib/transmission-daemon/downloads
 
       transmission-remote --auth transmission:transmission --list
-      transmission-remote --auth transmission:transmission -t3 --info
-    time.date_started: Tue 20 Aug 2024 05:46:37 PM EDT
+      transmission-remote --auth transmission:transmission -t4 --info
+    time.start_time: Tue 20 Aug 2024 05:46:37 PM EDT
+    time.date_added:       Tue Aug 20 17:46:37 2024
+    time.date_finished:    Tue Aug 20 22:51:34 2024
+    time.date_started:     Tue Aug 20 19:05:27 2024
+    time.latest_activity:  Tue Aug 20 22:51:34 2024
+    time.downloading_time: 5 hours (19402 seconds)
       
-
       
 .__taildoc__: |-
+     python ~/code/shitspotter/papers/application-2024/scripts/gather_measurements.py
 
      python -c "if 1:
        import uuid

@@ -264,7 +264,7 @@ python -m geowatch.mlops.aggregate \
         show_csv: 0
     " \
     --plot_params="
-        enabled: 1
+        enabled: 0
         stats_ranking: 0
         min_variations: 2
         max_variations: 40
@@ -281,11 +281,16 @@ python -m geowatch.mlops.aggregate \
     df['resolved_params.heatmap_pred_fit.trainer.default_root_dir'].apply(lambda p: str(p).split('/')[-1]).str.contains('noboxes')
     " \
     --custom_query="
+        import numpy as np
         new_eval_type_to_aggregator = {}
         for key, agg in eval_type_to_aggregator.items():
             chosen_idxs = []
             for group_id, group in agg.table.groupby('resolved_params.heatmap_pred_fit.trainer.default_root_dir'):
                 group['metrics.heatmap_eval.salient_AP'].argsort()
+                if 0:
+                    # Hack to remove baddies?
+                    flags = group['params.heatmap_pred.package_fpath'].apply(lambda x: 'last.' not in x.split('/')[-1])
+                    group = group[flags]
                 keep_idxs = group['metrics.heatmap_eval.salient_AP'].sort_values()[-5:].index
                 chosen_idxs.extend(keep_idxs)
             new_agg = agg.filterto(index=chosen_idxs)
@@ -293,6 +298,7 @@ python -m geowatch.mlops.aggregate \
             new_eval_type_to_aggregator[key] = new_agg
 
         if 1:
+            import numpy as np
             new_agg.table
             new_agg.table.search_columns('lr')
             new_agg.table.search_columns('resolved_params.heatmap_pred_fit')
@@ -306,13 +312,14 @@ python -m geowatch.mlops.aggregate \
                 'resolved_params.heatmap_pred_fit.model.init_args.perterb_scale',
                 'metrics.heatmap_eval.salient_AP',
                 'metrics.heatmap_eval.salient_AUC',
+                'params.heatmap_pred.package_fpath',
             ]
             new_agg.table[subcols]
 
             from geowatch.utils.util_pandas import pandas_shorten_columns, pandas_condense_paths
 
             chosen_idxs = []
-            for group_id, group in agg.table.groupby('resolved_params.heatmap_pred_fit.trainer.default_root_dir'):
+            for group_id, group in new_agg.table.groupby('resolved_params.heatmap_pred_fit.trainer.default_root_dir'):
                 group['metrics.heatmap_eval.salient_AP'].argsort()
                 keep_idxs = group['metrics.heatmap_eval.salient_AP'].sort_values()[-1:].index
                 chosen_idxs.extend(keep_idxs)
@@ -321,9 +328,118 @@ python -m geowatch.mlops.aggregate \
             varied = table.varied_value_counts(min_variations=2)
             print(list(varied.keys()))
 
-            subtable = new_agg.table.loc[chosen_idxs, subcols]
+            if 1:
+                # Hack to extract epoch numbers, doesnt work because of last.pt
+                epoch_nums = []
+                for path in table['params.heatmap_pred.package_fpath']:
+                    name = ub.Path(path).name
+                    if name == 'last.pt':
+                        #from geowatch.tasks.fusion.utils import load_model_header
+                        #header = load_model_header(path)
+                        epoch_nums.append(np.nan)
+                    else:
+                        n = name.split('-')[0].split('=')[1]
+                        epoch_nums.append(int(n))
+                table['epoch_num'] = epoch_nums
+                subtable = table.loc[chosen_idxs, subcols + ['epoch_num']]
+
+            subtable = table.loc[chosen_idxs, subcols]
             subtable = pandas_shorten_columns(subtable)
             subtable['default_root_dir'] = pandas_condense_paths(subtable['default_root_dir'])[0]
             subtable = subtable.sort_values(['salient_AP'], ascending=False)
-            print(subtable.to_latex(index=False))
-    "
+
+            # hack to get the right models for computing test numbers
+            target_order_for_test_set = subtable['package_fpath'].to_list()
+            print(ub.urepr(target_order_for_test_set))
+
+            from kwcoco.metrics.drawing import concice_si_display
+            def format_scientific_notation(val, precision=2):
+                val_str = ('{:.' + str(precision) + 'e}').format(val)
+                lhs, rhs = val_str.split('e')
+                import re
+                trailing_zeros = re.compile(r'\.0*$')
+                rhs = rhs.replace('+', '')
+                rhs = rhs.lstrip('0')
+                rhs = rhs.replace('-0', '-')
+                lhs = trailing_zeros.sub('', lhs)
+                rhs = trailing_zeros.sub('', rhs)
+                val_str = lhs + 'e' + rhs
+                return val_str
+            subtable_display = subtable.copy()
+            si_params = ['lr', 'weight_decay', 'perterb_scale']
+            for p in si_params:
+                subtable_display[p] = subtable[p].apply(format_scientific_notation)
+            metric_params = ['salient_AP', 'salient_AUC']
+            for p in metric_params:
+                subtable_display[p] = subtable[p].apply(lambda x: '{:0.4f}'.format(x))
+
+            subtable_display = subtable_display.drop(['package_fpath'], axis=1)
+            print(subtable_display.to_latex(index=False))
+
+            # Add test results:
+            test_results_to_integrate = [
+                {'default_root_dir': 'shitspotter_scratch_20240618_noboxes_v7',
+                  'salient_AP': 0.5051101001895235,
+                  'salient_AUC': 0.91250945170183},
+                 {'default_root_dir': 'shitspotter_scratch_20240618_noboxes_v6',
+                  'salient_AP': 0.4345697006282774,
+                  'salient_AUC': 0.8575508338320234},
+                 {'default_root_dir': 'shitspotter_scratch_20240618_noboxes_v5',
+                  'salient_AP': 0.4652248750059659,
+                  'salient_AUC': 0.7965005428232322},
+                 {'default_root_dir': 'shitspotter_scratch_20240618_noboxes_v4',
+                  'salient_AP': 0.5166517253996291,
+                  'salient_AUC': 0.9252187841782987},
+                 {'default_root_dir': 'shitspotter_scratch_20240618_noboxes_v2',
+                  'salient_AP': 0.42097989185404483,
+                  'salient_AUC': 0.7766404213212321},
+                 {'default_root_dir': 'shitspotter_scratch_20240618_noboxes_v3',
+                  'salient_AP': 0.4606774223010137,
+                  'salient_AUC': 0.9062428313078754},
+                 {'default_root_dir': 'shitspotter_scratch_20240618_noboxes_v8',
+                  'salient_AP': 0.41374633968103414,
+                  'salient_AUC': 0.8156542044578126}]
+          import pandas as pd
+          test_results = pd.DataFrame(test_results_to_integrate)
+          metric_params = ['salient_AP', 'salient_AUC']
+          for p in metric_params:
+              test_results[p] = test_results[p].apply(lambda x: '{:0.4f}'.format(x))
+
+          columns=[('0', 'n'), ('0', 'p'), ('0', 'e'), ('1', 'n'), ('1', 'p'), ('1', 'e')]
+
+          tuples = [('', c) for c in subtable_display.columns]
+          mcols = pd.MultiIndex.from_tuples([('', 'default_root_dir'),
+           ('', 'lr'),
+           ('', 'weight_decay'),
+           ('', 'perterb_scale'),
+           ('val', 'salient_AP'),
+           ('val', 'salient_AUC'),
+           ('test', 'salient_AP'),
+           ('test', 'salient_AUC'),
+           ])
+          subtable_display.columns = mcols[:-2]
+          print(subtable_display.to_latex(index=False))
+          toconcat = test_results[['salient_AP', 'salient_AUC']]
+          toconcat.columns = mcols[-2:]
+          new_table = pd.concat([subtable_display.reset_index(drop=1), toconcat.reset_index(drop=1)], axis=1)
+          # print(new_table.style.to_latex())
+          #
+          root_lut = {
+            'shitspotter_scratch_20240618_noboxes_v7': 'D05',
+            'shitspotter_scratch_20240618_noboxes_v6': 'D04',
+            'shitspotter_scratch_20240618_noboxes_v5': 'D03',
+            'shitspotter_scratch_20240618_noboxes_v4': 'D02',
+            'shitspotter_scratch_20240618_noboxes_v2': 'D00',
+            'shitspotter_scratch_20240618_noboxes_v3': 'D01',
+            'shitspotter_scratch_20240618_noboxes_v8': 'D06',
+          }
+          new_table[('', 'default_root_dir')] = new_table[('', 'default_root_dir')].apply(root_lut.__getitem__)
+          new_table = new_table.rename({'default_root_dir': 'config name'}, axis=1)
+          print(new_table.style.format_index().hide().to_latex())
+          print(new_table.to_latex(index=False))
+
+
+
+
+
+    " --embed
