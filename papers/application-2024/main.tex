@@ -608,15 +608,15 @@ biased against it, which is a current limitation.
 \toprule
         node & resource &           total &            mean &  num \\
 \midrule
-eval  & time            & 07:52:02 &  00:13:29 &   35 \\
+eval        & time         & 07:52:02       &  00:13:29       &   35 \\
 \midrule
-pred  & time            & 04:23:34 &  00:07:32 &   35 \\
-pred  & electricity     & 3.17 kwh &     0.091 kwh&   35 \\
-pred  & emissions       & 0.67 \cotwo kg &     0.02 \cotwo kg &   35 \\
+pred        & time         & 04:23:34       &  00:07:32       &   35 \\
+pred        & electricity  & 3.17 kWh       &  0.091 kWh      &   35 \\
+pred        & emissions    & 0.67 \cotwo kg &  0.02 \cotwo kg &   35 \\
 \midrule
-train$^{*}$ &   time    & 39.2 days  & 5.60 days&   7 \\
-train$^{*}$ &   electricity  & 329.4 kwh &     47.1 kwh &   7 \\
-train$^{*}$ &   emissions & 69.2 \cotwo kg &     9.9 \cotwo kg &   7 \\
+train$^{*}$ & time         & 39.22 days      & 5.60 days      &   7 \\
+train$^{*}$ & electricity  & 324.75 kWh      & 46.39 kWh      &   7 \\
+train$^{*}$ & emissions    & 68.20 \cotwo kg & 9.74 \cotwo kg &   7 \\
 \bottomrule
 \end{tabular}
 (a) presented experiment resources
@@ -629,15 +629,15 @@ train$^{*}$ &   emissions & 69.2 \cotwo kg &     9.9 \cotwo kg &   7 \\
 % additional number is because of rerun of one evaluation with different
 % parameters.
 % eval & time & 4 days 14:18:23 & 00:20:07 &  330 \\
-eval & time & 4 days 14:18:23 & 00:20:07 &  329 \\
+eval        & time        & 4 days 14:18:23 & 00:20:07       &  329 \\
 \midrule
-pred & time & 6 days 06:52:11 & 00:27:31 &  329 \\
-pred & electricity &       85.31 kWh &        0.26 kWh &  329 \\
-pred & emissions &       17.95 \cotwo kg &        0.05 \cotwo kg &  329 \\
+pred        & time        & 6 days 06:52:11 & 00:27:31       &  329 \\
+pred        & electricity & 85.31 kWh       & 0.26 kWh       &  329 \\
+pred        & emissions   & 17.95 \cotwo kg & 0.05 \cotwo kg &  329 \\
 \midrule
-train$^{*}$ &   time &        158.9 days &         3.75 days &   42 \\
-train$^{*}$ & electricity &   1335.14 kWh &       31.79 kWh &   42 \\
-train$^{*}$ & emissions &   280.4 \cotwo kg &        6.7 \cotwo kg &   42 \\
+train$^{*}$ & time        & 158.95 days      &     3.78 days  &   42 \\
+train$^{*}$ & electricity & 1316.07 kWh      &     31.34 kWh  &   42 \\
+train$^{*}$ & emissions   & 276.37 \cotwo kg & 6.58 \cotwo kg &   42 \\
 \bottomrule
 \end{tabular}
 (b) all experiment resources
@@ -691,9 +691,10 @@ Table \ref{tab:resources}.
 % See: ./scripts/estimate_training_resources.py
 Direct measurement of resource usage during training is still under
 development. However, we estimate the duration of each training run using
-indirect methods. Electricity consumption is approximated by assuming a maximum
-power draw of 350W for a 3090 GPU. Emissions are calculated using a conversion
-ratio of 0.21 from kilowatt hours to kilograms of \cotwo{}.
+indirect methods. Electricity consumption is approximated by assuming an
+observed 345W of power draw of from the 3090 GPU during training is constant.
+Emissions are calculated using a conversion ratio of 0.21 from kilowatt hours
+to kilograms of \cotwo{}.
 
 %However, the experiments presented here were not the only ones performed in
 %determining the hyperparameters we held constant here. 

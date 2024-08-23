@@ -5,7 +5,8 @@ python ~/code/shitspotter/dev/poc/estimate_train_resources.py
 import kwutil.util_units
 
 reg = kwutil.util_units.unit_registry()
-gpu_power = 350 * reg.watt
+# gpu_power = 350 * reg.watt
+gpu_power = 345 * reg.watt
 time = 49.2 * reg.hour
 
 co2kg_per_kwh = 0.210

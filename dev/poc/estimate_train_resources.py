@@ -116,17 +116,23 @@ class EstimateTrainResourcesCLI(scfg.DataConfig):
         def find_offset_cost(total_delta):
             import kwutil.util_units
             reg = kwutil.util_units.unit_registry()
-            gpu_power = 350 * reg.watt
+            gpu_power = 345 * reg.watt
             num_hours = total_delta.total_seconds() / (60 * 60)
             time = num_hours * reg.hour
             co2kg_per_kwh = 0.210
             energy_usage = (gpu_power *  time).to(reg.kilowatt * reg.hour)
-            print('kwh: ', energy_usage)
+            print('kWh: ', energy_usage)
             co2_kg = energy_usage.m * co2kg_per_kwh
             print(f'{round(co2_kg, 1)} CO2 kg')
             dollar_per_kg = 0.015
             cost_to_offset = dollar_per_kg * co2_kg
             print(f'cost_to_offset = ${cost_to_offset:4.2f}')
+            data = {
+                'total_electricity': energy_usage,
+                'total_co2_kg': co2_kg,
+                'total_cost_to_offset': cost_to_offset,
+            }
+            return data
 
         all_durations = data.groupby('expt_name')['duration'].sum()
         # paper_models = subdata[subdata['expt_name'].str.contains('noboxes')]
@@ -139,9 +145,15 @@ class EstimateTrainResourcesCLI(scfg.DataConfig):
         import kwutil
         import kwutil.util_units
         ureg = kwutil.util_units.unit_registry()
-        print((total_gpu_hours.total_seconds() * ureg.seconds).to(ureg.day))
-        print((all_durations.mean().total_seconds() * ureg.seconds).to(ureg.day))
-        find_offset_cost(total_gpu_hours)
+        row = find_offset_cost(total_gpu_hours)
+        row['total_time'] = (total_gpu_hours.total_seconds() * ureg.seconds).to(ureg.day)
+        row['average_time'] = (all_durations.mean().total_seconds() * ureg.seconds).to(ureg.day)
+        row['average_electricity'] = row['total_electricity'] / num_expts
+        row['average_co2_kg'] = row['total_co2_kg'] / num_expts
+        row['average_cost_to_offset'] = row['total_cost_to_offset'] / num_expts
+        row['num'] = num_expts
+        row['type'] = 'all_expts'
+        print(f'row = {ub.urepr(row, nl=1, align=":", precision=2)}')
 
         if True:
             # HACK
@@ -155,9 +167,15 @@ class EstimateTrainResourcesCLI(scfg.DataConfig):
             total_gpu_hours = subdurations.sum()
             print(total_gpu_hours)
             print(subdurations.mean())
-            print((total_gpu_hours.total_seconds() * ureg.seconds).to(ureg.day))
-            print((subdurations.mean().total_seconds() * ureg.seconds).to(ureg.day))
-            find_offset_cost(total_gpu_hours)
+            row = find_offset_cost(total_gpu_hours)
+            row['total_time'] = (total_gpu_hours.total_seconds() * ureg.seconds).to(ureg.day)
+            row['average_time'] = (subdurations.mean().total_seconds() * ureg.seconds).to(ureg.day)
+            row['average_electricity'] = row['total_electricity'] / num_sub_expts
+            row['average_co2_kg'] = row['total_co2_kg'] / num_sub_expts
+            row['average_cost_to_offset'] = row['total_cost_to_offset'] / num_sub_expts
+            row['num'] = num_sub_expts
+            row['type'] = 'presented_expts'
+            print(f'row = {ub.urepr(row, nl=1, align=":", precision=2)}')
 
 
 __cli__ = EstimateTrainResourcesCLI
