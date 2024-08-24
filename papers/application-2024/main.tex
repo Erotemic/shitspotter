@@ -100,57 +100,45 @@ Kitware\\
 %This work chronicles one researcher's un-funded journey to build a phone
 %application that can detect dog poop in images, and make the data widely
 %available as a benchmark dataset.
-We introduce a new --- currently 42 gigabyte --- "living" dataset of phone images of
-dog poop with manually drawn or AI-assisted polygon labels.
+We introduce a new --- currently 42 gigabyte --- "living" dataset of phone
+images of dog feces, annotated with manually drawn or AI-assisted polygon
+labels.
 The collection and annotation of this data started in late 2020 and is planned
 to continue indefinitely.
 
-The most recent snapshot of dataset is made publicly available across three
+We train a baseline vision transformer to segment the objects of interest, exploring a grid of
+  hyperparameters, and we evaluate their impact.
+The best model achieves a pixelwise average precision of 0.83 on a validation set and 0.51 on a small test
+  set.
+
+The most recent snapshot of dataset is made publicly available through three
 different distribution methods: one centralized and two decentralized (IPFS and
 BitTorrent).
 We perform an analysis and observational comparison of the trade-offs between
 distribution methods and discuss the feasibility of each with respect to
-sharing open scientific data.
+sharing open scientific data in a reliable and accessible manner.
 
-A baseline vision transformer is trained to segment the objects of interest
-under a grid of hyperparameters, and we evaluate their impact. The best model
-achieves a pixelwise mean average precision of ~0.8ish. 
-Model weights are made publicly available with the dataset. 
-
-Code to reproduce experiments is hosted on GitHub. Data is published under
-Creative Commons Attribution 4.0 International.
+The code to reproduce the experiments is hosted on GitHub, and the data is
+published under the Creative Commons Attribution 4.0 International license.
+Model weights are made publicly available with the dataset.
 
 %A phone application to detect poop with these models is being developed and 
 %will be made freely available.
-
 \end{abstract}
 
 %%%%%%%%% BODY TEXT
 \section{Introduction}
 \label{sec:intro}
 
-Applications of a computer vision system able to detect and localize poop in
-images are numerous.
-Automated waste disposal to keep parks and backyards clean.
-A part of a system for using feces to monitor wildlife populations.
-A warning system in smart-glasses to prevent people from stepping in poop.
-The motivating use case is to develop a phone application that can help a dog
-owner find their dog's poop in a leafy park so they can pick it up.
-Many of these applications can be realized with modern object detection and
-segmentation methods (cite modern object detection and segmentation methods)
-and a large labeled dataset to train on.
-
-
-In addition to enabling several applications, poop detection is an interesting benchmark problem. 
-It it a reasonable simple problem with a narrower scope (just a single class),
-suitable for exploring the capabilities of object detection models that focus
-on a single labeled class while also containing non-trivial challenges like:
-resolution (quality of camera, distance to the camera),
-distractors (leafs, pine cones, sticks, dirt, and mud),
-occlusion (bushes, overgrown grass),
-variation in appearance (old, new, healthy, sick).
-Investigation into cases where this problem is difficult may provide insight
-into how to better train object detection and segmentation networks.
+Applications for a computer vision system capable of detecting and localizing poop in images are numerous.
+These include automated waste disposal to keep parks and backyards clean, integration into systems for
+  monitoring wildlife populations via droppings, and a warning system in smart-glasses to prevent people from
+  stepping in poop.
+Our primary motivating use case is a phone application that assists dog owners in locating their dog's poop
+  in a leafy park for easier cleanup.
+Many of these applications can be realized with modern object detection and segmentation methods
+  \cite{sandler_mobilenetv2_2018, siam_rtseg_2018, yu_mobilenet_yolo_2023} combined with a large, labeled
+  dataset for training
 
 
 \begin{figure}[ht]
@@ -166,27 +154,37 @@ into how to better train object detection and segmentation networks.
 \label{fig:ThreeImages}
 \end{figure}
 
+
+In addition to enabling several applications, poop detection is an interesting benchmark problem.
+It is relatively simple, with a narrow focus on a single class, making it suitable for exploring the
+  capabilities of object detection models that target a single labeled class.
+However, the task includes non-trivial challenges such as resolution issues (e.g., camera quality,
+  distance), distractors (e.g., leaves, pine cones, sticks, dirt, and mud), occlusion (e.g., bushes, overgrown
+  grass), and variation in appearance (e.g., old vs. new, healthy vs. sick).
+Investigation into cases where this problem is difficult may provide insight
+into how to better train object detection and segmentation networks.
+
 Towards these ends we introduce a dataset suitable for training poop detection
 models in order to enable applications that require detecting or localizing
-poop in images. In order to assist with annotation we collect images using a
-"before/after/negative" protocol as shown in \Cref{fig:ThreeImages}. 
+poop in images. In order to assist with annotation and enrich the training
+dataset we collect images using a "before/after/negative" protocol as shown in
+\Cref{fig:ThreeImages}. 
 
-Our goal is to train an algorithm to classify which pixels contain poop, and
-which don't. We train a segmentation model to provide a baseline on how
+Our goal is to train an algorithm that can classify which pixels contain poop and which do not.
+We train a segmentation model to provide a baseline on how
 difficult this problem is. Our models show strong performance, although there
 are notable failure cases indicating this problem is difficult even for modern
 computer vision algorithms.
 
-In order to allow other researchers to improve on our results the dataset must
-be accessible and at least one entity needs to be willing to host it.
-Centralized methods are the typical choice and offer very good speeds, 
-but they can be expensive for an individual, so it usually requires an
-institution willing to host or payment for a hosting service,
-can prone to outages and version control is not built in.
-In contrast, decentralized methods allow volunteers to host data offers ability
-to validate data integrity. 
-This motivates us to compare and contrast centralized cloud services,
-BitTorrent, and IPFS as mechanisms for distributing datasets.
+To enable others to build on our results, it is essential that the dataset is accessible and hosted
+  reliably.
+Centralized methods are a typical choice, offering high speeds, but they can be costly for individuals,
+  often requiring institutional support or paid hosting services.
+They are also prone to outages and lack built-in version control.
+In contrast, decentralized methods allow volunteers to host data offers built-in validation of data
+  integrity.
+This motivates us to compare and contrast centralized services, BitTorrent \cite{cohen_incentives_2003}, and
+  IPFS \cite{benet_ipfs_2014} as mechanisms for distributing datasets.
 
 % VGG2 face got removed.
 % https://github.com/ox-vgg/vgg_face2/issues/52
@@ -199,8 +197,13 @@ Our contributions are:
 4) \textbf{Open code and models}.
 Related work is discussed at the end.
 
+%\Cref{sec:dataset}.
+%\Cref{sec:models}.
+%\Cref{sec:distribution}.
+%\Cref{sec:relatedwork}.
 
 \section{Dataset}
+\label{sec:dataset}
 
 Our first contribution is the collection of a new open dataset consisting of
 dog poop images in a mostly urban environment. The subject matter is primarily
@@ -330,7 +333,7 @@ illustrated in \Cref{fig:AllPolygons}.
 
 % Number of images, annotations, and other stats.
 As of 2024-07-03, the primary (i.e. training and validation) dataset contains
-6648 images and 4386 annotations and has spanned 4 years. Data was captured
+6,648 images and 4,386 annotations and has spanned 4 years. Data was captured
 over 4 years at a mostly uniformly rate.  Most data is localized to parks and
 sidewalks in a small city.  Weather conditions varied between snowy, sunny,
 rainy.  The distribution of seasons, time-of-day, daylight, and capture rate is
@@ -339,7 +342,7 @@ illustrated in \Cref{fig:TimeOfDayDistribution}.
 The dataset images are provided in full resolution and have not been resampled.
 Almost all images were captured using the same phone-camera and have a
 width/height of 4,032 $\times$ 3,024 (which could be rotated based on EXIF data) with 6
-being 4008  $\times$ 5344 and one being 7,68 $\times$ 1,024. Images are stored as 8-bit JPEGs
+being 4,008  $\times$ 5,344 and one being 7,68 $\times$ 1,024. Images are stored as 8-bit JPEGs
 with RGB channels, and most also contain overviews (i.e.  an image pyramid),
 which makes loading a downscaled versions very fast.  The distribution of image
 pixel intensities is shown in \Cref{fig:spectra}.
@@ -365,13 +368,15 @@ validation. Data from 2024 is split between training and validation. On the $n$t
 day of the year, images are in the validation set if $n \% 3 == 0$ else they
 are in the training set.
 
-Specifically, in this paper our training dataset has 5747 images and can be
+Specifically, in this paper our training dataset has 5,747 images and can be
 identified by a suffix of 1e73d54f, which is the prefix of a hash of its
 contents.  The validation set contains 691 images and has a suffix of 99b22ad0.
 The test set has a suffix of d8988f8c and consists of the 30 contributor images
-that have at least one annotation.
+that have at least one annotation. These splits are provided in the
+COCO JSON format \cite{lin_microsoft_2014}.
 
 \section{Models}
+\label{sec:models}
 
 Our second contribution is an evaluation of several trained models to serve as
 a baseline.  We use the training, prediction, and evaluation system of
@@ -540,7 +545,7 @@ there is still more information that can be extracted from this dataset,
 perhaps with hard mining techniques. There are clear difficult cases in certain
 sticks, leafs, and dark areas on snow. We note that while compiling these
 results we discovered 14 cases where an object failed to be annotated, and it
-is likely that more are missed, but we do believe these cases to be rare.
+is likely that more are missed, but we believe these cases are rare.
 
 % If we found 14 cases, and we checked 1000 cases, and there is a 20%
 % probability we miss a case, how many more missed cases do we expect to have?
@@ -602,16 +607,43 @@ biased against it, which is a current limitation.
 \subsubsection{Resource Usage}
 
 
+\begin{comment}
+import kwutil
+print(round(kwutil.timedelta.coerce('07:52:02').to_pint().to('hours'), 2))
+print(round(kwutil.timedelta.coerce('00:13:29').to_pint().to('hours'), 2))
+print(round(kwutil.timedelta.coerce('04:23:34').to_pint().to('hours'), 2))
+print(round(kwutil.timedelta.coerce('00:07:32').to_pint().to('hours'), 2))
+
+print(round(kwutil.timedelta.coerce(kwutil.timedelta.coerce('4 days') + kwutil.timedelta.coerce('14:18:23')).to_pint().to('days'), 2))
+print(round(kwutil.timedelta.coerce(kwutil.timedelta.coerce('6 days') + kwutil.timedelta.coerce('06:52:11')).to_pint().to('days'), 2))
+print(round(kwutil.timedelta.coerce('00:20:07').to_pint().to('hours'), 2))
+print(round(kwutil.timedelta.coerce('00:27:31').to_pint().to('hours'), 2))
+
+# Prediction kwh/days ratio
+(4.39 / 3.17)
+
+# Prediction kwh/carbon ratio
+85.31/17.95
+3.17 / 0.67
+
+# training kwh/days ratio
+(39.22 * 24) / 324.75
+1_316.07 / 276.37
+324.75 / 68.20
+\end{comment}
+
+
+
 \begin{table}[t]
     \centering
 \begin{tabular}{llllr}
 \toprule
         node & resource &           total &            mean &  num \\
 \midrule
-eval        & time         & 07:52:02       &  00:13:29       &   35 \\
+eval        & time         & 7.87 hours     &  0.22 hours     &   35 \\
 \midrule
-pred        & time         & 04:23:34       &  00:07:32       &   35 \\
-pred        & electricity  & 3.17 kWh       &  0.091 kWh      &   35 \\
+pred        & time         & 4.39 hours     &  0.13 hours     &   35 \\
+pred        & electricity  & 3.17 kWh       &  0.09 kWh       &   35 \\
 pred        & emissions    & 0.67 \cotwo kg &  0.02 \cotwo kg &   35 \\
 \midrule
 train$^{*}$ & time         & 39.22 days      & 5.60 days      &   7 \\
@@ -629,19 +661,18 @@ train$^{*}$ & emissions    & 68.20 \cotwo kg & 9.74 \cotwo kg &   7 \\
 % additional number is because of rerun of one evaluation with different
 % parameters.
 % eval & time & 4 days 14:18:23 & 00:20:07 &  330 \\
-eval        & time        & 4 days 14:18:23 & 00:20:07       &  329 \\
+eval        & time        & 4.6 days        & 0.34 hours     &  329 \\
 \midrule
-pred        & time        & 6 days 06:52:11 & 00:27:31       &  329 \\
+pred        & time        & 6.29 days       & 0.46 hours     &  329 \\
 pred        & electricity & 85.31 kWh       & 0.26 kWh       &  329 \\
 pred        & emissions   & 17.95 \cotwo kg & 0.05 \cotwo kg &  329 \\
 \midrule
 train$^{*}$ & time        & 158.95 days      &     3.78 days  &   42 \\
-train$^{*}$ & electricity & 1316.07 kWh      &     31.34 kWh  &   42 \\
+train$^{*}$ & electricity & 1,316.07 kWh      &     31.34 kWh  &   42 \\
 train$^{*}$ & emissions   & 276.37 \cotwo kg & 6.58 \cotwo kg &   42 \\
 \bottomrule
 \end{tabular}
 (b) all experiment resources
-\label{tab:resources}
 \caption[]{
 Resources used for training, prediction, and evaluation are detailed in two tables:
 (a) resources for the presented evaluations, and (b) resources for prior hyperparameter tuning.
@@ -676,22 +707,22 @@ Train rows marked with an asterisk (*) are based on indirect measurements.
 %Note: this table does not include training time, which was not measured
 %directly at the time. Our stated train time estimates are based on.
 }
+\label{tab:resources}
 \end{table}
 
 All models were trained on a single machine with an 11900k CPU and a 3090 GPU.
-At predict time, using 1 background worker, our models processed 416 $\times$
+At predict time, using one background worker, our models processed 416 $\times$
 416 patches at a rate of 20.93Hz with 94\% GPU utilization.
 
-We measure the predict and evaluation time resource usage using CodeCarbon
+We measure the predict and evaluation resource usage using CodeCarbon
 \cite{lacoste2019codecarbon}.
 The resource utilization for the presented 7 training experiments and the 42
 total training experiments are reported in
-% \Cref{tab:resources}. % wtf
-Table \ref{tab:resources}.
+ \Cref{tab:resources}. 
 % See: ./scripts/estimate_training_resources.py
 Direct measurement of resource usage during training is still under
 development. However, we estimate the duration of each training run using
-indirect methods. Electricity consumption is approximated by assuming an
+indirect methods. Electricity consumption is approximated by assuming the
 observed 345W of power draw of from the 3090 GPU during training is constant.
 Emissions are calculated using a conversion ratio of 0.21 from kilowatt hours
 to kilograms of \cotwo{}.
@@ -703,71 +734,57 @@ to kilograms of \cotwo{}.
 
 
 \section{Open Data Distribution}
+\label{sec:distribution}
 
-% BitTorrent can be vulnerable to MITM:
-% https://www.reddit.com/r/technology/comments/1dpinuw/south_korean_telecom_company_attacks_torrent/
+%In our context we are mainly concerned with making the data available.
+%In other words, given a content identifier, how long does it take to programmatically access the data?
+  
+%For a comparison of IPFS and BitTorrent on the protocol level see \cite{zebedee_comparing_2023}.
+%Another candidate system is a newer similar tool called IPFS (InterPlanetary File System)
+%  \cite{benet_ipfs_2014, bieri_overview_2021}.
+%To quote the authors:
+%"IPFS could be seen as a single BitTorrent swarm, exchanging objects within one Git repository".
+%All data down to the block level is content addressable and stored in a Merkle DAG, which can simplify data
+%  versioning compared to using a torrent.
 
-Our third contribution is an exploration and observational study of distributed
-and centralized data distribution methods. 
 
-%Advantages of content addressability:
-%* reproducibility 
+%The challenge lies in the fact that designing and documenting an experiment
+%sufficiently for reproducibility requires substantial effort and is prone to
+%error. We suggest that reducing the friction in accessing the necessary data
+%could improve these success rates. Specifically, this involves codifying data
+%download and preparation processes. Datasets that are available via decentralized
+%and content-addressable are particularly advantageous, as they can guarantee
+%the integrity of the data prevent the issue of dead URLs.
 
-The well-documented reproducibility "crisis" in science has raised significant
-concerns across various disciplines \cite{baker_reproducibility_2016}. Ideally,
-all scientific research should be independently reproducible; however, even in
-computer science, reproducibility success rates are reported to be around 60\%.
-Although this is higher than in other scientific fields, there is still room
-for improvement \cite{NEURIPS2019_c429429b, collberg2016repeatability,
-desai_what_2024}.
+%Centralized data distribution has many advantages. It is fast and has low
+%traffic overhead. However, it is prone to failure.  
+%Cloud storage for a modest amount of data can be expensive.
 
-The challenge lies in the fact that designing and documenting an experiment
-sufficiently for reproducibility requires substantial effort and is prone to
-error. We suggest that reducing the friction in accessing the necessary data
-could improve these success rates. Specifically, this involves codifying data
-download and preparation processes. Datasets that are available via distributed
-and content-addressable are particularly advantageous, as they can guarantee
-the integrity of the data prevent the issue of dead URLs.
+%In contrast, Decentralized methods can allow information to persist so long as
+%at least 1 person has the data.
 
-Centralized data distribution has many advantages. It is fast and has low
-traffic overhead. However, it is prone to failure.  
-Cloud storage for a modest amount of data can be expensive.
+%However, there are certain drawbacks of decentralized dataset distribution to
+%consider. One significant limitation is the potentially substantial connection
+%time required to link with peers, particularly when the data lacks a sufficient
+%number of "seeders". Furthermore there needs to be a mechanism to connect to
+%peers that can share the data.
 
-In contrast, Decentralized methods can allow information to persist so long as
-at least 1 person has the data.
 
-However, there are certain drawbacks of distributed dataset distribution to
-consider. One significant limitation is the potentially substantial connection
-time required to link with peers, particularly when the data lacks a sufficient
-number of "seeders". Furthermore there needs to be a mechanism to connect to
-peers that can share the data.
+%For our purposes we 
 
-Despite the disadvantages, distributed methods can guarantee accessibility in a
-way that centralized mechanisms fundamentally cannot.  It is for this reason we
-are motivated to investigate distributed methods.
+%%IPFS vs BitTorrent:
+%For a comparison of IPFS and BitTorrent on the protocol level see
+%\cite{zebedee_comparing_2023}. In our context we are mainly concerned with
+%making the data available.
 
-The well known BitTorrent \cite{cohen_bittorrent_2017} data sharing system
-originally relied on centralized trackers and databases of torrent files to
-connect peers.  While trackers and torrent files are still prominent, modern
-torrents can be published to a distributed hash table (DHT) using the Kademlia
-algorithm \cite{maymounkov_kademlia_2002}. This makes it an strong candidate
-for a distributed distribution mechanism. 
+%the main metric we care about is how easy 
 
-Another candidate system is a newer similar tool called IPFS (InterPlanetary
-File System) \cite{benet_ipfs_2014, bieri_overview_2021}. To quote the authors:
-"IPFS could be seen as a single BitTorrent swarm, exchanging objects within one
-Git repository". All data down to the block level is content addressable and
-stored in a Merkle DAG, which can simply data versioning compared to using a
-torrent.
+%Both IPFS and BitTorrent are both effectively
+%content addressable at the dataset level, which makes them both appropriate for our use case.
 
-%IPFS vs BitTorrent:
-
-A comparison of IPFS and BitTorrent on the protocol level is beyond the scope
-of this paper. A high level overview of details is provided in
-\cite{zebedee_comparing_2023}.  Both IPFS and BitTorrent are both effectively
-content addressable, which makes them both appropriate for our use case. We
-care about accessing the data quickly in order to use it.  Thus, our comparison
-is going to focus on download-time measurements.
+%We
+%care about accessing the data quickly in order to use it.  Thus, our comparison
+%is going to focus on download-time measurements.
 %Both of which have the ability to use the Kademlia - distributed hash table (DHT) \cite{maymounkov_kademlia_2002}.
 %IPFS always uses its DHT, where as BitTorrent the Kademlia-based Mainline
 %Tracker can be disabled in favor of 3rd party trackers.
@@ -796,115 +813,225 @@ is going to focus on download-time measurements.
 %Decentralized Method - IPFS and BitTorrent.
 %Centralized Method - Girder
 
+% BitTorrent can be vulnerable to MITM:
+% https://www.reddit.com/r/technology/comments/1dpinuw/south_korean_telecom_company_attacks_torrent/
 
-\subsection{Distribution Observational Study}
-
-To assess the effectiveness of distributed distribution of datasets, we perform
-an observational study. We attempt to download the dataset via each of the 3
-primary distribution mechanisms, and measure the time it takes to complete.
-For distributed methods, there wasn't a clear automated mechanism to measure
-lag-time for connecting to peers, which was a significant issue in these tests.
-
-As an example centralized distribution mechanism we use the Girder
-\cite{girder_2024} data management platform.
-For bittorrent we use the transmission-client \cite{transmission_2024}.
-For IPFS we use the standard kubo implementation \cite{girder_2024}.
-We also include direct "rsync" \cite{rsyncprojectrsync_2024} between machines as a baseline method.
-
-A difference between the girder and decentralized methods is that the former
-required that the data was packaged into separate zip files, which could
-improve transfer efficiency due to fewer file boundaries.
-
-In all tests, the source and destination machines are separated by about 30
-kilometers with an average ping time of 48.480ms. For each test we create a
-measurement log (included in supplemental materials) and record the start
-time and end time of the transfer. We also include notes and command line
-invocations.
-
-The average durations between the start of the transfer command and its
-completion are shown in \cite{tab:transfertime}.
-
-\begin{table}[t]
-\begin{tabular}{llllll}
-\toprule
-{} & count &   mean &    std &   min &    max \\
-method        &       &        &        &       &        \\
-\midrule
-bittorrent & 5 & 8.36 & 5.16 & 2.21 & 14.39 \\
-ipfs & 3 & 4.14 & 2.13 & 1.80 & 5.96 \\
-rsync & 2 & 4.60 & 2.12 & 3.10 & 6.10 \\
-girder & 3 & 1.24 & 0.16 & 1.05 & 1.33 \\
-\bottomrule
-\end{tabular}
-\label{tab:transfertime}
-\caption[]{
-    Number of hours of transfer speeds of entire dataset averaged of n trials,
-    noted in the "count" column. 
-}
-\end{table}
+The well-documented reproducibility "crisis" in science has raised significant concerns across various
+  disciplines \cite{baker_reproducibility_2016}.
+Ideally, all scientific research should be independently reproducible; however, even in computer science,
+  reproducibility success rates are reported to be around 60\%.
+Although this is higher than in other fields, there is still room for improvement
+  \cite{NEURIPS2019_c429429b, collberg2016repeatability, desai_what_2024}.
+Addressing this issue requires not just better experimental documentation but also more reliable and
+  accessible data distribution methods.
+Specifically, this involves robustly codifying data download and preparation processes.
 
 
-In addition to these measurements we have made several anecdotal observations
-that are worth discussing.
+Centralized data distribution methods allow for codified data access by storing URLs that point to datasets
+  within the code, offering fast and direct access.
+However, this approach lacks robustness.
+It can fail if the provider goes offline, changes the URL, or stops hosting the data.
+Additionally, cloud storage can be expensive for providers, and users must trust that the provider delivers
+  the correct data --- a risk that can be mitigated by using checksums to verify data integrity, though this
+  adds an extra step for experiment designers.
 
-\begin{itemize}
-    \item IPFS via https using gateways does not always work well.
-    \item IPFS usually works well if you use the CLI.
-    \item IPFS is easier to update.
-    \item IPFS does rehash every file, which induces an O(N) scalability constraint.
+In contrast, decentralized methods offer greater data longevity, accessibility, and integrity.
+By leveraging content-addressable storage, where the dataset checksum acts as both the key to locate and
+  validate the data, these methods ensure data integrity and eliminate the risk of dead URLs, provided that at
+  least one peer retains the data.
+While decentralized systems face challenges such as longer connection times, increased network overhead, and
+  the need for a robust peer network, their ability to ensure data accessibility in ways that centralized
+  methods cannot motivates our investigation
 
-    \item BitTorrent and IPFS seem to both take awhile to establish connection
-          to a peer when there are a small number of pinners/seeders.
-
-          IPFS has a mechanism to directly connect to a peer, which seems to
-          work fairly quickly, but not immediately.
-
-          This issue is mitigated as the number of seeders/pinners grows.
-          A test download of ImageNet LSVRC 2017 dataset from academic torrents
-          almost immediately connected to 2 seeders.
-
-    \item Centralized solutions depend on an organization providing a service,
-          and that organization can choose to stop providing that service.
-\end{itemize}
+Our investigation focuses on two prominent candidates for decentralized data sharing:
+BitTorrent and IPFS.
+BitTorrent \cite{cohen_incentives_2003, cohen_bittorrent_2017} is a well known sharing protocol that
+  originally relied on centralized trackers and databases of torrent files to connect peers.
+While trackers and torrent files are still prominent, torrents can be published to a distributed hash table
+  (DHT) using the Kademlia algorithm \cite{maymounkov_kademlia_2002}.
+This makes it an strong candidate for a decentralized distribution mechanism.
+On the other hand, IPFS (InterPlanetary File System) \cite{benet_ipfs_2014, bieri_overview_2021} is a newer
+  but similar tool directly build directly on the Kademlia algorithm.
+IPFS has been likened to "a single BitTorrent swarm, exchanging objects within one Git repository".
+All data down to the block level is content addressable and stored in a Merkle DAG, which can simplify data
+  versioning compared to using a torrent.
+However, both IPFS and BitTorrent are effectively content addressable at the dataset level, which makes them
+  both appropriate for our use case where we seek a static address that can be used to robustly access data.
 
 The specific version of the dataset used in this paper was snap-shotted on
-2024-07-03 and has the IPFS content ID of:
+2024-07-03 and has the IPFS CID (content identifier) of:
 
 \begin{lstlisting}[basicstyle=\normalsize]
 bafybeiedwp2zvmdyb2c2axrcl455x
 fbv2mgdbhgkc3dile4dftiimwth2y
 \end{lstlisting}
 
-The torrent is tracked on Academic Torrents \cite{academic_torrents_Cohen2014} and has a magnet URL of:
+The torrent is tracked on Academic Torrents \cite{academic_torrents_Cohen2014}
+in addition to the DHT and has a magnet URL of:
 
 \begin{lstlisting}[basicstyle=\normalsize]
 magnet:?xt=urn:btih:
 ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49
 \end{lstlisting}
 
+For researchers and developers, the key practical concern is how quickly and reliably data can be accessed
+  given an address.
+By comparing IPFS, BitTorrent, and centralized mechanisms, we aim to identify the most effective method for
+  ensuring that scientific datasets remain accessible and reproducible over time, thereby contributing to
+  improved reproducibility in scientific research
+
+
+\subsection{Distribution Observational Study}
+
+\begin{table}[t]
+\begin{tabular}{llllll}
+\toprule
+{} & num &   mean &    std &   min &    max \\
+method        &       &        &        &       &        \\
+\midrule
+BitTorrent & 5 & 8.36 & 5.16 & 2.21 & 14.39 \\
+IPFS & 3 & 4.14 & 2.13 & 1.80 & 5.96 \\
+Girder & 3 & 1.24 & 0.16 & 1.05 & 1.33 \\
+Rsync & 2 & 4.60 & 2.12 & 3.10 & 6.10 \\
+\bottomrule
+\end{tabular}
+\caption[]{
+Transfer times (in hours) for a 42GB dataset, averaged over multiple trials (indicated in the "num" column).
+The centralized mechanisms, Girder and Rsync, tend to exhibit faster transfer times compared to the
+  decentralized mechanisms, IPFS and BitTorrent
+}
+\label{tab:transfertime}
+\end{table}
+
+Our third contribution is an exploration and observational study of decentralized and centralized data
+  distribution methods.
+To assess the effectiveness of each mechanism we programmatically download the 42GB 2024-07-03 version of
+  the "shitspotter" dataset and measure the time required to complete the transfer.
+Each experiment is run multiple times in order to compile statistics.
+
+In all tests, the source and destination machines are separated by approximately 30 kilometers, with an
+  average ping time of 48.480 ms.
+For each test, we log the start and end times of the transfer, along with detailed notes and command line
+  invocations (provided in the supplemental materials).
+
+For centralized distribution, we use a self-hosted instance of the Girder data management platform
+  \cite{girder_2024}.
+For decentralized distribution, we utilize the Transmission client for BitTorrent \cite{transmission_2024}
+  and the Kubo implementation for IPFS \cite{ipfskubo_2024}.
+As a baseline method, we also include the time of direct transfers using Rsync between machines
+  \cite{rsyncprojectrsync_2024}.
+
+
+While our measurements do provide a reasonable estimate of for access time for each mechanism, there are
+  notable limitations in our methodology.
+First, different machines and networks have different upload and download speeds, and network congestion is
+  variable.
+For decentralized methods, we lack an automated mechanism to measure the lag-time for connecting to peers.
+This means that we are unable to effectively separate peer connection time from actual download time.
+Additionally, a key difference between Girder and other methods is that Girder required data to be packaged
+  into archive files, potentially improving transfer efficiency due to fewer file boundaries.
+In all other methods, we provide granular access to each file in the dataset, which avoids an extra
+  unpacking step and for BitTorrent and IPFS enables sharing of the same file between different versions of
+  the datasets, but can decrease transfer efficiency.
+Another confounding factor is that with decentralized mechanisms the number of seeders is not controlled
+  for.
+Subsets of the data have been hosted on IPFS for years, and portions of the dataset may be provided by
+  unknown members of the network.
+For BitTorrent, our first tests only had one seeder, but during our tests another node accessed and started
+  to provide the data.
+
+With these limitations acknowledged, we present the average durations between the start of the transfer
+  command and its completion in \Cref{tab:transfertime}.
+Alongside these measurements, several anecdotal observations are worth noting.
+Transferring files using IPFS involved prohibitively expensive peer discovery times, and we were only able
+  to connect two machines after manually informing them of each other's peer ID.
+While the ability to manually connect peers is useful, if it is required it severely limits the usefulness
+  of IPFS in automated systems.
+For BitTorrent, we do make use of trackers as we were unable to utilize the mainline DHT.
+For BitTorrent, even with trackers, we also observed a significant lag-time for peer discovery, but were
+  eventually able to resolve without intervention.
+We believe these peer discovery issues are because the dataset has a small number of seeders.
+In tests where we downloaded other established datasets via IPFS and BitTorrent the peer discovery time was
+  almost immediate, suggesting that this becomes less of an issue as a dataset is shared.
+However, the inability to quickly resolve to a single nearby peer hosting the data is a major issue for
+  initial or private dataset development.
+
+In summary, our measurements suggest that decentralized mechanisms generally take longer and exhibit more
+  variance compared to centralized methods.
+The Girder method demonstrated very fast access times, taking slightly more than an hour.
+However, it benefits from fewer file boundaries, making rsync a more relevant comparison point as it
+  involves a direct transfer between machines of the exact unarchived dataset used in other tests.
+IPFS is compelling, as it approaches rsync times more closely than BitTorrent, but potentially only due to
+  more seeders available for older parts of the dataset.
+
+Despite significant testing limitations, our current conclusion is that while the static content-addressable
+  data of decentralized mechanisms is appealing, data access times remain a significant barrier.
+Therefore, maintaining a centralized mirror of a dataset on seeks to distribute remains important.
+
+%With this context, these measurements suggest that  that the decentralized mechanisms do indeed tend to take
+%  longer and have more variance than the centralized mechanisms.
+%The girder method has a very fast access time, only taking slightly more than an hour.
+%However, it does have the aforementioned advantage of having fewer file boundaries, thus rsync may be the
+%  better comparison point as it is a direct transfer between machines of the exact unarchived datasets used in
+%  other tests.
+%In this respect IPFS is compelling coming much closer to rsync times than bittorrent.
+%However, this may be due to more seeders available for older parts of the dataset on IPFS.
+
+
+%We also record anecdotal observations 
+%decentralized distribution of datasets, we perform an observational study.
+%We attempt to download the dataset via each of the 3 primary distribution mechanisms, and measure the time
+%  it takes to complete.
+
+%\begin{itemize}
+%    \item IPFS via https using gateways does not always work well.
+%    \item IPFS usually works well if you use the CLI.
+%    \item IPFS is easier to update.
+%    \item IPFS does rehash every file, which induces an O(N) scalability constraint.
+
+%    \item BitTorrent and IPFS seem to both take awhile to establish connection
+%          to a peer when there are a small number of pinners/seeders.
+
+%          IPFS has a mechanism to directly connect to a peer, which seems to
+%          work fairly quickly, but not immediately.
+
+%          This issue is mitigated as the number of seeders/pinners grows.
+%          A test download of ImageNet LSVRC 2017 dataset from academic torrents
+%          almost immediately connected to 2 seeders.
+
+%    \item Centralized solutions depend on an organization providing a service,
+%          and that organization can choose to stop providing that service.
+%\end{itemize}
+
 % https://academictorrents.com/docs/about.html
-
 % magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&tr=https%3A%2F%2Facademictorrents.com%2Fannounce.php%3Fpasskey%3D9ffbb169f882f3be1330a48ea87416e7&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce
-
-
 
 %-------------------------------------------------------------------------
 \section{Related Work}
+\label{sec:relatedwork}
 
+There are several large object localization and segmentation datasets.
+Common ones include:
+ImageNet LSRV2017 \cite{ILSVRC15} (166GB), MSCOCO-2017 \cite{lin_microsoft_2014} (50GB), CityScapes dataset
+  \cite{cordts2015cityscapes} (78GB).
+%Object detection
+But ours is the largest publicly available poop dataset that we are aware of.
+However, it is not the first.
+A dataset of 100 dog poop images was collected and used to train a FasterRCNN model in 2019 but this dataset
+  and model are not publicly available \cite{neeraj_madan_dog_2019}.
+The MSHIT dataset \cite{mshit_2020} consists of 3.89GB of real images with fake poop (e.g.
+plastic poop) in controlled environments.
+The company iRobot has a dataset of annotated indoor poop images used to train Roomba j7+ to avoid
+  collisions, but as far as we are aware, this is not available \cite{roomba_2021}.
 
-The ImageNet dataset \cite{ILSVRC15}.
-
-The MSCOCO dataset \cite{lin_microsoft_2014}.
-
-Object detection
-
-Waste detection is an important problem but with relatively few open datasets.
+There are also smaller waste detection related datasets.
+%Waste detection is an important problem but with relatively few open datasets.
 %  https://paperswithcode.com/dataset/zerowaste
 The ZeroWaste dataset \cite{bashkirova_zerowaste_2022} contains 1,800 segmented
-video frames and 6000 unlabeled frames in a recycling facility.
+video frames and 6,000 unlabeled frames in a recycling facility.
 % https://paperswithcode.com/dataset/taco
 The TACO dataset \cite{proenca_taco_2020} is another "living" dataset
-containing 1500 images with 4,784 annotations over 60 classes.
+containing 1,500 images with 4,784 annotations over 60 classes.
 % TrashCan https://paperswithcode.com/dataset/trashcan
 % Top Datasets on paperwith code
 % https://paperswithcode.com/datasets?mod=images&task=semantic-segmentation&page=2
@@ -918,20 +1045,9 @@ containing 1500 images with 4,784 annotations over 60 classes.
 % https://universe.roboflow.com/dataset-vmyna/poop-yxidr/dataset/1
 % 102 train images, 22 validation images, 0 test images.
 % human poop
-
-
-While ours is the largest publicly available poop dataset that we are aware of,
-it is not the first.
-A dataset of 100 dog poop images was collected and used to train a FasterRCNN
-model in 2019 but this dataset and model are not publicly available \cite{neeraj_madan_dog_2019}.
-The MSHIT dataset \cite{mshit_2020} consists of 3.89GB of real images with fake
-poop (e.g. plastic poop) in controlled environments.
-The company iRobot has a dataset of annotated indoor poop images used to train
-Roomba j7+ to avoid collisions, but as far as we are aware, this is not
-available \cite{roomba_2021}.
-
-
-IPFS and BitTorrent are the distributed distribution mechanism we consider, but there are others
+IPFS and BitTorrent are the decentralized distribution mechanism we evaluate, but there are others such as
+  Secure Scuttlebut \cite{tarr_secure_2019} and hypercore \cite{frazee_dep-0002_nodate}, which we did not
+  consider.
 
 % Very good overview and comparison of the protocols
 % https://blog.mauve.moe/posts/protocol-comparisons
@@ -942,32 +1058,37 @@ IPFS and BitTorrent are the distributed distribution mechanism we consider, but 
 
 \section{Conclusion}
 
-The ShitSpotter dataset is 42GB of images with polygon segmentations of dog
-poop. 
+The ShitSpotter dataset is 42GB of high resolution images with polygon segmentations of dog poop, collected
+  with a "before/after/negative" protocol.
+The dataset contains several challenges including amorphous objects, multi-season variation, difficult
+  distractors, daytime / nighttime variation, etc...
+We have described the dataset collection and annotation process and reported statistics on the dataset.
 
-We train and evaluate several baseline segmentation models, the best of which
-achieves an AP/AUC of 0.8325 on the validation set and 0.5051 on the test set.
+We provide a recommended train/validation/test split of the dataset, and using this we train and evaluate
+  several baseline segmentation models, the best of which achieves a pixelwise AP of 0.83 on the validation
+  set and 0.51 on the test set.
+In addition to providing quantitative and qualitative results of the models, we also report the resources
+  required to perform these training, prediction, and evaluation experiments.
 
-Our dataset is sufficient to train an object detection network to (level of
-precision/recall).
-Our experimental evaluation is limited by lack of model diversity, but it
-serves as a baseline for future exploration.
-
-We make data and models available over 3 distribution mechanisms: 
-cloud storage, BitTorrent, and IPFS.
-
-Decentralized methods are feasible methods of distribution, with strong
-security but they can be slow.
-IPFS is a promising solution for hosting scientific datasets, but does have pain points.
-In contrast bittorrent can do X/Y/Z, but ...
-Lastly centralized cloud storage can give the best speeds, but sacrifices some
-security and can be less robust.
+We publish our data and models under a permissive license, and these available over 1 centralized
+  distribution mechanism:
+Girder, and 2 decentralized mechanisms:
+BitTorrent and IPFS.
+We compared the data-access times of these methods and determined that
+  decentralized methods have worse, but sometimes comparable speeds.
+  However, the major pain point is peer discovery, which 
+  can be too long if there are not many seeders.
 
 Directions for future research / development are:
 1) Add lightweight object-level head and test object detection metrics.
 2) Optimize model architectures for mobile devices.
 3) Launch phone application.
 4) Improve model / data distribution.
+
+\section{Acknowledgements}
+We would would like to thank all of the data producers for making this dataset possible, all of the
+  contributors for helping to construct a challenging test set, and, and Anthony Hoogs for the suggestion to
+  take a 3rd negative picture.
 
 
 %%%%%%%%% REFERENCES

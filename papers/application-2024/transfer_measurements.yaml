@@ -595,6 +595,23 @@ network_measurements:
     time.date_started:     Tue Aug 20 19:05:27 2024
     time.latest_activity:  Tue Aug 20 22:51:34 2024
     time.downloading_time: 5 hours (19402 seconds)
+
+  - recording_time: 2024-08-23T162827-5
+    uuid: 4a89139f-853f-472c-bb20-6b956bbff671
+    method: rsync
+    action: transfer
+    src_machine: namek
+    dst_machine: calculex
+    command: |-
+      rm -rf $HOME/data/dvc-repos/shitspotter_dvc
+      date && time rsync -avprPR namek:data/dvc-repos/./shitspotter_dvc $HOME/data/dvc-repos && date
+    time.start_date: Fri Aug 23 05:29:01 PM EDT 2024
+    time.real: -
+    time.user: -
+    time.sys: -
+    time.end_time: -
+    status: -
+    duration: -
       
       
 .__taildoc__: |-

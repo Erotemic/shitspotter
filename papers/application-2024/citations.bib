@@ -85,14 +85,13 @@ pages={211-252}
 	author = {Lin, Tsung-Yi and Maire, Michael and Belongie, Serge and Hays, James and Perona, Pietro and Ramanan, Deva and Dollár, Piotr and Zitnick, C. Lawrence},
 	editor = {Fleet, David and Pajdla, Tomas and Schiele, Bernt and Tuytelaars, Tinne},
 	year = {2014},
-	keywords = {Common Object, Object Category, Object Detection, Object Instance, Scene Understanding},
 	pages = {740--755},
 }
 
 
 @inproceedings{ross2017focal,
   title={Focal loss for dense object detection},
-  author={Ross, T-YLPG and Doll{\'a}r, GKHP},
+  author={Lin, Tsung-Yi and Goyal, Priya and Girshick, Ross and He, Kaiming and Doll{\'a}r, Piotr},
   booktitle={proceedings of the IEEE conference on computer vision and pattern recognition},
   pages={2980--2988},
   year={2017}
@@ -101,13 +100,13 @@ pages={211-252}
 @inproceedings{kirillov_segment_2023,
     title = {Segment {Anything}},
     url = {https://openaccess.thecvf.com/content/ICCV2023/html/Kirillov_Segment_Anything_ICCV_2023_paper.html},
+    booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
     language = {en},
     urldate = {2024-06-27},
     author = {Kirillov, Alexander and Mintun, Eric and Ravi, Nikhila and Mao, Hanzi and Rolland, Chloe and Gustafson, Laura and Xiao, Tete and Whitehead, Spencer and Berg, Alexander C. and Lo, Wan-Yen and Dollar, Piotr and Girshick, Ross},
     year = {2023},
     journal = {ICCV},
     pages = {4015--4026},
-    file = {Full Text PDF:/home/joncrall/Zotero/storage/GY3QX57R/Kirillov et al. - 2023 - Segment Anything.pdf:application/pdf},
 }
 
 @inproceedings{crall_geowatch_2024,
@@ -115,15 +114,10 @@ pages={211-252}
     url = {http://arxiv.org/abs/2407.06337},
     doi = {10.48550/arXiv.2407.06337},
     urldate = {2024-08-03},
-    %publisher = {arXiv},
     author = {Crall, Jon and Greenwell, Connor and Joy, David and Leotta, Matthew and Chaudhary, Aashish and Hoogs, Anthony},
     month = jul,
     year = {2024},
-	booktitle = {{IGARSS}},
-    % note = {arXiv:2407.06337 [cs]},
-    keywords = {Computer Science - Computer Vision and Pattern Recognition},
-    annote = {Comment: IGARSS 2024 https://2024.ieeeigarss.org/view\_paper.php?PaperNum=5431},
-    file = {arXiv Fulltext PDF:/home/joncrall/Zotero/storage/2IQ6FXYU/Crall et al. - 2024 - GeoWATCH for Detecting Heavy Construction in Heter.pdf:application/pdf;arXiv.org Snapshot:/home/joncrall/Zotero/storage/9BERXUH2/2407.html:text/html},
+	booktitle = {{IGARSS}}
 }
 
 @InProceedings{Greenwell_2024_WACV,
@@ -143,8 +137,8 @@ pages={211-252}
     booktitle = {Advances in {Neural} {Information} {Processing} {Systems}},
     publisher = {Curran Associates, Inc},
     author = {Ash, Jordan T. and Adams, Ryan P.},
-    year = {2020},
-    keywords = {Computer Science - Machine Learning, Computer Science - Neural and Evolutionary Computing, Statistics - Machine Learning},
+    year = {2020}
+    
 }
 
 @inproceedings{bertasius2021space,
@@ -172,14 +166,6 @@ pages={211-252}
 % Software Tools
 % ==============
 
-@article{lacoste2019codecarbon,
-    title={Quantifying the Carbon Emissions of Machine Learning},
-    author={Lacoste, Alexandre and Luccioni, Alexandra and Schmidt, Victor and Dandres, Thomas},
-    journal={arXiv preprint arXiv:1910.09700},
-    year={2019}
-}
-
-
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 authors:
@@ -197,7 +183,59 @@ license: GPL-3
     url = {https://github.com/labelmeai/labelme},
     urldate = {2024-06-27},
     doi = {10.5281/zenodo.5711226},
-    note = {\url{https://github.com/labelmeai/labelme}},
+    howpublished = {\url{https://github.com/labelmeai/labelme}},
+	note = {Accessed: 2024-08-23},
+}
+
+
+@misc{transmission_2024,
+    author = {Lee, Jordan and Elsasser, Josh and Petit, Eric and Livingston, Mitchell},
+	title = {Transmission},
+	howpublished = {\url{https://github.com/transmission/transmission}},
+	abstract = {Official Transmission BitTorrent client repository},
+	urldate = {2024-08-20},
+	publisher = {Transmission},
+	month = aug,
+	year = {2024},
+	note = {Accessed: 2024-08-23}
+}
+
+@misc{ipfskubo_2024,
+    author = {Johnson, Jeromy and Benet, Juan and Allen, Steven and others},
+	title = {ipfs/kubo},
+	url = {https://github.com/ipfs/kubo},
+	abstract = {An IPFS implementation in Go},
+	urldate = {2024-08-20},
+	publisher = {IPFS Project},
+	month = aug,
+	year = {2024},
+	note = {Accessed: 2024-08-23}
+}
+
+
+@misc{rsyncprojectrsync_2024,
+    author={Tridgell, Andrew and Mackerras, Paul and others},
+	title = {rsync},
+	howpublished = {\url{https://github.com/RsyncProject/rsync}},
+	abstract = {An open source utility that provides fast incremental file transfer. It also has useful features for backup and restore operations among many other use cases.},
+	urldate = {2024-08-20},
+	publisher = {RsyncProject},
+	month = aug,
+	year = {2024},
+	note = {Accessed: 2024-08-23}
+}
+
+
+@misc{girder_2024,
+    author = {Mullen, Zack and Helba, Brian and Manthy, David and others},
+	title = {Girder: a data management platform },
+	copyright = {Apache-2.0},
+	howpublished = {\url{https://girder.readthedocs.io/en/latest}},
+	urldate = {2024-08-20},
+	publisher = {Girder},
+	month = aug,
+	year = {2024},
+	note = {Accessed: 2024-08-23}
 }
 
 
@@ -229,22 +267,20 @@ license: GPL-3
     abstract = {Fake dog poop for object detection},
     language = {en},
     urldate = {2024-08-03},
-    file = {Snapshot:/home/joncrall/Zotero/storage/CAMYTAFW/dog-poop.html:text/html},
-    note = {\url{https://www.kaggle.com/datasets/mikian/dog-poop}},
-
+    howpublished = {\url{https://www.kaggle.com/datasets/mikian/dog-poop}},
+	note = {Accessed: 2024-08-23}
 }
 
 @misc{neeraj_madan_dog_2019,
     title = {Dog {Poop} {Detection}: {Deep} {Learning} ({Details})},
     shorttitle = {Dog {Poop} {Detection}},
     url = {https://www.youtube.com/watch?v=qGNbHwp0jM8},
-    abstract = {CSCI E-89 Deep Learning, Spring  2019: Harvard University Extension School
-        Prof. Zoran B. Djordjević},
     urldate = {2024-08-03},
     author = {{Neeraj Madan}},
     month = may,
     year = {2019},
-    note = {\url{https://www.youtube.com/watch?v=qGNbHwp0jM8}},
+    howpublished = {\url{https://www.youtube.com/watch?v=qGNbHwp0jM8}},
+	note = {Accessed: 2024-08-23},
 }
 
 
@@ -257,8 +293,8 @@ license: GPL-3
     author = {Hardawar, Devindra},
     month = sep,
     year = {2021},
-    file = {Snapshot:/home/joncrall/Zotero/storage/FNFZ7T4Y/irobot-roomba-j-7-object-poop-detection-040152887.html:text/html},
-    note = {\url{https://www.engadget.com/irobot-roomba-j-7-object-poop-detection-040152887.html}},
+    howpublished = {\url{https://www.engadget.com/irobot-roomba-j-7-object-poop-detection-040152887.html}},
+	note = {Accessed: 2024-08-23}
 }
 
 
@@ -273,22 +309,20 @@ license: GPL-3
     month = may,
     year = {2022},
     note = {arXiv:2106.02740 [cs]},
-    keywords = {Computer Science - Computer Vision and Pattern Recognition},
-    file = {Bashkirova et al. - 2022 - ZeroWaste Dataset Towards Deformable Object Segme.pdf:/home/joncrall/Zotero/storage/9PJEZQPQ/Bashkirova et al. - 2022 - ZeroWaste Dataset Towards Deformable Object Segme.pdf:application/pdf},
 }
 
 
-@misc{proenca_taco_2020,
-    title = {{TACO}: {Trash} {Annotations} in {Context} for {Litter} {Detection}},
+@article{proenca_taco_2020,
+    title={Taco: Trash annotations in context for litter detection},
+    author={Proen{\c{c}}a, Pedro F and Sim{\~o}es, Pedro},
+    journal={arXiv preprint arXiv:2003.06975},
     shorttitle = {{TACO}},
     url = {https://arxiv.org/abs/2003.06975v2},
     language = {en},
     urldate = {2024-06-27},
     journal = {arXiv.org},
-    author = {Proença, Pedro F. and Simões, Pedro},
     month = mar,
     year = {2020},
-    file = {Full Text PDF:/home/joncrall/Zotero/storage/6SZS3BPL/Proença and Simões - 2020 - TACO Trash Annotations in Context for Litter Dete.pdf:application/pdf},
 }
 
 
@@ -296,14 +330,24 @@ license: GPL-3
 % Data Distribution
 % =================
 
+@inproceedings{cohen_incentives_2003,
+	title = {Incentives {Build} {Robustness} in {BitTorrent}},
+	volume = {6},
+	language = {en},
+	booktitle = {Workshop on {Economics} of {Peer}-to-{Peer} systems},
+	author = {Cohen, Bram},
+	year = {2003},
+	pages = {68--72},
+	
+}
 
 @misc{cohen_bittorrent_2017,
 	title = {The {BitTorrent} {Protocol} {Specification} v2},
-	url = {https://www.bittorrent.org/beps/bep_0052.html},
+    howpublished = {\url{https://www.bittorrent.org/beps/bep_0052.html}},
 	urldate = {2024-08-19},
 	author = {Cohen, Bram},
 	year = {2017},
-	file = {bep_0052.rst_post:/home/joncrall/Zotero/storage/7BFE73GA/bep_0052.html:text/html},
+	note = {Accessed: 2024-08-23},
 }
 
 
@@ -318,17 +362,14 @@ license: GPL-3
 
 
 @misc{zebedee_comparing_2023,
+    author = {Zebedee, Liam},
     title = {Comparing {IPFS} and {BitTorrent}},
-    url = {https://gist.github.com/liamzebedee/224494052fb6037d07a4293ceca9d6e7},
-    abstract = {GitHub Gist: instantly share code, notes, and snippets.},
-    language = {en},GG
+    howpublished = {\url{https://gist.github.com/liamzebedee/224494052fb6037d07a4293ceca9d6e7}},
     urldate = {2024-08-03},
     journal = {Github Gist},
-    author = {Zebedee, Liam},
-    month = aug,
     year = {2023},
-    file = {Snapshot:/home/joncrall/Zotero/storage/LX5R659U/224494052fb6037d07a4293ceca9d6e7.html:text/html},
-    note = {\url{https://gist.github.com/liamzebedee/224494052fb6037d07a4293ceca9d6e7}},
+    note = {Accessed: 2024-08-23}
+    
 }
 
 
@@ -341,7 +382,6 @@ license: GPL-3
     author = {Benet, Juan},
     month = jul,
     year = {2014},
-    file = {Full Text PDF:/home/joncrall/Zotero/storage/DZUYS3FW/Benet - 2014 - IPFS - Content Addressed, Versioned, P2P File Syst.pdf:application/pdf},
 }
 
 @article{bieri_overview_2021,
@@ -353,7 +393,6 @@ license: GPL-3
     author = {Bieri, Christian},
     year = {2021},
     note = {publisher: University of Zurich Zurich, Switzerland},
-    file = {scholar.googleusercontent.com/scholar.bib?q=info\:CCwBhmgtUnEJ\:scholar.google.com/&output=citation&scisdr=ClEcDZfUENbdgh7JTBU\:AFWwaeYAAAAAZq_PVBVAy1Uggu-ky-6wavL3kP0&scisig=AFWwaeYAAAAAZq_PVIpyKkdVm2_Bw-tGFO56NpM&scisf=4&ct=citation&cd=-1&hl=en:/home/joncrall/Zotero/storage/XBF6HAR9/scholar.html:text/html},
 }
 
 % ====
@@ -374,7 +413,6 @@ license: GPL-3
     month = nov,
     year = {2021},
     pages = {86--92},
-    file = {Full Text PDF:/home/joncrall/Zotero/storage/T9BPDR2Y/Gebru et al. - 2021 - Datasheets for datasets.pdf:application/pdf},
 }
 
 @article{powers_evaluation_2011,
@@ -389,10 +427,8 @@ license: GPL-3
 	month = feb,
 	year = {2011},
 	note = {00000},
-	keywords = {landmark-paper},
 	pages = {37--63},
 }
-
 
 
 @article{baker_reproducibility_2016,
@@ -411,9 +447,7 @@ license: GPL-3
 	month = may,
 	year = {2016},
 	note = {Publisher: Nature Publishing Group},
-	keywords = {Peer review, Publishing, Research management},
-	pages = {452--454},
-	file = {Full Text PDF:/home/joncrall/Zotero/storage/7ZMN3TGN/Baker - 2016 - 1,500 scientists lift the lid on reproducibility.pdf:application/pdf;Snapshot:/home/joncrall/Zotero/storage/GUI84HGE/533452a.html:text/html},
+	pages = {452--454}
 }
 
 
@@ -451,47 +485,6 @@ license: GPL-3
 	month = apr,
 	year = {2024},
 	note = {arXiv:2407.10239 [cs]},
-	keywords = {Computer Science - Artificial Intelligence, Computer Science - Computers and Society, Computer Science - Machine Learning, I.2.m},
-	annote = {Comment: 7 pages, 3 figures, 1 table; submitted to AI Magazine},
-	file = {Desai et al. - 2024 - What is Reproducibility in Artificial Intelligence.pdf:/home/joncrall/Zotero/storage/33BVW7FB/Desai et al. - 2024 - What is Reproducibility in Artificial Intelligence.pdf:application/pdf},
-}
-
-
-
-@misc{transmission_2024,
-	title = {Transmission},
-	url = {https://github.com/transmission/transmission},
-	abstract = {Official Transmission BitTorrent client repository},
-	urldate = {2024-08-20},
-	publisher = {Transmission},
-	month = aug,
-	year = {2024},
-	note = {original-date: 2015-05-05T23:53:02Z},
-}
-
-@misc{ipfskubo_2024,
-	title = {ipfs/kubo},
-	url = {https://github.com/ipfs/kubo},
-	abstract = {An IPFS implementation in Go},
-	urldate = {2024-08-20},
-	publisher = {IPFS Project},
-	month = aug,
-	year = {2024},
-	note = {original-date: 2014-06-26T08:14:34Z},
-	keywords = {ipfs},
-}
-
-
-
-@misc{rsyncprojectrsync_2024,
-	title = {{RsyncProject}/rsync},
-	url = {https://github.com/RsyncProject/rsync},
-	abstract = {An open source utility that provides fast incremental file transfer. It also has useful features for backup and restore operations among many other use cases.},
-	urldate = {2024-08-20},
-	publisher = {RsyncProject},
-	month = aug,
-	year = {2024},
-	note = {original-date: 2020-05-25T20:52:12Z},
 }
 
 
@@ -505,8 +498,7 @@ license: GPL-3
 	author = {Schroff, Florian and Kalenichenko, Dmitry and Philbin, James},
 	year = {2015},
 	note = {00373},
-	keywords = {face recognition, tripplet loss, labeled faces in the wild},
-	pages = {815--823},
+	pages = {815--823}
 }
 
 @article{scikit-learn,
@@ -520,7 +512,6 @@ license: GPL-3
   pages={2825--2830},
   year={2011}
 }
-
 
 
 @article{kirkpatrick_carbon_2023,
@@ -537,19 +528,95 @@ license: GPL-3
 	author = {Kirkpatrick, Keith},
 	month = aug,
 	year = {2023},
-	pages = {17--19},
-	file = {Full Text:/home/joncrall/Zotero/storage/4Z5JPD9B/Kirkpatrick - 2023 - The Carbon Footprint of Artificial Intelligence.pdf:application/pdf},
+	pages = {17--19}
 }
 
 
-@misc{girder_2024,
-	title = {Girder: a data management platform },
-	copyright = {Apache-2.0},
-	url = {https://girder.readthedocs.io/en/latest},
-	urldate = {2024-08-20},
-	publisher = {Girder},
-	month = aug,
-	year = {2024},
-	note = {https://girder.readthedocs.io/en/latest original-date: 2013-08-02T23:55:54Z},
-	keywords = {data-analytics, data-management, data-science, javascript, kitware, python, resonant},
+@inproceedings{sandler_mobilenetv2_2018,
+	title = {{MobileNetV2}: {Inverted} {Residuals} and {Linear} {Bottlenecks}},
+	shorttitle = {{MobileNetV2}},
+	url = {http://openaccess.thecvf.com/content_cvpr_2018/html/Sandler_MobileNetV2_Inverted_Residuals_CVPR_2018_paper.html},
+	urldate = {2019-11-11},
+	author = {Sandler, Mark and Howard, Andrew and Zhu, Menglong and Zhmoginov, Andrey and Chen, Liang-Chieh},
+	year = {2018},
+	pages = {4510--4520}
 }
+
+@article{yu_mobilenet_yolo_2023,
+	title = {{MobileNet}-{YOLO} v5s: {An} {Improved} {Lightweight} {Method} for {Real}-{Time} {Detection} of {Sugarcane} {Stem} {Nodes} in {Complex} {Natural} {Environments}},
+	volume = {11},
+	issn = {2169-3536},
+	shorttitle = {{MobileNet}-{YOLO} v5s},
+	url = {https://ieeexplore.ieee.org/document/10258259},
+	doi = {10.1109/ACCESS.2023.3317951},
+	urldate = {2024-08-23},
+	journal = {IEEE Access},
+	author = {Yu, Kang and Tang, Guoxin and Chen, Wen and Hu, Shanshan and Li, Yanzhou and Gong, Haibo},
+	year = {2023},
+	pages = {104070--104083}
+}
+
+
+
+@inproceedings{siam_rtseg_2018,
+	title = {{RTSeg}: {Real}-{Time} {Semantic} {Segmentation} {Comparative} {Study}},
+	shorttitle = {{RTSeg}},
+	url = {https://ieeexplore.ieee.org/abstract/document/8451495},
+	doi = {10.1109/ICIP.2018.8451495},
+	urldate = {2024-08-23},
+	booktitle = {2018 25th {IEEE} {International} {Conference} on {Image} {Processing} ({ICIP})},
+	author = {Siam, Mennatullah and Gamal, Mostafa and Abdel-Razek, Moemen and Yogamani, Senthil and Jagersand, Martin},
+	month = oct,
+	year = {2018},
+	note = {ISSN: 2381-8549},
+	pages = {1603--1607}
+}
+
+
+@article{lacoste2019codecarbon,
+    title={Quantifying the Carbon Emissions of Machine Learning},
+    author={Lacoste, Alexandre and Luccioni, Alexandra and Schmidt, Victor and Dandres, Thomas},
+    journal={arXiv preprint arXiv:1910.09700},
+    year={2019}
+}
+
+
+@inproceedings{cordts2015cityscapes,
+  title={The cityscapes dataset},
+  author={Cordts, Marius and Omran, Mohamed and Ramos, Sebastian and Scharw{\"a}chter, Timo and Enzweiler, Markus and Benenson, Rodrigo and Franke, Uwe and Roth, Stefan and Schiele, Bernt},
+  booktitle={CVPR Workshop on the Future of Datasets in Vision},
+  volume={2},
+  pages={1},
+  year={2015}
+}
+
+
+@inproceedings{tarr_secure_2019,
+	address = {New York, NY, USA},
+	series = {{ICN} '19},
+	title = {Secure {Scuttlebutt}: {An} {Identity}-{Centric} {Protocol} for {Subjective} and {Decentralized} {Applications}},
+	isbn = {978-1-4503-6970-1},
+	shorttitle = {Secure {Scuttlebutt}},
+	url = {https://dl.acm.org/doi/10.1145/3357150.3357396},
+	doi = {10.1145/3357150.3357396},
+	urldate = {2024-08-23},
+	booktitle = {Proceedings of the 6th {ACM} {Conference} on {Information}-{Centric} {Networking}},
+	publisher = {Association for Computing Machinery},
+	author = {Tarr, Dominic and Lavoie, Erick and Meyer, Aljoscha and Tschudin, Christian},
+	month = sep,
+	year = {2019},
+	pages = {1--11},
+	file = {Full Text PDF:/home/joncrall/Zotero/storage/ZC56L7ZT/Tarr et al. - 2019 - Secure Scuttlebutt An Identity-Centric Protocol f.pdf:application/pdf},
+}
+
+
+
+@misc{frazee_dep-0002_nodate,
+	title = {{DEP}-0002: {Hypercore} - {Dat} {Protocol}},
+	howpublished = {\url{https://www.datprotocol.com/deps/0002-hypercore/}},
+	urldate = {2024-08-24},
+	author = {Frazee, Paul and Buss, Mathias},
+	file = {DEP-0002\: Hypercore - Dat Protocol:/home/joncrall/Zotero/storage/Q2CG8IJV/0002-hypercore.html:text/html},
+	note = {Accessed: 2024-08-23},
+}
+
