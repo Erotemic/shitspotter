@@ -941,13 +941,11 @@ For each test, we log the start and end times of the transfer, along with detail
 
 For centralized distribution, we use a self-hosted instance of the Girder data management platform
   \cite{girder_2024}.
-For decentralized distribution, we utilize the Transmission client for BitTorrent \cite{transmission_2024}
-  and the Kubo implementation for IPFS \cite{ipfskubo_2024}.
-As a baseline method, we also include the time of direct transfers using Rsync between machines
-  \cite{rsyncprojectrsync_2024}.
+For decentralized distribution, we utilize the Transmission \cite{transmission_2024} client for BitTorrent
+  and Kubo \cite{ipfskubo_2024} for IPFS.
+As a baseline method, we also include the time of direct transfers using Rsync\cite{rsyncprojectrsync_2024}.
 
-
-While our measurements do provide a reasonable estimate of for access time for each mechanism, there are
+While our measurements provide a reasonable estimate of for access time for each mechanism, there are
   notable limitations in our methodology.
 First, different machines and networks have different upload and download speeds, and network congestion is
   variable.

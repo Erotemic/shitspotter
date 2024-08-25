@@ -671,6 +671,11 @@ network_measurements:
       date && time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y && date
     notes:
       140449 blocks at Sun Aug 25 12:24:35 AM EDT 2024
+      140449 blocks at Sun Aug 25 11:56:01 AM EDT 2024
+      something is getting stuck, it looks like the ifps deamon on the ipfs
+      server died, and its not able to grab the data from jojo for some reason?
+      # Force it to connect to ipfs (on Sun Aug 25 12:34:56 PM EDT 2024)
+      ipfs swarm connect /p2p/12D3KooWPyQK2JEXnqK1QxiV9Y7bG3UsUQC5iQvDxn8bV1uqvsbi
     time.start_date: Sat 24 Aug 2024 05:54:46 PM EDT
       
 .__taildoc__: |-

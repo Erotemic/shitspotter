@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Creates data suitable for uploading to data.kitware.com
 

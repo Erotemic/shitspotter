@@ -273,7 +273,7 @@ kwcoco stats data.kwcoco.json
 
 2. **How will the dataset will be distributed (e.g. tarball on website, API, GitHub)?** Does the dataset have a digital object identifier (DOI)?
 
-	No DOI. It is being made available via IPFS.
+	No DOI yet. It is being made available via IPFS, BitTorrent, and centralized means.
 
 3. **When will the dataset be distributed?**
 
