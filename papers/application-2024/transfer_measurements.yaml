@@ -442,7 +442,7 @@ network_measurements:
     time.real: 186m5.775s
     time.user: 16m36.532s
     time.sys: 10m22.126s
-    time.end_time: Sat Aug 17 04:07:23 PM EDT 2024
+    time.end_date: Sat Aug 17 04:07:23 PM EDT 2024
 
   - recording_time: 2024-08-17T172032-5
     uuid: 8ed56468-3ed5-44a1-a21b-2ddcd139ec89
@@ -518,8 +518,8 @@ network_measurements:
     command: |-
       date && (time fd .zip -x unzip)
       date
-    time.start_time: Tue Aug 20 08:28:12 AM EDT 2024
-    time.end_time: Tue Aug 20 08:29:08 AM EDT 2024
+    time.start_date: Tue Aug 20 08:28:12 AM EDT 2024
+    time.end_date: Tue Aug 20 08:29:08 AM EDT 2024
     time.real:    0m56.242s
     time.user:    3m17.015s
     time.sys:     0m38.482s
@@ -534,7 +534,7 @@ network_measurements:
     status: success
     command: |-
         date && time girder-client --api-url https://data.kitware.com/api/v1 download 66b6bc34f87a980650f41f90 . && date
-    time.start_time: Tue Aug 20 08:33:16 AM EDT 2024
+    time.start_date: Tue Aug 20 08:33:16 AM EDT 2024
     time.real:    79m59.489s
     time.user:    3m59.366s
     time.sys:     3m5.385s
@@ -589,7 +589,7 @@ network_measurements:
 
       transmission-remote --auth transmission:transmission --list
       transmission-remote --auth transmission:transmission -t4 --info
-    time.start_time: Tue 20 Aug 2024 05:46:37 PM EDT
+    time.start_date: Tue 20 Aug 2024 05:46:37 PM EDT
     time.date_added:       Tue Aug 20 17:46:37 2024
     time.date_finished:    Tue Aug 20 22:51:34 2024
     time.date_started:     Tue Aug 20 19:05:27 2024
@@ -606,13 +606,72 @@ network_measurements:
       rm -rf $HOME/data/dvc-repos/shitspotter_dvc
       date && time rsync -avprPR namek:data/dvc-repos/./shitspotter_dvc $HOME/data/dvc-repos && date
     time.start_date: Fri Aug 23 05:29:01 PM EDT 2024
-    time.real: -
-    time.user: -
-    time.sys: -
-    time.end_time: -
-    status: -
-    duration: -
-      
+    time.real:    215m59.446s
+    time.user:    16m24.775s
+    time.sys:    10m8.098s
+    time.end_date: Fri Aug 23 09:05:01 PM EDT 2024
+    status: success
+    duration: 215m59.446s
+
+  - recording_time: 2024-08-23T202554-5
+    uuid: e7f9c849-1461-4eca-aeb3-a56a8fbb01b5
+    action: transfer
+    method: ipfs
+    src_machine: jojo/ipfs
+    dst_machine: calculex
+    multiple_seeders: likely
+    command: |-
+      cat /etc/systemd/system/ipfs.service
+      sudo systemctl restart ipfs.service
+      if ! systemctl status ipfs.service ; then
+        sudo systemctl start ipfs.service
+      fi
+      ipfs config --json Identity.PeerID
+      #ipfs swarm connect /p2p/12D3KooWS612EDC67bmFD4pyoAUmW93G1QW9GYCkqDg71bdBRgri
+      #ipfs swarm connect /p2p/12D3KooWCFcfiBevjQD42aRAELMUZXAGScRiN2NcAthokF4dMnVU
+      #ipfs swarm connect /p2p/12D3KooWPyQK2JEXnqK1QxiV9Y7bG3UsUQC5iQvDxn8bV1uqvsbi
+      # First remove all pins on namek
+      export IPFS_PATH=$HOME/.ipfs
+      ipfs pin ls --type="recursive" --names
+      ipfs pin ls --type recursive | cut -d ' ' -f1 | xargs -n1 ipfs pin rm
+      ipfs repo gc
+      ipfs swarm connect /p2p/12D3KooWCFcfiBevjQD42aRAELMUZXAGScRiN2NcAthokF4dMnVU
+      # Then start the timed download
+      date && time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y && date
+      # Force it to connect to ipfs (on Sat Aug 24 08:58:09 AM EDT 2024)
+      ipfs swarm connect /p2p/12D3KooWPyQK2JEXnqK1QxiV9Y7bG3UsUQC5iQvDxn8bV1uqvsbi
+    notes: |- 
+      manually connected to ipfs about 11 hours after starting  (Sat Aug 24 08:58:09 AM EDT 2024)
+      seems to be stuck on 183934,
+      still stuck at Sat Aug 24 10:01:49 EDT 2024
+      at some point it fixed itself
+    time.start_date: Fri 23 Aug 2024 09:33:17 PM EDT
+    time.real:    981m2.585s
+    time.user:    0m20.667s
+    time.sys:     0m12.314s
+    time.end_date: Sat 24 Aug 2024 01:54:20 PM EDT
+    status: success
+    duration: 981m2.585s
+
+  - recording_time: 2024-08-24T165336-5
+    uuid: d4c1cd9e-0c19-4356-ba95-80e108ed37c5
+    action: transfer
+    method: ipfs
+    src_machine: jojo/ipfs
+    dst_machine: calculex
+    multiple_seeders: likely
+    duration: null
+    status: null
+    command: |-
+      export IPFS_PATH=$HOME/.ipfs
+      ipfs pin ls --type="recursive" --names
+      ipfs pin ls --type recursive | cut -d ' ' -f1 | xargs -n1 ipfs pin rm
+      ipfs repo gc
+      # Then start the timed download
+      date && time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y && date
+    notes:
+      140449 blocks at Sun Aug 25 12:24:35 AM EDT 2024
+    time.start_date: Sat 24 Aug 2024 05:54:46 PM EDT
       
 .__taildoc__: |-
      python ~/code/shitspotter/papers/application-2024/scripts/gather_measurements.py

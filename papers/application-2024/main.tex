@@ -131,14 +131,13 @@ Model weights are made publicly available with the dataset.
 \label{sec:intro}
 
 Applications for a computer vision system capable of detecting and localizing poop in images are numerous.
-These include automated waste disposal to keep parks and backyards clean, integration into systems for
-  monitoring wildlife populations via droppings, and a warning system in smart-glasses to prevent people from
-  stepping in poop.
+These include automated waste disposal to keep parks and backyards clean, tools for monitoring wildlife
+  populations via droppings, and a warning system in smart-glasses to prevent people from stepping in poop.
 Our primary motivating use case is a phone application that assists dog owners in locating their dog's poop
   in a leafy park for easier cleanup.
 Many of these applications can be realized with modern object detection and segmentation methods
-  \cite{sandler_mobilenetv2_2018, siam_rtseg_2018, yu_mobilenet_yolo_2023} combined with a large, labeled
-  dataset for training
+  \cite{sandler_mobilenetv2_2018, siam_rtseg_2018, yu_mobilenet_yolo_2023} combined with a large labeled
+  dataset.
 
 
 \begin{figure}[ht]
@@ -164,34 +163,31 @@ However, the task includes non-trivial challenges such as resolution issues (e.g
 Investigation into cases where this problem is difficult may provide insight
 into how to better train object detection and segmentation networks.
 
-Towards these ends we introduce a dataset suitable for training poop detection
-models in order to enable applications that require detecting or localizing
-poop in images. In order to assist with annotation and enrich the training
-dataset we collect images using a "before/after/negative" protocol as shown in
-\Cref{fig:ThreeImages}. 
-
-Our goal is to train an algorithm that can classify which pixels contain poop and which do not.
-We train a segmentation model to provide a baseline on how
-difficult this problem is. Our models show strong performance, although there
-are notable failure cases indicating this problem is difficult even for modern
-computer vision algorithms.
+Towards these ends we introduce a new dataset we call "ShitSpotter".
+Poops are annotated with polygons making the dataset suitable for training detection and segmentation
+  models.
+In order to assist with annotation and add variation, we collect images using a "before/after/negative"
+  protocol as shown in \Cref{fig:ThreeImages}.
+We train a segmentation model to classify which pixels in an image contain poop and which do not.
+Our models show strong performance, but there are notable failure cases indicating this problem is difficult
+  even for modern computer vision algorithms.
 
 To enable others to build on our results, it is essential that the dataset is accessible and hosted
   reliably.
 Centralized methods are a typical choice, offering high speeds, but they can be costly for individuals,
   often requiring institutional support or paid hosting services.
-They are also prone to outages and lack built-in version control.
-In contrast, decentralized methods allow volunteers to host data offers built-in validation of data
+They are also prone to outages and lack built-in data validation.
+In contrast, decentralized methods allow volunteers to host data and offers built-in validation of data
   integrity.
-This motivates us to compare and contrast centralized services, BitTorrent \cite{cohen_incentives_2003}, and
-  IPFS \cite{benet_ipfs_2014} as mechanisms for distributing datasets.
+This motivates us to compare and contrast the decentralized BitTorrent \cite{cohen_incentives_2003}, and
+  IPFS \cite{benet_ipfs_2014} protocols as mechanisms for distributing datasets.
 
 % VGG2 face got removed.
 % https://github.com/ox-vgg/vgg_face2/issues/52
 
 
 Our contributions are:
-1) A challenging new \textbf{open dataset} of images with polygon segmentations.
+1) A challenging new \textbf{open dataset} of images with polygon annotations.
 2) An experimental \textbf{evaluation of baseline training} methods.
 3) An observational \textbf{comparison of dataset distribution} methods.
 4) \textbf{Open code and models}.
@@ -205,11 +201,11 @@ Related work is discussed at the end.
 \section{Dataset}
 \label{sec:dataset}
 
-Our first contribution is the collection of a new open dataset consisting of
-dog poop images in a mostly urban environment. The subject matter is primarily
-derived from three specific dogs. Indoor images and poop from other dogs are
-present in the dataset but were encountered less often and thus are less
-frequent.
+Our first contribution is the creation of a new open dataset "ShitSpotter", which consists of images of dog
+  poop in mostly urban, mostly outdoor environments.
+The majority of the images feature fresh poop from three specific dogs, but there are a significant number
+  of images with poops of unknown age and from from unknown dogs.
+
 
 More details about the dataset are available in a standardized datasheet
 \cite{gebru_datasheets_2021} that covers the motivation, composition,
@@ -218,36 +214,31 @@ distributed with the data itself, and is provided in supplemental material.
 
 \subsection{Dataset Collection}
 
-The dataset was primarily collected by a single researcher while walking their
-dogs. When they encountered a poop in the wild --- usually freshly created by
-one of their own dogs, but sometimes from other dogs --- they would take an
-image of the poop. Most often they would take the image from wherever they
-first saw it, but sometimes they would move further or closer in an effort to
-add variation to the dataset. After they took a photo they would pick up the
-poop and dispose of it.
+The dataset was primarily collected by a single researcher while walking their dogs.
+When they encountered a poop in public areas --- usually freshly created by one of their own dogs, but
+  sometimes from other dogs --- they would take an image of the poop from their original vantage point.
+Occasionally, they would move closer or further away to add variation to the dataset.
+After taking a photo, they would pick it up and dispose of it.
 
-As previously mentioned, the majority of the dataset was collected using the
-"before/after/negative" (B/A/N) protocol. The first image of the poop is the
-"before" image. After picking up the poop, an "after" picture of the same area
-was taken. Effort was made to reproduce the same angle and distance, but the
-quality of the image alignment varies. The last step in the protocol is to take
-a "negative" image, which is of a nearby area or perhaps something else in the
-environment that might act as a confuser (e.g. pine cones, leafs, sticks, dark
-areas on snow). While we do not make explicit use of these "B/A/N" triples in
-this work, we believe they may be useful to construct some sort of
-triplet-style loss \cite{schroff_facenet_2015}.
+Most images in the dataset follow a "before/after/negative" (B/A/N) protocol.
+The first image is the "before" picture of the poop.
+After picking up the poop, an "after" picture of the same area was taken from approximately the same angle
+  and distance.
+Finally, a "negative" image was captured of a nearby area or object that might be confused with dog poop
+  (e.g., pine cones, leaves, sticks, dark areas on snow).
+While we do not explicitly use these B/A/N triples in this work, they may be useful for constructing
+  triplet-style losses \cite{schroff_facenet_2015}.
 
-The majority of images in the dataset follow this triple-pattern.  However,
-there are exceptions.  The first 6 months of data collection only involved the
-"before/after" part of the protocol.  We started to collect the 3rd negative
-image when a colleague suggested it.  Additionally, the researcher sometimes
-failed or was unable to take the 2nd or 3rd image. The cases where the "B/A/N"
-protocol was not followed were programmatically identified.
-
-Additionally, the dataset also contains a 84 images contributed by friends and
-family. These images are images mostly do not follow the B/A/N protocol and are
-marked for use only in testing and are \emph{not} included in the following
-analysis unless explicitly noted.
+The majority of images follow the triple-pattern protocol.
+However, there are exceptions.
+The first six months of data collection only involved the "before/after" part of the protocol, and we began
+  collecting the third negative image after a colleague suggested it.
+In some cases, the researcher failed or was unable to take the second or third image.
+These exceptions were programmatically identified.
+  
+In addition to the primary dataset, we also received 84 images from contributors.
+Most of these images do not follow the B/A/N protocol and are marked for use only in testing and are
+  \emph{not} included in the following analysis unless explicitly noted.
 
 
 \subsection{Dataset Annotation}
@@ -293,12 +284,12 @@ illustrated in \Cref{fig:AllPolygons}.
 \centering
 \includegraphics[width=0.4\textwidth]{figures/images_timeofday_distribution.png}
 \caption[]{
-    Scatterplot of the time-of-year vs time-of-day each image was taken. On the
-    x-axis 0 is January 1st. On the y-axis 0 is midnight. For images with
-    geolocation and timestamp (assuming the timezone is local or given and
-    correct) we also estimate the amount of daylight as indicated by the color
-    of each dot. While the majority of the images are taken in daylight, there
-    are a sizable number of nighttime images.
+    Scatterplot of the time-of-year vs time-of-day each image was taken.
+    On the x-axis, 0 is January 1st.
+    On the y-axis, 0 is midnight.
+    For images with geolocation and timestamp (assuming the timezone is local or given and correct) we also
+      estimate the amount of daylight as indicated by the color of each dot.
+    While the majority of the images are taken in daylight, there are a sizable number of nighttime images.
 }
 \label{fig:TimeOfDayDistribution}
 \end{figure}
@@ -332,100 +323,116 @@ illustrated in \Cref{fig:AllPolygons}.
 \subsection{Dataset Stats and Analysis}
 
 % Number of images, annotations, and other stats.
-As of 2024-07-03, the primary (i.e. training and validation) dataset contains
-6,648 images and 4,386 annotations and has spanned 4 years. Data was captured
-over 4 years at a mostly uniformly rate.  Most data is localized to parks and
-sidewalks in a small city.  Weather conditions varied between snowy, sunny,
-rainy.  The distribution of seasons, time-of-day, daylight, and capture rate is
-illustrated in \Cref{fig:TimeOfDayDistribution}.
-
-The dataset images are provided in full resolution and have not been resampled.
-Almost all images were captured using the same phone-camera and have a
-width/height of 4,032 $\times$ 3,024 (which could be rotated based on EXIF data) with 6
-being 4,008  $\times$ 5,344 and one being 7,68 $\times$ 1,024. Images are stored as 8-bit JPEGs
-with RGB channels, and most also contain overviews (i.e.  an image pyramid),
-which makes loading a downscaled versions very fast.  The distribution of image
-pixel intensities is shown in \Cref{fig:spectra}.
+As of 2024-07-03, the primary dataset consists of 6,648 images and 4,386 annotations, spanning 3.5 years.
+The data was captured at a relatively uniform rate over this period, primarily in parks and sidewalks within
+  a small city.
+Weather conditions varied across snowy, sunny, rainy, and foggy.
+A visual representation of the distribution of seasons, time-of-day, daylight, and capture rate is provided
+  in \Cref{fig:TimeOfDayDistribution}.
 
 
-Due to the "B/A/N"-protocol, roughly 1/3 of the dataset has annotations due to
-the other 2/3 of the images being taken in a way where the object of interest
-was removed from the scene. Thus, most images have no annotations. The next
-most frequent number of annotations is one, but images do often contain
-multiple annotations.
-There can be for several reasons for this:
-    1) a single poop broke into multiple disjoint parts (the exact criteria for this is sometimes ambiguous), 
-    2) two dogs pooped nearby each other. 
-    3) one or more dogs has pooped in the same area over some period of
-       time (some cases can be difficult to determine if it is poop or dirt).
-The number of annotations per images is illustrated in
-\Cref{fig:AnnotsPerImage}.
+The dataset images are available in full resolution, without any resampling or resizing.
+Almost all images were taken using the same phone-camera, with a consistent width/height ratio of 4,032
+  $\times$ 3,024 (although some may be rotated based on EXIF data).
+Six images have a slightly different resolution of 4,008 $\times$ 5,344, and one has a resolution of 7,680
+  $\times$ 1,024.
+The images are stored as 8-bit JPEGs with RGB channels, and most include overviews (i.e., image pyramids),
+  allowing for fast loading of downscaled versions.
+The distribution of image pixel intensities is illustrated in \Cref{fig:spectra}.
+
+
+Due to the "B/A/N" protocol, approximately one-third of the dataset contains annotations, as the other
+  two-thirds of images were taken after removing the object of interest from the scene.
+Consequently, most images have no annotations.
+The next most frequent number of annotations is one, but images can contain multiple annotations due to
+  several reasons:
+1) A single poop may break into multiple disjoint parts (although the exact criteria for this can be
+  ambiguous).
+2) Two dogs may have pooped nearby each other.
+3) One or more dogs may have pooped in the same area over a period of time (in some cases, it can be
+  challenging to determine if it is poop or dirt).
+The number of annotations per image is illustrated in \Cref{fig:AnnotsPerImage}.
+
 
 \subsection{Dataset Splits}
 
-Data from 2021, 2022, 2023 are in the training set. Data from 2020 is used for
-validation. Data from 2024 is split between training and validation. On the $n$th
-day of the year, images are in the validation set if $n \% 3 == 0$ else they
-are in the training set.
+Our dataset is split into training, validation, and test sets based on the year and day of image capture.
+Specifically, images from 2021, 2022, and 2023 are assigned to the training set, while images from 2020 are
+  used for validation.
+For data from 2024, we use a modulo-based approach:
+for each image we consider its Gregorian ordinal date $n$ and include it in the validation set if
+$n \equiv 0 \ (\textrm{mod}\ 3)$; otherwise, they are assigned to the training set.
 
-Specifically, in this paper our training dataset has 5,747 images and can be
-identified by a suffix of 1e73d54f, which is the prefix of a hash of its
-contents.  The validation set contains 691 images and has a suffix of 99b22ad0.
-The test set has a suffix of d8988f8c and consists of the 30 contributor images
-that have at least one annotation. These splits are provided in the
-COCO JSON format \cite{lin_microsoft_2014}.
+The resulting splits are as follows:
+Our training dataset consists of 5,747 images and is identified by a suffix of {\tt 1e73d54f}, which is the
+  prefix of a hash of its contents.
+The validation set contains 691 images and has a suffix of {\tt 99b22ad0}.
+The test set, consisting of the 30 contributor images with at least one annotation, has a suffix of {\tt
+  d8988f8c}.
+These splits are provided in the COCO JSON format \cite{lin_microsoft_2014}.
+
 
 \section{Models}
 \label{sec:models}
 
-Our second contribution is an evaluation of several trained models to serve as
-a baseline.  We use the training, prediction, and evaluation system of
-\cite{Greenwell_2024_WACV, crall_geowatch_2024}, which uses polygon annotations
-to train a pixelwise binary segmentation model.
+As our second contribution, we evaluate several trained models to establish a baseline for future
+  comparisons.
+We use the training, prediction, and evaluation system presented in \cite{Greenwell_2024_WACV,
+  crall_geowatch_2024}, which utilizes polygon annotations to train a pixelwise binary segmentation model.
 
-In all experiments, we use half-resolution images, which means most images have
-an effective width/height of 2,016 $\times$ 1,512. The samples given to the
-network use a spatial widow size of 416 $\times$ 416, which means that multiple
-windows are needed to predict on entire images. When we predict we use a window
-overlap of 0.3 with feathered stitching is used to prevent boundary artifacts. 
 
-Due to the imbalance of positive/negative (i.e. a positive is any patch that
-contains an annotation, and a negative contains no annotations) in the dataset
-we used a balanced sampling strategy.  Each "epoch" consisted of randomly
-sampling 32,768 patches from the dataset with replacement.  The sampling was
-balanced so the number of positives and negatives were roughly equal. In total
-each network trained for 163,840 gradient steps. For data augmentation we use
-random crops and flips.
+In all experiments, we use half-resolution images, which means most images have an effective width $\times$
+  height of 2,016 $\times$ 1,512.
+We employ a spatial window size of 416 $\times$ 416 for network inputs, which means that multiple windows
+  are needed to predict on entire images.
+During prediction, we apply a window overlap of 0.3 with feathered stitching to prevent boundary artifacts.
 
-The baseline architecture is a variant
-\cite{bertasius2021space,Greenwell_2024_WACV} of a vision-transformer
-\cite{dosovitskiy_image_2021}. The model has a 12 layer encoder backbone with
-384 channels, and 8 attention heads. 
-The segmentation head is a 4 layer MLP using encoder features.
-The model has 25,543,369 parameters and a size of 114.19 MB on disk.
-At predict time the model uses 1.961GB of GPU RAM.
+To address the class imbalance in our dataset (where positives are patches containing annotations and
+  negatives contain no annotations), we adopt a balanced sampling strategy.
+Each "epoch" consists of randomly sampling 32,768 patches from the dataset with replacement, ensuring
+  roughly equal numbers of positive and negative samples.
+We train each network for 163,840 gradient steps.
+For data augmentation we use random crops and flips.
 
-Loss is computed pixelwise using FocalLoss \cite{ross2017focal} with a small
-downweighting of pixels towards the edge of the window.  The optimizer is
-AdamW, and we vary learning rate, weight decay, and perturb-scale (note: weight
-decay combined with a non-zero perterb scale implements the shrink perturb
-trick: \cite{ash_warm_starting_2020}).  We use a OneCycle learning rate
-scheduler with a cosine annealing strategy and starting fraction of 0.3.  Our
-effective batch size is 24 with a real batch size of 2 and 12 accumulate
-gradient steps. At train time this consumes ~20GB of GPU RAM.
+Our baseline architecture is a variant \cite{bertasius2021space,Greenwell_2024_WACV} of a vision-transformer
+  \cite{dosovitskiy_image_2021}.
+The model is a 12-layer encoder backbone with 384 channels and 8 attention heads that feeds into a 4-layer
+  MLP segmentation head.
+It has 25,543,369 parameters and a size of 114.19 MB on disk.
+At predict time it uses 1.96GB of GPU RAM.
 
+We compute loss pixelwise using Focal Loss \cite{ross2017focal} with a small downweighting of pixels towards
+  the edge of the window.
+Our optimizer is AdamW \cite{loshchilov_decoupled_2018}, and we experiment with varying learning rate,
+  weight decay, and perturb-scale (implementing the shrink perturb trick:
+\cite{ash_warm_starting_2020}).
+We employ a OneCycle learning rate scheduler \cite{smith2019super} with a cosine annealing strategy and
+  starting fraction of 0.3.
+Our effective batch size is 24 with a real batch size of 2 and 12 accumulate gradient steps.
+This setup consumes approximately 20 GB of GPU RAM during training.
+  
 
 \subsection{Model Experiments}
 
-In order to find a strong baseline we evaluated 35 different hyperparamter
-training runs over different input resolutions, window sizes, model depth, and
-other parameters in a somewhat ad-hoc manner. Taking the best hyperparameters
-from that search, we perform a sweep over 7 combinations of learning rate,
-weight decay, and perterb scale (i.e. shrink and perterb
-\cite{ash_warm_starting_2020}). Scripts to reproduce these experiments as well
-as a log of the ad-hoc experiments are in the code repo.
+In order to find a strong baseline we evaluated 35 different hyperparamter training runs over different
+  input resolutions, window sizes, model depth, and other parameters in a somewhat ad-hoc manner.
+Taking the best hyperparameters from that search, we perform a sweep over 7 combinations of learning rate,
+  weight decay, and perterb scale (i.e.
+shrink and perterb \cite{ash_warm_starting_2020}).
+Scripts to reproduce these experiments as well as a log of the ad-hoc experiments are in the code repo.
 Models are also distributed with information about how they were trained.
 %using stochastic engineer descent.
+
+To establish a strong baseline, we evaluated 35 training runs where we varied input resolutions, window
+  sizes, model depth, and other parameters.
+Although this initial search was somewhat ad-hoc, it provided valuable insights into the optimal
+  configuration for our model.
+Building on the best hyperparameters from this search, we performed a sweep over 7 combinations of learning
+  rate, weight decay, and perturb scale (i.e., shrink and perturb \cite{ash_warm_starting_2020}).
+The scripts used to reproduce these experiments, as well as a log of the ad-hoc experiments, are available
+  in the code repository.
+Additionally, the trained models are packaged and distributed with information about their training
+  configuration.
 
 
 \begin{figure}[ht]
@@ -440,20 +447,14 @@ Models are also distributed with information about how they were trained.
 (b) AP of 35 checkpoints.
 
 \caption[]{
-    (a) A scatterplot showing pixelwise AP and AUC for the top 5 checkpoints
-    evaluated on the validation set. Points of the same color represent
-    checkpoints from the same training run using identical hyperparameters.
-    (b) The range of AP values across the top 5 checkpoints evaluated on the
-    validation set. \Cref{tab:parameters_and_results} provides additional
-    details on hyperparameters and maximum AP per run.
-    %(a) A scatterplot of the pixelwise AP and AUC of the top-5 checkpoints evaluated on the validation set.
-    %For each training run we ran evaluation on a subset of checkpoints that
-    %achieved low validation loss.
-    %Points with the same color represent checkpoints from the same training run
-    %with with the same hyperparameters.
-    %(b) The range of AP values over the top-5 checkpoints evaluated on the validation set.
-    %\Cref{tab:parameters_and_results} provides more details about
-    %hyperparameters and the maximum AP per run.
+    (a) Scatterplot illustrating pixelwise Average Precision (AP) and Area Under the Curve (AUC) for the top
+      5 checkpoints evaluated on the validation set.
+    Points of the same color represent checkpoints from the same training run, which used identical
+      hyperparameters.
+    (b) Box-and-whisker plot showing the distribution of AP values across the top 5 checkpoints evaluated on
+      the validation set.
+    The corresponding hyperparameter settings and maximum AP scores for each run are detailed in
+      \Cref{tab:parameters_and_results}.
 }
 \label{fig:apauc_scatter}
 \end{figure}
@@ -477,18 +478,28 @@ config name &   lr & weight\_decay & perterb\_scale & AP & AUC & AP & AUC \\
 \bottomrule
 \end{tabular}
 \caption{
-    Scores for the best top model on the validation set for each of the 7 hyperparameter configurations. 
-    These correspond to the maximum AP of each run in \Cref{fig:apauc_scatter}.
-    The first column (config name) provides the code for a particular training run used in the score scatter and box plots.
-    The next three columns correspond to the value of the varied hyperparameters that run.
-    Then the AP and AUC scores on the validation set are given. The final two
-    columns are the AP and AUC scores on the test set for these same
-    validation-maximizing models models. (The top AP score on the test set was
-    0.65, but it did not correspond to one of these validation runs used to
-    select models).
-    Qualitative examples on the test, validation, and training set are given in
-    \cref{fig:test_heatmaps_with_best_vali_model} all on the top-scoring
-    validation model listed here.
+%Scores for the best top model on the validation set for each of the 7 hyperparameter configurations.
+%These correspond to the maximum AP of each run in \Cref{fig:apauc_scatter}.
+%The first column (config name) provides the code for a particular training run used in the score scatter
+%  and box plots.
+%The next three columns correspond to the value of the varied hyperparameters that run.
+%Then the AP and AUC scores on the validation set are given.
+%The final two columns are the AP and AUC scores on the test set for these same validation-maximizing
+%  models models.
+%(The top AP score on the test set was 0.65, but it did not correspond to one of these validation runs
+%  used to select models).
+%Qualitative examples on the test, validation, and training set are given in
+%  \cref{fig:test_heatmaps_with_best_vali_model} all on the top-scoring validation model listed here.
+Results for the best-performing models on the validation set across 7 hyperparameter configurations.
+These results correspond to the maximum Average Precision (AP) scores shown in \Cref{fig:apauc_scatter}.
+The table provides detailed information about each configuration, including:
+1) Configuration name (first column): a unique code identifying each training run used in the score scatter and box plots.
+2) Varied hyperparameters (next three columns): specific values for learning rate, weight decay, and perturb scale that were used in each run.
+3) Validation set performance (AP and AUC scores): metrics evaluating the model's performance on the validation set.
+4) Test set performance (AP and AUC scores): metrics evaluating the model's performance on the test set using the same validation-maximizing models.
+Note that the top AP score over all models on the test set was 0.65, but it did not correspond to one of these validation runs used for model selection.
+Qualitative examples illustrating the performance of the top-scoring validation model listed here are provided in \cref{fig:test_heatmaps_with_best_vali_model}.
+%for the test, validation, and training sets.
 }
 \label{tab:parameters_and_results}
 \end{table*}
@@ -499,53 +510,56 @@ config name &   lr & weight\_decay & perterb\_scale & AP & AUC & AP & AUC \\
     python ~/code/shitspotter/dev/poc/estimate_train_resources.py
 \end{comment}
 
-Specifically, for each of the 7 hyperparameters we train the models for 163,840
-optimizer steps using a batch size of 24. We consider an "epoch" as 1,365
-steps, at which point we save a checkpoint, evaluate validation loss, and
-adjust learning rates. To keep disk usage reasonable, we only keep at least the
-top 5 lowest validation-loss checkpoints (training crashes and restarts
-sometimes left more checkpoints on disk, and these were also included in our
-evaluation).
+For each of the 7 hyperparameter combinations, we trained the model for 163,840 optimizer steps using a
+  batch size of 24.
+We defined an "epoch" as 1,365 steps, at which point we saved a checkpoint, evaluated validation loss, and
+  adjusted learning rates.
+To conserve disk space, we retained only the top 5 lowest-validation-loss checkpoints (although training
+  crashes and restarts sometimes resulted in additional checkpoints, which are included in our evaluation).
 
-Given these top-checkpoints on disk, we predict heatmaps for each image in the
-validation set. Given a threshold we perform binary classification on each
-pixel (poop-vs-background).  Then we rasterize the truth polygons at the same
-prediction resolution (1/2 the resolution of full images). These corresponding
-truth and predicted pixels are accumulated into a confusion matrix and 
-standard measures precision, recall, F1, etc... \cite{powers_evaluation_2011} 
-are computed for the specific threshold. By sweeping a threshold we can
-compute the average precision (AP) and the area under the ROC curve that plots
-recall to false positive rate (AUC). We compute all metrics with scikit-learn
-\cite{scikit-learn}. Due to the high number of true negative pixels we prefer
-the AP as the primary measure of model quality.
-
+Using the top-checkpoints, we predicted heatmaps for each image in the validation set.
+We then performed binary classification on each pixel (poop-vs-background) using a threshold.
+Next, we rasterized the truth polygons at the same prediction resolution (1/2 the resolution of full
+  images).
+The corresponding truth and predicted pixels were accumulated into a confusion matrix, allowing us to
+  compute standard metrics such as precision, recall, F1, etc.
+\cite{powers_evaluation_2011} for the specific threshold.
+By sweeping a range of thresholds, we calculated the average precision (AP) and the area under the ROC curve
+  that plots recall against false positive rate (AUC).
+We computed all metrics using scikit-learn \cite{scikit-learn}.
+Due to the high number of true negative pixels, we preferred AP as the primary measure of model quality.
+  
 %\subsubsection{Results}
 
-For each of the 7 training runs, we plot the AP and AUC of the top 5
-AP-maximizing results. We also make plot a box and whisker for these top 5
-results, which also serves to assign a color and label to each training run.
-These are shown in \Cref{fig:apauc_scatter}. Details about the top model for
-each run along with relevant hyperparameters for the training run are given in
-\Cref{tab:parameters_and_results}. This table also shows the results on the
-small --- but held out --- test set for the top model.
+We plotted the AP and AUC for the top 5 AP-maximizing results from each of the 7 training runs.
+We also created a box-and-whisker plot for these top 5 results, which assigned a color and label to each
+  training run.
+These plots are shown in \Cref{fig:apauc_scatter}.
+The details of the top model for each run, along with relevant hyperparameters for the training run, are
+  presented in \Cref{tab:parameters_and_results}.
+This table also includes the results on the small, held out, test set for the top model.
 
-These results show strong performance on the validation set with a maximum AP
-of $0.83$. However, while the test AP for this model is good, it is much lower
-with an AP of $0.5051$. To investigate why this is we turn towards examples.
+The results show strong performance on the validation set, with a maximum AP of $0.83$.
+However, while the test AP for this model is good, it is significantly lower at $0.5051$.
+To investigate this discrepancy, we turned to qualitative analysis.
 
-Qualitative results for the test, validation, and training set are shown in
-\cref{fig:test_heatmaps_with_best_vali_model}. These examples illustrate
-success and failure cases. The test and validation set both show clear
-responses to the objects of interest. However, the test set often fails on
-close up and partially-deteriorated poops. This hints at a bias in the dataset
-towards "fresh" poops taken from some distance.
+Qualitative results for the test, validation, and training sets are presented in
+  \cref{fig:test_heatmaps_with_best_vali_model}.
+These examples illustrate both success and failure cases.
+The test and validation sets show clear responses to objects of interest, but the test set often fails on
+  close-up and partially deteriorated poops.
+This suggests a bias in the dataset towards "fresh" poops taken from some distance.
 
-Notably the much larger training set also contains errors. This indicates that
-there is still more information that can be extracted from this dataset,
-perhaps with hard mining techniques. There are clear difficult cases in certain
-sticks, leafs, and dark areas on snow. We note that while compiling these
-results we discovered 14 cases where an object failed to be annotated, and it
-is likely that more are missed, but we believe these cases are rare.
+Notably, the much larger training set also contains errors, indicating that there is still more information
+  that can be extracted from this dataset, perhaps using hard mining techniques.
+There are clear difficult cases in certain sticks, leafs, and dark areas on snow.
+We note that while compiling these results, we discovered 14 cases where an object failed to be annotated,
+  and it is likely that more are missed, but we believe these cases are rare.
+
+Although focal loss was used, the current learning curriculum is likely under-weighting smaller distant
+  objects.
+Our pixelwise evaluation metric is biased against this, which is a current limitation of our approach.
+Future work evaluating this dataset on an object-detection level can remedy this.
 
 % If we found 14 cases, and we checked 1000 cases, and there is a 20%
 % probability we miss a case, how many more missed cases do we expect to have?
@@ -565,10 +579,6 @@ is likely that more are missed, but we believe these cases are rare.
 %Missed cases = 17.5 − 14 = 3.5 Missed cases=17.5−14=3.5
 %So, you would expect approximately 3 to 4 more missed cases.
 
-Even though focal loss was used, the current learning curriculum is likely
-under weighting smaller distant objects. Our pixelwise evaluation metric is
-biased against it, which is a current limitation.
-
 \begin{figure*}[ht]
 \centering
 \includegraphics[width=1.0\textwidth]{figures/test_heatmaps_with_best_vali_model}%
@@ -581,24 +591,26 @@ biased against it, which is a current limitation.
 \hfill
 (c) training set
 \caption[]{
-    Qualitative results using the highest scoring model on the validation set
-    on a selection of images from (a) the test test, (b) the validation set and
-    (c) the training set.
-    Success cases are on the left, and failures increase towards the right.
+    Qualitative results using the top-performing model on the validation set, applied to a selection of images
+      from the (a) test, (b) validation, and (c) training sets.
+    Success cases are presented on the left, with failure cases increasing towards the right.
     %
-    In each figure, the top rows shows true positive pixels in white, false
-    positive pixels in red, false negative pixels in teal, and true negative
-    pixels in black.  For visualization purposes, the threshold to binarize the
-    prediction is chosen to maximize the F1 for each image, thus the top row is
-    in some sense the best possible classification of the heatmap, which is
-    shown in the middle row. The final row is the input image.
+    Each figure is organized into three rows:
     %
-    Most images in the (small, 30 image) test set are qualitatively good.
-    Failure cases are limited to close up images of older sometimes
-    partially-deteriorated poops.
-
-    These examples were manually selected and ordered by hand. (could recompute
-    the order based on some measure).
+    Top row:
+    Binarized classification map, where true positive pixels are shown in white, false positives in red, false
+      negatives in teal, and true negatives in black.
+    The threshold for binarization was chosen to maximize the F1 score for each image, showcasing the best
+      possible classification of the heatmap.
+    Middle row:
+    The predicted heatmap, illustrating the model's output before binarization.
+    Bottom row:
+    The input image, providing context for the prediction.
+    %
+    The majority of images in the test set (small, 30-image dataset) exhibit qualitatively good results.
+    Failure cases tend to occur with close-up images of older, sometimes partially deteriorated poops.
+    These examples were manually selected and ordered.
+    % (could recompute the order based on some measure).
 }
 \label{fig:test_heatmaps_with_best_vali_model}
 \end{figure*}
@@ -711,21 +723,33 @@ Train rows marked with an asterisk (*) are based on indirect measurements.
 \end{table}
 
 All models were trained on a single machine with an 11900k CPU and a 3090 GPU.
-At predict time, using one background worker, our models processed 416 $\times$
-416 patches at a rate of 20.93Hz with 94\% GPU utilization.
+At predict time, using one background worker, our models processed 416 $\times$ 416 patches at a rate of
+  20.93Hz with 94\% GPU utilization.
 
-We measure the predict and evaluation resource usage using CodeCarbon
-\cite{lacoste2019codecarbon}.
-The resource utilization for the presented 7 training experiments and the 42
-total training experiments are reported in
- \Cref{tab:resources}. 
+To better understand the energy requirements of our model, particularly for potential deployment on mobile
+  devices, we used CodeCarbon \cite{lacoste2019codecarbon} to measure the resource usage during prediction and
+  evaluation.
+This analysis not only informs practical considerations but also helps us assess our contribution to the
+  growing carbon footprint of AI \cite{kirkpatrick_carbon_2023}.
+The results for the 7 presented training experiments and the total 42 training experiments are reported in
+  \Cref{tab:resources}.
+
 % See: ./scripts/estimate_training_resources.py
-Direct measurement of resource usage during training is still under
-development. However, we estimate the duration of each training run using
-indirect methods. Electricity consumption is approximated by assuming the
-observed 345W of power draw of from the 3090 GPU during training is constant.
-Emissions are calculated using a conversion ratio of 0.21 from kilowatt hours
-to kilograms of \cotwo{}.
+Direct measurement of resource usage during training is still under development, but we estimate the
+  duration of each training run using indirect methods.
+We approximate electricity consumption by assuming a constant power draw of 345W from the 3090 GPU during
+  training.
+Emissions are calculated using a conversion ratio of 0.21 $\frac{\textrm{kg}\cotwo{}}{\textrm{kWh}}$.
+  
+Based on the validation set's 691 images, we estimate that predicting on a single image on our desktop
+  requires approximately 1.15 seconds and 0.13 Wh of electricity.
+For context, typical mobile phones have a battery capacity of around 10 Wh and significantly less compute
+  power than our desktop setup.
+While our models demonstrate the feasibility of training a strong detector from our dataset, they are not
+  optimized for the mobile setting.
+To deploy our model on mobile devices, we will need to improve its efficiency or explore more efficient
+  architectures.
+
 
 %However, the experiments presented here were not the only ones performed in
 %determining the hyperparameters we held constant here. 
@@ -853,26 +877,27 @@ This makes it an strong candidate for a decentralized distribution mechanism.
 On the other hand, IPFS (InterPlanetary File System) \cite{benet_ipfs_2014, bieri_overview_2021} is a newer
   but similar tool directly build directly on the Kademlia algorithm.
 IPFS has been likened to "a single BitTorrent swarm, exchanging objects within one Git repository".
-All data down to the block level is content addressable and stored in a Merkle DAG, which can simplify data
-  versioning compared to using a torrent.
-However, both IPFS and BitTorrent are effectively content addressable at the dataset level, which makes them
-  both appropriate for our use case where we seek a static address that can be used to robustly access data.
+%All data down to the block level is content addressable and stored in a Merkle DAG, which can simplify data
+%  versioning compared to using a torrent.
+%However, both IPFS and BitTorrent are effectively content addressable at the dataset level, which makes them
+%  both appropriate for our use case where we seek a static address that can be used to robustly access data.
+Both IPFS and BitTorrent are effectively content addressable at the dataset level, which makes them both
+  appropriate for our use case where we seek a static address that can be used to robustly access data.
+
 
 The specific version of the dataset used in this paper was snap-shotted on
 2024-07-03 and has the IPFS CID (content identifier) of:
-
-\begin{lstlisting}[basicstyle=\normalsize]
-bafybeiedwp2zvmdyb2c2axrcl455x
-fbv2mgdbhgkc3dile4dftiimwth2y
-\end{lstlisting}
-
+{\tt bafybeiedwp2zvmdyb2c2axrcl455x fbv2mgdbhgkc3dile4dftiimwth2y}
+%\begin{lstlisting}[basicstyle=\normalsize]
+%bafybeiedwp2zvmdyb2c2axrcl455x
+%fbv2mgdbhgkc3dile4dftiimwth2y
+%\end{lstlisting}
 The torrent is tracked on Academic Torrents \cite{academic_torrents_Cohen2014}
-in addition to the DHT and has a magnet URL of:
-
-\begin{lstlisting}[basicstyle=\normalsize]
+in addition to the DHT and has a magnet URL of: {\tt 
 magnet:?xt=urn:btih:
-ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49
-\end{lstlisting}
+ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49}.
+%\begin{lstlisting}[basicstyle=\normalsize]
+%\end{lstlisting}
 
 For researchers and developers, the key practical concern is how quickly and reliably data can be accessed
   given an address.
@@ -886,19 +911,19 @@ By comparing IPFS, BitTorrent, and centralized mechanisms, we aim to identify th
 \begin{table}[t]
 \begin{tabular}{llllll}
 \toprule
-{} & num &   mean &    std &   min &    max \\
-method        &       &        &        &       &        \\
+{}      & num &   mean &    std &   min &    max \\
+method         &       &        &       &       & \\
 \midrule
-BitTorrent & 5 & 8.36 & 5.16 & 2.21 & 14.39 \\
-IPFS & 3 & 4.14 & 2.13 & 1.80 & 5.96 \\
-Girder & 3 & 1.24 & 0.16 & 1.05 & 1.33 \\
-Rsync & 2 & 4.60 & 2.12 & 3.10 & 6.10 \\
+BitTorrent & 5 &  8.36 &   5.16 &  2.21 & 14.39 \\
+IPFS       & 4 &  7.19 &   6.35 &  1.80 & 16.35 \\
+Girder     & 3 &  1.24 &   0.16 &  1.05 & 1.33 \\
+Rsync      & 3 &  4.27 &   1.61 &  3.10 & 6.10 \\
 \bottomrule
 \end{tabular}
 \caption[]{
 Transfer times (in hours) for a 42GB dataset, averaged over multiple trials (indicated in the "num" column).
 The centralized mechanisms, Girder and Rsync, tend to exhibit faster transfer times compared to the
-  decentralized mechanisms, IPFS and BitTorrent
+  decentralized mechanisms, IPFS and BitTorrent for the case where few seeders are available.
 }
 \label{tab:transfertime}
 \end{table}
@@ -906,7 +931,7 @@ The centralized mechanisms, Girder and Rsync, tend to exhibit faster transfer ti
 Our third contribution is an exploration and observational study of decentralized and centralized data
   distribution methods.
 To assess the effectiveness of each mechanism we programmatically download the 42GB 2024-07-03 version of
-  the "shitspotter" dataset and measure the time required to complete the transfer.
+  the "ShitSpotter" dataset and measure the time required to complete the transfer.
 Each experiment is run multiple times in order to compile statistics.
 
 In all tests, the source and destination machines are separated by approximately 30 kilometers, with an
@@ -1015,23 +1040,24 @@ Common ones include:
 ImageNet LSRV2017 \cite{ILSVRC15} (166GB), MSCOCO-2017 \cite{lin_microsoft_2014} (50GB), CityScapes dataset
   \cite{cordts2015cityscapes} (78GB).
 %Object detection
-But ours is the largest publicly available poop dataset that we are aware of.
-However, it is not the first.
-A dataset of 100 dog poop images was collected and used to train a FasterRCNN model in 2019 but this dataset
-  and model are not publicly available \cite{neeraj_madan_dog_2019}.
+However ours is the largest publicly available poop dataset that we are aware of.
+
+While our 42GB dataset is the largest, it is not the first.
+A dataset of 100 dog poop images was collected and used to train a FasterRCNN model in 2019
+  \cite{neeraj_madan_dog_2019} but this dataset and model are not publicly available.
 The MSHIT dataset \cite{mshit_2020} consists of 3.89GB of real images with fake poop (e.g.
 plastic poop) in controlled environments.
 The company iRobot has a dataset of annotated indoor poop images used to train Roomba j7+ to avoid
-  collisions, but as far as we are aware, this is not available \cite{roomba_2021}.
+  collisions \cite{roomba_2021}, but as far as we are aware, this is not available.
 
 There are also smaller waste detection related datasets.
 %Waste detection is an important problem but with relatively few open datasets.
 %  https://paperswithcode.com/dataset/zerowaste
-The ZeroWaste dataset \cite{bashkirova_zerowaste_2022} contains 1,800 segmented
-video frames and 6,000 unlabeled frames in a recycling facility.
+The ZeroWaste dataset \cite{bashkirova_zerowaste_2022} (9.9GB) contains 1,800 segmented video frames and
+  6,000 unlabeled frames in a recycling facility, and they also use a similar "before/after" protocol.
 % https://paperswithcode.com/dataset/taco
-The TACO dataset \cite{proenca_taco_2020} is another "living" dataset
-containing 1,500 images with 4,784 annotations over 60 classes.
+The TACO dataset \cite{proenca_taco_2020} (17GB) is another "living" dataset containing 1,500 images with
+  4,784 polygon annotations over 60 classes.
 % TrashCan https://paperswithcode.com/dataset/trashcan
 % Top Datasets on paperwith code
 % https://paperswithcode.com/datasets?mod=images&task=semantic-segmentation&page=2
@@ -1046,8 +1072,10 @@ containing 1,500 images with 4,784 annotations over 60 classes.
 % 102 train images, 22 validation images, 0 test images.
 % human poop
 IPFS and BitTorrent are the decentralized distribution mechanism we evaluate, but there are others such as
-  Secure Scuttlebut \cite{tarr_secure_2019} and hypercore \cite{frazee_dep-0002_nodate}, which we did not
-  consider.
+  Secure Scuttlebut \cite{tarr_secure_2019} and Hypercore \cite{frazee_dep-0002_nodate}, which we did not
+  test.
+
+  % Is hypercore dat? https://dat-ecosystem.org/ https://datproject.org/
 
 % Very good overview and comparison of the protocols
 % https://blog.mauve.moe/posts/protocol-comparisons
@@ -1058,37 +1086,46 @@ IPFS and BitTorrent are the decentralized distribution mechanism we evaluate, bu
 
 \section{Conclusion}
 
-The ShitSpotter dataset is 42GB of high resolution images with polygon segmentations of dog poop, collected
-  with a "before/after/negative" protocol.
+We have introduced ShitSpotter, the largest open dataset of high resolution images with polygon
+  segmentations of dog poop, collected with a "before/after/negative" protocol.
 The dataset contains several challenges including amorphous objects, multi-season variation, difficult
-  distractors, daytime / nighttime variation, etc...
+  distractors, daytime / nighttime variation.
 We have described the dataset collection and annotation process and reported statistics on the dataset.
 
-We provide a recommended train/validation/test split of the dataset, and using this we train and evaluate
+We provided a recommended train/validation/test split of the dataset, and used this to train and evaluate
   several baseline segmentation models, the best of which achieves a pixelwise AP of 0.83 on the validation
   set and 0.51 on the test set.
 In addition to providing quantitative and qualitative results of the models, we also report the resources
   required to perform these training, prediction, and evaluation experiments.
 
-We publish our data and models under a permissive license, and these available over 1 centralized
-  distribution mechanism:
-Girder, and 2 decentralized mechanisms:
-BitTorrent and IPFS.
-We compared the data-access times of these methods and determined that
-  decentralized methods have worse, but sometimes comparable speeds.
-  However, the major pain point is peer discovery, which 
-  can be too long if there are not many seeders.
+We have published our data and models under a permissive license, and made them available through both
+  centralized (Girder) and decentralized (BitTorrent and IPFS) mechanisms.
+Our evaluation of these distribution methods revealed that while decentralized approaches offer strong data
+  integrity guarantees and content addressable storage that is resistant to dead URLs, data access time can be
+  slower compared to centralized ones, they are often hindered by long peer discovery times when few seeders
+  are available.
 
-Directions for future research / development are:
-1) Add lightweight object-level head and test object detection metrics.
-2) Optimize model architectures for mobile devices.
-3) Launch phone application.
-4) Improve model / data distribution.
+Looking towards the future, our planned directions for research and development are:
+1) Extending our segmentation with an object detection head and evaluating object-detection metrics.
+2) Training a model optimized for mobile devices.
+3) Mine hard negatives based on false positives in the training set.
+4) Build and publish a phone application that uses the mobile-optimized model to detect poop in real time.
+% https://github.com/iterative/dvc/discussions/6777
 
+We envision exciting possibilities for the "before/after/negative" protocol in computer vision research.
+We hope our work will inspire others to adopt decentralized content addressable data sharing, fostering open
+  collaboration and reproducible experiments.
+Furthermore, we encourage the community to track experimental resource usage to better understand and offset
+  our experiments' environmental impact.
+Moreover, we aspire for our dataset to enable the creation of poop-aware applications.
+Ultimately, our goal is for this research to contribute meaningfully to the advancement of computer vision
+  and have a positive impact on society.
+  
+  
 \section{Acknowledgements}
-We would would like to thank all of the data producers for making this dataset possible, all of the
-  contributors for helping to construct a challenging test set, and, and Anthony Hoogs for the suggestion to
-  take a 3rd negative picture.
+We would would like to thank all of the dogs that produced subject matter for the dataset, all of the
+  contributors for helping to construct a challenging test set, and Anthony Hoogs for the suggestion to take a
+  third negative picture.
 
 
 %%%%%%%%% REFERENCES
