@@ -31,13 +31,13 @@ def main():
         'patterns': [
             kwutil.Pattern.from_regex('Jon Crall', ignorecase=True),
             kwutil.Pattern.from_regex('joncrall', ignorecase=True),
+            kwutil.Pattern.from_regex('erotemic', ignorecase=True),
             kwutil.Pattern.from_regex('jon.crall', ignorecase=True),
             kwutil.Pattern.from_regex('Jonathan Crall', ignorecase=True),
         ],
         'replacement': '<ANONIMIZED_AUTHOR>',
     })
 
-    idenfifiers = []
     idenfifiers.append({
         'patterns': [
             kwutil.Pattern.from_regex('albany', ignorecase=True),
@@ -54,6 +54,9 @@ def main():
         'replacement': '<ANONIMIZED_ORGANIZATION>',
     })
 
+    for p in anon_dpath.glob('*'):
+        p.delete()
+
     for rel_path in tracked_rel_paths:
         src_path = repo_dpath / rel_path
         if src_path.name in blocklist:
@@ -65,6 +68,12 @@ def main():
             for idpats in idenfifiers:
                 for pat in idpats['patterns']:
                     text = pat.sub(idpats['replacement'], text)
+            for idpats in idenfifiers:
+                for pat in idpats['patterns']:
+                    if pat.search(text):
+                        raise Exception
             if text != orig_text:
                 print(f'Anonimized rel_path={rel_path}')
                 print(xdev.difftext(orig_text, text, colored=True, context_lines=3))
+            dst_path.parent.ensuredir()
+            dst_path.write_text(text)
