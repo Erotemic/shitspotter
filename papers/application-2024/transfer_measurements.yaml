@@ -61,6 +61,10 @@ network_measurements:
     origins.piece_count: 20454
     origins.piece_size: 2.00 MiB
     status: outlier
+    notes: |-
+      This download never fully finished, so we are marking it as an outlier
+      becaus we don't know when it effectively completed, and it also is not
+      the V3 torrent we are considering as the first correcty created torrent.
 
   - recording_time: 2024-08-06T192625-5
     action: transfer
@@ -350,8 +354,11 @@ network_measurements:
       # Force it to connect to jojo (on 2024-08-15T115624-5)
       ipfs swarm connect /p2p/12D3KooWCFcfiBevjQD42aRAELMUZXAGScRiN2NcAthokF4dMnVU
     notes: |-
-      After nearly a day of waiting, it still did not find my node
-    status: outlier
+      After nearly a day of waiting, it still did not find my node.
+      This did end up completing, but it required manual intervention.
+      Maybe we should not mark it as an outlier?
+    #status: outlier
+    status: success
     duration: 1477m19.885s
     time.real: 1477m19.885s
     time.user: 0m18.891s
@@ -618,7 +625,7 @@ network_measurements:
     action: transfer
     method: ipfs
     src_machine: jojo/ipfs
-    dst_machine: calculex
+    dst_machine: namek
     multiple_seeders: likely
     command: |-
       cat /etc/systemd/system/ipfs.service
@@ -658,7 +665,7 @@ network_measurements:
     action: transfer
     method: ipfs
     src_machine: jojo/ipfs
-    dst_machine: calculex
+    dst_machine: namek
     multiple_seeders: likely
     duration: null
     status: null
@@ -669,13 +676,18 @@ network_measurements:
       ipfs repo gc
       # Then start the timed download
       date && time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y && date
-    notes:
+    notes: |-
       140449 blocks at Sun Aug 25 12:24:35 AM EDT 2024
       140449 blocks at Sun Aug 25 11:56:01 AM EDT 2024
       something is getting stuck, it looks like the ifps deamon on the ipfs
       server died, and its not able to grab the data from jojo for some reason?
       # Force it to connect to ipfs (on Sun Aug 25 12:34:56 PM EDT 2024)
       ipfs swarm connect /p2p/12D3KooWPyQK2JEXnqK1QxiV9Y7bG3UsUQC5iQvDxn8bV1uqvsbi
+      # Tried to force ipfs to connect to namek
+      ipfs swarm connect /p2p/12D3KooWSre9Gae5KGxiot65NZwKUaHRE4S9a3ckvurHRZ8ga6gy
+      # Restart ipfs on jojo and ifps
+      # Force jojo connect
+      ipfs swarm connect /p2p/12D3KooWCFcfiBevjQD42aRAELMUZXAGScRiN2NcAthokF4dMnVU
     time.start_date: Sat 24 Aug 2024 05:54:46 PM EDT
       
 .__taildoc__: |-

@@ -414,24 +414,24 @@ This setup consumes approximately 20 GB of GPU RAM during training.
 
 \subsection{Model Experiments}
 
-In order to find a strong baseline we evaluated 35 different hyperparamter training runs over different
-  input resolutions, window sizes, model depth, and other parameters in a somewhat ad-hoc manner.
-Taking the best hyperparameters from that search, we perform a sweep over 7 combinations of learning rate,
-  weight decay, and perterb scale (i.e.
-shrink and perterb \cite{ash_warm_starting_2020}).
-Scripts to reproduce these experiments as well as a log of the ad-hoc experiments are in the code repo.
-Models are also distributed with information about how they were trained.
+%In order to find a strong baseline we evaluated 35 different hyperparamter training runs over different
+%  input resolutions, window sizes, model depth, and other parameters in a somewhat ad-hoc manner.
+%Taking the best hyperparameters from that search, we perform a sweep over 7 combinations of learning rate,
+%  weight decay, and perterb scale (i.e.
+%shrink and perterb \cite{ash_warm_starting_2020}).
+%Scripts to reproduce these experiments as well as a log of the ad-hoc experiments are in the code repo.
+%Models are also distributed with information about how they were trained.
 %using stochastic engineer descent.
 
 To establish a strong baseline, we evaluated 35 training runs where we varied input resolutions, window
   sizes, model depth, and other parameters.
-Although this initial search was somewhat ad-hoc, it provided valuable insights into the optimal
-  configuration for our model.
+Although this initial search was somewhat ad-hoc, it provided insights into the optimal configuration for
+  our model.
 Building on the best hyperparameters from this search, we performed a sweep over 7 combinations of learning
   rate, weight decay, and perturb scale (i.e., shrink and perturb \cite{ash_warm_starting_2020}).
-The scripts used to reproduce these experiments, as well as a log of the ad-hoc experiments, are available
-  in the code repository.
-Additionally, the trained models are packaged and distributed with information about their training
+Scripts used to reproduce these experiments, as well as a log of the ad-hoc experiments, are available in
+  the code repository.
+Additionally, trained models are packaged and distributed with information about their training
   configuration.
 
 
@@ -447,13 +447,13 @@ Additionally, the trained models are packaged and distributed with information a
 (b) AP of 35 checkpoints.
 
 \caption[]{
-    (a) Scatterplot illustrating pixelwise Average Precision (AP) and Area Under the Curve (AUC) for the top
-      5 checkpoints evaluated on the validation set.
+    (a) Scatterplot of pixelwise average precision (AP) and Area Under the ROC curve (AUC) for the top
+      5 checkpoints on the validation set.
     Points of the same color represent checkpoints from the same training run, which used identical
       hyperparameters.
-    (b) Box-and-whisker plot showing the distribution of AP values across the top 5 checkpoints evaluated on
+    (b) Box-and-whisker plot the AP values across the top 5 checkpoints evaluated on
       the validation set.
-    The corresponding hyperparameter settings and maximum AP scores for each run are detailed in
+    For each run, corresponding varied hyperparameters and maximum APs are given in
       \Cref{tab:parameters_and_results}.
 }
 \label{fig:apauc_scatter}
@@ -519,42 +519,42 @@ To conserve disk space, we retained only the top 5 lowest-validation-loss checkp
 
 Using the top-checkpoints, we predicted heatmaps for each image in the validation set.
 We then performed binary classification on each pixel (poop-vs-background) using a threshold.
-Next, we rasterized the truth polygons at the same prediction resolution (1/2 the resolution of full
-  images).
+Next, we rasterized the truth polygons.
 The corresponding truth and predicted pixels were accumulated into a confusion matrix, allowing us to
-  compute standard metrics such as precision, recall, F1, etc.
+  compute standard metrics such as precision, recall, false positive rate, etc.
 \cite{powers_evaluation_2011} for the specific threshold.
 By sweeping a range of thresholds, we calculated the average precision (AP) and the area under the ROC curve
-  that plots recall against false positive rate (AUC).
+  (AUC).
 We computed all metrics using scikit-learn \cite{scikit-learn}.
 Due to the high number of true negative pixels, we preferred AP as the primary measure of model quality.
   
 %\subsubsection{Results}
 
-We plotted the AP and AUC for the top 5 AP-maximizing results from each of the 7 training runs.
-We also created a box-and-whisker plot for these top 5 results, which assigned a color and label to each
-  training run.
+We plotted the AP and AUC on the validation set for the top 5 AP-maximizing results from each of the 7
+  training runs.
+We also created a box-and-whisker plot for these top 5 results, which serves to assign a color and label to
+  each training run.
 These plots are shown in \Cref{fig:apauc_scatter}.
-The details of the top model for each run, along with relevant hyperparameters for the training run, are
-  presented in \Cref{tab:parameters_and_results}.
+The details of the top model for each run, along with relevant hyperparameters, are presented in
+  \Cref{tab:parameters_and_results}.
 This table also includes the results on the small, held out, test set for the top model.
 
 The results show strong performance on the validation set, with a maximum AP of $0.83$.
-However, while the test AP for this model is good, it is significantly lower at $0.5051$.
+However, while the test AP for this model is good, it is significantly lower at $0.51$.
 To investigate this discrepancy, we turned to qualitative analysis.
 
 Qualitative results for the test, validation, and training sets are presented in
   \cref{fig:test_heatmaps_with_best_vali_model}.
 These examples illustrate both success and failure cases.
-The test and validation sets show clear responses to objects of interest, but the test set often fails on
-  close-up and partially deteriorated poops.
+The test and validation sets show clear responses to objects of interest, but the test set contains images
+  of close-up and partially deteriorated poops.
 This suggests a bias in the dataset towards "fresh" poops taken from some distance.
 
-Notably, the much larger training set also contains errors, indicating that there is still more information
-  that can be extracted from this dataset, perhaps using hard mining techniques.
-There are clear difficult cases in certain sticks, leafs, and dark areas on snow.
-We note that while compiling these results, we discovered 14 cases where an object failed to be annotated,
-  and it is likely that more are missed, but we believe these cases are rare.
+Notably, the much larger training set also contains errors, indicating more information can be extracted
+  from this dataset, perhaps using hard mining techniques.
+There are clear difficult cases caused by sticks, leafs, pine cones, and dark areas on snow.
+We note that while compiling these results, we checked over 1000 images and discovered 14 cases where an
+  object failed to be annotated, and it is likely that more are missed, but we believe these cases are rare.
 
 Although focal loss was used, the current learning curriculum is likely under-weighting smaller distant
   objects.
@@ -615,10 +615,6 @@ Future work evaluating this dataset on an object-detection level can remedy this
 \label{fig:test_heatmaps_with_best_vali_model}
 \end{figure*}
 
-
-\subsubsection{Resource Usage}
-
-
 \begin{comment}
 import kwutil
 print(round(kwutil.timedelta.coerce('07:52:02').to_pint().to('hours'), 2))
@@ -653,11 +649,11 @@ print(round(kwutil.timedelta.coerce('00:27:31').to_pint().to('hours'), 2))
         node & resource &           total &            mean &  num \\
 \midrule
 eval        & time         & 7.87 hours     &  0.22 hours     &   35 \\
-\midrule
+\rule{0pt}{2ex}%
 pred        & time         & 4.39 hours     &  0.13 hours     &   35 \\
 pred        & electricity  & 3.17 kWh       &  0.09 kWh       &   35 \\
 pred        & emissions    & 0.67 \cotwo kg &  0.02 \cotwo kg &   35 \\
-\midrule
+\rule{0pt}{2ex}%
 train$^{*}$ & time         & 39.22 days      & 5.60 days      &   7 \\
 train$^{*}$ & electricity  & 324.75 kWh      & 46.39 kWh      &   7 \\
 train$^{*}$ & emissions    & 68.20 \cotwo kg & 9.74 \cotwo kg &   7 \\
@@ -674,11 +670,11 @@ train$^{*}$ & emissions    & 68.20 \cotwo kg & 9.74 \cotwo kg &   7 \\
 % parameters.
 % eval & time & 4 days 14:18:23 & 00:20:07 &  330 \\
 eval        & time        & 4.6 days        & 0.34 hours     &  329 \\
-\midrule
+\rule{0pt}{2ex}%
 pred        & time        & 6.29 days       & 0.46 hours     &  329 \\
 pred        & electricity & 85.31 kWh       & 0.26 kWh       &  329 \\
 pred        & emissions   & 17.95 \cotwo kg & 0.05 \cotwo kg &  329 \\
-\midrule
+\rule{0pt}{2ex}%
 train$^{*}$ & time        & 158.95 days      &     3.78 days  &   42 \\
 train$^{*}$ & electricity & 1,316.07 kWh      &     31.34 kWh  &   42 \\
 train$^{*}$ & emissions   & 276.37 \cotwo kg & 6.58 \cotwo kg &   42 \\
@@ -686,13 +682,12 @@ train$^{*}$ & emissions   & 276.37 \cotwo kg & 6.58 \cotwo kg &   42 \\
 \end{tabular}
 (b) all experiment resources
 \caption[]{
-Resources used for training, prediction, and evaluation are detailed in two tables:
-(a) resources for the presented evaluations, and (b) resources for prior hyperparameter tuning.
-The left column identifies the pipeline stage:
+Resources used for training, prediction, and evaluation are detailed:
+(a) resources for the presented evaluations, and (b) resources for all hyperparameter tuning.
+The "node" column is the pipeline stage:
 "train" for training, "pred" for heatmap prediction, and "eval" for pixelwise heatmap evaluation.
-The second column lists the resource type: time (in days or hours), electricity (in kWh), or emissions (in
-  kg of \cotwo{}).
-The following columns show the total and average consumptions, and the final column indicates the
+The "resource" column lists the resource type: time, electricity, or emissions.
+The "total" and "mean" columns show the total and average consumptions, and the "num" column indicates the
   frequency of each stage (e.g., across different hyperparameters).
 Train rows marked with an asterisk (*) are based on indirect measurements.
 %Time estimates are based on timestamps from checkpoint files.
@@ -721,6 +716,10 @@ Train rows marked with an asterisk (*) are based on indirect measurements.
 }
 \label{tab:resources}
 \end{table}
+
+
+
+\subsubsection{Resource Usage}
 
 All models were trained on a single machine with an 11900k CPU and a 3090 GPU.
 At predict time, using one background worker, our models processed 416 $\times$ 416 patches at a rate of
@@ -840,12 +839,11 @@ To deploy our model on mobile devices, we will need to improve its efficiency or
 % BitTorrent can be vulnerable to MITM:
 % https://www.reddit.com/r/technology/comments/1dpinuw/south_korean_telecom_company_attacks_torrent/
 
-The well-documented reproducibility "crisis" in science has raised significant concerns across various
-  disciplines \cite{baker_reproducibility_2016}.
-Ideally, all scientific research should be independently reproducible; however, even in computer science,
-  reproducibility success rates are reported to be around 60\%.
-Although this is higher than in other fields, there is still room for improvement
-  \cite{NEURIPS2019_c429429b, collberg2016repeatability, desai_what_2024}.
+The reproducibility "crisis" in science has raised concerns across various disciplines
+  \cite{baker_reproducibility_2016}.
+Ideally, all scientific research should be independently reproducible.
+Despite higher success rates in computer science (up to 60\%) compared to other fields, there is still room for improvement
+\cite{NEURIPS2019_c429429b, collberg2016repeatability, desai_what_2024}.
 Addressing this issue requires not just better experimental documentation but also more reliable and
   accessible data distribution methods.
 Specifically, this involves robustly codifying data download and preparation processes.
@@ -855,19 +853,22 @@ Centralized data distribution methods allow for codified data access by storing 
   within the code, offering fast and direct access.
 However, this approach lacks robustness.
 It can fail if the provider goes offline, changes the URL, or stops hosting the data.
-Additionally, cloud storage can be expensive for providers, and users must trust that the provider delivers
-  the correct data --- a risk that can be mitigated by using checksums to verify data integrity, though this
-  adds an extra step for experiment designers.
+Additionally, cloud storage can be expensive, and users must trust that the provider delivers the correct
+  data --- a risk that can be mitigated by using checksums to verify data integrity.
+  %though this adds an extra
+  %step for experiment designers.
 
-In contrast, decentralized methods offer greater data longevity, accessibility, and integrity.
+In contrast, decentralized methods allow users to access data in the same way, even if the organization
+  hosting the data changes.
+%offer greater data longevity, accessibility, and integrity.
 By leveraging content-addressable storage, where the dataset checksum acts as both the key to locate and
-  validate the data, these methods ensure data integrity and eliminate the risk of dead URLs, provided that at
-  least one peer retains the data.
+  validate the data, these methods ensure data integrity and nearly eliminate the risk of dead URLs, provided
+  that at least one peer retains the data.
 While decentralized systems face challenges such as longer connection times, increased network overhead, and
-  the need for a robust peer network, their ability to ensure data accessibility in ways that centralized
-  methods cannot motivates our investigation
+  the need for a robust peer network, their ability to ensure data accessibility via a static address
+  motivates our investigation
 
-Our investigation focuses on two prominent candidates for decentralized data sharing:
+Specifically, we focus on two prominent candidates:
 BitTorrent and IPFS.
 BitTorrent \cite{cohen_incentives_2003, cohen_bittorrent_2017} is a well known sharing protocol that
   originally relied on centralized trackers and databases of torrent files to connect peers.
@@ -875,35 +876,36 @@ While trackers and torrent files are still prominent, torrents can be published 
   (DHT) using the Kademlia algorithm \cite{maymounkov_kademlia_2002}.
 This makes it an strong candidate for a decentralized distribution mechanism.
 On the other hand, IPFS (InterPlanetary File System) \cite{benet_ipfs_2014, bieri_overview_2021} is a newer
-  but similar tool directly build directly on the Kademlia algorithm.
+  tool directly build directly on a DHT.
 IPFS has been likened to "a single BitTorrent swarm, exchanging objects within one Git repository".
 %All data down to the block level is content addressable and stored in a Merkle DAG, which can simplify data
 %  versioning compared to using a torrent.
 %However, both IPFS and BitTorrent are effectively content addressable at the dataset level, which makes them
 %  both appropriate for our use case where we seek a static address that can be used to robustly access data.
-Both IPFS and BitTorrent are effectively content addressable at the dataset level, which makes them both
-  appropriate for our use case where we seek a static address that can be used to robustly access data.
+Both IPFS and BitTorrent are content addressable at the dataset level, which makes them both appropriate for
+  our use case where we seek a static address that can be used to robustly access data.
 
 
-The specific version of the dataset used in this paper was snap-shotted on
-2024-07-03 and has the IPFS CID (content identifier) of:
-{\tt bafybeiedwp2zvmdyb2c2axrcl455x fbv2mgdbhgkc3dile4dftiimwth2y}
+The specific 2024-07-03 version of the dataset used in this paper has the IPFS CID (content identifier) of:
+{\tt bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhg kc3dile4dftiimwth2y}.
 %\begin{lstlisting}[basicstyle=\normalsize]
 %bafybeiedwp2zvmdyb2c2axrcl455x
 %fbv2mgdbhgkc3dile4dftiimwth2y
 %\end{lstlisting}
-The torrent is tracked on Academic Torrents \cite{academic_torrents_Cohen2014}
-in addition to the DHT and has a magnet URL of: {\tt 
-magnet:?xt=urn:btih:
-ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49}.
+The torrent has a magnet URL of:
+{\tt magnet:?xt=urn:btih:ee8d2c87a39ea9bfe 48bef7eb4ca12eb68852c49}, and is 
+tracked on Academic Torrents \cite{academic_torrents_Cohen2014}.
 %\begin{lstlisting}[basicstyle=\normalsize]
 %\end{lstlisting}
 
-For researchers and developers, the key practical concern is how quickly and reliably data can be accessed
-  given an address.
-By comparing IPFS, BitTorrent, and centralized mechanisms, we aim to identify the most effective method for
-  ensuring that scientific datasets remain accessible and reproducible over time, thereby contributing to
-  improved reproducibility in scientific research
+For practitioners, the key practical concern is how quickly and reliably data can be accessed.
+By comparing IPFS, BitTorrent, and centralized mechanisms access times for our dataset, we aim to make
+  explicit the tradeoffs between the methods to help others make an informed choice about adopting
+  decentralized methods.
+
+%identify the most effective method for
+%  ensuring that scientific datasets remain accessible and reproducible over time, thereby contributing to
+%  improved reproducibility in scientific research
 
 
 \subsection{Distribution Observational Study}
@@ -921,75 +923,80 @@ Rsync      & 3 &  4.27 &   1.61 &  3.10 & 6.10 \\
 \bottomrule
 \end{tabular}
 \caption[]{
-Transfer times (in hours) for a 42GB dataset, averaged over multiple trials (indicated in the "num" column).
-The centralized mechanisms, Girder and Rsync, tend to exhibit faster transfer times compared to the
-  decentralized mechanisms, IPFS and BitTorrent for the case where few seeders are available.
+Transfer times (in hours) for our 42GB dataset, averaged over multiple trials (indicated in the "num" column).
+Girder and Rsync, tend to exhibit faster less varied transfer times compared to
+the IPFS and BitTorrent when few seeders are available.
 }
 \label{tab:transfertime}
 \end{table}
 
-Our third contribution is an exploration and observational study of decentralized and centralized data
-  distribution methods.
-To assess the effectiveness of each mechanism we programmatically download the 42GB 2024-07-03 version of
-  the "ShitSpotter" dataset and measure the time required to complete the transfer.
-Each experiment is run multiple times in order to compile statistics.
+Our third contribution is an observational study of decentralized and centralized data distribution methods.
+For centralized distribution, we use a self-hosted instance of Girder
+  \cite{girder_2024}.
+For decentralized clients, we use Transmission \cite{transmission_2024} (BitTorrent)
+  and Kubo \cite{ipfskubo_2024} (IPFS).
+As a baseline, we also measure direct transfers using Rsync\cite{rsyncprojectrsync_2024}.
 
-In all tests, the source and destination machines are separated by approximately 30 kilometers, with an
-  average ping time of 48.480 ms.
+
+To assess the effectiveness of each mechanism we programmatically download our 42GB dataset and measure the
+  time required to complete the transfer.
+Each experiment was run multiple times, machines were separated by approximately 30 kilometers with an
+  average ping time of 48.48 ms.
 For each test, we log the start and end times of the transfer, along with detailed notes and command line
   invocations (provided in the supplemental materials).
-
-For centralized distribution, we use a self-hosted instance of the Girder data management platform
-  \cite{girder_2024}.
-For decentralized distribution, we utilize the Transmission \cite{transmission_2024} client for BitTorrent
-  and Kubo \cite{ipfskubo_2024} for IPFS.
-As a baseline method, we also include the time of direct transfers using Rsync\cite{rsyncprojectrsync_2024}.
 
 While our measurements provide a reasonable estimate of for access time for each mechanism, there are
   notable limitations in our methodology.
 First, different machines and networks have different upload and download speeds, and network congestion is
   variable.
-For decentralized methods, we lack an automated mechanism to measure the lag-time for connecting to peers.
-This means that we are unable to effectively separate peer connection time from actual download time.
-Additionally, a key difference between Girder and other methods is that Girder required data to be packaged
-  into archive files, potentially improving transfer efficiency due to fewer file boundaries.
+For decentralized methods, we lack an automated mechanism separate peer-connection time and actual download
+  time.
+Additionally, Girder required data to be packed into archive files, improving transfer efficiency due to
+  fewer file boundaries.
 In all other methods, we provide granular access to each file in the dataset, which avoids an extra
-  unpacking step and for BitTorrent and IPFS enables sharing of the same file between different versions of
-  the datasets, but can decrease transfer efficiency.
+  unpacking step and enables sharing of the same file between different versions of the datasets, but
+  decreases transfer efficiency.
 Another confounding factor is that with decentralized mechanisms the number of seeders is not controlled
   for.
 Subsets of the data have been hosted on IPFS for years, and portions of the dataset may be provided by
   unknown members of the network.
-For BitTorrent, our first tests only had one seeder, but during our tests another node accessed and started
-  to provide the data.
+For BitTorrent, our initial transfers only had one seeder, but during our tests other nodes accessed and
+  started to provide the data.
 
-With these limitations acknowledged, we present the average durations between the start of the transfer
-  command and its completion in \Cref{tab:transfertime}.
+With these limitations acknowledged, we present the transfer times statistics in \Cref{tab:transfertime}.
 Alongside these measurements, several anecdotal observations are worth noting.
 Transferring files using IPFS involved prohibitively expensive peer discovery times, and we were only able
   to connect two machines after manually informing them of each other's peer ID.
-While the ability to manually connect peers is useful, if it is required it severely limits the usefulness
-  of IPFS in automated systems.
-For BitTorrent, we do make use of trackers as we were unable to utilize the mainline DHT.
-For BitTorrent, even with trackers, we also observed a significant lag-time for peer discovery, but were
-  eventually able to resolve without intervention.
+For BitTorrent, were unable to use the mainline DHT and fell back to using trackers.
 We believe these peer discovery issues are because the dataset has a small number of seeders.
-In tests where we downloaded other established datasets via IPFS and BitTorrent the peer discovery time was
-  almost immediate, suggesting that this becomes less of an issue as a dataset is shared.
-However, the inability to quickly resolve to a single nearby peer hosting the data is a major issue for
-  initial or private dataset development.
+To test this, we downloaded other established datasets via IPFS and BitTorrent and found that the peer
+  discovery time was almost immediate, suggesting that this becomes less of an issue as a dataset is shared.
+However, the inability to quickly find a single nearby peer with the data is a major issue for initial or
+  private dataset development.
 
-In summary, our measurements suggest that decentralized mechanisms generally take longer and exhibit more
-  variance compared to centralized methods.
-The Girder method demonstrated very fast access times, taking slightly more than an hour.
-However, it benefits from fewer file boundaries, making rsync a more relevant comparison point as it
-  involves a direct transfer between machines of the exact unarchived dataset used in other tests.
-IPFS is compelling, as it approaches rsync times more closely than BitTorrent, but potentially only due to
-  more seeders available for older parts of the dataset.
+Despite significant testing limitations, our measurements quantify the expected data-access time penalty to
+  gain the advantages of decentralized mechanisms.
+The lowest times in each column shows that each method can be competitive, but on average decentralized
+  mechanisms are significantly slower and can be stifled by long peer-discovery times.
+  
 
-Despite significant testing limitations, our current conclusion is that while the static content-addressable
-  data of decentralized mechanisms is appealing, data access times remain a significant barrier.
-Therefore, maintaining a centralized mirror of a dataset on seeks to distribute remains important.
+%While the ability to manually connect peers is useful, if it is required it severely limits the usefulness
+%  of IPFS in automated systems.
+%For BitTorrent, even with trackers, we also observed a significant lag-time for peer discovery, but were
+%  eventually able to resolve without intervention.
+
+%In summary, our measurements suggest that decentralized mechanisms generally take longer and exhibit more
+%  variance compared to centralized methods.
+%The Girder method demonstrated very fast access times, taking slightly more than an hour.
+%However, it benefits from fewer file boundaries, making rsync a more relevant comparison point as it
+%  involves a direct transfer between machines of the exact unarchived dataset used in other tests.
+%IPFS is compelling, as it approaches rsync times more closely than BitTorrent, but potentially only due to
+%  more seeders available for older parts of the dataset.
+
+
+%current conclusion is that while the static content-addressable
+%  data of decentralized mechanisms is appealing, data access times remain a significant barrier.
+%Therefore, maintaining a centralized mirror of a dataset on seeks to distribute remains important.
 
 %With this context, these measurements suggest that  that the decentralized mechanisms do indeed tend to take
 %  longer and have more variance than the centralized mechanisms.
@@ -1051,10 +1058,10 @@ The company iRobot has a dataset of annotated indoor poop images used to train R
 There are also smaller waste detection related datasets.
 %Waste detection is an important problem but with relatively few open datasets.
 %  https://paperswithcode.com/dataset/zerowaste
-The ZeroWaste dataset \cite{bashkirova_zerowaste_2022} (9.9GB) contains 1,800 segmented video frames and
+ZeroWaste \cite{bashkirova_zerowaste_2022} (9.9GB) contains 1,800 segmented video frames and
   6,000 unlabeled frames in a recycling facility, and they also use a similar "before/after" protocol.
 % https://paperswithcode.com/dataset/taco
-The TACO dataset \cite{proenca_taco_2020} (17GB) is another "living" dataset containing 1,500 images with
+TACO \cite{proenca_taco_2020} (17GB) is another "living" dataset containing 1,500 images with
   4,784 polygon annotations over 60 classes.
 % TrashCan https://paperswithcode.com/dataset/trashcan
 % Top Datasets on paperwith code
