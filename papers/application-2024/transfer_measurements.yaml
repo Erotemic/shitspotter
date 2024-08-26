@@ -25,17 +25,42 @@
 
 machine_info:
   - name: toothbrush
+    location: home
+    cpu: i9-11900K
     cpu_max_mhz: 5300.0000
     cpu_min_mhz: 800.0000
+    form: desktop
+
   - name: jojo
+    location: home
     cpu_max_mhz: 1800.0000
     cpu_min_mhz: 600.0000
+    form: rasberypi
+
   - name: ooo
+    location: home
     cpu_max_mhz: 3800.0000
     cpu_min_mhz: 1600.0000
+    form: desktop
+
+  - name: calculex
+    location: home
+    cpu: i7-7700HQ CPU @ 2.80GHz
+    form: laptop
+
   - name: namek
+    location: work
     cpu_max_mhz: 3000.0000
     cpu_min_mhz: 1200.0000
+    form: desktop
+
+  - name: ipfs
+    location: work
+    form: vm
+
+  - name: data.kitware.com
+    location: work
+    form: server
 
 network_measurements:
   - recording_time: 2024-08-06T190810-5
@@ -668,7 +693,7 @@ network_measurements:
     dst_machine: namek
     multiple_seeders: likely
     duration: null
-    status: null
+    status: failed
     command: |-
       export IPFS_PATH=$HOME/.ipfs
       ipfs pin ls --type="recursive" --names
@@ -688,7 +713,36 @@ network_measurements:
       # Restart ipfs on jojo and ifps
       # Force jojo connect
       ipfs swarm connect /p2p/12D3KooWCFcfiBevjQD42aRAELMUZXAGScRiN2NcAthokF4dMnVU
+      gave up and restarted the pin at Sun 25 Aug 2024 11:39:19 PM EDT
+      # Seems to have gotten past  140449 nodes/blocks
     time.start_date: Sat 24 Aug 2024 05:54:46 PM EDT
+
+  - recording_time: 2024-08-25T200536-5
+    uuid: 57197f49-8024-4175-9ced-d69937b8f2f7
+    action: transfer
+    method: ipfs
+    duration: 20m16.247s
+    status: success
+    src_machine: jojo/ipfs
+    dst_machine: calculex
+    time.start_date:  Sun Aug 25 09:07:43 PM EDT 2024
+    time.end_date: Sun Aug 25 09:27:59 PM EDT 2024
+    multiple_seeders: likely
+    command: |-
+      systemctl start ipfs.service
+      systemctl status ipfs.service
+      # 
+      export IPFS_PATH=$HOME/.ipfs
+      ipfs pin ls --type="recursive" --names
+      ipfs pin ls --type recursive | cut -d ' ' -f1 | xargs -n1 ipfs pin rm
+      ipfs repo gc
+      # Then start the timed download
+      date && time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y && date
+    time.real:    20m16.247s
+    time.user:    0m0.237s
+    time.sys:     0m0.333s
+      
+      
       
 .__taildoc__: |-
      python ~/code/shitspotter/papers/application-2024/scripts/gather_measurements.py
