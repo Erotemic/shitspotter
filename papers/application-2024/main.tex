@@ -87,13 +87,6 @@ Kitware\\
 }
 \maketitle
 
-\begin{comment}
-    cd $HOME/code/shitspotter
-    python -m shitspotter.cli.coco_annotation_stats $HOME/data/dvc-repos/shitspotter_dvc/data.kwcoco.json \
-        --dst_fpath $HOME/code/shitspotter/coco_annot_stats/stats.json \
-        --dst_dpath $HOME/code/shitspotter/coco_annot_stats
-\end{comment}
-
 %%%%%%%%% ABSTRACT
 \begin{abstract}
 
@@ -1143,10 +1136,16 @@ We would would like to thank all of the dogs that produced subject matter for th
 
 
 \begin{comment}
+    %cd $HOME/code/shitspotter
+    %python -m shitspotter.cli.coco_annotation_stats $HOME/data/dvc-repos/shitspotter_dvc/data.kwcoco.json \
+    %    --dst_fpath $HOME/code/shitspotter/coco_annot_stats/stats.json \
+    %    --dst_dpath $HOME/code/shitspotter/coco_annot_stats
+
     cd $HOME/code/shitspotter
-    python -m shitspotter.cli.coco_annotation_stats $HOME/data/dvc-repos/shitspotter_dvc/data.kwcoco.json \
-        --dst_fpath $HOME/code/shitspotter/coco_annot_stats/stats.json \
-        --dst_dpath $HOME/code/shitspotter/coco_annot_stats
+    kwcoco plot_stats \
+        $HOME/data/dvc-repos/shitspotter_dvc/data.kwcoco.json \
+        --dst_fpath $HOME/code/shitspotter/coco_annot_stats2/stats.json \
+        --dst_dpath $HOME/code/shitspotter/coco_annot_stats2
 
     SeeAlso:
     ~/code/shitspotter/experiments/run_pixel_eval_pipeline.sh

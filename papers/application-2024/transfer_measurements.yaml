@@ -1,26 +1,13 @@
-# This file is manual record of network speed measurments to study the
-# differences betweend distribution methods.
-#
 ---
 
 .__doc__: |-
+   This file is manual record of network speed measurments to study the
+   differences betweend distribution methods. The machines the tests were
+   performed on are listed in the machine_info key with some info about them.
+   The distance between home and work is about 30km.
+  
    SeeAlso:
        ~/code/shitspotter/papers/application-2024/scripts/gather_measurements.py
-
-   Create a new record:
-     new_record(){
-       python -c "if 1:
-         import uuid
-         import ubelt as ub
-         print('  - recording_time: ' + str(ub.timestamp()))
-         print('    uuid: ' + str(uuid.uuid4()))
-         print('    action: null')
-         print('    method: null')
-         print('    duration: null')
-         print('    status: null')
-      "
-     }
-     new_record
 
 
 machine_info:
@@ -167,8 +154,8 @@ network_measurements:
     history.date_started: Tue Aug  6 21:56:16 2024
     history.latest_activity: Wed Aug  7 03:20:56 2024
     history.downloading_time: 6 hours (24725 seconds)
-    duration: 24725 seconds
     history.seeding_time: 8 hours (29334 seconds)
+    duration: 24725 seconds
     transfer.percent_done: "100%"
     name: shitspotter_dvc
     hash: ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49
@@ -498,13 +485,13 @@ network_measurements:
     note: |-
       seems to take awhile before it starts to download the data.
       2024-08-17T222244-5 - still at 0%
-    time.date_added:       Sat Aug 17 18:24:45 2024
-    time.date_finished:    Sun Aug 18 06:40:10 2024
-    time.date_started:     Sat Aug 17 22:12:50 2024
-    time.latest_activity:  Sun Aug 18 06:40:10 2024
-    time.downloading_time: 12 hours (46659 seconds)
+    history.date_added:       Sat Aug 17 18:24:45 2024
+    history.date_finished:    Sun Aug 18 06:40:10 2024
+    history.date_started:     Sat Aug 17 22:12:50 2024
+    history.latest_activity:  Sun Aug 18 06:40:10 2024
+    history.downloading_time: 12 hours (46659 seconds)
+    history.seeding_time: 5 hours (19914 seconds)
     duration: 46659 seconds
-    time.seeding_time: 5 hours (19914 seconds)
     status: success
 
   - recording_time: 2024-08-19T191006-5
@@ -595,10 +582,10 @@ network_measurements:
     note: |-
       First measurements after uploading to academic torrents. 
       It was found and started very quickly.
-    time.date_added:       Tue Aug 20 09:37:54 2024
-    time.date_finished:    Tue Aug 20 11:41:39 2024
-    time.date_started:     Tue Aug 20 09:38:49 2024
-    time.downloading_time: 2 hours, 12 minutes (7965 seconds)
+    history.date_added:       Tue Aug 20 09:37:54 2024
+    history.date_finished:    Tue Aug 20 11:41:39 2024
+    history.date_started:     Tue Aug 20 09:38:49 2024
+    history.downloading_time: 2 hours, 12 minutes (7965 seconds)
 
 
   - recording_time: 2024-08-20T164511-5
@@ -622,11 +609,11 @@ network_measurements:
       transmission-remote --auth transmission:transmission --list
       transmission-remote --auth transmission:transmission -t4 --info
     time.start_date: Tue 20 Aug 2024 05:46:37 PM EDT
-    time.date_added:       Tue Aug 20 17:46:37 2024
-    time.date_finished:    Tue Aug 20 22:51:34 2024
-    time.date_started:     Tue Aug 20 19:05:27 2024
-    time.latest_activity:  Tue Aug 20 22:51:34 2024
-    time.downloading_time: 5 hours (19402 seconds)
+    history.date_added:       Tue Aug 20 17:46:37 2024
+    history.date_finished:    Tue Aug 20 22:51:34 2024
+    history.date_started:     Tue Aug 20 19:05:27 2024
+    history.latest_activity:  Tue Aug 20 22:51:34 2024
+    history.downloading_time: 5 hours (19402 seconds)
 
   - recording_time: 2024-08-23T162827-5
     uuid: 4a89139f-853f-472c-bb20-6b956bbff671
@@ -685,6 +672,31 @@ network_measurements:
     status: success
     duration: 981m2.585s
 
+  - recording_time: 2024-08-25T200536-5
+    uuid: 57197f49-8024-4175-9ced-d69937b8f2f7
+    action: transfer-local
+    method: ipfs
+    duration: 20m16.247s
+    status: success
+    src_machine: jojo/ooo/ipfs/namek
+    dst_machine: calculex
+    time.start_date:  Sun Aug 25 09:07:43 PM EDT 2024
+    time.end_date: Sun Aug 25 09:27:59 PM EDT 2024
+    multiple_seeders: likely
+    command: |-
+      systemctl start ipfs.service
+      systemctl status ipfs.service
+      # 
+      export IPFS_PATH=$HOME/.ipfs
+      ipfs pin ls --type="recursive" --names
+      ipfs pin ls --type recursive | cut -d ' ' -f1 | xargs -n1 ipfs pin rm
+      ipfs repo gc
+      # Then start the timed download
+      date && time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y && date
+    time.real:    20m16.247s
+    time.user:    0m0.237s
+    time.sys:     0m0.333s
+
   - recording_time: 2024-08-24T165336-5
     uuid: d4c1cd9e-0c19-4356-ba95-80e108ed37c5
     action: transfer
@@ -715,37 +727,88 @@ network_measurements:
       ipfs swarm connect /p2p/12D3KooWCFcfiBevjQD42aRAELMUZXAGScRiN2NcAthokF4dMnVU
       gave up and restarted the pin at Sun 25 Aug 2024 11:39:19 PM EDT
       # Seems to have gotten past  140449 nodes/blocks
+      # Pausing on 183934 nodes... work damn it!
+      # oh fun, its just stuck on 183934 notes at Mon Aug 26 09:36:13 AM EDT 2024
+      # killing and restarting, and 47 seconds after, it worked...
+      # Lets try this again.
     time.start_date: Sat 24 Aug 2024 05:54:46 PM EDT
 
-  - recording_time: 2024-08-25T200536-5
-    uuid: 57197f49-8024-4175-9ced-d69937b8f2f7
+  - recording_time: 2024-08-26T083915-5
+    uuid: 2d299b1a-61be-495b-b96d-6bf7513cbc21
     action: transfer
     method: ipfs
-    duration: 20m16.247s
-    status: success
     src_machine: jojo/ipfs
-    dst_machine: calculex
-    time.start_date:  Sun Aug 25 09:07:43 PM EDT 2024
-    time.end_date: Sun Aug 25 09:27:59 PM EDT 2024
+    dst_machine: namek
     multiple_seeders: likely
+    duration: null
+    status: failed
     command: |-
-      systemctl start ipfs.service
-      systemctl status ipfs.service
-      # 
       export IPFS_PATH=$HOME/.ipfs
       ipfs pin ls --type="recursive" --names
       ipfs pin ls --type recursive | cut -d ' ' -f1 | xargs -n1 ipfs pin rm
       ipfs repo gc
       # Then start the timed download
       date && time ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y && date
-    time.real:    20m16.247s
-    time.user:    0m0.237s
-    time.sys:     0m0.333s
+    time.start_date: Mon 26 Aug 2024 09:40:40 AM EDT
+    notes: |-
+      at Mon Aug 26 11:06:51 AM EDT 2024,
+      Stuck on Fetched/Processed 183934 nodes again? What gives?
+    time.real:    517m1.188s
+    time.user:    0m8.733s
+    time.sys:     0m11.450s
+    time.end_date: Mon 26 Aug 2024 06:17:41 PM EDT
+
+  - recording_time: 2024-08-23T162827-5
+    uuid: 4a89139f-853f-472c-bb20-6b956bbff671
+    method: rsync
+    action: transfer
+    src_machine: calculex
+    dst_machine: namek
+    command: |-
+      rm -rf $HOME/data/dvc-repos/shitspotter_dvc
+      # on calculex
+      date && time rsync -avprPR $HOME/data/dvc-repos/./shitspotter_dvc namek:data/dvc-repos && date
+    time.start_date: Mon Aug 26 09:46:49 PM EDT 2024   
+    time.real:    359m8.031s
+    time.user:    86m9.429s
+    time.sys:     3m21.889s
+    time.end_date: Tue Aug 27 03:45:57 AM EDT 2024
+    status: success
+    duration: 359m8.031s
+
+  - recording_time: 2024-08-28T150635-5
+    uuid: a24963d1-de57-4151-97ea-b397cd966819
+    action: transfer
+    method: girder
+    src_machine: girder
+    dst_machine: calculex
+    command: |-
+        # https://data.kitware.com/#user/598a19658d777f7d33e9c18b/folder/66b6bc34f87a980650f41f90
+        date && time girder-client --api-url https://data.kitware.com/api/v1 download 66b6bc34f87a980650f41f90 . && date
+    time.start_date: Wed Aug 28 04:06:47 PM EDT 2024
+    time.real:    257m44.492s
+    time.user:    8m39.112s
+    time.sys:     7m11.815s
+    time.end_date: Wed Aug 28 08:24:31 PM EDT 2024
+    duration: 257m44.492s
+    status: success
       
-      
+  - recording_time: 2024-08-30T160657-5
+    uuid: 6d94976c-28b7-47aa-9873-63e8762b0ae2
+    action: transfer
+    method: girder
+    src_machine: girder
+    dst_machine: calculex
+    command: |-
+        # https://data.kitware.com/#user/598a19658d777f7d33e9c18b/folder/66b6bc34f87a980650f41f90
+        date && time girder-client --api-url https://data.kitware.com/api/v1 download 66b6bc34f87a980650f41f90 . && date
+    time.start_date: Wed Aug 28 04:06:47 PM EDT 2024
+
       
 .__taildoc__: |-
      python ~/code/shitspotter/papers/application-2024/scripts/gather_measurements.py
+
+     Helper to start a new entry
 
      python -c "if 1:
        import uuid

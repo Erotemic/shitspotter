@@ -5,7 +5,15 @@ class Rational(fractions.Fraction):
     """
     Extension of the Fraction class, mostly to make printing nicer
 
-    >>> 3 * -(Rational(3) / 2)
+    Example:
+        >>> from shitspotter.util.util_math import *  # NOQA
+        >>> self = 3 * -(Rational(1) / 9)
+        >>> print(self)
+        >>> print(self.__smalljson__())
+        >>> print(self.__json__())
+        -0.3333333333333333
+        -1/3
+        {'type': 'rational', 'numerator': -1, 'denominator': 3}
     """
     def __str__(self):
         if self.denominator == 1:

@@ -28,9 +28,20 @@ def main():
                 r['method'] = 'rsync-local'
         except KeyError:
             ...
+
+        if 'history.date_added' in r:
+            if 'time.start_date' not in r:
+                r['time.start_date'] = r['history.date_added']
+
+        if 'history.date_finished' in r:
+            if 'time.end_date' not in r:
+                r['time.end_date'] = r['history.date_finished']
+
     subrows = [r for r in rows if r['action'] in {'transfer', 'upload'}]
     # table = pd.DataFrame(rows)
     subtable = pd.DataFrame(subrows)
+
+    subtable['history.date_added']
 
     rows_of_interest = [
         'recording_time',
@@ -48,8 +59,19 @@ def main():
 
     subtable2 = subtable[rows_of_interest]
 
+    def to_hours(delta):
+        if pd.isnull(delta):
+            return delta
+        else:
+            return round(kwutil.timedelta.coerce(delta).to('hours'), 2)
+
     def normalize_timedelta(data):
-        return kwutil.timedelta.coerce(data, nan_policy='return-nan', none_policy='return-nan')
+        result = kwutil.timedelta.coerce(data, nan_policy='return-nan', none_policy='return-nan')
+        return result
+        # try:
+        #     return result.to('hours')
+        # except AttributeError:
+        #     return result
 
     def normalize_datetime(data):
         return kwutil.datetime.coerce(data, nan_policy='return-nan', none_policy='return-nan')
@@ -67,11 +89,17 @@ def main():
         rich.print('-----')
         rich.print(method)
         rich.print('-----')
-        rich.print(group)
+        group_ = group.copy()
+        group_['duration'] = group_['duration'].apply(to_hours)
+        rich.print(group_)
 
-    stats = groups['duration'].describe()
+    stats = groups['duration'].describe(include=['count', 'mean', 'std', 'min', 'max'])
 
-    glance_table = stats[['count', 'mean', 'std', 'min', 'max']]
+    try:
+        glance_table = stats[['count', 'mean', 'std', 'min', 'max']]
+    except Exception:
+        print(f'stats = {ub.urepr(stats, nl=1)}')
+        raise
 
     display_table = glance_table.copy()
 
@@ -81,7 +109,7 @@ def main():
     rich.print(display_table)
 
     total_time = subtable2['duration'].sum()
-    print(total_time)
+    print(f'total_time = {ub.urepr(total_time, nl=1)}')
 
     latex_text = display_table.style.to_latex()
     print(latex_text)

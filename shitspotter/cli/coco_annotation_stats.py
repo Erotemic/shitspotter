@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""
+DEPRECATED
+Use kwcoco plot_stats instead
+"""
 import scriptconfig as scfg
 import ubelt as ub
 import os
