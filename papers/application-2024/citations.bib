@@ -65,7 +65,7 @@
 Author = {Olga Russakovsky and Jia Deng and Hao Su and Jonathan Krause and Sanjeev Satheesh and Sean Ma and Zhiheng Huang and Andrej Karpathy and Aditya Khosla and Michael Bernstein and Alexander C. Berg and Li Fei-Fei},
 Title = {{ImageNet Large Scale Visual Recognition Challenge}},
 Year = {2015},
-journal   = {International Journal of Computer Vision (IJCV)},
+journal = {IJCV},
 doi = {10.1007/s11263-015-0816-y},
 volume={115},
 number={3},
@@ -92,7 +92,7 @@ pages={211-252}
 @inproceedings{ross2017focal,
   title={Focal loss for dense object detection},
   author={Lin, Tsung-Yi and Goyal, Priya and Girshick, Ross and He, Kaiming and Doll{\'a}r, Piotr},
-  booktitle={proceedings of the IEEE conference on computer vision and pattern recognition},
+  booktitle={CVPR},
   pages={2980--2988},
   year={2017}
 }
@@ -100,7 +100,7 @@ pages={211-252}
 @inproceedings{kirillov_segment_2023,
     title = {Segment {Anything}},
     url = {https://openaccess.thecvf.com/content/ICCV2023/html/Kirillov_Segment_Anything_ICCV_2023_paper.html},
-    booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
+    booktitle={ICCV},
     language = {en},
     urldate = {2024-06-27},
     author = {Kirillov, Alexander and Mintun, Eric and Ravi, Nikhila and Mao, Hanzi and Rolland, Chloe and Gustafson, Laura and Xiao, Tete and Whitehead, Spencer and Berg, Alexander C. and Lo, Wan-Yen and Dollar, Piotr and Girshick, Ross},
@@ -120,10 +120,10 @@ pages={211-252}
 	booktitle = {{IGARSS}}
 }
 
-@InProceedings{Greenwell_2024_WACV,
+@inproceedings{Greenwell_2024_WACV,
     author    = {Greenwell, Connor and Crall, Jon and Purri, Matthew and Dana, Kristin and Jacobs, Nathan and Hadzic, Armin and Workman, Scott and Leotta, Matt},
     title     = {WATCH: Wide-Area Terrestrial Change Hypercube},
-    booktitle = {Proceedings of the IEEE/CVF Winter Conference on Applications of Computer Vision (WACV)},
+    booktitle = {WACV},
     month     = {January},
     year      = {2024},
     pages     = {8277-8286}
@@ -134,7 +134,7 @@ pages={211-252}
     url = {http://arxiv.org/abs/1910.08475},
     doi = {10.48550/arXiv.1910.08475},
     urldate = {2024-01-12},
-    booktitle = {Advances in {Neural} {Information} {Processing} {Systems}},
+    booktitle = {NeurIPS},
     publisher = {Curran Associates, Inc},
     author = {Ash, Jordan T. and Adams, Ryan P.},
     year = {2020}
@@ -161,6 +161,73 @@ pages={211-252}
     author = {Dosovitskiy, Alexey and Beyer, Lucas and Kolesnikov, Alexander and Weissenborn, Dirk and Zhai, Xiaohua and Unterthiner, Thomas and Dehghani, Mostafa and Minderer, Matthias and Heigold, Georg and Gelly, Sylvain and Uszkoreit, Jakob and Houlsby, Neil},
     year = {2021},
 }
+
+
+% ==========
+% ArXiV Only
+% ==========
+
+
+@article{lacoste2019codecarbon,
+    title={Quantifying the Carbon Emissions of Machine Learning},
+    author={Lacoste, Alexandre and Luccioni, Alexandra and Schmidt, Victor and Dandres, Thomas},
+    year={2019},
+    journal = {ArXiV},
+    volume  = {abs/1910.09700},
+	url = {https://arxiv.org/abs/1910.09700},
+}
+
+
+@article{desai_what_2024,
+	title = {What is {Reproducibility} in {Artificial} {Intelligence} and {Machine} {Learning} {Research}?},
+	author = {Desai, Abhyuday and Abdelhamid, Mohamed and Padalkar, Nakul R.},
+	year = {2024},
+    journal = {ArXiV},
+    volume  = {abs/2407.10239},
+    eprint={2407.10239},
+    archivePrefix={arXiv},
+    primaryClass={cs.CY},
+	url = {http://arxiv.org/abs/2407.10239},
+	language = {en},
+	urldate = {2024-08-20},
+	publisher = {arXiv},
+	month = apr,
+}
+
+
+@article{benet_ipfs_2014,
+    title         = {{IPFS} - {Content} {Addressed}, {Versioned}, {P2P} {File} {System}},
+    author        = {Benet, Juan},
+    year          = {2014},
+    journal       = {ArXiV},
+    archivePrefix = {arXiv},
+    bibsource     = {dblp computer science bibliography, https://dblp.org},
+    biburl        = {https://dblp.org/rec/journals/corr/Benet14.bib},
+    eprint        = {1407.3561},
+    eprinttype    = {arXiv},
+    language      = {en},
+    month         = jul,
+    primaryClass  = {cs.NI},
+    timestamp     = {Mon, 13 Aug 2018 16:47:09 +0200},
+    url           = {http://arxiv.org/abs/1407.3561},
+    urldate       = {2024-01-12},
+    volume        = {abs/1407.3561},
+}
+
+
+@article{proenca_taco_2020,
+    title={Taco: Trash annotations in context for litter detection},
+    author={Proen{\c{c}}a, Pedro F and Sim{\~o}es, Pedro},
+    journal  = {ArXiV},
+    volume  = {abs/2003.06975},
+    shorttitle = {{TACO}},
+    url = {https://arxiv.org/abs/2003.06975v2},
+    language = {en},
+    urldate = {2024-06-27},
+    month = mar,
+    year = {2020},
+}
+
 
 % ==============
 % Software Tools
@@ -203,7 +270,7 @@ license: GPL-3
 @misc{ipfskubo_2024,
     author = {Johnson, Jeromy and Benet, Juan and Allen, Steven and others},
 	title = {ipfs/kubo},
-	url = {https://github.com/ipfs/kubo},
+	howpublished = {\url{https://github.com/ipfs/kubo}},
 	abstract = {An IPFS implementation in Go},
 	urldate = {2024-08-20},
 	publisher = {IPFS Project},
@@ -229,8 +296,8 @@ license: GPL-3
 @misc{girder_2024,
     author = {Mullen, Zack and Helba, Brian and Manthy, David and others},
 	title = {Girder: a data management platform },
-	copyright = {Apache-2.0},
 	howpublished = {\url{https://girder.readthedocs.io/en/latest}},
+	copyright = {Apache-2.0},
 	urldate = {2024-08-20},
 	publisher = {Girder},
 	month = aug,
@@ -243,13 +310,25 @@ license: GPL-3
 % Other Datasets 
 % ==============
 
+
+@inproceedings{bashkirova_zerowaste_2022,
+    title = {{ZeroWaste} {Dataset}: {Towards} {Deformable} {Object} {Segmentation} in {Cluttered} {Scenes}},
+    author = {Bashkirova, Dina and Abdelfattah, Mohamed and Zhu, Ziliang and Akl, James and Alladkani, Fadi and Hu, Ping and Ablavsky, Vitaly and Calli, Berk and Bargal, Sarah Adel and Saenko, Kate},
+    shorttitle = {{ZeroWaste} {Dataset}},
+    booktitle={CVPR},
+    pages={21147--21157},
+    url = {https://openaccess.thecvf.com/content/CVPR2022/papers/Bashkirova_ZeroWaste_Dataset_Towards_Deformable_Object_Segmentation_in_Cluttered_Scenes_CVPR_2022_paper.pdf},
+    language = {en},
+    year = {2022},
+}
+
+
 @inproceedings{maymounkov_kademlia_2002,
     title = {Kademlia: {A} {Peer}-to-{Peer} {Information} {System} {Based} on the {XOR} {Metric}},
     isbn = {978-3-540-45748-0},
     shorttitle = {Kademlia},
     url = {https://link.springer.com/chapter/10.1007/3-540-45748-8_5},
     doi = {10.1007/3-540-45748-8_5},
-    abstract = {We describe a peer-to-peer distributed hash table with provable consistency and performance in a fault-prone environment. Our system routes queries and locates nodes using a novel XOR-based metric topology that simplifies the algorithm and facilitates our proof. The...},
     language = {en},
     urldate = {2024-06-26},
     booktitle = {Peer-to-{Peer} {Systems}},
@@ -298,34 +377,6 @@ license: GPL-3
 }
 
 
-@misc{bashkirova_zerowaste_2022,
-    title = {{ZeroWaste} {Dataset}: {Towards} {Deformable} {Object} {Segmentation} in {Cluttered} {Scenes}},
-    shorttitle = {{ZeroWaste} {Dataset}},
-    url = {http://arxiv.org/abs/2106.02740},
-    language = {en},
-    urldate = {2024-08-03},
-    publisher = {arXiv},
-    author = {Bashkirova, Dina and Abdelfattah, Mohamed and Zhu, Ziliang and Akl, James and Alladkani, Fadi and Hu, Ping and Ablavsky, Vitaly and Calli, Berk and Bargal, Sarah Adel and Saenko, Kate},
-    month = may,
-    year = {2022},
-    note = {arXiv:2106.02740 [cs]},
-}
-
-
-@article{proenca_taco_2020,
-    title={Taco: Trash annotations in context for litter detection},
-    author={Proen{\c{c}}a, Pedro F and Sim{\~o}es, Pedro},
-    journal={arXiv preprint arXiv:2003.06975},
-    shorttitle = {{TACO}},
-    url = {https://arxiv.org/abs/2003.06975v2},
-    language = {en},
-    urldate = {2024-06-27},
-    journal = {arXiv.org},
-    month = mar,
-    year = {2020},
-}
-
-
 % =================
 % Data Distribution
 % =================
@@ -341,15 +392,6 @@ license: GPL-3
 	
 }
 
-@misc{cohen_bittorrent_2017,
-	title = {The {BitTorrent} {Protocol} {Specification} v2},
-    howpublished = {\url{https://www.bittorrent.org/beps/bep_0052.html}},
-	urldate = {2024-08-19},
-	author = {Cohen, Bram},
-	year = {2017},
-	note = {Accessed: 2024-08-23},
-}
-
 
 @inproceedings{academic_torrents_Cohen2014,
     title = {Academic Torrents: A Community-Maintained Distributed Repository},
@@ -358,6 +400,27 @@ license: GPL-3
     doi = {10.1145/2616498.2616528},
     url = {http://doi.acm.org/10.1145/2616498.2616528},
     year = {2014}
+}
+
+@article{bieri_overview_2021,
+    title = {An overview into the {InterPlanetary} {File} {System} ({IPFS}): use cases, advantages, and drawbacks},
+    volume = {28},
+    url = {https://files.ifi.uzh.ch/CSG/teaching/FS21/IFI_2021_02.pdf#page=78},
+    urldate = {2024-08-04},
+    journal = {Communication Systems XIV},
+    author = {Bieri, Christian},
+    year = {2021},
+    volume={28},
+    publisher={University of Zurich Zurich, Switzerland}
+}
+
+@misc{cohen_bittorrent_2017,
+	title = {The {BitTorrent} {Protocol} {Specification} v2},
+    howpublished = {\url{https://www.bittorrent.org/beps/bep_0052.html}},
+	urldate = {2024-08-19},
+	author = {Cohen, Bram},
+	year = {2017},
+	note = {Accessed: 2024-08-23},
 }
 
 
@@ -369,30 +432,6 @@ license: GPL-3
     journal = {Github Gist},
     year = {2023},
     note = {Accessed: 2024-08-23}
-    
-}
-
-
-@misc{benet_ipfs_2014,
-    title = {{IPFS} - {Content} {Addressed}, {Versioned}, {P2P} {File} {System}},
-    url = {https://arxiv.org/abs/1407.3561v1},
-    language = {en},
-    urldate = {2024-01-12},
-    journal = {arXiv.org},
-    author = {Benet, Juan},
-    month = jul,
-    year = {2014},
-}
-
-@article{bieri_overview_2021,
-    title = {An overview into the {InterPlanetary} {File} {System} ({IPFS}): use cases, advantages, and drawbacks},
-    volume = {28},
-    url = {https://files.ifi.uzh.ch/CSG/teaching/FS21/IFI_2021_02.pdf#page=78},
-    urldate = {2024-08-04},
-    journal = {Communication Systems XIV},
-    author = {Bieri, Christian},
-    year = {2021},
-    note = {publisher: University of Zurich Zurich, Switzerland},
 }
 
 % ====
@@ -408,7 +447,7 @@ license: GPL-3
     abstract = {Documentation to facilitate communication between dataset creators and consumers.},
     number = {12},
     urldate = {2024-08-04},
-    journal = {Commun. ACM},
+    journal={Communications of the ACM},
     author = {Gebru, Timnit and Morgenstern, Jamie and Vecchione, Briana and Vaughan, Jennifer Wortman and Wallach, Hanna and III, Hal Daumé and Crawford, Kate},
     month = nov,
     year = {2021},
@@ -426,13 +465,13 @@ license: GPL-3
 	author = {Powers, David Martin},
 	month = feb,
 	year = {2011},
-	note = {00000},
 	pages = {37--63},
 }
 
 
 @article{baker_reproducibility_2016,
 	title = {1,500 scientists lift the lid on reproducibility},
+	author = {Baker, Monya},
 	volume = {533},
 	copyright = {2016 Springer Nature Limited},
 	issn = {1476-4687},
@@ -443,10 +482,8 @@ license: GPL-3
 	number = {7604},
 	urldate = {2024-08-19},
 	journal = {Nature},
-	author = {Baker, Monya},
 	month = may,
 	year = {2016},
-	note = {Publisher: Nature Publishing Group},
 	pages = {452--454}
 }
 
@@ -464,7 +501,7 @@ license: GPL-3
 
 @inproceedings{NEURIPS2019_c429429b,
  author = {Raff, Edward},
- booktitle = {Advances in Neural Information Processing Systems},
+ booktitle = {NeurIPS},
  editor = {H. Wallach and H. Larochelle and A. Beygelzimer and F. d\textquotesingle Alch\'{e}-Buc and E. Fox and R. Garnett},
  pages = {},
  publisher = {Curran Associates, Inc.},
@@ -472,19 +509,6 @@ license: GPL-3
  url = {https://proceedings.neurips.cc/paper_files/paper/2019/file/c429429bf1f2af051f2021dc92a8ebea-Paper.pdf},
  volume = {32},
  year = {2019}
-}
-
-
-@misc{desai_what_2024,
-	title = {What is {Reproducibility} in {Artificial} {Intelligence} and {Machine} {Learning} {Research}?},
-	url = {http://arxiv.org/abs/2407.10239},
-	language = {en},
-	urldate = {2024-08-20},
-	publisher = {arXiv},
-	author = {Desai, Abhyuday and Abdelhamid, Mohamed and Padalkar, Nakul R.},
-	month = apr,
-	year = {2024},
-	note = {arXiv:2407.10239 [cs]},
 }
 
 
@@ -497,7 +521,6 @@ license: GPL-3
 	booktitle = {{CVPR}},
 	author = {Schroff, Florian and Kalenichenko, Dmitry and Philbin, James},
 	year = {2015},
-	note = {00373},
 	pages = {815--823}
 }
 
@@ -537,6 +560,7 @@ license: GPL-3
 	shorttitle = {{MobileNetV2}},
 	url = {http://openaccess.thecvf.com/content_cvpr_2018/html/Sandler_MobileNetV2_Inverted_Residuals_CVPR_2018_paper.html},
 	urldate = {2019-11-11},
+	booktitle = {{CVPR}},
 	author = {Sandler, Mark and Howard, Andrew and Zhu, Menglong and Zhmoginov, Andrey and Chen, Liang-Chieh},
 	year = {2018},
 	pages = {4510--4520}
@@ -564,27 +588,18 @@ license: GPL-3
 	url = {https://ieeexplore.ieee.org/abstract/document/8451495},
 	doi = {10.1109/ICIP.2018.8451495},
 	urldate = {2024-08-23},
-	booktitle = {2018 25th {IEEE} {International} {Conference} on {Image} {Processing} ({ICIP})},
+	booktitle = {ICIP},
 	author = {Siam, Mennatullah and Gamal, Mostafa and Abdel-Razek, Moemen and Yogamani, Senthil and Jagersand, Martin},
 	month = oct,
 	year = {2018},
-	note = {ISSN: 2381-8549},
 	pages = {1603--1607}
-}
-
-
-@article{lacoste2019codecarbon,
-    title={Quantifying the Carbon Emissions of Machine Learning},
-    author={Lacoste, Alexandre and Luccioni, Alexandra and Schmidt, Victor and Dandres, Thomas},
-    journal={arXiv preprint arXiv:1910.09700},
-    year={2019}
 }
 
 
 @inproceedings{cordts2015cityscapes,
   title={The cityscapes dataset},
   author={Cordts, Marius and Omran, Mohamed and Ramos, Sebastian and Scharw{\"a}chter, Timo and Enzweiler, Markus and Benenson, Rodrigo and Franke, Uwe and Roth, Stefan and Schiele, Bernt},
-  booktitle={CVPR Workshop on the Future of Datasets in Vision},
+  booktitle={CVPRW},
   volume={2},
   pages={1},
   year={2015}
@@ -600,7 +615,7 @@ license: GPL-3
 	url = {https://dl.acm.org/doi/10.1145/3357150.3357396},
 	doi = {10.1145/3357150.3357396},
 	urldate = {2024-08-23},
-	booktitle = {Proceedings of the 6th {ACM} {Conference} on {Information}-{Centric} {Networking}},
+	booktitle = {{ACM} {Conference} on {Information}-{Centric} {Networking}},
 	publisher = {Association for Computing Machinery},
 	author = {Tarr, Dominic and Lavoie, Erick and Meyer, Aljoscha and Tschudin, Christian},
 	month = sep,
@@ -668,10 +683,10 @@ license: Apache-2.0
 
 @inproceedings{loshchilov_decoupled_2018,
 	title = {Decoupled {Weight} {Decay} {Regularization}},
+	author = {Loshchilov, Ilya and Hutter, Frank},
 	url = {https://openreview.net/forum?id=Bkg6RiCqY7},
+    booktitle={ICLR},
 	language = {en},
 	urldate = {2024-08-25},
-	author = {Loshchilov, Ilya and Hutter, Frank},
-	month = sep,
-	year = {2018},
+	year = {2019},
 }

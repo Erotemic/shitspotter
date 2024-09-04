@@ -802,7 +802,33 @@ network_measurements:
     command: |-
         # https://data.kitware.com/#user/598a19658d777f7d33e9c18b/folder/66b6bc34f87a980650f41f90
         date && time girder-client --api-url https://data.kitware.com/api/v1 download 66b6bc34f87a980650f41f90 . && date
-    time.start_date: Wed Aug 28 04:06:47 PM EDT 2024
+    time.start_date: Fri Aug 30 05:07:41 PM EDT 2024 
+    time.real:    374m26.031s
+    time.user:    10m8.041s
+    time.sys:     8m35.088s
+    time.end_date: Fri Aug 30 11:22:07 PM EDT 2024
+    duration: 374m26.031s
+    status: success
+
+  - recording_time: 2024-09-01T062126-5
+    uuid: d9256862-cca7-4280-a61e-014ea7e1b6ee
+    method: rsync
+    action: transfer
+    src_machine: calculex
+    dst_machine: namek
+    command: |-
+      # On namek
+      rm -rf $HOME/data/dvc-repos/shitspotter_dvc
+      # on calculex
+      date && time rsync -avprPR $HOME/data/dvc-repos/./shitspotter_dvc namek:data/dvc-repos && date
+    time.start_date: Sun Sep  1 07:22:19 AM EDT 2024
+    time.real:    323m34.383s
+    time.user:    79m17.371s
+    time.sys:     2m54.406s
+    time.end_date: Sun Sep  1 12:45:53 PM EDT 2024
+    duration: 323m34.383s
+    status: success
+      
 
       
 .__taildoc__: |-
