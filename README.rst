@@ -578,8 +578,10 @@ immortalized through her contributions to this dataset.
 Roadie - (2016-04-29 - ) - Adopted in December 2023, Roadie is an energetic
 blue healer who is not afraid to voice his opinions. His DNA test indicates he
 is 60% Australian Cattle Dog mixed with 20% Border Collie and small percents of
-Husky and Spaniel.  Roadie's likes include: fetching the ball, staring deeply
-into eyes, pets, and invading personal space.  Roadie's dislikes include:
+Husky and Spaniel.  Roadie's likes include: fetching the ball, getting
+different people to throw the ball, dropping the ball and picking it back up
+before someone can take it, staring deeply into eyes, pets, and invading
+personal space. Did I mention he likes the ball? Roadie's dislikes include:
 dropping the ball, steep staircases, and spinach. Roadie was originally from
 Texas, but came to us after his aging owners could no longer take care of him.
 Thusfar he has proven an excellent contributor to this project, pooping far
@@ -587,9 +589,14 @@ more frequently than the other dogs and in novel locations that bolster dataset
 diversity.
 
 .. An Image of Roadie
-.. image:: https://i.imgur.com/yaZi5bO.jpg
+.. image:: https://i.imgur.com/DYdkt75.jpeg
    :height: 400px
    :align: left
+
+.. .. An Image of Roadie
+.. .. image:: https://i.imgur.com/yaZi5bO.jpg
+..   :height: 400px
+..   :align: left
 
 
 .. |Pypi| image:: https://img.shields.io/pypi/v/shitspotter.svg

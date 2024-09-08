@@ -77,3 +77,13 @@ def main():
                 print(xdev.difftext(orig_text, text, colored=True, context_lines=3))
             dst_path.parent.ensuredir()
             dst_path.write_text(text)
+    import rich
+    rich.print(f'Pred Dpath: [link={anon_dpath}]{anon_dpath}[/link]')
+
+
+if __name__ == '__main__':
+    """
+    CommandLine:
+        python ~/code/shitspotter/papers/application-2024/scripts/anonimize_repo.py
+    """
+    main()

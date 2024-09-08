@@ -421,6 +421,10 @@ def build_code(coco_dset):
 
 
 def labelme_to_coco_structure(labelme_data):
+    """
+    TODO:
+        can replace with kwcoco.labelme.labelme_to_coco_structure
+    """
     import kwimage
     import numpy as np
     img = {

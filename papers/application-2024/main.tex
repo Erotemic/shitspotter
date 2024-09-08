@@ -49,6 +49,7 @@
 \usepackage{listings}
 \usepackage{amsmath} 
 \usepackage{xcolor}
+\usepackage[toc]{appendix}
 
 % Support for easy cross-referencing
 \usepackage[capitalize]{cleveref}
@@ -68,7 +69,7 @@
 
 \begin{document}
 
-\title{ShitSpotter --- A Dog Poop Detection Algorithm and Dataset}
+\title{``ScatSpotter'' --- A Distributed Dog Poop Detection Dataset}
 
 \author{Jonathan Crall\\
 Kitware\\
@@ -95,14 +96,14 @@ Kitware\\
 %available as a benchmark dataset.
 We introduce a new --- currently 42 gigabyte --- "living" dataset of phone
 images of dog feces, annotated with manually drawn or AI-assisted polygon
-labels.
-The collection and annotation of this data started in late 2020 and is planned
-to continue indefinitely.
+labels. There are 6k full resolution images and 4k detailed polygon
+annotations. The collection and annotation of images started in late 2020 and
+the dataset grows by roughly 1GB a month. 
 
 We train a baseline vision transformer to segment the objects of interest, exploring a grid of
   hyperparameters, and we evaluate their impact.
-The best model achieves a pixelwise average precision of 0.83 on a validation set and 0.51 on a small test
-  set.
+The best model achieves a pixelwise average precision of 0.83 on a 691-image validation set and 0.51 on a
+  small independently captured 30-image contributor test set.
 
 The most recent snapshot of dataset is made publicly available through three
 different distribution methods: one centralized and two decentralized (IPFS and
@@ -113,7 +114,8 @@ sharing open scientific data in a reliable and accessible manner.
 
 The code to reproduce the experiments is hosted on GitHub, and the data is
 published under the Creative Commons Attribution 4.0 International license.
-Model weights are made publicly available with the dataset.
+Model weights are made publicly available with the dataset. Experimental
+hardware, time, energy, and emissions are quantified.
 
 %A phone application to detect poop with these models is being developed and 
 %will be made freely available.
@@ -135,16 +137,67 @@ Many of these applications can be realized with modern object detection and segm
 
 \begin{figure}[ht]
 \centering
+\includegraphics[width=0.49\textwidth]{figures/zoom_leaf.jpg}
+%\hfill
+%\includegraphics[width=0.49\textwidth]{figures/Screenshot from 2024-09-07 19-20-25.png}
+\caption[]{
+    A zoomed in example of an annotated object in a challenging
+    condition: a scene cluttered with leafs. Polygons were drawn an AI-assistant,
+    which means boundaries are sometimes imperfect.
+}
+\label{fig:HardCase}
+\end{figure}
+
+
+\begin{figure}[ht]
+\centering
 \includegraphics[width=0.49\textwidth]{figures/viz_three_images.jpg}
 \caption[]{
-    The "before/after/negative" process.
-    The orange box highlights the location of the poop (note the
-    actual annotation is a polygon) in the "before" image.
+    The "before/after/negative" protocol.
+    The orange box highlights the location of the poop 
+    %(note the actual annotation is a polygon)
+    in the "before" image.
     In the "after" image, it is the same scene but the poop has been removed.
     The "negative" image is a nearby similar scene, potentially with a distractor.
+    Note that the object is small relative to the image size.
+    %This is 
+    %This also illustrates the typical case where the poop is small relative to the image size.
+    %(which is often small
+    %relative to the image size)
 }
 \label{fig:ThreeImages}
 \end{figure}
+
+\begin{table*}[t]
+\begin{tabular}{lrrrcrrl}
+\toprule
+Name & Categories & Images & Annotations & Image W \times H & Annot Area$^{0.5}$ & Size & Annot Type \\
+\midrule
+ImageNet LSVRC2017 \cite{ILSVRC15} & 1,000 & 594,546 & 695,776 & 500 \times 374 & 239 & 166GB & box \\
+MSCOCO 2017 \cite{lin_microsoft_2014} & 80 & 123,287 & 896,782 & 428 \times 640 & 57 & 50GB & polygon \\
+CityScapes \cite{cordts2015cityscapes} & 40 & 5,000 & 287,465 & 2,048 \times 1,024 & 50 & 78GB & polygon \\
+ZeroWaste \cite{bashkirova_zerowaste_2022} & 4 & 4,503 & 26,766 & 1,920 \times 1,080 & 200 & 10GB & polygon \\
+TrashCanV1 \cite{hong2020trashcansemanticallysegmenteddatasetvisual} & 22 & 7,212 & 12,128 & 480 \times 270 & 54 & 0.61GB & polygon \\
+UAVVaste \cite{rs13050965} & 1 & 772 & 3,718 & 3,840 \times 2,160 & 55 & 2.9GB & polygon \\
+SpotGarbage-GINI \cite{mittal2016spotgarbage} & 1 & 2,512 & 337 & 754 \times 754 & 355 & 1.5GB & classification \\
+TACO \cite{proenca_taco_2020} & 60 & 1,500 & 4,784 & 2,448 \times 3,264 & 119 & 17GB & polygon \\
+MSHIT \cite{mshit_2020} & 2 & 769 & 2,348 & 960 \times 540 & 99 & 4GB & box \\
+``ScatSpotter'' (ours) & 1 & 6,648 & 4,386 & 4,032 \times 3,024 & 96 & 42GB & polygon \\
+\bottomrule
+\end{tabular}
+\caption{Related Datasets.
+The first 4 columns provide the name of the dataset, the number of categories, images, and annotations.
+Image W \times H is the pixel width and height of the image with the median area. Annot Area$^{0.5}$ is the median sqrt(area) in pixels of the annotation polygon or box. The Size column refers to the amount of information in  gigabytes needed to download the entire dataset.
+Annot Type refers to if the dataset is annotated with bounding boxes,
+image-level classification labels, or polygon segmentations.
+%Of the datasets in this table, ours has the highest image resolution
+%and the smallest annotation size relative to that resolution.
+% Of the waste related datasets, ours is among the largest, and of the poop related datasets, it is the largest.
+}
+\label{tab:related_datasets}
+\end{table*}
+
+
 
 
 In addition to enabling several applications, poop detection is an interesting benchmark problem.
@@ -153,10 +206,11 @@ It is relatively simple, with a narrow focus on a single class, making it suitab
 However, the task includes non-trivial challenges such as resolution issues (e.g., camera quality,
   distance), distractors (e.g., leaves, pine cones, sticks, dirt, and mud), occlusion (e.g., bushes, overgrown
   grass), and variation in appearance (e.g., old vs. new, healthy vs. sick).
+An example of a challenging case is shown in \cref{fig:HardCase}.
 Investigation into cases where this problem is difficult may provide insight
 into how to better train object detection and segmentation networks.
 
-Towards these ends we introduce a new dataset we call "ShitSpotter".
+Towards these ends we introduce a new dataset, which for the purpose of this paper we call "ScatSpotter".
 Poops are annotated with polygons making the dataset suitable for training detection and segmentation
   models.
 In order to assist with annotation and add variation, we collect images using a "before/after/negative"
@@ -178,24 +232,84 @@ This motivates us to compare and contrast the decentralized BitTorrent \cite{coh
 % VGG2 face got removed.
 % https://github.com/ox-vgg/vgg_face2/issues/52
 
-
 Our contributions are:
 1) A challenging new \textbf{open dataset} of images with polygon annotations.
 2) An experimental \textbf{evaluation of baseline training} methods.
 3) An observational \textbf{comparison of dataset distribution} methods.
 4) \textbf{Open code and models}.
-Related work is discussed at the end.
 
 %\Cref{sec:dataset}.
 %\Cref{sec:models}.
 %\Cref{sec:distribution}.
 %\Cref{sec:relatedwork}.
 
+
+%-------------------------------------------------------------------------
+\section{Related Work}
+\label{sec:relatedwork}
+
+To the best of our knowledge, our dataset is currently the largest publicly available collection of
+  annotated dog poop images, but it is not the first.
+A dataset of 100 dog poop images was collected and used to train a FasterRCNN model
+  \cite{neeraj_madan_dog_2019} but this dataset and model are not publicly available.
+The company iRobot has a dataset of annotated indoor poop images used to train Roomba j7+ to avoid
+  collisions \cite{roomba_2021}, but as far as we are aware, this is not available.
+In terms of available poop detection datasets we are only aware of MSHIT~\cite{mshit_2020} which is much
+  smaller, only contains box annotations, and the objects of interest are plastic toy poops.
+
+Compared to benchmark object localization and segmentation datasets~\cite{ILSVRC15,
+  lin_microsoft_2014,cordts2015cityscapes} ours is much smaller and focused only on a single category.
+However, when compared to litter and trash datasets
+  \cite{bashkirova_zerowaste_2022,proenca_taco_2020,hong2020trashcansemanticallysegmenteddatasetvisual,mittal2016spotgarbage,rs13050965}
+  ours is among the largest in terms of number of images / annotations, image size, and total dataset size.
+We provide an overview of these related datasets in \Cref{tab:related_datasets}.
+Among all of these, ours stands out for having the highest resolution images and the smallest objects
+  relative to that resolution.
+For a review of additional waste related datasets, refer to \cite{agnieszka_waste}.
+%Additional waste-related datasets not discussed here are reviewed in \cite{agnieszka_waste}.
+
+%There are also smaller waste detection related datasets.
+%%Waste detection is an important problem but with relatively few open datasets.
+%%  https://paperswithcode.com/dataset/zerowaste
+%ZeroWaste \cite{bashkirova_zerowaste_2022} (9.9GB) contains 1,800 segmented video frames and
+%  6,000 unlabeled frames in a recycling facility, and they also use a similar "before/after" protocol.
+%% https://paperswithcode.com/dataset/taco
+%TACO \cite{proenca_taco_2020} (17GB) is another "living" dataset containing 1,500 images with
+%  4,784 polygon annotations over 60 classes.
+% TrashCan https://paperswithcode.com/dataset/trashcan
+% Top Datasets on paperwith code
+% https://paperswithcode.com/datasets?mod=images&task=semantic-segmentation&page=2
+
+
+% Domestic Trash / Garbage Dataset
+% Looks like the full dataset is behind a paywall
+% https://paperswithcode.com/dataset/domestic-trash-garbage-dataset
+
+
+% https://universe.roboflow.com/dataset-vmyna/poop-yxidr/dataset/1
+% 102 train images, 22 validation images, 0 test images.
+% human poop
+In \Cref{sec:distribution} will discuss the logistics and tradeoffs between different mechanisms to
+  distribute datasets with a focus on comparing centralized and decentralized methods.
+IPFS~\cite{cohen_incentives_2003} and BitTorrent~\cite{benet_ipfs_2014} are the decentralized distribution
+  mechanism we evaluate, but there are others such as Secure Scuttlebut \cite{tarr_secure_2019} and Hypercore
+  \cite{frazee_dep-0002_nodate}, which we did not test.
+
+  % Is hypercore dat? https://dat-ecosystem.org/ https://datproject.org/
+
+% Very good overview and comparison of the protocols
+% https://blog.mauve.moe/posts/protocol-comparisons
+% https://distributed.press/
+% hypercore - https://github.com/tradle/why-hypercore/blob/master/FAQ.md#how-is-hypercore-different-from-ipfs
+% git,
+% Secure Scuttlebut (SSB)
+
 \section{Dataset}
 \label{sec:dataset}
 
-Our first contribution is the creation of a new open dataset "ShitSpotter", which consists of images of dog
-  poop in mostly urban, mostly outdoor environments.
+Our first contribution is the creation of a new open dataset which consists of images of dog poop in mostly
+  urban, mostly outdoor environments.
+The data is annotated to support object detection and segmentation tasks.
 The majority of the images feature fresh poop from three specific dogs, but there are a significant number
   of images with poops of unknown age and from from unknown dogs.
 
@@ -282,20 +396,9 @@ illustrated in \Cref{fig:AllPolygons}.
     On the y-axis, 0 is midnight.
     For images with geolocation and timestamp (assuming the timezone is local or given and correct) we also
       estimate the amount of daylight as indicated by the color of each dot.
-    While the majority of the images are taken in daylight, there are a sizable number of nighttime images.
+    While the majority of the images are taken in daylight, there are a sizable number of nighttime images taken with longer exposure, flash on, or sometimes flash off in streetlights.
 }
 \label{fig:TimeOfDayDistribution}
-\end{figure}
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=0.4\textwidth]{figures/spectra.png}
-\caption[]{
-    The "spectra" or histogram of the pixel intensities in the dataset. 
-    The dataset rgb  mean/std is $[117, 124, 100], [61, 59, 63]$.
-    % (for reference the imagenet mean/std is $[124, 116, 104], [58, 57, 57]$).
-}
-\label{fig:spectra}
 \end{figure}
 
 
@@ -331,7 +434,6 @@ Six images have a slightly different resolution of 4,008 $\times$ 5,344, and one
   $\times$ 1,024.
 The images are stored as 8-bit JPEGs with RGB channels, and most include overviews (i.e., image pyramids),
   allowing for fast loading of downscaled versions.
-The distribution of image pixel intensities is illustrated in \Cref{fig:spectra}.
 
 
 Due to the "B/A/N" protocol, approximately one-third of the dataset contains annotations, as the other
@@ -372,6 +474,8 @@ As our second contribution, we evaluate several trained models to establish a ba
   comparisons.
 We use the training, prediction, and evaluation system presented in \cite{Greenwell_2024_WACV,
   crall_geowatch_2024}, which utilizes polygon annotations to train a pixelwise binary segmentation model.
+%It is important to note that this baseline is limited in that it only considers a single VIT-based
+%  \cite{dosovitskiy_image_2021} architecture, and does not attempt to explore all state-of-the-art methods.
 
 
 In all experiments, we use half-resolution images, which means most images have an effective width $\times$
@@ -397,8 +501,7 @@ At predict time it uses 1.96GB of GPU RAM.
 We compute loss pixelwise using Focal Loss \cite{ross2017focal} with a small downweighting of pixels towards
   the edge of the window.
 Our optimizer is AdamW \cite{loshchilov_decoupled_2018}, and we experiment with varying learning rate,
-  weight decay, and perturb-scale (implementing the shrink perturb trick:
-\cite{ash_warm_starting_2020}).
+  weight decay, and perturb-scale (implementing the shrink perturb trick~\cite{ash_warm_starting_2020,dohare_loss_2023}).
 We employ a OneCycle learning rate scheduler \cite{smith2019super} with a cosine annealing strategy and
   starting fraction of 0.3.
 Our effective batch size is 24 with a real batch size of 2 and 12 accumulate gradient steps.
@@ -421,41 +524,15 @@ To establish a strong baseline, we evaluated 35 training runs where we varied in
 Although this initial search was somewhat ad-hoc, it provided insights into the optimal configuration for
   our model.
 Building on the best hyperparameters from this search, we performed a sweep over 7 combinations of learning
-  rate, weight decay, and perturb scale (i.e., shrink and perturb \cite{ash_warm_starting_2020}).
+  rate, weight decay, and perturb scale (i.e., shrink and perturb \cite{ash_warm_starting_2020,dohare_loss_2023}).
 Scripts used to reproduce these experiments, as well as a log of the ad-hoc experiments, are available in
   the code repository.
 Additionally, trained models are packaged and distributed with information about their training
   configuration.
 
 
-\begin{figure}[ht]
-\centering
-
-\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_vs_metrics.heatmap_eval.salient_AUC_PLT02_scatter_nolegend.png}
-
-(a) AP and AUC of 35 checkpoints.
-
-\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_PLT04_box.png}
-
-(b) AP of 35 checkpoints.
-
-\caption[]{
-    (a) Scatterplot of pixelwise average precision (AP) and Area Under the ROC curve (AUC) for the top
-      5 checkpoints on the validation set.
-    Points of the same color represent checkpoints from the same training run, which used identical
-      hyperparameters.
-    (b) Box-and-whisker plot the AP values across the top 5 checkpoints evaluated on
-      the validation set.
-    For each run, corresponding varied hyperparameters and maximum APs are given in
-      \Cref{tab:parameters_and_results}.
-}
-\label{fig:apauc_scatter}
-\end{figure}
-
 \begin{table*}[t]
 \centering
-
-
 \begin{tabular}{llllllll}
 \toprule
             \multicolumn{4}{l}{} & \multicolumn{2}{c}{validation} & \multicolumn{2}{c}{test} \\
@@ -484,7 +561,7 @@ config name &   lr & weight\_decay & perterb\_scale & AP & AUC & AP & AUC \\
 %Qualitative examples on the test, validation, and training set are given in
 %  \cref{fig:test_heatmaps_with_best_vali_model} all on the top-scoring validation model listed here.
 Results for the best-performing models on the validation set across 7 hyperparameter configurations.
-These results correspond to the maximum Average Precision (AP) scores shown in \Cref{fig:apauc_scatter}.
+%These results correspond to the maximum Average Precision (AP) scores shown in \Cref{fig:apauc_scatter}.
 The table provides detailed information about each configuration, including:
 1) Configuration name (first column): a unique code identifying each training run used in the score scatter and box plots.
 2) Varied hyperparameters (next three columns): specific values for learning rate, weight decay, and perturb scale that were used in each run.
@@ -523,11 +600,6 @@ Due to the high number of true negative pixels, we preferred AP as the primary m
   
 %\subsubsection{Results}
 
-We plotted the AP and AUC on the validation set for the top 5 AP-maximizing results from each of the 7
-  training runs.
-We also created a box-and-whisker plot for these top 5 results, which serves to assign a color and label to
-  each training run.
-These plots are shown in \Cref{fig:apauc_scatter}.
 The details of the top model for each run, along with relevant hyperparameters, are presented in
   \Cref{tab:parameters_and_results}.
 This table also includes the results on the small, held out, test set for the top model.
@@ -602,7 +674,8 @@ Future work evaluating this dataset on an object-detection level can remedy this
     %
     The majority of images in the test set (small, 30-image dataset) exhibit qualitatively good results.
     Failure cases tend to occur with close-up images of older, sometimes partially deteriorated poops.
-    These examples were manually selected and ordered.
+    These examples were manually selected and ordered to demonstrate dataset
+    diversity in addition to representative results.
     % (could recompute the order based on some measure).
 }
 \label{fig:test_heatmaps_with_best_vali_model}
@@ -731,7 +804,7 @@ Direct measurement of resource usage during training is still under development,
   duration of each training run using indirect methods.
 We approximate electricity consumption by assuming a constant power draw of 345W from the 3090 GPU during
   training.
-Emissions are calculated using a conversion ratio of 0.21 $\frac{\textrm{kg}\cotwo{}}{\textrm{kWh}}$.
+Emissions are estimated using a conversion ratio of 0.21 $\frac{\textrm{kg}\cotwo{}}{\textrm{kWh}}$.
   
 Based on the validation set's 691 images, we estimate that predicting on a single image on our desktop
   requires approximately 1.15 seconds and 0.13 Wh of electricity.
@@ -904,15 +977,15 @@ By comparing IPFS, BitTorrent, and centralized mechanisms access times for our d
 \subsection{Distribution Observational Study}
 
 \begin{table}[t]
-\begin{tabular}{llllll}
+\begin{tabular}{lrrrrr}
 \toprule
 {}      & num &   mean &    std &   min &    max \\
 method         &       &        &       &       & \\
 \midrule
-BitTorrent & 5 &  8.36 &   5.16 &  2.21 & 14.39 \\
-IPFS       & 5 & 10.68 & 9.54 & 1.80 & 24.62 \\
-Girder     & 5 & 2.85  &  2.31  & 1.05 & 6.24 \\
-Rsync      & 5 & 4.84 & 1.39 & 3.10 & 6.10 \\
+BitTorrent & 5 &  8.36h &   5.16h &  2.21h & 14.39h \\
+IPFS       & 5 & 10.68h & 9.54h & 1.80h & 24.62h \\
+Girder     & 5 & 2.85h  &  2.31h  & 1.05h & 6.24h \\
+Rsync      & 5 & 4.84h & 1.39h & 3.10h & 6.10h \\
 
 \bottomrule
 \end{tabular}
@@ -936,8 +1009,8 @@ To assess the effectiveness of each mechanism we programmatically download our 4
   time required to complete the transfer.
 Each experiment was run multiple times, machines were separated by approximately 30 kilometers with an
   average ping time of 48.48 ms.
-For each test, we log the start and end times of the transfer, along with detailed notes and command line
-  invocations (provided in the supplemental materials).
+For each test, we log transfer start and end times along with notes and code (provided in supplemental
+  materials).
 
 While our measurements provide a reasonable estimate of for access time for each mechanism, there are
   notable limitations in our methodology.
@@ -970,7 +1043,7 @@ However, the inability to quickly find a single nearby peer with the data is a m
 
 Despite significant testing limitations, our measurements quantify the expected data-access time penalty to
   gain the advantages of decentralized mechanisms.
-The lowest times in each column shows that each method can be competitive, but on average decentralized
+The minimum time column shows that each method can be competitive, but on average decentralized
   mechanisms are significantly slower and can be stifled by long peer-discovery times.
   
 
@@ -1030,62 +1103,10 @@ The lowest times in each column shows that each method can be competitive, but o
 % https://academictorrents.com/docs/about.html
 % magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&tr=https%3A%2F%2Facademictorrents.com%2Fannounce.php%3Fpasskey%3D9ffbb169f882f3be1330a48ea87416e7&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce
 
-%-------------------------------------------------------------------------
-\section{Related Work}
-\label{sec:relatedwork}
-
-There are several large object localization and segmentation datasets.
-Common ones include:
-ImageNet LSRV2017 \cite{ILSVRC15} (166GB), MSCOCO-2017 \cite{lin_microsoft_2014} (50GB), CityScapes dataset
-  \cite{cordts2015cityscapes} (78GB).
-%Object detection
-However ours is the largest publicly available poop dataset that we are aware of.
-
-While our 42GB dataset is the largest, it is not the first.
-A dataset of 100 dog poop images was collected and used to train a FasterRCNN model in 2019
-  \cite{neeraj_madan_dog_2019} but this dataset and model are not publicly available.
-The MSHIT dataset \cite{mshit_2020} consists of 3.89GB of real images with fake poop (e.g.
-plastic poop) in controlled environments.
-The company iRobot has a dataset of annotated indoor poop images used to train Roomba j7+ to avoid
-  collisions \cite{roomba_2021}, but as far as we are aware, this is not available.
-
-There are also smaller waste detection related datasets.
-%Waste detection is an important problem but with relatively few open datasets.
-%  https://paperswithcode.com/dataset/zerowaste
-ZeroWaste \cite{bashkirova_zerowaste_2022} (9.9GB) contains 1,800 segmented video frames and
-  6,000 unlabeled frames in a recycling facility, and they also use a similar "before/after" protocol.
-% https://paperswithcode.com/dataset/taco
-TACO \cite{proenca_taco_2020} (17GB) is another "living" dataset containing 1,500 images with
-  4,784 polygon annotations over 60 classes.
-% TrashCan https://paperswithcode.com/dataset/trashcan
-% Top Datasets on paperwith code
-% https://paperswithcode.com/datasets?mod=images&task=semantic-segmentation&page=2
-
-
-% Domestic Trash / Garbage Dataset
-% Looks like the full dataset is behind a paywall
-% https://paperswithcode.com/dataset/domestic-trash-garbage-dataset
-
-
-% https://universe.roboflow.com/dataset-vmyna/poop-yxidr/dataset/1
-% 102 train images, 22 validation images, 0 test images.
-% human poop
-IPFS and BitTorrent are the decentralized distribution mechanism we evaluate, but there are others such as
-  Secure Scuttlebut \cite{tarr_secure_2019} and Hypercore \cite{frazee_dep-0002_nodate}, which we did not
-  test.
-
-  % Is hypercore dat? https://dat-ecosystem.org/ https://datproject.org/
-
-% Very good overview and comparison of the protocols
-% https://blog.mauve.moe/posts/protocol-comparisons
-% https://distributed.press/
-% hypercore - https://github.com/tradle/why-hypercore/blob/master/FAQ.md#how-is-hypercore-different-from-ipfs
-% git,
-% Secure Scuttlebut (SSB)
 
 \section{Conclusion}
 
-We have introduced ShitSpotter, the largest open dataset of high resolution images with polygon
+We have introduced the largest open dataset of high resolution images with polygon
   segmentations of dog poop, collected with a "before/after/negative" protocol.
 The dataset contains several challenges including amorphous objects, multi-season variation, difficult
   distractors, daytime / nighttime variation.
@@ -1123,15 +1144,205 @@ Ultimately, our goal is for this research to contribute meaningfully to the adva
   
 \section{Acknowledgements}
 We would would like to thank all of the dogs that produced subject matter for the dataset, all of the
-  contributors for helping to construct a challenging test set, and Anthony Hoogs for the suggestion to take a
+  contributors for helping to construct a challenging test set, and Anthony Hoogs for several suggestions including taking the 
   third negative picture.
-
 
 %%%%%%%%% REFERENCES
 {\small
 \bibliographystyle{ieee_fullname}
 \bibliography{citations}
 }
+
+
+\appendix
+
+\section{Extra Dataset Information}
+
+In \Cref{sec:dataset} we provided an overview of several dataset statistics.
+In this appendix we expand on that with additional plots.
+The distribution of image pixel intensities is illustrated in \Cref{fig:spectra}.
+The distribution of images collected over time is shown in \Cref{fig:images_over_time}.
+The distribution of annotation location is shown in \Cref{fig:centroid_location_distri} and sizes is shown
+  in \Cref{fig:annot_obox_size_dist} and \Cref{fig:annot_area_verts_distri}.
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.4\textwidth]{figures/spectra.png}
+\caption[]{
+    The "spectra" or histogram of the pixel intensities in the dataset. 
+    The dataset rgb  mean/std is $[117, 124, 100], [61, 59, 63]$.
+    % (for reference the imagenet mean/std is $[124, 116, 104], [58, 57, 57]$).
+}
+\label{fig:spectra}
+\end{figure}
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.4\textwidth]{figures/appendix/images_over_time.png}
+\caption[]{
+    The number of images collected over time.
+}
+\label{fig:images_over_time}
+\end{figure}
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.4\textwidth]{figures/appendix/polygon_centroid_absolute_distribution.png}
+
+(a) absolute pixel coordinates
+\includegraphics[width=0.4\textwidth]{figures/appendix/polygon_centroid_relative_distribution.png}
+
+(b) relative image coordinates
+\caption[]{
+    The distribution of annotation centroids in terms of (a) absolute image
+    coordinates and (b) relative image coordinates.
+    The absolute centroid distribution is bimodal because some images are taken
+    in landscape mode and other in portrait mode.
+}
+\label{fig:centroid_location_distri}
+\end{figure}
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.4\textwidth]{figures/appendix/obox_size_distribution_jointplot.png}%
+
+(a) linear scale
+\includegraphics[width=0.4\textwidth]{figures/appendix/obox_size_distribution_logscale.png}%
+
+(b) log10 scale
+\caption[]{
+    The distribution of annotation sizes as measured by an oriented bounding box fit to each polygon.
+    (a) shows this plot on a linear scale and (b) show this plot on a log scale.
+}
+\label{fig:annot_obox_size_dist}
+\end{figure}
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.4\textwidth]{figures/appendix/polygon_area_vs_num_verts_jointplot.png}
+\caption[]{
+    The distribution of polygon areas versus the number of vertices in the polygon boundary.
+    The SAM model tends to produce polygons with a higher number of vertices
+    than manually drawn ones.  For smaller polygons there are two peaks in the
+    number of vertices histograms likely corresponding to pure-manual versus
+    AI-assisted annotations.
+}
+\label{fig:annot_area_verts_distri}
+\end{figure}
+
+\section{Extra Experiment Information}
+
+In \Cref{sec:models} we presented an experimental evaluation of several models trained with different
+  hyperparameters.
+This involved evaluating several checkpoints produced by each model run.
+Previously in \Cref{tab:parameters_and_results} we presented the top results.
+Here we've plotted the AP and AUC on the validation set for the top 5 AP-maximizing results from each of the
+  7 training runs.
+We also created a box-and-whisker plot for these top 5 results, which serves to assign a color and label to
+  each training run.
+These plots are shown in \Cref{fig:apauc_scatter}.
+
+
+\begin{figure}[ht]
+\centering
+
+\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_vs_metrics.heatmap_eval.salient_AUC_PLT02_scatter_nolegend.png}
+
+(a) AP and AUC of 35 checkpoints.
+
+\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_PLT04_box.png}
+
+(b) AP of 35 checkpoints.
+
+\caption[]{
+    (a) Scatterplot of pixelwise average precision (AP) and Area Under the ROC curve (AUC) for the top
+      5 checkpoints on the validation set.
+    Points of the same color represent checkpoints from the same training run, which used identical
+      hyperparameters.
+    (b) Box-and-whisker plot the AP values across the top 5 checkpoints evaluated on
+      the validation set.
+    For each run, corresponding varied hyperparameters and maximum APs are given in
+      \Cref{tab:parameters_and_results}.
+}
+\label{fig:apauc_scatter}
+\end{figure}
+
+
+\section{Extra Dataset Comparison}
+
+In \Cref{sec:relatedwork} we compared to related work. Here we expand on this
+by comparing our analysis plots. Every dataset is converted into the COCO
+format and visualized using the same logic. \Cref{fig:compare_allannots}
+visualizes the annotations of all datasets.
+
+
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{plots/appendix/dataset_compare/combo_all_polygons.png.png}
+\caption[]{
+    A comparison of all of the annotations for different datasets including ours.
+    All polygon annotations drawn in a single plot with 0.8 opacity to
+    demonstrate the distribution in annotation location, shape, and size with
+    respect to image coordinates.
+}
+\label{fig:compare_allannots}
+\end{figure*}
+
+
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{plots/appendix/dataset_compare/combo_anns_per_image_histogram_splity.png.png}
+\caption[]{
+    Number of annotations per image in each dataset.
+}
+\label{fig:combo_anns_per_image_histogram_splity}
+\end{figure*}
+
+
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{plots/appendix/dataset_compare/combo_image_size_scatter.png.png}
+\caption[]{
+    Image size distributions of each dataset.
+}
+\label{fig:combo_anns_per_image_histogram_splity}
+\end{figure*}
+
+
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{plots/appendix/dataset_compare/combo_obox_size_distribution_logscale.png.png}
+\caption[]{
+    Oriented bounding box size distributions of each dataset.
+}
+\label{fig:combo_obox_size_distribution_logscale}
+\end{figure*}
+
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{plots/appendix/dataset_compare/combo_polygon_area_vs_num_verts_jointplot.png.png}
+\caption[]{
+    Polygon area versus number of vertices for each dataset.
+}
+\label{fig:combo_polygon_area_vs_num_verts_jointplot}
+\end{figure*}
+
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{plots/appendix/dataset_compare/combo_polygon_centroid_relative_distribution.png.png}
+\caption[]{
+    Polygon centroid relative distribution for each dataset.
+}
+\label{fig:combo_polygon_centroid_relative_distribution}
+\end{figure*}
+
+
+
 %\bibliographystyle{unsrtnat}
 %\bibliography{references}  %%% Uncomment this line and comment out the ``thebibliography'' section below to use the external .bib file (using bibtex) .
 

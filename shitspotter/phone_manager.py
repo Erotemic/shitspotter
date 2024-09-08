@@ -497,7 +497,7 @@ def finalize_transfer(new_dpath):
         '''
     )
     # Note:
-    # list named pinns ipfs pin ls --type="recursive" --names
+    # list named pins ipfs pin ls --type="recursive" --names
     # TODO: is there another pinning service that wont flake on us?
     # # Add pin to web3 remote storage
     # ipfs pin remote add --service=web3.storage.erotemic --name=shitspotter-dvc-$DATE $NEW_ROOT_CID --background
