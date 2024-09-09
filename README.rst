@@ -58,12 +58,12 @@ The `IPFS CID <https://docs.ipfs.tech/concepts/content-addressing/>`_ (Content I
     bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y
 
 The dataset can be viewed in a webbrowser through an IPFS gateway:
-https://ipfs.io/ipfs/bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y
+`bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y <https://ipfs.io/ipfs/QmQonrckXZq37ZHDoRGN4xVBkqedvJRgYyzp2aBC5Ujpyp?redirectURL=bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y&autoadapt=0&requiresorigin=0&web3domain=0&immediatecontinue=1&magiclibraryconfirmation=0>`_.
 
 If you have an IPFS node, please help keep this dataset alive and available by pinning it.
 
-Sometimes IPFS can be slow, especially for the latest data. However, older URLs can be faster to access: e.g.
-https://ipfs.io/ipfs/QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG
+Sometimes IPFS can be slow, especially for the latest data. However, older CIDs can be faster to access: e.g.
+`QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG <https://ipfs.io/ipfs/QmQonrckXZq37ZHDoRGN4xVBkqedvJRgYyzp2aBC5Ujpyp?redirectURL=QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG&autoadapt=0&requiresorigin=0&web3domain=0&immediatecontinue=1&magiclibraryconfirmation=0>`_.
 
 
 The the goal is to make IPFS the main distribution mechanism. However, it is
@@ -576,7 +576,7 @@ immortalized through her contributions to this dataset.
 
 
 Roadie - (2016-04-29 - ) - Adopted in December 2023, Roadie is an energetic
-blue healer who is not afraid to voice his opinions. His DNA test indicates he
+blue heeler who is not afraid to voice his opinions. His DNA test indicates he
 is 60% Australian Cattle Dog mixed with 20% Border Collie and small percents of
 Husky and Spaniel.  Roadie's likes include: fetching the ball, getting
 different people to throw the ball, dropping the ball and picking it back up

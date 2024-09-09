@@ -43,6 +43,8 @@ datasets.extend([
     },
 ])
 
+# datasets = datasets[::-1]
+
 
 def main():
     import kwcoco
@@ -73,6 +75,8 @@ def main():
             fpath_to_stats[dset.fpath] = scalar_stats
         dsets = list(slowpath)
 
+        jobs = ub.JobPool(mode='process', max_workers=10)
+
         # Do a second pass where we do the plots, which are expensive.
         for dset in ub.ProgIter(dsets, verbose=3, freq=1):
             row = fpath_to_row[dset.fpath]
@@ -86,8 +90,19 @@ def main():
             dpath = bundle_dpath / ('_visual_stats_' + name + hashid[0:8])
             scalar_stats = fpath_to_stats[dset.fpath]
             if stamp.expired() or 1:
-                coco_plot_stats.PlotStatsCLI.main(cmdline=0, src=dset.fpath, dst_dpath=dpath, plots=['all_polygons'])
-                stamp.renew()
+                coco_plot_stats.PlotStatsCLI.main
+                kwargs = dict(
+                    cmdline=0, src=dset.fpath, dst_dpath=dpath,
+                    # plots=['polygon_area_vs_num_verts_jointplot_logscale']
+                    # plots=['all_polygons']
+                )
+                job = jobs.submit(coco_plot_stats.PlotStatsCLI.main, **kwargs)
+                job.stamp = stamp
+
+        for job in jobs.as_completed():
+            job.result()
+            job.stamp.renew()
+            # stamp.renew()
 
     if True:
         accum = ub.ddict(list)
