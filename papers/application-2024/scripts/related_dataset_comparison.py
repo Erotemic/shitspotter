@@ -56,7 +56,7 @@ def main():
         name = row['name'].split(' ')[0]
         row['name'] = name
 
-    if 0:
+    if 1:
         print(list(fpath_to_row.keys()))
         dsets = kwcoco.CocoDataset.load_multiple(fpath_to_row.keys(), workers=8, ordered=False, verbose=3)
 
@@ -95,6 +95,7 @@ def main():
                     cmdline=0, src=dset.fpath, dst_dpath=dpath,
                     # plots=['polygon_area_vs_num_verts_jointplot_logscale']
                     # plots=['all_polygons']
+                    plots=['image_size_scatter']
                 )
                 job = jobs.submit(coco_plot_stats.PlotStatsCLI.main, **kwargs)
                 job.stamp = stamp

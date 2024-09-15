@@ -1,5 +1,7 @@
 numpy>=1.21.6
-geowatch>=0.18.2
+kwplot>=0.5.2
+kwcoco>=0.8.4
+geowatch>=0.18.3
 vtool_ibeis>=2.3.0
 pyhesaff>=2.1.0
 pyflann_ibeis>=2.4.0
