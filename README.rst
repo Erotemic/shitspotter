@@ -84,6 +84,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2024-09-16 - It's not part of a triple (I did not have a bag with me) but the dataset now has an international poop.
 * 2024-07-03 - Happy 4th 🎆, my dogs are shitting themselves.
 * 2024-06-15 - Small image drop. Working on writeup. Training new models.
 * 2024-05-21 - Slowing down release cycles. Still collecting images at roughly the same rate. CIDs for recent and previous releases are now in the CID table.
@@ -324,6 +325,9 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 | 2024-07-03  | 6648     | ~2347               | 1711                  | 2346                  | bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
+| 2024-09-16  | 7108     | ~2500               | 1824                  | 2501                  | bafybeibn3kmmz3ytrlmt2pwbifvcwv7veddoeuabtifgvztetilnav2gom  |
++-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
+
 
 
 

@@ -385,7 +385,9 @@ def transfer_phone_pictures(new_dpath, needs_transfer_infos):
     for job in jobs.as_completed(desc='copying'):
         job.result()
 
+    print('Copy finished, renaming...')
     os.rename(tmp_dpath, new_dpath)
+    print('Rename finished')
     return new_dpath
 
 

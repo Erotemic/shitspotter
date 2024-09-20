@@ -26,7 +26,7 @@ def gather_test_rows(dpath):
     all_fpaths = []
     walk_prog = ub.ProgIter(desc='walking')
     extensions = set()
-    block_extensions = ('.mp4', '.json')
+    block_extensions = ('.mp4', '.json', '.pkl')
     with walk_prog:
         for r, ds, fs in os.walk(contrip_dpath, followlinks=True):
             walk_prog.step()
@@ -79,7 +79,7 @@ def gather_learn_rows(dpath):
     protocol_change_point = dateutil.parser.parse('2021-05-11T120000')
     walk_prog = ub.ProgIter(desc='walking')
     extensions = set()
-    block_extensions = ('.mp4', '.json')
+    block_extensions = ('.mp4', '.json', '.pkl')
     with walk_prog:
         for r, ds, fs in os.walk(dpath, followlinks=True):
             walk_prog.step()
