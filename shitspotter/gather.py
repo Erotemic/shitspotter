@@ -228,6 +228,10 @@ def process_image_rows(image_rows):
             row['datetime'] = dt.isoformat()
 
         exif_ori = exif.get('Orientation', None)
+        try:
+            exif_ori = int(exif_ori)  # defaults to a float for whatever reason
+        except Exception:
+            ...
         row['exif_ori'] = exif_ori
 
         # print('exif_ori = {!r}'.format(exif_ori))

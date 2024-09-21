@@ -61,3 +61,10 @@ Got desk rejected due to going over length, bummer. It was a stupid mistake
 where I included the appendix in the main paper instead of the suplementary
 materials. Guess I can try for CVPR, but passing review there will be less
 likely.
+
+We will increase chances of getting into CVPR if we include SOTA models.
+I think I will try detectron2, as mmdet has not been great to work with lately,
+but I might got back there later. When working with detectron2 I'm noticing
+some pain points, which I should document. I will put these notes in
+
+~/code/shitspotter/experiments/detectron2-experiments/README.md

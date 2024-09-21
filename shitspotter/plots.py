@@ -1,4 +1,5 @@
-from shitspotter.util.util_math import Rational
+# from shitspotter.util.util_math import Rational
+from kwutil.util_math import Rational
 from dateutil.parser import parse as parse_datetime
 import pandas as pd
 import ubelt as ub
@@ -65,38 +66,42 @@ def data_over_time(coco_dset, fnum=1):
 
 def spacetime_scatterplot(coco_dset):
     """
-    import kwcoco
-    coco_dset = kwcoco.CocoDataset('/data/store/data/shit-pics/data.kwcoco.json')
+    Ignore:
+        import shitspotter
+        import kwplot
+        kwplot.autoplt()
+        coco_dset = shitspotter.open_shit_coco()
 
     References:
         https://catherineh.github.io/programming/2017/10/24/emoji-data-markers-in-matplotlib
 
-    import matplotlib.pyplot as plt
+    Ignore:
+        import matplotlib.pyplot as plt
 
-    pip install mplcairo
+        pip install mplcairo
 
-    import matplotlib
-    import matplotlib.font_manager as fm
-    import matplotlib.pyplot as plt
-    import mplcairo
-    matplotlib.use("module://mplcairo.qt")
-    print(matplotlib.get_backend())
+        import matplotlib
+        import matplotlib.font_manager as fm
+        import matplotlib.pyplot as plt
+        import mplcairo
+        matplotlib.use("module://mplcairo.qt")
+        print(matplotlib.get_backend())
 
-    symbola = ub.grabdata('https://github.com/gearit/ttf-symbola/raw/master/Symbola.ttf')
+        symbola = ub.grabdata('https://github.com/gearit/ttf-symbola/raw/master/Symbola.ttf')
 
-    # fm.findSystemFonts()
-    # '../fonts/Twitter Colour Emoji.ttf')
-    fm.fontManager.addfont(symbola)
+        # fm.findSystemFonts()
+        # '../fonts/Twitter Colour Emoji.ttf')
+        fm.fontManager.addfont(symbola)
 
-    # fm.findSystemFonts('../fonts/Twitter Colour Emoji.ttf')
-    # fm.fontManager.addfont('../fonts/Twitter Colour Emoji.ttf')
+        # fm.findSystemFonts('../fonts/Twitter Colour Emoji.ttf')
+        # fm.fontManager.addfont('../fonts/Twitter Colour Emoji.ttf')
 
-    fig, ax = plt.subplots()
-    t = ax.text(.5, .5, b'\xF0\x9F\x98\x85\xf0\x9f\x98\x8d\xF0\x9F\x98\x85'.decode('utf-8'), fontname='symbola', fontsize=30, ha='center')
-    t = ax.text(.5, .25, '😅💩😍😅', fontname='symbola', fontsize=30, ha='center')
+        fig, ax = plt.subplots()
+        t = ax.text(.5, .5, b'\xF0\x9F\x98\x85\xf0\x9f\x98\x8d\xF0\x9F\x98\x85'.decode('utf-8'), fontname='symbola', fontsize=30, ha='center')
+        t = ax.text(.5, .25, '😅💩😍😅', fontname='symbola', fontsize=30, ha='center')
 
-    import unicodedata
-    unicodedata.name('💩')
+        import unicodedata
+        unicodedata.name('💩')
     """
     import geopandas as gpd
     from shapely import geometry
@@ -185,6 +190,96 @@ def spacetime_scatterplot(coco_dset):
     return fig
 
 
+def _configure_osm():
+    """
+    Configure open street map
+    """
+    import osmnx as ox
+    import ubelt as ub
+    import os
+    osm_settings_dirs_varnames = [
+        'data_folder',
+        'logs_folder',
+        'imgs_folder',
+        'cache_folder',
+    ]
+    # Make osm dirs point at a standardized location
+    osm_cache_root = ub.Path.appdir('osm')
+    for varname in osm_settings_dirs_varnames:
+        val = ub.Path(getattr(ox.settings, varname))
+        if not val.is_absolute():
+            new_val = os.fspath(osm_cache_root / os.fspath(val))
+            setattr(ox.settings, varname, new_val)
+
+    ox.settings.log_console = True
+    ox.settings.log_console = True
+    return ox
+
+
+def plot_on_map(coco_dset):
+    """
+    Ignore:
+        import shitspotter
+        import kwplot
+        kwplot.autoplt()
+        coco_dset = shitspotter.open_shit_coco()
+    """
+    import geopandas as gpd
+    from shapely import geometry
+    import kwplot
+    # from pyproj import CRS
+    sns = kwplot.autosns()  # NOQA
+    rows = []
+    for gid, img in coco_dset.index.imgs.items():
+        row = img.copy()
+        if 'geos_point' in img:
+            geos_point = img['geos_point']
+            if isinstance(geos_point, dict):
+                coords = geos_point['coordinates']
+                point = [Rational.coerce(x) for x in coords]
+                row['geometry'] = geometry.Point(point)
+                rows.append(row)
+    img_locs = gpd.GeoDataFrame(rows, crs='crs84')
+    utm_zones = [utm_epsg_from_latlon(geom.y, geom.x) for geom in img_locs.geometry]
+    img_locs['utm_zones'] = utm_zones
+
+    # TODO: cluster into UTM zones?
+    # import geodatasets
+    # wld_map_gdf = gpd.read_file(geodatasets.get_path('naturalearth.land'))
+    ox = _configure_osm()
+
+    for utm_zone, group in img_locs.groupby('utm_zones'):
+        fig = kwplot.figure(doclf=True, fnum=utm_zone)
+        ax = fig.gca()
+
+        import kwimage
+        box = kwimage.Box.coerce([group.bounds.minx.min(), group.bounds.maxx.max(),
+                                  group.bounds.miny.min(), group.bounds.maxy.max()], format='xxyy')
+        region_geom = box.to_polygon().to_shapely()
+
+        osm_graph = ox.graph_from_polygon(region_geom)
+
+        ax = kwplot.figure(fnum=1, docla=True).gca()
+        fig, ax = ox.plot_graph(osm_graph, bgcolor='lawngreen', node_color='dodgerblue', edge_color='skyblue', ax=ax)
+        # group.plot(ax=ax, color='orange')
+        emoji_plot_pil2(data=group, x='lon', y='lat', text='💩', hue=None, ax=ax)
+
+        # utm_crs = CRS.from_epsg(utm_zone)
+        # img_utm_loc = group.to_crs(utm_crs)
+        # img_utm_xy = np.array([(p.x, p.y) for p in img_utm_loc.geometry.values])
+
+        # wld_map_gdf.plot(ax=ax)
+        # img_locs.plot(ax=ax, kind='kde')
+        # img_utm_loc.plot(ax=ax)
+        # img_utm_loc.plot(ax=ax)
+        if 0:
+            img_locs['lon'] = img_locs.geometry.x
+            img_locs['lat'] = img_locs.geometry.y
+            fig = kwplot.figure(doclf=True)
+            ax = fig.gca()
+            sns.scatterplot(data=img_locs, x='lon', y='lat', ax=ax)
+
+
 def emoji_plot_font(ax, img_locs, text, label_to_color):
     for x, y in zip(img_locs.geometry.x, img_locs.geometry.y):
         ax.annotate(text, xy=(x, y), fontname='symbola', color='brown', fontsize=20)
@@ -232,6 +327,68 @@ def emoji_plot_pil(ax, img_locs, text, label_to_color):
         label = row.year_month
         image_box = label_to_img[label]
         ab = AnnotationBbox(image_box, (x, y), frameon=False)
+        ax.add_artist(ab)
+
+
+def emoji_plot_pil2(data, x, y, text, hue=None, ax=None):
+    """
+    # import kwimage
+    # kwplot.imshow(kwimage.stack_images([g.image._A for g in label_to_img.values()]), fnum=2, doclf=True)
+    """
+    import kwimage
+    from PIL import Image, ImageFont, ImageDraw
+    # hue_labels
+    from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+    from kwplot.mpl_make import crop_border_by_color
+    # text = 'P'
+    # sudo apt install ttf-ancient-fonts-symbola
+    # font = ImageFont.truetype('/usr/share/fonts/truetype/Sarai/Sarai.ttf', 60, encoding='unic')
+    # font = ImageFont.truetype("/data/Steam/steamapps/common/Proton 6.3/dist/share/wine/fonts/symbol.ttf", 60, encoding='unic')
+    label_to_img = {}
+
+    # symbola = ub.grabdata('https://github.com/gearit/ttf-symbola/raw/master/Symbola.ttf')
+    # QmQY15hiCfFLXCeFxie1iLhqjzY8fEgGxkT8i3uvrWN4me
+    symbola = ub.grabdata(
+        'https://github.com/taylor/fonts/raw/master/Symbola.ttf',
+        hash_prefix='65d634649ab3c4e718b376db0d2e7566d8cfccfff12c70fb3ae2e29a',
+        hasher='sha512',
+    )
+
+    font = ImageFont.truetype(symbola, 32, encoding='unic')
+
+    if hue is None:
+        col = kwimage.Color.coerce('orange', alpha=1).as255()
+        pil_img = Image.new("RGBA", (64, 64), (255, 255, 255, 0))
+        pil_draw = ImageDraw.Draw(pil_img)
+        pil_draw.text((0, 0), text, col, font=font)
+        img = np.asarray(pil_img)
+        img = crop_border_by_color(img, (255, 255, 255, 0))
+        default_image_box = OffsetImage(img, zoom=0.5)
+    else:
+        raise NotImplementedError
+        label_to_color = None
+        for label, color in label_to_color.items():
+            col = kwimage.Color(list(color) + [1]).as255()
+            pil_img = Image.new("RGBA", (64, 64), (255, 255, 255, 0))
+            pil_draw = ImageDraw.Draw(pil_img)
+            pil_draw.text((0, 0), text, col, font=font)
+            img = np.asarray(pil_img)
+            img = crop_border_by_color(img, (255, 255, 255, 0))
+            image_box = OffsetImage(img, zoom=0.5)
+            label_to_img[label] = image_box
+
+    xy = data[[x, y]]
+    image_box = OffsetImage(img, zoom=0.5)
+    for _, row in xy.iterrows():
+        row = row.to_dict()
+        x_pos = row[x]
+        y_pos = row[y]
+        if hue is None:
+            image_box = default_image_box
+        else:
+            # label = row.year_month
+            image_box = label_to_img[label]
+        ab = AnnotationBbox(image_box, (x_pos, y_pos), frameon=False)
         ax.add_artist(ab)
 
 

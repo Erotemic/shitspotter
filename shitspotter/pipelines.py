@@ -130,77 +130,30 @@ class PolygonExtraction(ProcessNode):
         >>> from shitspotter.pipelines import *  # NOQA
         >>> node = PolygonExtraction()
         >>> node.configure({
-        >>>     'pred_dataset': 'pred.kwcoco.zip',
+        >>>     'src': 'pred.kwcoco.zip',
         >>> })
         >>> print(node.command)
     """
-    name = 'polygon_extraction'
+    name = 'extract_polygons'
     group_dname = PREDICT_NAME
 
-    executable = 'python -m geowatch.cli.run_tracker'
+    executable = 'python -m shitspotter.cli.extract_polygons'
 
     in_paths = {
-        'pred_dataset',
+        'src',
     }
+    out_paths = {
+        'dst': 'poly.kwcoco.zip'
+    }
+    primary_out_key = 'dst'
 
     algo_params = {
-        'resolution': None,
         'thresh': 0.5,
-        'agg_fn': 'probs',
-        'moving_window_size': 1,
+        'scale': 0.5,
     }
-
-    out_paths = {
-        'site_summaries_fpath': 'site_summaries_manifest.json',
-        'site_summaries_dpath': 'site_summaries',
-        'sites_fpath': 'sites_manifest.json',
-        'sites_dpath': 'sites',
-        'poly_kwcoco_fpath': 'poly.kwcoco.zip'
+    perf_params = {
+        'workers': 'auto',
     }
-    primary_out_key = 'poly_kwcoco_fpath'
-
-    default_track_fn = 'saliency_heatmaps'
-
-    @property
-    def command(self):
-        import shlex
-        import json
-        fmtkw = self.final_config.copy()
-        fmtkw['default_track_fn'] = self.default_track_fn
-        external_args = {
-            'site_summary',
-            'boundary_region',
-            'site_score_thresh',
-            'smoothing', 'append_mode',
-            'time_pad_before',
-            'time_pad_after',
-        }
-        track_kwargs = self.final_algo_config.copy() - external_args
-        track_kwargs = track_kwargs - {'pred_dataset'}  # not sure why this is needed
-        fmtkw['kwargs_str'] = shlex.quote(json.dumps(track_kwargs))
-        fmtkw['external_argstr'] = self._make_argstr(self.final_config & external_args)
-        command = ub.codeblock(
-            r'''
-            python -m geowatch.cli.run_tracker \
-                --input_kwcoco "{pred_dataset}" \
-                --default_track_fn {default_track_fn} \
-                --track_kwargs {kwargs_str} \
-                --clear_annots=True \
-                --out_site_summaries_fpath "{site_summaries_fpath}" \
-                --out_site_summaries_dir "{site_summaries_dpath}" \
-                --out_sites_fpath "{sites_fpath}" \
-                --out_sites_dir "{sites_dpath}" \
-                --out_kwcoco "{poly_kwcoco_fpath}" \
-                {external_argstr}
-            ''').format(**fmtkw)
-        return command
-
-    @property
-    def final_algo_config(self):
-        return ub.udict({
-            # 'boundaries_as': 'polys'
-            "agg_fn": "probs",
-        }) | super().final_algo_config
 
 
 class DetectionEvaluation(ProcessNode):
