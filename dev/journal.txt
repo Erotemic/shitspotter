@@ -54,3 +54,10 @@ Made good progress on writing the paper. Went from 1ish to 4ish pages. The layou
 And my superuser question got closed for being too open ended. Annoying. In any case, I might have figured out the problem. It looks like the downloading machine does connect to the seed machine but there is a permission issue, by changing the download location I'm hoping that fixes it...
 
 Also m "h" key is stuck and i'm currently typing it by copying it into the clipboard and pasting it. Need to clean my keyboard.
+
+# 2024-09-21
+
+Got desk rejected due to going over length, bummer. It was a stupid mistake
+where I included the appendix in the main paper instead of the suplementary
+materials. Guess I can try for CVPR, but passing review there will be less
+likely.
