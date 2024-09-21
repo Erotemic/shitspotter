@@ -1,0 +1,56 @@
+A log of experiences while developing this project that aren't always obvious
+from the git log.
+
+
+# 2024-08-01
+
+Getting bittorrent to work in the situation where I seed something on one
+machine in a network and then download it on another it on another machine on
+the network. I am going to write a stackoverflow post about this, and I will
+draft it here. I'm looking for a way to record the following sort of
+difficulties, and this "dev/lab journal" is what I came up with.
+
+https://superuser.com/questions/1851016/a-minimal-example-of-sharing-data-with-bittorrent
+
+.. code:: 
+
+    A minimal example of sharing data with BitTorrent 
+
+    I want to write a minimal, reproducible, and configurable minimal example that
+    demonstrates how to create, seed, and download a torrent. 
+
+    ### Issue & Question
+
+    This is much harder than I anticipated. The command line tooling is weaker than
+    I would have guessed, but it exists, and it should be possible. There are a lot
+    of edge-cases to consider when writing a networking example, and perhaps my
+    difficulty is because I'm hitting one of those. I'm looking for help with
+    writing up this example in a way that helps document what some of the issue
+    might be.
+
+
+    ### Setup
+
+    I'm running all of this on a home network behind a simple router. I'm using two
+    machines on this network. A rasberry pi 4, and my x86-84 desktop. Both are
+    running ubuntu. I'm not sure if being on the same LAN behind the same NAT-ed
+    router is going to cause an issue? The seeding machine does have ports 6969 and
+    51413 forwarded to it, but the download machine does not. Is that an issue?
+    I would think it would still work.
+
+    ### Script
+
+    The following is the MWE I've written so far. Not sure how to make RST look
+    nice on SuperUser, so putting it in a code block:
+
+        <code from ~/code/shitspotter/docs/source/manual/minimal_bittorrent_example.rst>
+
+# 2024-08-02
+
+Made good progress on writing the paper. Went from 1ish to 4ish pages. The layout is coming together and I think the abstract is compelling.
+
+# 2024-08-03
+
+And my superuser question got closed for being too open ended. Annoying. In any case, I might have figured out the problem. It looks like the downloading machine does connect to the seed machine but there is a permission issue, by changing the download location I'm hoping that fixes it...
+
+Also m "h" key is stuck and i'm currently typing it by copying it into the clipboard and pasting it. Need to clean my keyboard.
