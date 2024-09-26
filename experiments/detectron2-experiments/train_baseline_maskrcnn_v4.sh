@@ -1,5 +1,6 @@
 # References:
 # https://colab.research.google.com/drive/16jcaJoc6bCFAQ96jDe2HwtXj7BMD_-m5#scrollTo=HUjkwRsOn1O0
+# https://github.com/facebookresearch/detectron2/issues/2442
 
 cd ~/code/shitspotter/experiments/detectron2-experiments
 rsync -avprPR ~/code/zerowaste/./deeplab .
@@ -7,6 +8,7 @@ rsync -avprPR ~/code/zerowaste/./maskrcnn .
 #cat zerowaste_config.yaml
 #gvim zerowaste_config.yaml
 
+export CUDA_VISIBLE_DEVICES="1,"
 python -c "if 1:
     import os
     import detectron2
@@ -39,21 +41,24 @@ python -c "if 1:
     shitspotter_repo_dpath = ub.Path(shitspotter.__file__).parent.parent
 
     cfg = get_cfg()
-    config_fpath = shitspotter_repo_dpath / 'experiments/detectron2-experiments/maskrcnn/configs/zerowaste_config.yaml'
-    print(config_fpath.read_text())
-    cfg.set_new_allowed(True)
-    cfg.merge_from_file(config_fpath)
-
+    cfg.merge_from_file(model_zoo.get_config_file('COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml'))
     cfg.DATASETS.TRAIN = (dataset_infos['train']['name'],)
-    cfg.DATASETS.TEST = (dataset_infos['vali']['name'],)
-    cfg.SOLVER.IMS_PER_BATCH = 2
-    cfg.SOLVER.MAX_ITER = 120_000
-    cfg.SOLVER.BASE_LR = 0.001
+    # cfg.DATASETS.TEST = (dataset_infos['vali']['name'],)
+    cfg.DATASETS.TEST = ()
+    cfg.DATALOADER.NUM_WORKERS = 2
+    cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url('COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml')  # Let training initialize from model zoo
+    cfg.SOLVER.IMS_PER_BATCH = 2  # This is the real 'batch size' commonly known to deep learning people
+    cfg.SOLVER.BASE_LR = 0.00025  # pick a good LR
+    cfg.SOLVER.MAX_ITER = 120_000 # 300 iterations seems good enough for this toy dataset; you will need to train longer for a practical dataset
+    cfg.SOLVER.STEPS = []        # do not decay learning rate
+    cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 128   # The 'RoIHead batch size'. 128 is faster, and good enough for this toy dataset (default: 512)
+    cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1  # only has one class (ballon). (see https://detectron2.readthedocs.io/tutorials/datasets.html#update-the-config-for-new-datasets)
+    # NOTE: this config means the number of classes, but a few popular unofficial tutorials incorrect uses num_classes+1 here.
 
     train_prefix = ub.Path('~/data/dvc-repos/shitspotter_expt_dvc/training').expand()
     cfg.OUTPUT_DIR = None  # hack: null out for the initial
     hashid = ub.hash_data(cfg)[0:8]
-    expt_name = f'{config_fpath.stem}_{config_fpath.parent.parent.name}_{hashid}'
+    expt_name = f'{config_fpath.stem}_{config_fpath.parent.parent.name}_v3_{hashid}'
     output_dpath = (train_prefix / platform.node() / os.environ['USER'] / 'ShitSpotter' / 'runs' / expt_name)
     output_dpath.ensuredir()
     cfg.OUTPUT_DIR = os.fspath(output_dpath)
