@@ -911,14 +911,12 @@ network_measurements:
     action: update-dataset
     method: ipfs
     duration: null
-    status: null
+    status: failed
     command: |-
       NEW_ROOT_CID=bafybeih2r75jrkslgcs7b5orecbuypa5iohwnceeynr522ncwcbhi7nyr4
       date
       time ipfs pin add --name shitspotter-2024-09-16 --progress $NEW_ROOT_CID
       date
-      
-      
 
       
 .__taildoc__: |-

@@ -13,11 +13,12 @@
 .. .. +------------------+----------------------------------------------+
 
 
-This ``shitspotter`` repo is where I am building the "ShitSpotter" poop-detection algorithm and dataset.
+This ``shitspotter`` repo is where I am building the "ShitSpotter" (or "ScatSpotter" if you want)
+  poop-detection algorithm and dataset.
 The primary goal of this work is to allow for the creation of a phone app that finds where your dog pooped,
-because you ran to grab the doggy-bags you forgot, and now you can't find the damn thing.
-Other applications can be envisioned, such as AR glasses that lets you know if you are about to walk into a steamer,
-or perhaps city governments could use this to more efficiently clean public areas.
+  because you ran to grab the doggy-bags you forgot, and now you can't find the damn thing.
+Other applications can be envisioned, such as AR glasses that lets you know if you are about to walk into a
+  steamer, or perhaps city governments could use this to more efficiently clean public areas.
 
 This module will contain an algorithm for training a pytorch network to detect poop in images, and a script
 for detecting poop in unseen images given a pretrained model.
@@ -139,7 +140,7 @@ deep variant and then estimating an affine/projective transform) and then take
 a difference image. That should let me seed some sort of semi-automated
 annotation process.
 
-Then in 2021-05-11, one of my colleague suggested that I take a 3rd unrelated
+Then in 2021-05-11, one of my colleagues suggested that I take a 3rd unrelated
 picture to use as negative examples, so I took that suggestion and started
 doing that. This is the process currently being used. The following figure
 illustrates an example of one of these "triples".
@@ -222,6 +223,12 @@ The following scatterplot illustrates trends in the space / time distribution of
 .. .. image:: https://imgur.com/q6XzSKa.png
 .. .. image:: https://i.imgur.com/ne3AeC4.png
 
+
+A spatial visualization of where the majority of images were taken is as follows:
+
+
+.. .. image:: https://ipfs.io/ipfs/<HEAD>/analysis/map-scatterplot.png
+.. image:: https://i.imgur.com/NE4xLJw.png
 
 A visualization of the cumulative number of images collected over time is as follows:
 

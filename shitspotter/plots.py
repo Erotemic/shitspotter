@@ -242,6 +242,8 @@ def plot_on_map(coco_dset):
     img_locs = gpd.GeoDataFrame(rows, crs='crs84')
     utm_zones = [utm_epsg_from_latlon(geom.y, geom.x) for geom in img_locs.geometry]
     img_locs['utm_zones'] = utm_zones
+    img_locs['lon'] = img_locs.geometry.x
+    img_locs['lat'] = img_locs.geometry.y
 
     # TODO: cluster into UTM zones?
     # import geodatasets
@@ -252,6 +254,9 @@ def plot_on_map(coco_dset):
         fig = kwplot.figure(doclf=True, fnum=utm_zone)
         ax = fig.gca()
 
+        group['lon'] = group['geometry'].x
+        group['lat'] = group['geometry'].y
+
         import kwimage
         box = kwimage.Box.coerce([group.bounds.minx.min(), group.bounds.maxx.max(),
                                   group.bounds.miny.min(), group.bounds.maxy.max()], format='xxyy')
@@ -260,9 +265,10 @@ def plot_on_map(coco_dset):
         osm_graph = ox.graph_from_polygon(region_geom)
 
         ax = kwplot.figure(fnum=1, docla=True).gca()
-        fig, ax = ox.plot_graph(osm_graph, bgcolor='lawngreen', node_color='dodgerblue', edge_color='skyblue', ax=ax)
-        # group.plot(ax=ax, color='orange')
-        emoji_plot_pil2(data=group, x='lon', y='lat', text='💩', hue=None, ax=ax)
+        fig, ax = ox.plot_graph(osm_graph, bgcolor='lawngreen', node_color='dodgerblue', edge_color='skyblue', ax=ax, node_size=0)
+        group.plot(ax=ax, color=kwimage.Color('orange', alpha=0.5).as01())
+
+        # emoji_plot_pil2(data=group, x='lon', y='lat', text='💩', hue=None, ax=ax)
 
         # utm_crs = CRS.from_epsg(utm_zone)
         # img_utm_loc = group.to_crs(utm_crs)
@@ -273,11 +279,9 @@ def plot_on_map(coco_dset):
         # img_utm_loc.plot(ax=ax)
         # img_utm_loc.plot(ax=ax)
         if 0:
-            img_locs['lon'] = img_locs.geometry.x
-            img_locs['lat'] = img_locs.geometry.y
             fig = kwplot.figure(doclf=True)
             ax = fig.gca()
-            sns.scatterplot(data=img_locs, x='lon', y='lat', ax=ax)
+            sns.scatterplot(data=group, x='lon', y='lat', ax=ax)
 
 
 def emoji_plot_font(ax, img_locs, text, label_to_color):

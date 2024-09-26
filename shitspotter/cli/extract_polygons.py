@@ -73,7 +73,6 @@ class ExtractPolygonsCLI(scfg.DataConfig):
         except NameError:
             # for ipython
             name = 'shitspotter.cli.extract_polygons'
-
         proc_context = kwutil.ProcessContext(
             name=name,
             type='process',
