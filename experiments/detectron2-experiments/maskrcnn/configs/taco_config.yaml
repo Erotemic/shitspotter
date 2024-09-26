@@ -1,0 +1,41 @@
+#_BASE_: COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml
+MODEL:
+  #WEIGHTS: "detectron2://COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml"
+  PIXEL_MEAN: [123.675, 116.280, 103.530]
+  PIXEL_STD: [58.395, 57.120, 57.375]
+  ROI_HEADS:
+    NUM_CLASSES: 5
+    BATCH_SIZE_PER_IMAGE: 512
+
+DATASETS:
+  TRAIN: ("taco-zw-train",)
+  TEST: ("taco-zw-train", "taco-zw-test")
+
+INPUT:
+  MIN_SIZE_TRAIN: (1024, 1280, 1536, 1792, 2048, 4096)
+  MIN_SIZE_TRAIN_SAMPLING: "choice"
+  MIN_SIZE_TEST: 1024
+  MAX_SIZE_TRAIN: 4096
+  MAX_SIZE_TEST: 1024
+  CROP:
+    ENABLED: True
+    TYPE: "absolute"
+    SIZE: (512, 1024)
+    #SINGLE_CATEGORY_MAX_AREA: 1.0
+
+TEST:
+  EVAL_PERIOD: 1000
+  DETECTIONS_PER_IMAGE: 30 # max number of detection proposals per image
+SOLVER:
+  MAX_ITER: 10000 # total number of iterations
+  BASE_LR: 0.0025 # starting LR
+  LR_SCHEDULER_NAME: "WarmupMultiStepLR" # See detectron2/solver/build.py for LR scheduler options
+  MOMENTUM: 0.9
+  NESTEROV: False
+  WEIGHT_DECAY: 0.0001
+  GAMMA: 0.05
+  STEPS: (30000,60000) # The iteration number to decrease learning rate by GAMMA.
+  CHECKPOINT_PERIOD: 1000 # Save a checkpoint after every this number of iterations
+  IMS_PER_BATCH: 4  # batch size
+
+OUTPUT_DIR: ./outputs/" 

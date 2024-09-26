@@ -1,0 +1,58 @@
+_BASE_: Base-DeepLabV3-OS16-Semantic.yaml
+MODEL:
+  WEIGHTS: "detectron2://DeepLab/R-103.pkl"
+  PIXEL_MEAN: [123.675, 116.280, 103.530]
+  PIXEL_STD: [58.395, 57.120, 57.375]
+  BACKBONE:
+    NAME: "build_resnet_deeplab_backbone"
+    FREEZE_AT: 3
+  RESNETS:
+    DEPTH: 101 
+    NORM: "SyncBN" # FrozenBN, GN, "SyncBN", "BN"
+    OUT_FEATURES: ["res2", "res5"]
+    RES5_MULTI_GRID: [1, 2, 4]
+    STEM_TYPE: "deeplab"
+    STEM_OUT_CHANNELS: 128
+    STRIDE_IN_1X1: False
+  SEM_SEG_HEAD:
+    NAME: "DeepLabV3PlusHead"
+    IN_FEATURES: ["res2", "res5"]
+    PROJECT_FEATURES: ["res2"]
+    PROJECT_CHANNELS: [48]
+    NORM: "SyncBN"  # FrozenBN, GN, "SyncBN", "BN"
+    COMMON_STRIDE: 4
+    NUM_CLASSES: 5
+    ASPP_DROPOUT: 0.8
+    IGNORE_VALUE: 255
+INPUT:
+  MIN_SIZE_TRAIN: (512, 768, 1024, 1280, 1536, 1792, 2048)
+  MIN_SIZE_TRAIN_SAMPLING: "choice"
+  MIN_SIZE_TEST: 1024
+  MAX_SIZE_TRAIN: 4096
+  MAX_SIZE_TEST: 1024
+  CROP:
+    ENABLED: True
+    TYPE: "absolute"
+    SIZE: (512, 1024)
+    SINGLE_CATEGORY_MAX_AREA: 1.0
+
+DATALOADER:
+  NUM_WORKERS: 8
+
+DATASETS:
+  TRAIN: ("zero-waste-semseg-train",)
+  TEST: ("zero-waste-semseg-train", "zero-waste-semseg-val", "zero-waste-semseg-test")
+
+TEST:
+  EVAL_PERIOD: 1000
+SOLVER:
+  MAX_ITER: 10000
+  BASE_LR: 0.01
+  LR_SCHEDULER_NAME: "WarmupMultiStepLR" # See detectron2/solver/build.py for LR scheduler options
+  MOMENTUM: 0.9 
+  NESTEROV: False
+  WEIGHT_DECAY: 0.003
+  GAMMA: 0.1
+  STEPS: (2000, 4000, 6000, 9000) # The iteration number to decrease learning rate by GAMMA.
+  CHECKPOINT_PERIOD: 1000 # Save a checkpoint after every this number of iterations
+  IMS_PER_BATCH: 40  # batch size
