@@ -85,3 +85,108 @@ python -c "if 1:
 
 
 "
+
+
+# checkpoint_fpath = '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/zerowaste_config_maskrcnn_75d01146/model_0119999.pth'
+python -m shitspotter.detectron2.predict \
+    --checkpoint_fpath /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0119999.pth \
+    --src /home/joncrall/data/dvc-repos/shitspotter_dvc/vali_imgs691_99b22ad0.mscoco.json \
+    --dst pred.kwcoco.json \
+    --workers=4
+
+kwcoco eval_detections \
+    --true_dataset /home/joncrall/data/dvc-repos/shitspotter_dvc/vali_imgs691_99b22ad0.mscoco.json \
+    --pred_dataset pred.kwcoco.json
+
+
+
+export CUDA_VISIBLE_DEVICES=0,1
+DVC_DATA_DPATH=$(geowatch_dvc --tags="shitspotter_data")
+DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
+
+test -e "$DVC_EXPT_DPATH" || echo "CANNOT FIND EXPT"
+test -e "$DVC_DATA_DPATH" || echo "CANNOT FIND DATA"
+
+#WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER
+KWCOCO_BUNDLE_DPATH=$DVC_DATA_DPATH
+VALI_FPATH=$KWCOCO_BUNDLE_DPATH/vali_imgs228_20928c8c.kwcoco.zip
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals
+
+
+echo "
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0004999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0009999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0014999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0019999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0024999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0029999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0034999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0039999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0044999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0049999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0054999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0059999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0064999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0069999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0074999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0079999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0084999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0089999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0094999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0099999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0104999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0109999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0114999.pth
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0119999.pth
+" > "$HOME"/code/shitspotter/experiments/detectron_models.yaml
+
+# specified models
+DVC_DATA_DPATH=$(geowatch_dvc --tags="shitspotter_data")
+DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
+#WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER
+KWCOCO_BUNDLE_DPATH=$DVC_DATA_DPATH
+VALI_FPATH=$KWCOCO_BUNDLE_DPATH/vali_imgs228_20928c8c.kwcoco.zip
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_detectron_evals
+
+kwcoco info "$VALI_FPATH" -g1
+
+python -m geowatch.mlops.schedule_evaluation \
+    --params="
+        pipeline: 'shitspotter.pipelines.detectron_evaluation_pipeline()'
+        matrix:
+            detectron_pred.checkpoint_fpath:
+                 - $HOME/code/shitspotter/experiments/detectron_models.yaml
+            detectron_pred.src_fpath:
+                - $VALI_FPATH
+            detectron_pred.workers: 4
+            detection_eval.enabled: 1
+    " \
+    --root_dpath="$EVAL_PATH" \
+    --devices="0,1," --tmux_workers=1 \
+    --backend=tmux --skip_existing=1 \
+    --run=1
+
+
+DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_detectron_evals
+python -m geowatch.mlops.aggregate \
+    --pipeline='shitspotter.pipelines.detectron_evaluation_pipeline()' \
+    --target "
+        - $EVAL_PATH
+    " \
+    --output_dpath="$EVAL_PATH/full_aggregate" \
+    --resource_report=1 \
+    --io_workers=0 \
+    --eval_nodes="
+        - detection_evaluation
+    " \
+    --stdout_report="
+        top_k: 10
+        per_group: null
+        macro_analysis: 0
+        analyze: 0
+        print_models: True
+        reference_region: null
+        concise: 0
+        show_csv: 0
+    "

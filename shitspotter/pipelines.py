@@ -23,14 +23,71 @@ If the assumption of arguments as key/value pairs is broken, nodes can specify
 a "command" method, where the user can define exactly what shell command to
 run.
 """
-# import shlex
-# import json
 from geowatch.mlops.pipeline_nodes import ProcessNode
 from geowatch.mlops.pipeline_nodes import PipelineDAG
 import ubelt as ub  # NOQA
 
 PREDICT_NAME = 'pred'
 EVALUATE_NAME = 'eval'
+
+
+class DetectronPrediction(ProcessNode):
+    """
+    CommandLine:
+        xdoctest -m shitspotter.pipelines DetectronPrediction
+
+    Example:
+        >>> from shitspotter.pipelines import *  # NOQA
+        >>> node = DetectronPrediction()
+        >>> node.configure({
+        >>>     'checkpoint_fpath': 'model.pt',
+        >>>     'src_fpath': 'test.kwcoco.zip',
+        >>> })
+        >>> command = node.command
+        >>> print(node.command)
+    """
+    name = 'detectron_pred'
+    group_dname = PREDICT_NAME
+
+    executable = 'python -m shitspotter.detectron2.predict'
+
+    in_paths = {
+        'src_fpath',
+        'checkpoint_fpath',
+        'model_fpath',  # should this an algo param?
+    }
+
+    out_paths = {
+        'dst_fpath' : 'pred.kwcoco.zip',
+    }
+    primary_out_key = 'dst_fpath'
+
+    perf_params = {
+        'workers': 2,
+        # 'devices': '0,',
+        # 'batch_size': 1,
+        # 'memmap': False,
+    }
+
+    algo_params = {
+    }
+
+    def load_result(self, node_dpath):
+        from geowatch.mlops import smart_result_parser
+        from geowatch.mlops.aggregate_loader import new_process_context_parser
+        from geowatch.utils import util_dotdict
+        node_type = self.name
+        fpath = node_dpath / self.out_paths[self.primary_out_key]
+        coco_pred_info = smart_result_parser.parse_json_header(fpath)
+
+        coco_pred_info = smart_result_parser.parse_json_header(fpath)
+        assert len(coco_pred_info) == 1
+        proc_item = coco_pred_info[0]  # HACK, the name is wrong
+        # proc_item = smart_result_parser.find_pred_pxl_item(coco_pred_info)
+        nest_resolved = new_process_context_parser(proc_item)
+        flat_resolved = util_dotdict.DotDict.from_nested(nest_resolved)
+        flat_resolved = flat_resolved.insert_prefix(node_type, index=1)
+        return flat_resolved
 
 
 class HeatmapPrediction(ProcessNode):
@@ -193,6 +250,83 @@ class DetectionEvaluation(ProcessNode):
         'draw': False,
     }
 
+    def load_result(self, node_dpath):
+        from geowatch.utils import util_dotdict
+        from kwcoco.metrics.confusion_measures import Measures
+        import json
+        import numpy as np
+        fpath = node_dpath / self.out_paths[self.primary_out_key]
+        data = json.loads(fpath.read_text())
+        assert len(data) == 1
+        item = ub.peek(data.values())
+        nocls_measures = item['nocls_measures']
+        nocls_measures = Measures.from_json(nocls_measures)
+
+        maximized = nocls_measures.maximized_thresholds()
+        thresh = maximized['f1']['thresh']
+
+        keys = ['mcc', 'g1', 'f1', 'acc']
+        sub_keys = ['ppv', 'tpr', 'fpr', 'tnr', 'bm', 'mk', 'f1']
+        info = nocls_measures
+        thresh = thresh = np.array(nocls_measures['thresholds'])
+        finite_flags = np.isfinite(thresh)
+        finite_thresh = thresh[finite_flags]
+        for key in keys:
+            if key in info:
+                measure = info[key][finite_flags]
+                try:
+                    max_idx = np.nanargmax(measure)
+                except ValueError:
+                    best_thresh = np.nan
+                    best_measure = np.nan
+                    best_submeasures = {k: np.nan for k in sub_keys}
+                    best_submeasures['thresh'] = best_thresh
+                else:
+                    best_thresh = float(finite_thresh[max_idx])
+                    best_measure = float(measure[max_idx])
+                    best_submeasures = {k: info[k][finite_flags][max_idx] for k in sub_keys}
+                    best_submeasures['thresh'] = best_thresh
+
+                best_label = '{}={:0.2f}@{:0.2f}'.format(key, best_measure, best_thresh)
+                info['max_{}'.format(key)] = best_label
+                info['max_{}_submeasures'.format(key)] = best_submeasures
+                info['_max_{}'.format(key)] = (best_measure, best_thresh)
+
+        at_maxf1 = {'max_f1_' + k: float(v) for k, v in info['max_f1_submeasures'].items()}
+
+        nocls_measures['max_f1']
+        metrics = ub.udict(nocls_measures) & {
+            'ap', 'auc', 'nsupport', 'realpos_total', 'realneg_total',
+            'trunc_auc'
+        }
+        nest_resolved = {}
+        metrics.update(at_maxf1)
+        nest_resolved['metrics'] = metrics
+        flat_resolved = util_dotdict.DotDict.from_nested(nest_resolved)
+        flat_resolved = flat_resolved.insert_prefix(self.name, 1)
+        return flat_resolved
+
+    def _default_metrics(self):
+        _display_metrics_suffixes = [
+            'ap',
+            'auc',
+            'max_f1_f1',
+            'max_f1_tpr',
+            'max_f1_ppv',
+        ]
+        _primary_metrics_suffixes = _display_metrics_suffixes[0:2]
+        return _primary_metrics_suffixes, _display_metrics_suffixes
+
+    @property
+    def default_vantage_points(self):
+        vantage_points = [
+            {
+                'metric1': 'metrics.detection_evaluation.ap',
+                'metric2': 'metrics.detection_evaluation.auc',
+            },
+        ]
+        return vantage_points
+
 
 class HeatmapEvaluation(ProcessNode):
     """
@@ -351,4 +485,15 @@ def polygon_evaluation_pipeline():
     dag = PipelineDAG(nodes)
     dag.build_nx_graphs()
 
+    return dag
+
+
+def detectron_evaluation_pipeline():
+    nodes = {}
+    detectron_pred = nodes['detectron_pred'] = DetectronPrediction()
+    detection_evaluation = nodes['detection_evaluation'] = DetectionEvaluation()
+    detectron_pred.outputs['dst_fpath'].connect(detection_evaluation.inputs['pred_dataset'])
+    detectron_pred.inputs['src_fpath'].connect(detection_evaluation.inputs['true_dataset'])
+    dag = PipelineDAG(nodes)
+    dag.build_nx_graphs()
     return dag

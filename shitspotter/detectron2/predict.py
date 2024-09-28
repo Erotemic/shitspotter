@@ -1,10 +1,20 @@
 #!/usr/bin/env python3
+"""
+SeeAlso:
+    ~/code/shitspotter/experiments/detectron2-experiments/train_baseline_maskrcnn_v3.sh
+"""
 import scriptconfig as scfg
 import ubelt as ub
 
 
 class DetectronPredictCLI(scfg.DataConfig):
-    # param1 = scfg.Value(None, help='param1')
+    # TODO: scriptconfig Value classes should have tags for mlops pipelines
+    # Something like tags ⊆ {in_path,out_path, algo_param, perf_param, primary, primary_in_path, primary_out_path}
+    checkpoint_fpath = scfg.Value(None, help='param1')
+    model_fpath = scfg.Value(None, help='param1')
+    src_fpath = scfg.Value(None, help='input kwcoco file')
+    dst_fpath = scfg.Value(None, help='output kwcoco file')
+    workers = 4
 
     @classmethod
     def main(cls, cmdline=1, **kwargs):
@@ -14,18 +24,28 @@ class DetectronPredictCLI(scfg.DataConfig):
             >>> from shitspotter.predict import *  # NOQA
             >>> cmdline = 0
             >>> kwargs = dict()
-            >>> cls = PredictCLI
+            >>> cls = DetectronPredictCLI
             >>> cls.main(cmdline=cmdline, **kwargs)
         """
         import rich
         from rich.markup import escape
         config = cls.cli(cmdline=cmdline, data=kwargs, strict=True)
         rich.print('config = ' + escape(ub.urepr(config, nl=1)))
+        detectron_predict(config)
 
 __cli__ = DetectronPredictCLI
 
 
 def detectron_predict(config):
+    """
+    Ignore:
+        # checkpoint_fpath = '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/zerowaste_config_maskrcnn_75d01146/model_0119999.pth'
+        config = DetectronPredictCLI(
+            checkpoint_fpath = '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0119999.pth',
+            src_fpath = '/home/joncrall/data/dvc-repos/shitspotter_dvc/vali_imgs691_99b22ad0.mscoco.json',
+            dst_fpath = 'pred.kwcoco.zip',
+        )
+    """
     # import shitspotter
     from detectron2.engine import DefaultPredictor
     from detectron2.config import get_cfg
@@ -34,17 +54,28 @@ def detectron_predict(config):
     import kwimage
     import kwarray
 
-    # checkpoint_fpath = '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/zerowaste_config_maskrcnn_75d01146/model_0119999.pth'
-    checkpoint_fpath = '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_v3/v_966e49df/model_0029999.pth'
-    vali_fpath = '/home/joncrall/data/dvc-repos/shitspotter_dvc/vali_imgs691_99b22ad0.mscoco.json'
+    checkpoint_fpath = config.checkpoint_fpath
+    src_fpath = config.src_fpath
+    dst_fpath = config.dst_fpath
+
+    import kwutil
+    import einops
+    proc_context = kwutil.ProcessContext(
+        name='shitspotter.detectron2.predict',
+        config=kwutil.Json.ensure_serializable(dict(config)),
+        track_emissions=True,
+    )
+    proc_context.start()
+    print(f'proc_context.obj = {ub.urepr(proc_context.obj, nl=3)}')
 
     cfg = get_cfg()
     cfg.merge_from_file(model_zoo.get_config_file('COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml'))
+
     # cfg.DATASETS.TRAIN = (dataset_infos['train']['name'],)
     # cfg.DATASETS.TEST = (dataset_infos['vali']['name'],)
     cfg.DATASETS.TEST = ()
     cfg.DATALOADER.NUM_WORKERS = 2
-    cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url('COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml')  # Let training initialize from model zoo
+    # cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url('COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml')  # Let training initialize from model zoo
     cfg.SOLVER.IMS_PER_BATCH = 2   # This is the real 'batch size' commonly known to deep learning people
     cfg.SOLVER.BASE_LR = 0.00025   # pick a good LR
     cfg.SOLVER.MAX_ITER = 120_000  # 300 iterations seems good enough for this toy dataset; you will need to train longer for a practical dataset
@@ -55,28 +86,54 @@ def detectron_predict(config):
     cfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.1  # set threshold for this model
     cfg.MODEL.WEIGHTS = checkpoint_fpath
 
+    # NEED to call detectron2 more efficiently
     predictor = DefaultPredictor(cfg)
 
     # full_fpath = ub.Path(shitspotter.util.find_shit_coco_fpath())
     # bundle_dpath = full_fpath.parent
-    # vali_fpath = bundle_dpath / 'vali_imgs691_99b22ad0.mscoco.json'
-    dset = kwcoco.CocoDataset(vali_fpath)
+    # dset_fpath = bundle_dpath / 'vali_imgs691_99b22ad0.mscoco.json'
+    dset = kwcoco.CocoDataset(src_fpath)
     dset.clear_annotations()
 
+    # TODO: could be much more efficient
     torch_impl = kwarray.ArrayAPI.coerce('torch')()
 
-    images = dset.images()
-    coco_img_iter = ub.ProgIter(images.coco_images_iter(), total=len(images), desc='predict')
-    for coco_img in coco_img_iter:
-        image_id = coco_img['id']
-        im = coco_img.imdelay(channels='blue|green|red').finalize()
-        outputs = predictor(im)
+    # import geowatch
+    from geowatch.tasks.fusion.datamodules.kwcoco_dataset import KWCocoVideoDataset
+    dataset = KWCocoVideoDataset(
+        dset,
+        window_space_dims='full',
+        channels='blue|green|red',
+        time_dims=1,
+        mode='test',
+        # todo: enhance reduce item size to remove most information, but do
+        # keep the image id.
+        # reduce_item_size=True,
+    )
+    batch_item = dataset[0]
+    loader = dataset.make_loader(
+        batch_size=1,
+        num_workers=4,  # config.workers
+    )
+
+    # images = dset.images()
+    batch_iter = ub.ProgIter(loader, total=len(loader), desc='predict')
+    for batch in batch_iter:
+        # raise Exception
+        assert len(batch) == 1
+        batch_item = batch[0]
+        image_id = batch_item['target']['gids'][0]
+        im_chw = batch_item['frames'][0]['modes']['blue|green|red']
+        im_hwc = einops.rearrange(im_chw, 'c h w -> h w c')
+        outputs = predictor(im_hwc.numpy())
         instances = outputs['instances']
         if len(instances):
             boxes = instances.pred_boxes
             scores = instances.scores
             boxes = kwimage.Boxes(boxes.tensor, format='ltrb').numpy()
             scores = torch_impl.numpy(instances.scores)
+            # TODO: handle masks
+            # pred_masks = torch_impl.numpy(instances.pred_masks)
             pred_class_indexes = torch_impl.numpy(instances.pred_classes)
             dets = kwimage.Detections(
                 boxes=boxes,
@@ -85,10 +142,17 @@ def detectron_predict(config):
             )
             for ann in dets.to_coco():
                 ann['image_id'] = image_id
+                ann['category_id'] = dset.ensure_category('poop')  # hack, fixme
+                ann['role'] = 'prediction'
                 dset.add_annotation(**ann)
 
+    dset.dataset.setdefault('info', [])
+    proc_context.stop()
+    print(f'proc_context.obj = {ub.urepr(proc_context.obj, nl=3)}')
+    dset.dataset['info'].append(proc_context.obj)
     dset.reroot(absolute=True)
-    dset.fpath = 'pred.kwcoco.zip'
+
+    dset.fpath = dst_fpath
     dset.dump()
 
 
@@ -97,6 +161,6 @@ if __name__ == '__main__':
 
     CommandLine:
         python ~/code/shitspotter/shitspotter/predict.py
-        python -m shitspotter.predict
+        python -m shitspotter.detectron2.predict
     """
     __cli__.main()
