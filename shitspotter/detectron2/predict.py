@@ -53,13 +53,14 @@ def detectron_predict(config):
     import kwcoco
     import kwimage
     import kwarray
+    import kwutil
+    import torch
+    import einops
 
     checkpoint_fpath = config.checkpoint_fpath
     src_fpath = config.src_fpath
     dst_fpath = config.dst_fpath
 
-    import kwutil
-    import einops
     proc_context = kwutil.ProcessContext(
         name='shitspotter.detectron2.predict',
         config=kwutil.Json.ensure_serializable(dict(config)),
@@ -116,35 +117,62 @@ def detectron_predict(config):
         num_workers=4,  # config.workers
     )
 
+    # FIXME: We need a method to know what classes the detectron2 model was
+    # trained with. For now we are hard coding for the poop problem.
+    classes = dset.object_categories()
+    classes = ['poop', 'unknown']
+    print(f'dset={dset}')
+
     # images = dset.images()
     batch_iter = ub.ProgIter(loader, total=len(loader), desc='predict')
-    for batch in batch_iter:
-        # raise Exception
-        assert len(batch) == 1
-        batch_item = batch[0]
-        image_id = batch_item['target']['gids'][0]
-        im_chw = batch_item['frames'][0]['modes']['blue|green|red']
-        im_hwc = einops.rearrange(im_chw, 'c h w -> h w c')
-        outputs = predictor(im_hwc.numpy())
-        instances = outputs['instances']
-        if len(instances):
-            boxes = instances.pred_boxes
-            scores = instances.scores
-            boxes = kwimage.Boxes(boxes.tensor, format='ltrb').numpy()
-            scores = torch_impl.numpy(instances.scores)
-            # TODO: handle masks
-            # pred_masks = torch_impl.numpy(instances.pred_masks)
-            pred_class_indexes = torch_impl.numpy(instances.pred_classes)
-            dets = kwimage.Detections(
-                boxes=boxes,
-                scores=scores,
-                class_idxs=pred_class_indexes
-            )
-            for ann in dets.to_coco():
-                ann['image_id'] = image_id
-                ann['category_id'] = dset.ensure_category('poop')  # hack, fixme
-                ann['role'] = 'prediction'
-                dset.add_annotation(**ann)
+    with torch.no_grad():  # https://github.com/sphinx-doc/sphinx/issues/4258
+        for batch in batch_iter:
+            # raise Exception
+            assert len(batch) == 1
+            batch_item = batch[0]
+            image_id = batch_item['target']['gids'][0]
+            im_chw = batch_item['frames'][0]['modes']['blue|green|red']
+            im_hwc = einops.rearrange(im_chw, 'c h w -> h w c').numpy()
+
+            # Run the model
+            # outputs = predictor(im_hwc.numpy())
+            height, width = im_chw.shape[1:3]
+            image = predictor.aug.get_transform(im_hwc).apply_image(im_hwc)
+            image = torch.as_tensor(image.astype("float32").transpose(2, 0, 1))
+            image.to(predictor.cfg.MODEL.DEVICE)
+
+            inputs = {"image": image, "height": height, "width": width}
+            outputs = predictor.model([inputs])[0]
+
+            instances = outputs['instances']
+            if len(instances):
+                boxes = instances.pred_boxes
+                scores = instances.scores
+                boxes = kwimage.Boxes(boxes.tensor, format='ltrb').numpy()
+                scores = torch_impl.numpy(instances.scores)
+                # TODO: handle masks
+
+                pred_masks = torch_impl.numpy(instances.pred_masks)
+                segmentations = []
+                for cmask in pred_masks:
+                    mask = kwimage.Mask.coerce(cmask)
+                    poly = mask.to_multi_polygon()
+                    segmentations.append(poly)
+
+                pred_class_indexes = torch_impl.numpy(instances.pred_classes)
+                dets = kwimage.Detections(
+                    boxes=boxes,
+                    scores=scores,
+                    class_idxs=pred_class_indexes,
+                    segmentations=segmentations,
+                    classes=classes,
+                )
+                for ann in dets.to_coco(style='new'):
+                    ann['image_id'] = image_id
+                    catname = ann.pop('category_name')
+                    ann['category_id'] = dset.ensure_category(catname)
+                    ann['role'] = 'prediction'
+                    dset.add_annotation(**ann)
 
     dset.dataset.setdefault('info', [])
     proc_context.stop()

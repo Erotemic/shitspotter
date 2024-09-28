@@ -64,6 +64,15 @@ def detectron_fit(config):
     # bundle_dpath = full_fpath.parent
     # vali_fpath = bundle_dpath / 'train_imgs5747_1e73d54f.mscoco.json'
 
+    import kwutil
+    proc_context = kwutil.ProcessContext(
+        name='shitspotter.detectron2.fit',
+        config=kwutil.Json.ensure_serializable(dict(config)),
+        track_emissions=True,
+    )
+    proc_context.start()
+    print(f'proc_context.obj = {ub.urepr(proc_context.obj, nl=3)}')
+
     dataset_paths = {
         'vali': ub.Path(config.vali_fpath),
         'train': ub.Path(config.train_fpath),
@@ -108,9 +117,18 @@ def detectron_fit(config):
     cfg.OUTPUT_DIR = os.fspath(output_dpath)
     print(ub.urepr(cfg, nl=-1))
 
+    telemetry_fpath1 = output_dpath / 'initial_telemetry.json'
+    telemetry_fpath1.write_text(kwutil.Json.dumps(proc_context.obj))
+
     trainer = DefaultTrainer(cfg)
     trainer.resume_or_load(resume=False)
     trainer.train()
+
+    proc_context.stop()
+    print(f'proc_context.obj = {ub.urepr(proc_context.obj, nl=3)}')
+
+    telemetry_fpath2 = output_dpath / 'final_telemetry.json'
+    telemetry_fpath2.write_text(kwutil.Json.dumps(proc_context.obj))
 
 __cli__ = DetectronFitCLI
 

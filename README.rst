@@ -227,8 +227,8 @@ The following scatterplot illustrates trends in the space / time distribution of
 A spatial visualization of where the majority of images were taken is as follows:
 
 
-.. .. image:: https://ipfs.io/ipfs/<HEAD>/analysis/map-scatterplot.png
-.. image:: https://i.imgur.com/NE4xLJw.png
+.. .. image:: https://ipfs.io/ipfs/<HEAD>/analysis/maps/map_0000.png
+.. image:: https://i.imgur.com/Guz019L.png
 
 A visualization of the cumulative number of images collected over time is as follows:
 

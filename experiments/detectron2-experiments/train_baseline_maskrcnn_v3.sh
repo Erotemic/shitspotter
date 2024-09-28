@@ -109,7 +109,7 @@ test -e "$DVC_DATA_DPATH" || echo "CANNOT FIND DATA"
 
 #WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER
 KWCOCO_BUNDLE_DPATH=$DVC_DATA_DPATH
-VALI_FPATH=$KWCOCO_BUNDLE_DPATH/vali_imgs228_20928c8c.kwcoco.zip
+VALI_FPATH=$KWCOCO_BUNDLE_DPATH/vali_imgs691_99b22ad0.kwcoco.zip
 EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals
 
 
@@ -145,7 +145,7 @@ DVC_DATA_DPATH=$(geowatch_dvc --tags="shitspotter_data")
 DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
 #WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER
 KWCOCO_BUNDLE_DPATH=$DVC_DATA_DPATH
-VALI_FPATH=$KWCOCO_BUNDLE_DPATH/vali_imgs228_20928c8c.kwcoco.zip
+VALI_FPATH=$KWCOCO_BUNDLE_DPATH/vali_imgs691_99b22ad0.kwcoco.zip
 EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_detectron_evals
 
 kwcoco info "$VALI_FPATH" -g1

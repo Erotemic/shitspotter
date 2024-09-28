@@ -216,18 +216,27 @@ def _configure_osm():
     return ox
 
 
-def plot_on_map(coco_dset):
+def plot_on_map(coco_dset, dump_dpath):
     """
     Ignore:
+        import sys, ubelt
+        from shitspotter.plots import *  # NOQA
+        from shitspotter.plots import _configure_osm, _alternate_matching_experimental
         import shitspotter
         import kwplot
         kwplot.autoplt()
         coco_dset = shitspotter.open_shit_coco()
+        dump_dpath = (ub.Path(coco_dset.bundle_dpath) / 'analysis').ensuredir()
     """
     import geopandas as gpd
     from shapely import geometry
     import kwplot
-    # from pyproj import CRS
+    from pyproj import CRS
+    import sklearn  # NOQA
+    import sklearn.cluster  # NOQA
+    import kwutil
+    import kwimage
+    import kwarray
     sns = kwplot.autosns()  # NOQA
     rows = []
     for gid, img in coco_dset.index.imgs.items():
@@ -240,35 +249,118 @@ def plot_on_map(coco_dset):
                 row['geometry'] = geometry.Point(point)
                 rows.append(row)
     img_locs = gpd.GeoDataFrame(rows, crs='crs84')
+    total_imgs = coco_dset.n_images
+
+    # First group data points by UTM zone, and then within a UTM zone group by
+    # an agglomerative clustering measure.
     utm_zones = [utm_epsg_from_latlon(geom.y, geom.x) for geom in img_locs.geometry]
     img_locs['utm_zones'] = utm_zones
     img_locs['lon'] = img_locs.geometry.x
     img_locs['lat'] = img_locs.geometry.y
+    final_groups = []
+    for utm_zone, group_crs84 in img_locs.groupby('utm_zones'):
+        utm_crs = CRS.from_epsg(utm_zone)
+        group_utm = group_crs84.to_crs(utm_crs)
+        group_utm['utm_x'] = group_utm.geometry.centroid.x
+        group_utm['utm_y'] = group_utm.geometry.centroid.y
 
-    # TODO: cluster into UTM zones?
-    # import geodatasets
-    # wld_map_gdf = gpd.read_file(geodatasets.get_path('naturalearth.land'))
+        group_crs84['utm_x'] = group_utm.geometry.centroid.x
+        group_crs84['utm_y'] = group_utm.geometry.centroid.y
+
+        # Cluster points within some threshold of each other.
+        ureg = kwutil.util_units.ureg
+        km = ureg.parse_units('kilometer')
+        distance_threshold_km = 0.5 * km
+        distance_threshold_meters = distance_threshold_km.to('meters').m
+
+        xs = group_utm.geometry.centroid.x
+        ys = group_utm.geometry.centroid.y
+        xys = np.stack([xs, ys], axis=1)
+        if len(xys) == 1:
+            labels = [0]
+        else:
+            algo = sklearn.cluster.AgglomerativeClustering(
+                n_clusters=None,
+                linkage='single',
+                distance_threshold=distance_threshold_meters,  # in meters
+            )
+            labels = algo.fit_predict(xys)
+
+        subgroup_idxs_list = kwarray.group_indices(labels)[1]
+        for subgroup_idxs in subgroup_idxs_list:
+            subgroup = group_crs84.iloc[subgroup_idxs]
+            final_groups.append(subgroup)
+
+        # sklearn.metrics.pairwise_distances(xys)
+
+    # Look at biggest groups last.
+    final_groups = sorted(final_groups, key=len)[::-1]
+    print(list(map(len, final_groups)))
+
+    if 0:
+        maps_dpath = (dump_dpath / 'maps').ensuredir()
+        for old_fpath in maps_dpath.glob('map_*.png'):
+            old_fpath.delete()
+
+    figman = kwplot.FigureManager(
+        dpath=maps_dpath,
+        dpi=600,
+    )
+    import rich
+    rich.print(f'maps_dpath: [link={maps_dpath}]{maps_dpath}[/link]')
+    # fig = kwplot.figure(fnum=1, doclf=True)
+    # kwplot.imshow(canvas, fnum=1)
+
+    # fig.set_size_inches(np.array([6.4, 4.8]) * 1.5)
+    # fig.tight_layout()
+    # figman.finalize(fpath, fig=fig)
+
     ox = _configure_osm()
+    for map_idx, group_crs84 in enumerate(final_groups):
+        utm_zone = group_crs84.iloc[0]['utm_zones']
+        utm_crs = CRS.from_epsg(utm_zone)
+        group_utm = group_crs84.to_crs(utm_crs)
 
-    for utm_zone, group in img_locs.groupby('utm_zones'):
-        fig = kwplot.figure(doclf=True, fnum=utm_zone)
+        data_box = kwimage.Box.coerce([
+            group_utm.bounds.minx.min(), group_utm.bounds.maxx.max(),
+            group_utm.bounds.miny.min(), group_utm.bounds.maxy.max()], format='xxyy')
+        if data_box.area == 0:
+            data_box = data_box.resize(width=100, height=100, about='cxy')
+
+        show_box = data_box.scale(1.1, about='centroid')
+        query_box = data_box.scale(1.5, about='centroid')
+        region_geom_utm = query_box.to_polygon().to_shapely()
+        region_geom_crs84 = gpd.GeoDataFrame(geometry=[region_geom_utm], crs=group_utm.crs).to_crs(group_crs84.crs).iloc[0].geometry
+
+        fig = kwplot.figure(fnum=1, docla=True, doclf=1)
         ax = fig.gca()
 
-        group['lon'] = group['geometry'].x
-        group['lat'] = group['geometry'].y
+        try:
+            osm_crs84_graph = ox.graph_from_polygon(region_geom_crs84)
+        except Exception as ex:
+            title_extra = ' no map'
+            print(f'Failed to query graph ex={ex}')
+        else:
+            title_extra = ''
+            osm_utm_graph = ox.project_graph(osm_crs84_graph, to_crs=utm_crs)
+            ox.plot_graph(
+                osm_utm_graph, bgcolor='lawngreen', node_color='dodgerblue',
+                edge_color='skyblue', ax=ax, node_size=0)
 
-        import kwimage
-        box = kwimage.Box.coerce([group.bounds.minx.min(), group.bounds.maxx.max(),
-                                  group.bounds.miny.min(), group.bounds.maxy.max()], format='xxyy')
-        region_geom = box.to_polygon().to_shapely()
+        ax.set_xlim(show_box.tl_x, show_box.br_x)
+        ax.set_ylim(show_box.tl_y, show_box.br_y)
+        # group_utm.plot(ax=ax, color=kwimage.Color('baby shit brown', alpha=0.5).as01())
 
-        osm_graph = ox.graph_from_polygon(region_geom)
+        ax.set_title(f'Num Images: {len(group_utm)} / {total_imgs}{title_extra}')
 
-        ax = kwplot.figure(fnum=1, docla=True).gca()
-        fig, ax = ox.plot_graph(osm_graph, bgcolor='lawngreen', node_color='dodgerblue', edge_color='skyblue', ax=ax, node_size=0)
-        group.plot(ax=ax, color=kwimage.Color('orange', alpha=0.5).as01())
-
-        # emoji_plot_pil2(data=group, x='lon', y='lat', text='💩', hue=None, ax=ax)
+        data = group_utm
+        x = 'utm_x'
+        y = 'utm_y'
+        text = '💩'
+        hue = None
+        emoji_plot_pil2(data=data, x=x, y=y, text=text, hue=hue, ax=ax)
+        figman.finalize(f'map_{map_idx:04d}.png', fig=fig)
+        # sns.kdeplot(data=group_utm, x=x, y=y, ax=ax)
 
         # utm_crs = CRS.from_epsg(utm_zone)
         # img_utm_loc = group.to_crs(utm_crs)
@@ -278,10 +370,10 @@ def plot_on_map(coco_dset):
         # img_locs.plot(ax=ax, kind='kde')
         # img_utm_loc.plot(ax=ax)
         # img_utm_loc.plot(ax=ax)
-        if 0:
-            fig = kwplot.figure(doclf=True)
-            ax = fig.gca()
-            sns.scatterplot(data=group, x='lon', y='lat', ax=ax)
+        # if 0:
+        #     fig = kwplot.figure(doclf=True)
+        #     ax = fig.gca()
+        # sns.scatterplot(data=group_crs84, x='lon', y='lat', ax=ax)
 
 
 def emoji_plot_font(ax, img_locs, text, label_to_color):
@@ -360,14 +452,25 @@ def emoji_plot_pil2(data, x, y, text, hue=None, ax=None):
 
     font = ImageFont.truetype(symbola, 32, encoding='unic')
 
+    zoom = 0.18
+
     if hue is None:
-        col = kwimage.Color.coerce('orange', alpha=1).as255()
+        color1 = kwimage.Color.coerce('baby shit brown', alpha=0.8)
+        border_color = color1.adjust(lighten=-0.2)
+        col = color1.as255()
         pil_img = Image.new("RGBA", (64, 64), (255, 255, 255, 0))
         pil_draw = ImageDraw.Draw(pil_img)
-        pil_draw.text((0, 0), text, col, font=font)
-        img = np.asarray(pil_img)
+        pil_draw.text((3, 3), text, col, font=font)
+        base_img = np.asarray(pil_img)
+
+        # tmp = kwimage.ensure_float01(img)
+        dilated = kwimage.morphology(base_img, 'dilate', 3)
+        flags = dilated[..., 3] > 0
+        dilated[flags, 0:3] = border_color.as255()[0:3]
+        img = kwimage.overlay_alpha_images(base_img, dilated)
+
         img = crop_border_by_color(img, (255, 255, 255, 0))
-        default_image_box = OffsetImage(img, zoom=0.5)
+        default_image_box = OffsetImage(img, zoom=zoom)
     else:
         raise NotImplementedError
         label_to_color = None
@@ -378,20 +481,26 @@ def emoji_plot_pil2(data, x, y, text, hue=None, ax=None):
             pil_draw.text((0, 0), text, col, font=font)
             img = np.asarray(pil_img)
             img = crop_border_by_color(img, (255, 255, 255, 0))
-            image_box = OffsetImage(img, zoom=0.5)
+            image_box = OffsetImage(img, zoom=zoom)
             label_to_img[label] = image_box
 
     xy = data[[x, y]]
-    image_box = OffsetImage(img, zoom=0.5)
+
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+    # x_size = xmax - xmin
+    # y_size = ymax - ymin
+
+    image_box = OffsetImage(img, zoom=1.0)
     for _, row in xy.iterrows():
         row = row.to_dict()
         x_pos = row[x]
         y_pos = row[y]
-        if hue is None:
-            image_box = default_image_box
-        else:
-            # label = row.year_month
-            image_box = label_to_img[label]
+        # if hue is None:
+        image_box = default_image_box
+        # else:
+        #     # label = row.year_month
+        #     image_box = label_to_img[label]
         ab = AnnotationBbox(image_box, (x_pos, y_pos), frameon=False)
         ax.add_artist(ab)
 
