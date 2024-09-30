@@ -21,11 +21,11 @@ class ExtractPolygonsCLI(scfg.DataConfig):
     Ignore:
         dst = 'test-polys.kwcoco.zip'
     """
-    src = scfg.Value(None, help='input kwcoco', position=1)
-    dst = scfg.Value(None, help='output kwcoco', position=2)
-    thresh = scfg.Value(0.5, help='detection threshold')
-    scale = scfg.Value(0.5, help='The scale at which to run polygon thresholding')
-    workers = scfg.Value('auto', help='number of background workers')
+    src = scfg.Value(None, help='input kwcoco', position=1, tags=['in_path', 'primary'])
+    dst = scfg.Value(None, help='output kwcoco', position=2, tags=['out_path', 'primary'])
+    thresh = scfg.Value(0.5, help='detection threshold', tags=['algo'])
+    scale = scfg.Value(0.5, help='The scale at which to run polygon thresholding', tags=['algo'])
+    workers = scfg.Value('auto', help='number of background workers', tags=['perf'])
 
     @classmethod
     def main(cls, cmdline=1, **kwargs):

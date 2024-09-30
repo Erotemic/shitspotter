@@ -5,6 +5,7 @@ Setup:
 Ensure you have an sdvc registery for the test dataset and packaged your checkpoints.
 "
 
+
 setup(){
     sdvc registery add --path "$HOME"/data/dvc-repos/shitspotter_dvc --name shitspotter_data --tags shitspotter_data
     sdvc registery add --path "$HOME"/data/dvc-repos/shitspotter_expt_dvc --name shitspotter_expt --tags shitspotter_expt
@@ -25,7 +26,8 @@ test -e "$DVC_DATA_DPATH" || echo "CANNOT FIND DATA"
 
 #WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER
 KWCOCO_BUNDLE_DPATH=$DVC_DATA_DPATH
-VALI_FPATH=$KWCOCO_BUNDLE_DPATH/vali_imgs228_20928c8c.kwcoco.zip
+#VALI_FPATH=$KWCOCO_BUNDLE_DPATH/vali_imgs228_20928c8c.kwcoco.zip  # UGgg, what a mistake...
+VALI_FPATH=$KWCOCO_BUNDLE_DPATH/vali_imgs691_99b22ad0.kwcoco.zip
 EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals
 
 
@@ -154,12 +156,12 @@ DVC_DATA_DPATH=$(geowatch_dvc --tags="shitspotter_data")
 DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
 #WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER
 KWCOCO_BUNDLE_DPATH=$DVC_DATA_DPATH
-VALI_FPATH=$KWCOCO_BUNDLE_DPATH/vali_imgs228_20928c8c.kwcoco.zip
-EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals
+VALI_FPATH=$KWCOCO_BUNDLE_DPATH/vali_imgs691_99b22ad0.kwcoco.zip
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals_2024_v2
 python -m geowatch.mlops.schedule_evaluation \
     --params="
-        pipeline: 'shitspotter.pipelines.heatmap_evaluation_pipeline()'
-        #pipeline: 'shitspotter.pipelines.polygon_evaluation_pipeline()'
+        #pipeline: 'shitspotter.pipelines.heatmap_evaluation_pipeline()'
+        pipeline: 'shitspotter.pipelines.polygon_evaluation_pipeline()'
         matrix:
             heatmap_pred.package_fpath:
                 # - $HOME/code/shitspotter/experiments/first_chosen_eval_batch1.yaml
@@ -171,16 +173,19 @@ python -m geowatch.mlops.schedule_evaluation \
             heatmap_eval.workers: 1
             heatmap_eval.draw_heatmaps: 0
             heatmap_eval.draw_curves: True
+            heatmap_pred.__enabled__: 0
+            polygon_pred.thresh:
+                - 0.5
     " \
     --root_dpath="$EVAL_PATH" \
-    --devices="0,1," --tmux_workers=1 \
+    --devices="0,1," --tmux_workers=2 \
     --backend=tmux --skip_existing=1 \
     --run=1
 
 
 # Simple no-dependency result readout
 DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
-EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals_2024_v2
 python -c "if 1:
     import ubelt as ub
     eval_fpaths = list(ub.Path('$EVAL_PATH/eval/flat/heatmap_eval').glob('*/pxl_eval.json'))
@@ -201,9 +206,9 @@ python -c "if 1:
 
 # Result aggregation and reporting
 DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
-EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals_2024_v2
 python -m geowatch.mlops.aggregate \
-    --pipeline='shitspotter.pipelines.heatmap_evaluation_pipeline()' \
+    --pipeline='shitspotter.pipelines.polygon_evaluation_pipeline()' \
     --target "
         - $EVAL_PATH
     " \
@@ -212,6 +217,7 @@ python -m geowatch.mlops.aggregate \
     --io_workers=0 \
     --eval_nodes="
         - heatmap_eval
+        - polygon_eval
     " \
     --stdout_report="
         top_k: 10

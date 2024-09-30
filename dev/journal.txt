@@ -68,3 +68,13 @@ but I might got back there later. When working with detectron2 I'm noticing
 some pain points, which I should document. I will put these notes in
 
 ~/code/shitspotter/experiments/detectron2-experiments/README.md
+
+
+# 2024-09-29
+
+
+I just realized that the validation results I reported on in the paper were generated from the incorrect data. 
+I used vali_imgs228_20928c8c.kwcoco.zip instead of
+vali_imgs691_99b22ad0.kwcoco.zip. I suppose its good the paper was rejected,
+otherwise I would have had to issue a redaction. More time to get it right I
+suppose.

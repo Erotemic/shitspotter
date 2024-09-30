@@ -344,6 +344,8 @@ class HeatmapEvaluation(ProcessNode):
     """
     name = 'heatmap_eval'
     executable = 'python -m geowatch.tasks.fusion.evaluate'
+    # executable = 'python -m kwcoco.metrics.segmentation_metrics'
+
     group_dname = EVALUATE_NAME
 
     in_paths = {
@@ -466,7 +468,7 @@ def polygon_evaluation_pipeline():
     nodes = {}
     heatmap_pred = nodes['heatmap_pred'] = HeatmapPrediction()
     heatmap_eval = nodes['heatmap_eval'] = HeatmapEvaluation()
-    poly_pred = nodes['polygon_pred'] = PolygonExtraction()
+    polygon_pred = nodes['polygon_pred'] = PolygonExtraction()
 
     # Heatmap evaluation needs the test dataset given to heatmap_pred prediction
     heatmap_pred.inputs['test_dataset'].connect(heatmap_eval.inputs['true_dataset'])
@@ -475,12 +477,12 @@ def polygon_evaluation_pipeline():
     heatmap_pred.outputs['pred_dataset'].connect(heatmap_eval.inputs['pred_dataset'])
 
     # Connect heatmaps to polygon extraction
-    heatmap_pred.outputs['pred_dataset'].connect(poly_pred.inputs['pred_dataset'])
+    heatmap_pred.outputs['pred_dataset'].connect(polygon_pred.inputs['src'])
 
     # Connect polygon extraction to polygon evaluation
-    poly_eval = nodes['polygon_eval'] = DetectionEvaluation()
-    heatmap_pred.outputs['pred_dataset'].connect(poly_eval.inputs['pred_dataset'])
-    heatmap_pred.inputs['test_dataset'].connect(poly_eval.inputs['true_dataset'])
+    detection_evaluation = nodes['detection_evaluation'] = DetectionEvaluation()
+    polygon_pred.outputs['dst'].connect(detection_evaluation.inputs['pred_dataset'])
+    heatmap_pred.inputs['test_dataset'].connect(detection_evaluation.inputs['true_dataset'])
 
     dag = PipelineDAG(nodes)
     dag.build_nx_graphs()
