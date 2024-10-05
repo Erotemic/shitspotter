@@ -10,8 +10,8 @@ import ubelt as ub
 class DetectronPredictCLI(scfg.DataConfig):
     # TODO: scriptconfig Value classes should have tags for mlops pipelines
     # Something like tags ⊆ {in_path,out_path, algo_param, perf_param, primary, primary_in_path, primary_out_path}
-    checkpoint_fpath = scfg.Value(None, help='param1')
-    model_fpath = scfg.Value(None, help='param1')
+    checkpoint_fpath = scfg.Value(None, help='path to the weights')
+    model_fpath = scfg.Value(None, help='path to a model file: todo: bundle with weights')
     src_fpath = scfg.Value(None, help='input kwcoco file')
     dst_fpath = scfg.Value(None, help='output kwcoco file')
     workers = 4
@@ -179,7 +179,7 @@ def detectron_predict(config):
     print(f'proc_context.obj = {ub.urepr(proc_context.obj, nl=3)}')
     dset.dataset['info'].append(proc_context.obj)
     dset.reroot(absolute=True)
-
+    ub.Path(dst_fpath).parent.ensuredir()
     dset.fpath = dst_fpath
     dset.dump()
 

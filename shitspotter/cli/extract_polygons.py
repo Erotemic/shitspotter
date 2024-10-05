@@ -116,6 +116,7 @@ class ExtractPolygonsCLI(scfg.DataConfig):
             proc_context.stop()
             dset.dataset['info'].append(proc_context.obj)
 
+        dset.reroot(absolute=True)
         dset.fpath = dst
         ub.Path(dset.fpath).parent.ensuredir()
         print(f'Write detections to {dset.fpath}')
