@@ -113,27 +113,6 @@ class EstimateTrainResourcesCLI(scfg.DataConfig):
         # cost_to_offset = dollar_per_kg * co2_kg
         # print(f'cost_to_offset = ${cost_to_offset:4.2f}')
 
-        def find_offset_cost(total_delta):
-            import kwutil.util_units
-            reg = kwutil.util_units.unit_registry()
-            gpu_power = 345 * reg.watt
-            num_hours = total_delta.total_seconds() / (60 * 60)
-            time = num_hours * reg.hour
-            co2kg_per_kwh = 0.210
-            energy_usage = (gpu_power *  time).to(reg.kilowatt * reg.hour)
-            print('kWh: ', energy_usage)
-            co2_kg = energy_usage.m * co2kg_per_kwh
-            print(f'{round(co2_kg, 1)} CO2 kg')
-            dollar_per_kg = 0.015
-            cost_to_offset = dollar_per_kg * co2_kg
-            print(f'cost_to_offset = ${cost_to_offset:4.2f}')
-            data = {
-                'total_electricity': energy_usage,
-                'total_co2_kg': co2_kg,
-                'total_cost_to_offset': cost_to_offset,
-            }
-            return data
-
         all_durations = data.groupby('expt_name')['duration'].sum()
         # paper_models = subdata[subdata['expt_name'].str.contains('noboxes')]
         # paper_models.groupby('expt_name')['duration'].sum()
@@ -176,6 +155,28 @@ class EstimateTrainResourcesCLI(scfg.DataConfig):
             row['num'] = num_sub_expts
             row['type'] = 'presented_expts'
             print(f'row = {ub.urepr(row, nl=1, align=":", precision=2)}')
+
+
+def find_offset_cost(total_delta):
+    import kwutil.util_units
+    reg = kwutil.util_units.unit_registry()
+    gpu_power = 345 * reg.watt
+    num_hours = total_delta.total_seconds() / (60 * 60)
+    time = num_hours * reg.hour
+    co2kg_per_kwh = 0.210
+    energy_usage = (gpu_power *  time).to(reg.kilowatt * reg.hour)
+    print('kWh: ', energy_usage)
+    co2_kg = energy_usage.m * co2kg_per_kwh
+    print(f'{round(co2_kg, 1)} CO2 kg')
+    dollar_per_kg = 0.015
+    cost_to_offset = dollar_per_kg * co2_kg
+    print(f'cost_to_offset = ${cost_to_offset:4.2f}')
+    data = {
+        'total_electricity': energy_usage,
+        'total_co2_kg': co2_kg,
+        'total_cost_to_offset': cost_to_offset,
+    }
+    return data
 
 
 __cli__ = EstimateTrainResourcesCLI

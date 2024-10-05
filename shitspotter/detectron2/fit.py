@@ -12,6 +12,25 @@ class DetectronFitCLI(scfg.DataConfig):
     expt_name = scfg.Value(None, help='param1')
     default_root_dir = scfg.Value('./out')
 
+    base = 'COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml'
+    init = 'COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml'
+
+    cfg = scfg.Value(ub.codeblock(
+        '''
+        DATALOADER:
+            NUM_WORKERS: 2
+        SOLVER:
+            IMS_PER_BATCH: 2   # This is the real 'batch size' commonly known to deep learning people
+            BASE_LR: 0.00025   # pick a good LR
+            MAX_ITER: 120_000  # 300 iterations seems good enough for this toy dataset; you will need to train longer for a practical dataset
+            STEPS: []          # do not decay learning rate
+        '''), help=ub.paragraph(
+        '''
+        This is how scriptconfig handles the nested config necessary for
+        full detectron control. It doesn't. It just handles something
+        that can be coerced into YAML and merged.
+        '''))
+
     @classmethod
     def main(cls, cmdline=1, **kwargs):
         """
@@ -91,13 +110,23 @@ def detectron_fit(config):
     # detectron_repo_dpath = ub.Path(detectron2.__file__).parent.parent
     # shitspotter_repo_dpath = ub.Path(shitspotter.__file__).parent.parent
 
+    import kwutil
+    print(config.cfg)
+    cfg_final_layer = kwutil.Yaml.coerce(config.cfg, backend='pyyaml')
+
     cfg = get_cfg()
-    cfg.merge_from_file(model_zoo.get_config_file('COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml'))
+    cfg.merge_from_file(model_zoo.get_config_file(config.base))
+
     cfg.DATASETS.TRAIN = (dataset_infos['train']['name'],)
     # cfg.DATASETS.TEST = (dataset_infos['vali']['name'],)
     cfg.DATASETS.TEST = ()
+
+    if config.init == 'noop':
+        cfg.MODEL.WEIGHTS = ""
+    else:
+        cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url(config.init)  # Let training initialize from model zoo
+
     cfg.DATALOADER.NUM_WORKERS = 2
-    cfg.MODEL.WEIGHTS = model_zoo.get_checkpoint_url('COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml')  # Let training initialize from model zoo
     cfg.SOLVER.IMS_PER_BATCH = 2   # This is the real 'batch size' commonly known to deep learning people
     cfg.SOLVER.BASE_LR = 0.00025   # pick a good LR
     cfg.SOLVER.MAX_ITER = 120_000  # 300 iterations seems good enough for this toy dataset; you will need to train longer for a practical dataset
@@ -105,6 +134,12 @@ def detectron_fit(config):
     cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 128   # The 'RoIHead batch size'. 128 is faster, and good enough for this toy dataset (default: 512)
     cfg.MODEL.ROI_HEADS.NUM_CLASSES = 1  # only has one class (ballon). (see https://detectron2.readthedocs.io/tutorials/datasets.html#update-the-config-for-new-datasets)
     # NOTE: this config means the number of classes, but a few popular unofficial tutorials incorrect uses num_classes+1 here.
+    print(ub.urepr(cfg, nl=-1))
+
+    cfg2 = detectron2.config.CfgNode(cfg_final_layer)
+    print(ub.urepr(cfg2, nl=-1))
+    cfg.merge_from_other_cfg(cfg2)
+    print(ub.urepr(cfg, nl=-1))
 
     cfg.OUTPUT_DIR = None  # hack: null out for the initial
     hashid = ub.hash_data(cfg)[0:8]

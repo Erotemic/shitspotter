@@ -9,7 +9,7 @@ DVC_EXPT_DPATH=$HOME/data/dvc-repos/shitspotter_expt_dvc
 WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER
 
 DATASET_CODE=ShitSpotter
-EXPERIMENT_NAME="train_baseline_maskrcnn_v3"
+EXPERIMENT_NAME="train_baseline_maskrcnn_scratch_v4"
 KWCOCO_BUNDLE_DPATH=$DVC_DATA_DPATH
 DEFAULT_ROOT_DIR=$WORKDIR/$DATASET_CODE/runs/$EXPERIMENT_NAME
 
@@ -21,13 +21,25 @@ echo "DEFAULT_ROOT_DIR = $DEFAULT_ROOT_DIR"
 
 echo "
 default_root_dir: $DEFAULT_ROOT_DIR
-expt_name: train_baseline_maskrcnn_v3
+expt_name: $EXPERIMENT_NAME
 train_fpath: $TRAIN_FPATH
 vali_fpath: $VALI_FPATH
-" > train_config_v3.yaml
-cat train_config_v3.yaml
-python -m shitspotter.detectron2.fit --config train_config_v3.yaml
+init: noop
+cfg:
+    DATALOADER:
+        NUM_WORKERS: 2
+    SOLVER:
+        IMS_PER_BATCH: 2   # This is the real 'batch size' commonly known to deep learning people
+        BASE_LR: 0.00025   # pick a good LR
+        MAX_ITER: 120_000  # 300 iterations seems good enough for this toy dataset; you will need to train longer for a practical dataset
+        STEPS: []          # do not decay learning rate
+" > train_config_v4.yaml
+cat train_config_v4.yaml
+# ~/code/shitspotter/shitspotter/detectron2/fit.py
+python -m shitspotter.detectron2.fit --config train_config_v4.yaml
 
+
+################# TODO: rewrite the eval logic after training is done.
 
 
 python -c "if 1:
@@ -82,8 +94,6 @@ python -c "if 1:
             pred_class_indexes = torch_impl.numpy(instances.pred_classes)
 
             raise Exception
-
-
 "
 
 

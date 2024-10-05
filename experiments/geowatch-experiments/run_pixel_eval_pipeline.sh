@@ -150,6 +150,19 @@ echo "
 " > "$HOME"/code/shitspotter/experiments/models.yaml
 
 
+echo "
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v2/lightning_logs/version_0/checkpoints/last.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v3/lightning_logs/version_3/checkpoints/epoch=0019-step=027320-val_loss=0.031.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v4/lightning_logs/version_1/checkpoints/epoch=0076-step=105182-val_loss=0.018.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v5/lightning_logs/version_0/checkpoints/last.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v6/lightning_logs/version_0/checkpoints/epoch=0076-step=105182-val_loss=0.018.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v6/lightning_logs/version_0/checkpoints/last.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_0/checkpoints/epoch=0073-step=101084-val_loss=0.017.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/epoch=0089-step=122940-val_loss=0.019.ckpt.pt
+- /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/last.pt
+" > "$HOME"/code/shitspotter/experiments/top_models.yaml
+
+
 
 # specified models
 DVC_DATA_DPATH=$(geowatch_dvc --tags="shitspotter_data")
@@ -165,7 +178,8 @@ python -m geowatch.mlops.schedule_evaluation \
         matrix:
             heatmap_pred.package_fpath:
                 # - $HOME/code/shitspotter/experiments/first_chosen_eval_batch1.yaml
-                 - $HOME/code/shitspotter/experiments/models.yaml
+                # - $HOME/code/shitspotter/experiments/models.yaml
+                 - $HOME/code/shitspotter/experiments/top_models.yaml
                 # - $DVC_DATA_DPATH/models/shitspotter_scratch_v025-version_2-epoch=1277-step=005112-val_loss=0.600.ckpt.pt
                 #- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v4/lightning_logs/version_1/checkpoints/epoch=0076-step=105182-val_loss=0.018.ckpt.pt
             heatmap_pred.test_dataset:
@@ -174,8 +188,19 @@ python -m geowatch.mlops.schedule_evaluation \
             heatmap_eval.draw_heatmaps: 0
             heatmap_eval.draw_curves: True
             heatmap_pred.__enabled__: 0
-            polygon_pred.thresh:
+            extract_polygons.workers:
+                - 4
+            extract_polygons.thresh:
+                - 0.65
+                - 0.6
+                - 0.575
+                - 0.55
+                - 0.525
                 - 0.5
+                - 0.4
+                - 0.35
+                - 0.3
+                - 0.25
     " \
     --root_dpath="$EVAL_PATH" \
     --devices="0,1," --tmux_workers=2 \
@@ -217,7 +242,7 @@ python -m geowatch.mlops.aggregate \
     --io_workers=0 \
     --eval_nodes="
         - heatmap_eval
-        - polygon_eval
+        - detection_evaluation
     " \
     --stdout_report="
         top_k: 10
@@ -243,6 +268,57 @@ python -m geowatch.mlops.aggregate \
             - resolved_params.heatmap_pred_fit.trainer.default_root_dir
             - params.heatmap_pred.package_fpath
     "
+
+
+# Result aggregation and reporting (subset of models)
+DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals_2024_v2
+python -m geowatch.mlops.aggregate \
+    --pipeline='shitspotter.pipelines.polygon_evaluation_pipeline()' \
+    --target "
+        - $EVAL_PATH
+    " \
+    --output_dpath="$EVAL_PATH/full_aggregate" \
+    --resource_report=1 \
+    --io_workers=0 \
+    --eval_nodes="
+        - heatmap_eval
+        - detection_evaluation
+    " \
+    --stdout_report="
+        top_k: 10
+        per_group: null
+        macro_analysis: 0
+        analyze: 0
+        print_models: True
+        reference_region: null
+        concise: 0
+        show_csv: 0
+    " \
+    --plot_params="
+        enabled: 0
+        stats_ranking: 0
+        min_variations: 2
+        max_variations: 40
+        min_support: 1
+        params_of_interest:
+            - resolved_params.heatmap_pred_fit.model.init_args.arch_name
+            - resolved_params.heatmap_pred_fit.model.init_args.perterb_scale
+            - resolved_params.heatmap_pred_fit.optimizer.init_args.lr
+            - resolved_params.heatmap_pred_fit.optimizer.init_args.weight_decay
+            - resolved_params.heatmap_pred_fit.trainer.default_root_dir
+            - params.heatmap_pred.package_fpath
+    " \
+    --custom_query="
+    import kwutil
+    top_models = kwutil.Yaml.coerce(ub.Path('~/code/shitspotter/experiments/top_models.yaml').expand())
+    new_eval_type_to_aggregator = {}
+    for key, agg in eval_type_to_aggregator.items():
+        flags = agg.table['resolved_params.heatmap_pred.package_fpath'].apply(lambda x: x in top_models)
+        new_eval_type_to_aggregator[key] = agg.compress(flags)
+    "
+
+
 
 
 # Result aggregation and reporting

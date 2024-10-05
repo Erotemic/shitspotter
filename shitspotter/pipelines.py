@@ -212,6 +212,25 @@ class PolygonExtraction(ProcessNode):
         'workers': 'auto',
     }
 
+    def load_result(self, node_dpath):
+        from geowatch.mlops import smart_result_parser
+        from geowatch.mlops.aggregate_loader import new_process_context_parser
+        from geowatch.utils import util_dotdict
+        node_type = self.name
+        fpath = node_dpath / self.out_paths[self.primary_out_key]
+        coco_pred_info = smart_result_parser.parse_json_header(fpath)
+
+        coco_pred_info = smart_result_parser.parse_json_header(fpath)
+        # import xdev
+        # with xdev.embed_on_exception_context:
+        # assert len(coco_pred_info) == 1
+        proc_item = coco_pred_info[-1]  # HACK, the name is wrong
+        # proc_item = list(smart_result_parser.find_info_items(coco_pred_info, 'process', query_name='shitspotter.cli.extract_polygons'))
+        nest_resolved = new_process_context_parser(proc_item)
+        flat_resolved = util_dotdict.DotDict.from_nested(nest_resolved)
+        flat_resolved = flat_resolved.insert_prefix(node_type, index=1)
+        return flat_resolved
+
 
 class DetectionEvaluation(ProcessNode):
     """
@@ -468,7 +487,7 @@ def polygon_evaluation_pipeline():
     nodes = {}
     heatmap_pred = nodes['heatmap_pred'] = HeatmapPrediction()
     heatmap_eval = nodes['heatmap_eval'] = HeatmapEvaluation()
-    polygon_pred = nodes['polygon_pred'] = PolygonExtraction()
+    extract_polygons = nodes['extract_polygons'] = PolygonExtraction()
 
     # Heatmap evaluation needs the test dataset given to heatmap_pred prediction
     heatmap_pred.inputs['test_dataset'].connect(heatmap_eval.inputs['true_dataset'])
@@ -477,11 +496,11 @@ def polygon_evaluation_pipeline():
     heatmap_pred.outputs['pred_dataset'].connect(heatmap_eval.inputs['pred_dataset'])
 
     # Connect heatmaps to polygon extraction
-    heatmap_pred.outputs['pred_dataset'].connect(polygon_pred.inputs['src'])
+    heatmap_pred.outputs['pred_dataset'].connect(extract_polygons.inputs['src'])
 
     # Connect polygon extraction to polygon evaluation
     detection_evaluation = nodes['detection_evaluation'] = DetectionEvaluation()
-    polygon_pred.outputs['dst'].connect(detection_evaluation.inputs['pred_dataset'])
+    extract_polygons.outputs['dst'].connect(detection_evaluation.inputs['pred_dataset'])
     heatmap_pred.inputs['test_dataset'].connect(detection_evaluation.inputs['true_dataset'])
 
     dag = PipelineDAG(nodes)
