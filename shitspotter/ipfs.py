@@ -17,6 +17,85 @@ class IPFS(scfg.ModalCLI):
 
 
 @IPFS.register
+class IPFSPin(scfg.ModalCLI):
+    """
+    Extension of IPFS pin commands with dvc-like sidecar support
+    """
+    __command__ = 'pin'
+
+    class add(scfg.DataConfig):
+        """
+        Ignore:
+            # xdoctest: +REQUIRES(env:IPFS_TEST)
+            from shitspotter.ipfs import *  # NOQA
+            import ubelt as ub
+            root_dpath = ub.Path.appdir('tests/ipfs').ensuredir()
+            dpath = (root_dpath / 'dir1').ensuredir()
+            fpath = (dpath / 'fpath1.txt')
+            fpath.write_text('data')
+            cls = IPFSAdd
+            argv = 0
+            kwargs = config = cls(path=dpath, name='scfg-ipfs-test-pin', only_hash=0)
+            ipfs_add_argv = config._build_add_command()
+            IPFSAdd.main(argv=argv, **config)
+            ipfs_sidecar_fpath = dpath.augment(tail='.ipfs')
+            kwutil.Yaml.coerce(ipfs_sidecar_fpath)['cid']
+            IPFSPin.add.main(argv=argv, path=ipfs_sidecar_fpath, dry_run=1)
+        """
+        path = scfg.Value(None, help='path to a tracked .ipfs file or ipfs-object', position=1)
+        recursive = scfg.Flag(True, help='Recursively pin the object linked to by the specified object(s). Default: true.')
+        progress = scfg.Flag(True, short_alias=['p'], help='Stream progress data.')
+        name = scfg.Value(None, help='An optional name for created pin(s).')
+        dry_run = scfg.Flag(False, short_alias=['n'], help='Generate the command, but dont do work')
+
+        @classmethod
+        def main(cls, argv=1, **kwargs):
+            argv = kwargs.pop('cmdline', argv)  # helper for cmdline->argv transition
+            config = cls.cli(argv=argv, data=kwargs, strict=True)
+            rich.print('config = ' + ub.urepr(config, nl=1))
+
+            if config.path is None:
+                raise Exception('Path must be specified')
+
+            ipfs_sidecar_fpath = ub.Path(config.path)
+            if ipfs_sidecar_fpath.exists():
+                sidecar_metadata = kwutil.Yaml.load(ipfs_sidecar_fpath)
+                root_cid = sidecar_metadata['cid']
+                if config.name is None:
+                    config.name = sidecar_metadata.get('add_config', {}).get('name', None)
+            else:
+                root_cid = config.path
+
+            pin_argv = ['ipfs', 'pin', 'add']
+            if config.name is not None:
+                pin_argv += ['--name', config.name]
+            if config.progress:
+                pin_argv += ['--progress']
+            if config.recursive:
+                pin_argv += ['--recursive']
+            pin_argv += [root_cid]
+
+            if config.dry_run:
+                print(argv_to_str(pin_argv))
+            else:
+                info = ub.cmd(pin_argv, verbose=3)
+                info.check_returncode()
+
+
+def argv_to_str(argv):
+    import shlex
+    command_parts = []
+    # Allow the user to specify paths as part of the command
+    for part in argv:
+        if isinstance(part, os.PathLike):
+            part = os.fspath(part)
+        command_parts.append(part)
+    command_tup = list(command_parts)
+    command_text = ' '.join(list(map(shlex.quote, command_tup)))
+    return command_text
+
+
+@IPFS.register
 class IPFSPull(scfg.DataConfig):
     """
     This works with the DVC-like sidecars we create with IPFS add.
@@ -61,7 +140,7 @@ class IPFSPull(scfg.DataConfig):
         if config.path is None:
             raise Exception('Path must be specified')
 
-        ipfs_sidecar_fpath = config.path
+        ipfs_sidecar_fpath = ub.Path(config.path)
         assert ipfs_sidecar_fpath.exists(), '#todo: simpledvc-like flexibility'
 
         sidecar_metadata = kwutil.Yaml.load(ipfs_sidecar_fpath)
@@ -191,6 +270,7 @@ class IPFSAdd(scfg.DataConfig):
                 rel_path = path.relative_to(sidecar_dpath)
 
                 sidecar_metadata = {
+                    'type': 'ipfs-sidecar',
                     'cid': cid,
                     'rel_path': os.fspath(rel_path),
                     'size': size_str,
