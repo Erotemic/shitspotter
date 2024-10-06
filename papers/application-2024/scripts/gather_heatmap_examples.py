@@ -74,8 +74,9 @@ fpath.copy(figure_dpath / fpath.name, overwrite=True)
 
 
 #### MISS THAT NEED FIXES
-# assets/poop-2023-07-01-T160318/PXL_20230418_211636033.jpg
-# assets/poop-2023-08-22-T202656/PXL_20230723_143928317.jpg
+# [x] assets/poop-2023-07-01-T160318/PXL_20230418_211636033.jpg
+# [x] assets/poop-2023-08-22-T202656/PXL_20230723_143928317.jpg
+
 # file:///home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_train_evals/eval/flat/heatmap_eval/heatmap_eval_id_a6da2301/heatmaps/_loose_images/_loose_images-None-321.jpg
 #file:///data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_train_evals/eval/flat/heatmap_eval/heatmap_eval_id_a6da2301/heatmaps/_by_fpr/fpr-000.0041-gid-04261.jpg
 # file:///data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_train_evals/eval/flat/heatmap_eval/heatmap_eval_id_a6da2301/heatmaps/_by_fpr/fpr-000.0008-gid-03315.jpg
@@ -87,6 +88,42 @@ fpath.copy(figure_dpath / fpath.name, overwrite=True)
 # file:///data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_train_evals/eval/flat/heatmap_eval/heatmap_eval_id_a6da2301/heatmaps/_loose_images/_loose_images-None-6357.jpg
 # file:///data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_train_evals/eval/flat/heatmap_eval/heatmap_eval_id_a6da2301/heatmaps/_loose_images/_loose_images-None-6538.jpg
 
+
+python -c '
+import kwcoco
+dset = kwcoco.CocoDataset("/home/joncrall/data/dvc-repos/shitspotter_dvc/train_imgs5747_1e73d54f.kwcoco.zip")
+lines = """
+file:///home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_train_evals/eval/flat/heatmap_eval/heatmap_eval_id_a6da2301/heatmaps/_loose_images/_loose_images-None-321.jpg
+ile:///data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_train_evals/eval/flat/heatmap_eval/heatmap_eval_id_a6da2301/heatmaps/_by_fpr/fpr-000.0041-gid-04261.jpg
+file:///data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_train_evals/eval/flat/heatmap_eval/heatmap_eval_id_a6da2301/heatmaps/_by_fpr/fpr-000.0008-gid-03315.jpg
+ile:///data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_train_evals/eval/flat/heatmap_eval/heatmap_eval_id_a6da2301/heatmaps/_by_fpr/fpr-000.0009-gid-01353.jpg
+file:///data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_train_evals/eval/flat/heatmap_eval/heatmap_eval_id_a6da2301/heatmaps/_by_fpr/fpr-000.0012-gid-04304.jpg
+file:///data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_train_evals/eval/flat/heatmap_eval/heatmap_eval_id_a6da2301/heatmaps/_by_fpr/fpr-000.0018-gid-04289.jpg
+file:///data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_train_evals/eval/flat/heatmap_eval/heatmap_eval_id_a6da2301/heatmaps/_loose_images/_loose_images-None-1885.jpg
+file:///data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_train_evals/eval/flat/heatmap_eval/heatmap_eval_id_a6da2301/heatmaps/_loose_images/_loose_images-None-2275.jpg
+file:///data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_train_evals/eval/flat/heatmap_eval/heatmap_eval_id_a6da2301/heatmaps/_loose_images/_loose_images-None-6357.jpg
+file:///data/joncrall/dvc-repos/shitspotter_expt_dvc/_shitspotter_train_evals/eval/flat/heatmap_eval/heatmap_eval_id_a6da2301/heatmaps/_loose_images/_loose_images-None-6538.jpg
+""".strip().split(chr(10))
+
+
+gids = []
+for line in lines:
+    sub = line[max(line.find("None-"), line.find("gid-")):].split("-")[1]
+    gid = int(sub.split(".")[0])
+    gids += [gid]
+    g = dset.coco_image(gid)
+    p = g.image_filepath()
+    h = line.replace("file://", "")
+    print(f"eog {h}&")
+    print(f"labelme {p}")
+    print()
+
+paths = [g.image_filepath() for g in dset.images(gids).coco_images]
+for p in paths:
+    print(p)
+
+
+'
 
 # Train Images (with best validation model)
 # Number of missed annotations found: 2

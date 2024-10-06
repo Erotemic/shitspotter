@@ -70,6 +70,7 @@ class DetectronPrediction(ProcessNode):
     }
 
     algo_params = {
+        'write_heatmap': True,
     }
 
     def load_result(self, node_dpath):
@@ -513,8 +514,14 @@ def detectron_evaluation_pipeline():
     nodes = {}
     detectron_pred = nodes['detectron_pred'] = DetectronPrediction()
     detection_evaluation = nodes['detection_evaluation'] = DetectionEvaluation()
+    heatmap_eval = nodes['heatmap_eval'] = HeatmapEvaluation()
+
     detectron_pred.outputs['dst_fpath'].connect(detection_evaluation.inputs['pred_dataset'])
     detectron_pred.inputs['src_fpath'].connect(detection_evaluation.inputs['true_dataset'])
+
+    detectron_pred.outputs['dst_fpath'].connect(heatmap_eval.inputs['pred_dataset'])
+    detectron_pred.inputs['src_fpath'].connect(heatmap_eval.inputs['true_dataset'])
+
     dag = PipelineDAG(nodes)
     dag.build_nx_graphs()
     return dag

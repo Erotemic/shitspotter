@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """
 Gather raw data into a kwcoco file
+
+Usage:
+    python -m shitspotter.gather
 """
 # import math
 from dateutil.parser import parse as parse_datetime
@@ -302,7 +305,8 @@ def load_labelme_anns(bundle_dpath, img):
     labelme_data = read_labelme_data(labelme_fpath)
 
     # labelme_data = json.loads(fpath.read_text())
-    imginfo, annsinfo = labelme_to_coco_structure(labelme_data)
+    from kwcoco.formats.labelme import labelme_to_coco_structure
+    imginfo, annsinfo = labelme_to_coco_structure(labelme_data, special_options=True)
     # image_name = imginfo['file_name'].rsplit('.', 1)[0]
 
     # Construct the inverted exif transform
@@ -422,55 +426,6 @@ def main():
 def build_code(coco_dset):
     hashid = coco_dset._build_hashid()[0:8]
     return f'imgs{coco_dset.n_images}_{hashid}'
-
-
-def labelme_to_coco_structure(labelme_data):
-    """
-    TODO:
-        can replace with kwcoco.labelme.labelme_to_coco_structure
-    """
-    import kwimage
-    import numpy as np
-    img = {
-        'file_name': labelme_data['imagePath'],
-        'width': labelme_data['imageWidth'],
-        'height': labelme_data['imageHeight'],
-    }
-    anns = []
-    for shape in labelme_data['shapes']:
-        points = shape['points']
-
-        if shape['group_id'] is not None:
-            print(f'unhandled shape = {ub.urepr(shape, nl=1)}')
-            raise NotImplementedError(f'groupid: {shape}')
-
-        if shape['description']:
-            desc = shape['description']
-            if desc is not None and desc.strip():
-                desc = desc.strip()
-                img['tags'] = desc.split(';')
-                # print(f'unhandled esc = {ub.urepr(desc, nl=1)}')
-                # raise NotImplementedError(f'desc: {shape}')
-        shape_type = shape['shape_type']
-
-        if shape_type != 'polygon':
-            raise NotImplementedError(shape_type)
-
-        flags = shape['flags']
-        if flags:
-            raise NotImplementedError('flags')
-
-        category_name = shape['label']
-        poly = kwimage.Polygon.coerce(np.array(points))
-
-        ann = {
-            'category_name': category_name,
-            'bbox': poly.box().quantize().to_coco(),
-            'segmentation': poly.to_coco(style='new'),
-        }
-        anns.append(ann)
-
-    return img, anns
 
 
 if __name__ == '__main__':

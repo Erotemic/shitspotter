@@ -14,6 +14,8 @@ class DetectronPredictCLI(scfg.DataConfig):
     model_fpath = scfg.Value(None, help='path to a model file: todo: bundle with weights')
     src_fpath = scfg.Value(None, help='input kwcoco file')
     dst_fpath = scfg.Value(None, help='output kwcoco file')
+    write_heatmap = scfg.Value(False, help='if True, also write masks as heatmaps')
+    nms_thresh = scfg.Value(0.0, help='nonmax supression threshold')
     workers = 4
 
     @classmethod
@@ -45,6 +47,22 @@ def detectron_predict(config):
             src_fpath = '/home/joncrall/data/dvc-repos/shitspotter_dvc/vali_imgs691_99b22ad0.mscoco.json',
             dst_fpath = 'pred.kwcoco.zip',
         )
+        import sys, ubelt
+        sys.path.append(ubelt.expandpath('~/code/shitspotter'))
+        from shitspotter.detectron2.predict import *  # NOQA
+        kwargs = {
+            'checkpoint_fpath': '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_scratch_v4/v_280638bd/model_0099999.pth',
+            'model_fpath': None,
+            'src_fpath': '/home/joncrall/data/dvc-repos/shitspotter_dvc/vali_imgs691_99b22ad0.kwcoco.zip',
+            'dst_fpath': '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_detectron_evals_v4/pred/flat/detectron_pred/detectron_pred_id_b3c994e0/pred.kwcoco.zip',
+            'write_heatmap': True,
+            'workers': 4}
+        cls = DetectronPredictCLI
+        import rich
+        from rich.markup import escape
+        cmdline = 0
+        config = cls.cli(cmdline=cmdline, data=kwargs, strict=True)
+        rich.print('config = ' + escape(ub.urepr(config, nl=1)))
     """
     # import shitspotter
     from detectron2.engine import DefaultPredictor
@@ -95,6 +113,8 @@ def detectron_predict(config):
     # dset_fpath = bundle_dpath / 'vali_imgs691_99b22ad0.mscoco.json'
     dset = kwcoco.CocoDataset(src_fpath)
     dset.clear_annotations()
+    dset.reroot(absolute=True)
+    dset.fpath
 
     # TODO: could be much more efficient
     torch_impl = kwarray.ArrayAPI.coerce('torch')()
@@ -112,10 +132,9 @@ def detectron_predict(config):
         # reduce_item_size=True,
     )
     batch_item = dataset[0]
-    loader = dataset.make_loader(
-        batch_size=1,
-        num_workers=4,  # config.workers
-    )
+    dset.reroot(absolute=True)
+    bundle_dpath = ub.Path(dst_fpath).parent.ensuredir()
+    dset.fpath = dst_fpath
 
     # FIXME: We need a method to know what classes the detectron2 model was
     # trained with. For now we are hard coding for the poop problem.
@@ -123,7 +142,61 @@ def detectron_predict(config):
     classes = ['poop', 'unknown']
     print(f'dset={dset}')
 
+    if config.write_heatmap:
+        from geowatch.tasks.fusion.coco_stitcher import CocoStitchingManager
+        from kwutil import util_parallel
+        writer_queue = util_parallel.BlockingJobQueue(
+            mode='thread',
+            # mode='serial',
+            max_workers=2,
+        )
+        stitcher_common_kw = dict(
+            # stiching_space='video',
+            stiching_space='image',
+            device='numpy',
+            # thresh=config['thresh'],
+            write_probs=True,
+            # write_preds=config['write_preds'],
+            # prob_compress=config['compress'],
+            # prob_format=config['format'],
+            # quantize=config['quantize'],
+            expected_minmax=(0, 1),
+            writer_queue=writer_queue,
+            assets_dname='_assets',
+            # memmap=config.memmap,
+        )
+        stitcher = CocoStitchingManager(
+            dset,
+            chan_code='salient',
+            short_code='salient',
+            num_bands=1,
+            **stitcher_common_kw,
+        )
+        # if 0:
+        #     head_stitcher.accumulate_image(
+        #         gid, output_space_slice, probs,
+        #         asset_dsize=output_image_dsize,
+        #         scale_asset_from_stitchspace=scale_outspace_from_vid,
+        #         weights=output_weights,
+        #         downweight_edges=downweight_edges,
+        #     )
+        #     for gid in head_stitcher.ready_image_ids():
+        #         head_stitcher._ready_gids.difference_update({gid})  # avoid race condition
+        #         head_stitcher.submit_finalize_image(gid)
+        #     print(f"Finalizing stitcher for {_head_key}")
+        #     for gid in head_stitcher.managed_image_ids():
+        #         head_stitcher.submit_finalize_image(gid)
+    else:
+        stitcher = None
+
+    loader = dataset.make_loader(
+        batch_size=1,
+        num_workers=4,  # config.workers
+    )
     # images = dset.images()
+    import rich
+    rich.print(f'Pred Dpath: [link={bundle_dpath}]{bundle_dpath}[/link]')
+
     batch_iter = ub.ProgIter(loader, total=len(loader), desc='predict')
     with torch.no_grad():  # https://github.com/sphinx-doc/sphinx/issues/4258
         for batch in batch_iter:
@@ -160,6 +233,7 @@ def detectron_predict(config):
                     segmentations.append(poly)
 
                 pred_class_indexes = torch_impl.numpy(instances.pred_classes)
+
                 dets = kwimage.Detections(
                     boxes=boxes,
                     scores=scores,
@@ -167,6 +241,8 @@ def detectron_predict(config):
                     segmentations=segmentations,
                     classes=classes,
                 )
+                if config.nms_thresh and config.nms_thresh > 0:
+                    dets = dets.non_max_supress(thresh=config.nms_thresh)
                 for ann in dets.to_coco(style='new'):
                     ann['image_id'] = image_id
                     catname = ann.pop('category_name')
@@ -174,14 +250,45 @@ def detectron_predict(config):
                     ann['role'] = 'prediction'
                     dset.add_annotation(**ann)
 
+                if stitcher is not None:
+
+                    frame_info = batch_item['frames'][0]
+                    output_image_dsize = frame_info['output_image_dsize']
+                    output_space_slice = frame_info['output_space_slice']
+                    scale_outspace_from_vid = frame_info['scale_outspace_from_vid']
+
+                    import numpy as np
+                    sorted_dets = dets.take(dets.scores.argsort())
+                    probs = np.zeros(output_image_dsize[::-1], dtype=np.float32)
+                    for sseg, score in zip(sorted_dets.data['segmentations'], sorted_dets.scores):
+                        sseg.data.fill(probs, value=float(score), assert_inplace=True)
+
+                    stitcher.accumulate_image(
+                        image_id, output_space_slice, probs,
+                        asset_dsize=output_image_dsize,
+                        scale_asset_from_stitchspace=scale_outspace_from_vid,
+                        # weights=output_weights,
+                        # downweight_edges=downweight_edges,
+                    )
+                    # hack / fixme: this is ok, when batches correspond with
+                    # images but not if we start to window.
+                    stitcher.submit_finalize_image(image_id)
+
+    if stitcher is not None:
+        writer_queue.wait_until_finished()  # hack to avoid race condition
+        # Prediction is completed, finalize all remaining images.
+        print(f"Finalizing stitcher for {stitcher}")
+        for gid in stitcher.managed_image_ids():
+            stitcher.submit_finalize_image(gid)
+        writer_queue.wait_until_finished()
+
     dset.dataset.setdefault('info', [])
     proc_context.stop()
     print(f'proc_context.obj = {ub.urepr(proc_context.obj, nl=3)}')
     dset.dataset['info'].append(proc_context.obj)
-    dset.reroot(absolute=True)
-    ub.Path(dst_fpath).parent.ensuredir()
-    dset.fpath = dst_fpath
     dset.dump()
+    import rich
+    rich.print(f'Wrote to: [link={bundle_dpath}]{bundle_dpath}[/link]')
 
 
 if __name__ == '__main__':

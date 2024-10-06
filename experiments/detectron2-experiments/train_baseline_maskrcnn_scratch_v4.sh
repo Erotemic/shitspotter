@@ -90,8 +90,6 @@ echo "
 - /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_scratch_v4/v_280638bd/model_0119999.pth
 " > "$HOME"/code/shitspotter/experiments/detectron_models_v4.yaml
 
-
-
 # specified models
 DVC_DATA_DPATH=$(geowatch_dvc --tags="shitspotter_data")
 DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
@@ -111,10 +109,13 @@ python -m geowatch.mlops.schedule_evaluation \
             detectron_pred.src_fpath:
                 - $VALI_FPATH
             detectron_pred.workers: 4
-            detection_eval.enabled: 1
+            detectron_pred.write_heatmap: true
+            detectron_pred.nms_thresh: 0.5
+            detection_eval.__enabled__: 1
+            heatmap_eval.__enabled__: 1
     " \
     --root_dpath="$EVAL_PATH" \
-    --devices="0,1," --tmux_workers=1 \
+    --devices="1," --tmux_workers=1 \
     --backend=tmux --skip_existing=1 \
     --run=1
 
@@ -131,6 +132,7 @@ python -m geowatch.mlops.aggregate \
     --io_workers=0 \
     --eval_nodes="
         - detection_evaluation
+        - heatmap_eval
     " \
     --stdout_report="
         top_k: 10
