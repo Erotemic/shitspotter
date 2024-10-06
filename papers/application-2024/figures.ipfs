@@ -12,5 +12,5 @@ add_config:
   only_hash: false
   pin: true
   sidecar: true
-add_datetime: 2024-10-06T160639-5
-add_duration: 0.43624561998876743
+add_datetime: 2024-10-06T160743-5
+add_duration: 0.4650392030016519
