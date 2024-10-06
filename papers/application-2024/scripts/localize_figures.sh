@@ -15,3 +15,5 @@ cp $HOME/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/aggregate/plots/
 
 
 rsync -avprPR toothbrush:code/shitspotter/papers/application-2024/./figures "$HOME"/code/shitspotter/papers/application-2024/
+
+# See new IPFS stuff in manage_data_resources

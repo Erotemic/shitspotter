@@ -162,6 +162,7 @@ python -m geowatch.mlops.schedule_evaluation \
             detectron_pred.write_heatmap: true
             detectron_pred.nms_thresh: 0.5
             detection_eval.__enabled__: 1
+            heatmap_eval.__enabled__: 1
     " \
     --root_dpath="$EVAL_PATH" \
     --devices="0," --tmux_workers=1 \

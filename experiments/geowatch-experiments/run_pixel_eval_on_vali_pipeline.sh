@@ -323,7 +323,7 @@ python -m geowatch.mlops.aggregate \
 
 # Result aggregation and reporting
 DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
-EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals_2024_v2
 python -m geowatch.mlops.aggregate \
     --pipeline='shitspotter.pipelines.heatmap_evaluation_pipeline()' \
     --target "
@@ -362,7 +362,11 @@ python -m geowatch.mlops.aggregate \
     --query="
     df['resolved_params.heatmap_pred_fit.trainer.default_root_dir'].apply(lambda p: str(p).split('/')[-1]).str.contains('noboxes')
     " \
+    --embed=True \
     --custom_query="
+        #!/usr/bin/env python3
+        import rich
+        rich.print('config = {}'.format(ub.urepr(config, nl=1)))
         import numpy as np
         new_eval_type_to_aggregator = {}
         for key, agg in eval_type_to_aggregator.items():
@@ -399,6 +403,7 @@ python -m geowatch.mlops.aggregate \
             new_agg.table[subcols]
 
             from geowatch.utils.util_pandas import pandas_shorten_columns, pandas_condense_paths
+            from geowatch.utils.util_pandas import DataFrame
 
             chosen_idxs = []
             for group_id, group in new_agg.table.groupby('resolved_params.heatmap_pred_fit.trainer.default_root_dir'):
@@ -410,7 +415,7 @@ python -m geowatch.mlops.aggregate \
             varied = table.varied_value_counts(min_variations=2)
             print(list(varied.keys()))
 
-            if 1:
+            if 0:
                 # Hack to extract epoch numbers, doesnt work because of last.pt
                 epoch_nums = []
                 for path in table['params.heatmap_pred.package_fpath']:
@@ -426,6 +431,8 @@ python -m geowatch.mlops.aggregate \
                 subtable = table.loc[chosen_idxs, subcols + ['epoch_num']]
 
             subtable = table.loc[chosen_idxs, subcols]
+            subtable = DataFrame(subtable)
+            subtable = subtable.shorten_columns()
             subtable = pandas_shorten_columns(subtable)
             subtable['default_root_dir'] = pandas_condense_paths(subtable['default_root_dir'])[0]
             subtable = subtable.sort_values(['salient_AP'], ascending=False)
@@ -459,6 +466,8 @@ python -m geowatch.mlops.aggregate \
             print(subtable_display.to_latex(index=False))
 
             # Add test results:
+            # TODO: we should be reading this from the test mlops directory
+            # and joining the information.
             test_results_to_integrate = [
                 {'default_root_dir': 'shitspotter_scratch_20240618_noboxes_v7',
                   'salient_AP': 0.5051101001895235,
@@ -481,47 +490,51 @@ python -m geowatch.mlops.aggregate \
                  {'default_root_dir': 'shitspotter_scratch_20240618_noboxes_v8',
                   'salient_AP': 0.41374633968103414,
                   'salient_AUC': 0.8156542044578126}]
-          import pandas as pd
-          test_results = pd.DataFrame(test_results_to_integrate)
-          metric_params = ['salient_AP', 'salient_AUC']
-          for p in metric_params:
-              test_results[p] = test_results[p].apply(lambda x: '{:0.4f}'.format(x))
+            import pandas as pd
+            test_results = pd.DataFrame(test_results_to_integrate)
+            metric_params = ['salient_AP', 'salient_AUC']
+            for p in metric_params:
+                test_results[p] = test_results[p].apply(lambda x: '{:0.4f}'.format(x))
 
-          columns=[('0', 'n'), ('0', 'p'), ('0', 'e'), ('1', 'n'), ('1', 'p'), ('1', 'e')]
+            columns=[('0', 'n'), ('0', 'p'), ('0', 'e'), ('1', 'n'), ('1', 'p'), ('1', 'e')]
 
-          tuples = [('', c) for c in subtable_display.columns]
-          mcols = pd.MultiIndex.from_tuples([('', 'default_root_dir'),
-           ('', 'lr'),
-           ('', 'weight_decay'),
-           ('', 'perterb_scale'),
-           ('val', 'salient_AP'),
-           ('val', 'salient_AUC'),
-           ('test', 'salient_AP'),
-           ('test', 'salient_AUC'),
-           ])
-          subtable_display.columns = mcols[:-2]
-          print(subtable_display.to_latex(index=False))
-          toconcat = test_results[['salient_AP', 'salient_AUC']]
-          toconcat.columns = mcols[-2:]
-          new_table = pd.concat([subtable_display.reset_index(drop=1), toconcat.reset_index(drop=1)], axis=1)
-          # print(new_table.style.to_latex())
-          #
-          root_lut = {
-            'shitspotter_scratch_20240618_noboxes_v7': 'D05',
-            'shitspotter_scratch_20240618_noboxes_v6': 'D04',
-            'shitspotter_scratch_20240618_noboxes_v5': 'D03',
-            'shitspotter_scratch_20240618_noboxes_v4': 'D02',
-            'shitspotter_scratch_20240618_noboxes_v2': 'D00',
-            'shitspotter_scratch_20240618_noboxes_v3': 'D01',
-            'shitspotter_scratch_20240618_noboxes_v8': 'D06',
-          }
-          new_table[('', 'default_root_dir')] = new_table[('', 'default_root_dir')].apply(root_lut.__getitem__)
-          new_table = new_table.rename({'default_root_dir': 'config name'}, axis=1)
-          print(new_table.style.format_index().hide().to_latex())
-          print(new_table.to_latex(index=False))
+            tuples = [('', c) for c in subtable_display.columns]
+            mcols = pd.MultiIndex.from_tuples([('', 'default_root_dir'),
+            ('', 'lr'),
+            ('', 'weight_decay'),
+            ('', 'perterb_scale'),
+            ('val', 'salient_AP'),
+            ('val', 'salient_AUC'),
+            ('test', 'salient_AP'),
+            ('test', 'salient_AUC'),
+            ])
+            subtable_display.columns = mcols[:-2]
+            print(subtable_display.to_latex(index=False))
+            toconcat = test_results[['salient_AP', 'salient_AUC']]
+            toconcat.columns = mcols[-2:]
+            new_table = pd.concat([subtable_display.reset_index(drop=1), toconcat.reset_index(drop=1)], axis=1)
+            # print(new_table.style.to_latex())
+            #
+            root_lut = {
+             'shitspotter_scratch_20240618_noboxes_v7': 'D05',
+             'shitspotter_scratch_20240618_noboxes_v6': 'D04',
+             'shitspotter_scratch_20240618_noboxes_v5': 'D03',
+             'shitspotter_scratch_20240618_noboxes_v4': 'D02',
+             'shitspotter_scratch_20240618_noboxes_v2': 'D00',
+             'shitspotter_scratch_20240618_noboxes_v3': 'D01',
+             'shitspotter_scratch_20240618_noboxes_v8': 'D06',
+            }
+            new_table[('', 'default_root_dir')] = new_table[('', 'default_root_dir')].apply(root_lut.__getitem__)
+            new_table = new_table.rename({'default_root_dir': 'config name'}, axis=1)
+
+            idx_order = new_table.reset_index().set_index(('', 'config name'), drop=False).loc[list(root_lut.values())]['index'].tolist()
+            new_table = new_table.loc[idx_order]
+            rich.print(new_table)
+            print(new_table.style.format_index().hide().to_latex())
+            print(new_table.to_latex(index=False))
 
 
 
 
 
-    " --embed
+    "

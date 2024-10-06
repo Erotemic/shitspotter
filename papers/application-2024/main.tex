@@ -522,13 +522,13 @@ Additionally, trained models are packaged and distributed with information about
             \multicolumn{4}{l}{} & \multicolumn{2}{c}{validation} & \multicolumn{2}{c}{test} \\
 config name &   lr & weight\_decay & perterb\_scale & AP & AUC & AP & AUC \\
 \midrule
-        \textcolor[HTML]{623682}{D05} & 1e-4 &         1e-6 &          3e-6 &     \textbf{0.8325} &      \textbf{0.9927} &     0.5051 &      0.9125 \\
-        \textcolor[HTML]{87b787}{D04} & 1e-4 &         1e-7 &          3e-7 &     0.8225 &      0.9795 &     0.4346 &      0.8576 \\
-        \textcolor[HTML]{df8020}{D03} & 1e-4 &         1e-5 &          3e-7 &     0.8203 &      0.9679 &     0.4652 &      0.7965 \\
-        \textcolor[HTML]{207fdf}{D02} & 1e-4 &         1e-6 &          3e-7 &     0.8159 &      0.9872 &     \textbf{0.5167} &      \textbf{0.9252} \\
-        \textcolor[HTML]{20df20}{D00} & 3e-4 &         3e-6 &          9e-7 &     0.8107 &      0.9685 &     0.4210 &      0.7766 \\
-        \textcolor[HTML]{df20df}{D01} & 1e-3 &         1e-5 &          3e-6 &     0.7665 &      0.9899 &     0.4607 &      0.9062 \\
-        \textcolor[HTML]{b00403}{D06} & 1e-4 &         1e-6 &          3e-8 &     0.7458 &      0.9663 &     0.4137 &      0.8157 \\
+        \textcolor[HTML]{623682}{D05} & 1e-4 &   1e-6 &  3e-6 & \textbf{0.8325} &     \textbf{0.9927} &         0.5051  &              0.9125  \\
+        \textcolor[HTML]{87b787}{D04} & 1e-4 &   1e-7 &  3e-7 &         0.8225 &              0.9795  &         0.4346  &              0.8576  \\
+        \textcolor[HTML]{df8020}{D03} & 1e-4 &   1e-5 &  3e-7 &         0.8203 &              0.9679  &         0.4652  &              0.7965  \\
+        \textcolor[HTML]{207fdf}{D02} & 1e-4 &   1e-6 &  3e-7 &         0.8159 &              0.9872  & \textbf{0.5167} &      \textbf{0.9252} \\
+        \textcolor[HTML]{20df20}{D00} & 3e-4 &   3e-6 &  9e-7 &         0.8107 &              0.9685  &         0.4210  &              0.7766  \\
+        \textcolor[HTML]{df20df}{D01} & 1e-3 &   1e-5 &  3e-6 &         0.7665 &              0.9899  &         0.4607  &              0.9062  \\
+        \textcolor[HTML]{b00403}{D06} & 1e-4 &   1e-6 &  3e-8 &         0.7458 &              0.9663  &         0.4137  &              0.8157  \\
 \bottomrule
 \end{tabular}
 \caption{
@@ -560,7 +560,7 @@ Qualitative examples illustrating the performance of the top-scoring validation 
 
 \begin{comment}
     SeeAlso:
-    ~/code/shitspotter/experiments/run_pixel_eval_pipeline.sh
+    ~/code/shitspotter/experiments/geowatch-experiments/run_pixel_eval_on_vali_pipeline.sh
     python ~/code/shitspotter/dev/poc/estimate_train_resources.py
 \end{comment}
 
@@ -1158,9 +1158,9 @@ We would would like to thank all of the dogs that produced subject matter for th
         --dst_dpath $HOME/code/shitspotter/coco_annot_stats2
 
     SeeAlso:
-    ~/code/shitspotter/experiments/run_pixel_eval_pipeline.sh
-    ~/code/shitspotter/experiments/run_pixel_eval_on_test_pipeline.sh
-    ~/code/shitspotter/experiments/run_pixel_eval_on_train_pipeline.sh
+    ~/code/shitspotter/experiments/geowatch-experiments/run_pixel_eval_on_vali_pipeline.sh
+    ~/code/shitspotter/experiments/geowatch-experiments/run_pixel_eval_on_test_pipeline.sh
+    ~/code/shitspotter/experiments/geowatch-experiments/run_pixel_eval_on_train_pipeline.sh
 
     python ~/code/shitspotter/dev/poc/estimate_train_resources.py
 
