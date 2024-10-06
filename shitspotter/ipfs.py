@@ -107,23 +107,34 @@ class IPFSAdd(scfg.DataConfig):
 
         if not config.only_hash:
             # Only do postprocessing steps for non-dry runs
-            parts = info.stdout.strip().split(' ')
+            lines = info.stdout.strip().split('\n')
+            parts = lines[-1].split(' ')
             assert len(parts) > 1
             cid = parts[1]
 
+            USE_PROGBAR_META = 1
+            if USE_PROGBAR_META:
+                # not sure how stable the format is for this.
+                progbar_line = info.stderr.strip().split('\n')[-1]
+                assert '=' in progbar_line
+                size_str = progbar_line.split('[')[0].split('/')[1].strip()
+            else:
+                size_str = None
+
+            num_items = len(lines)  # number of new sub-cids
             if sidecar_fpath is not None:
                 sidecar_metadata = {
                     'cid': cid,
                     'rel_path': os.fspath(path.relative_to(sidecar_fpath.parent)),
-                    'config': dict(config),
-                    'datetime_added': ub.timestamp(),
+                    'size': size_str,
+                    'num_items': num_items,
+                    'add_config': dict(config),
+                    'add_datetime': ub.timestamp(),
                     'add_duration': timer.elapsed,
                 }
                 sidecar_metadata = kwutil.Json.ensure_serializable(sidecar_metadata)
                 sidecar_text = kwutil.Yaml.dumps(sidecar_metadata)
-                # print(sidecar_text)
                 sidecar_fpath.write_text(sidecar_text)
-                print(f'Wrote to: sidecar_fpath={sidecar_fpath}')
 
             if config.name:
                 pin_argv = ['ipfs', 'pin', 'add']
@@ -133,6 +144,10 @@ class IPFSAdd(scfg.DataConfig):
                 pin_argv += [cid]
                 info = ub.cmd(pin_argv, verbose=3)
                 info.check_returncode()
+
+            if sidecar_fpath is not None:
+                print(sidecar_text)
+                print(f'Wrote to: sidecar_fpath={sidecar_fpath}')
 
 
 if __name__ == '__main__':
