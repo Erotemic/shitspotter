@@ -121,11 +121,18 @@ class IPFSAdd(scfg.DataConfig):
             else:
                 size_str = None
 
+            # fixme: only do in a git repo:
+            ADD_TO_GIT_IGNORE = True
+            ADD_SIDECAR_TO_GIT = True
+
             num_items = len(lines)  # number of new sub-cids
             if sidecar_fpath is not None:
+                sidecar_dpath = sidecar_fpath.parent
+                rel_path = path.relative_to(sidecar_dpath)
+
                 sidecar_metadata = {
                     'cid': cid,
-                    'rel_path': os.fspath(path.relative_to(sidecar_fpath.parent)),
+                    'rel_path': os.fspath(rel_path),
                     'size': size_str,
                     'num_items': num_items,
                     'add_config': dict(config),
@@ -134,7 +141,28 @@ class IPFSAdd(scfg.DataConfig):
                 }
                 sidecar_metadata = kwutil.Json.ensure_serializable(sidecar_metadata)
                 sidecar_text = kwutil.Yaml.dumps(sidecar_metadata)
+                print(f'write to: sidecar_fpath={sidecar_fpath}')
                 sidecar_fpath.write_text(sidecar_text)
+
+                if ADD_TO_GIT_IGNORE:
+                    ignore_fpath = sidecar_dpath / '.gitignore'
+                    rel_path_line = os.fspath(rel_path)
+                    if ignore_fpath.exists():
+                        ignore_lines = ignore_fpath.read_text().strip().split('\n')
+                        needs_write = rel_path_line not in (p.strip() for p in ignore_lines)
+                    else:
+                        needs_write = True
+                    if needs_write:
+                        print('Update gitignore')
+                        with open(ignore_fpath, 'a') as file:
+                            file.write(os.fspath(rel_path_line) + '\n')
+                    else:
+                        print('gitignore does not need update')
+
+                if ADD_SIDECAR_TO_GIT:
+                    ub.cmd(f'git add {sidecar_fpath.name}', cwd=sidecar_fpath.parent, verbose=3)
+
+                # Also handle .gitignore
 
             if config.name:
                 pin_argv = ['ipfs', 'pin', 'add']

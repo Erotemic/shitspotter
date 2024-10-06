@@ -1,0 +1,16 @@
+cid: bafybeib5xppxduoudgamopadsbcregoxg2siyktbltotn522etadigopwe
+rel_path: figures
+size: 25.77 MiB
+num_items: 28
+add_config:
+  path: /home/joncrall/code/shitspotter/papers/application-2024/figures
+  name:
+  recursive: true
+  progress: true
+  cid_version: 1
+  raw_leaves: false
+  only_hash: false
+  pin: true
+  sidecar: true
+add_datetime: 2024-10-06T160639-5
+add_duration: 0.43624561998876743
