@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-A scriptconfig powered CLI for IPFS.
+A scriptconfig powered wrapper CLI for IPFS.
 
 Ignore:
     python -m shitspotter.ipfs --help
@@ -77,6 +77,7 @@ class IPFSAdd(scfg.DataConfig):
 
     @classmethod
     def main(cls, argv=1, **kwargs):
+        argv = kwargs.pop('cmdline', argv)  # helper for cmdline->argv transition
         config = cls.cli(argv=argv, data=kwargs, strict=True)
         rich.print('config = ' + ub.urepr(config, nl=1))
 
@@ -101,34 +102,37 @@ class IPFSAdd(scfg.DataConfig):
 
         with ub.Timer() as timer:
             info = ub.cmd(ipfs_add_argv, verbose=3)
-            info.check_returncode()
 
-        parts = info.stdout.strip().split(' ')
-        assert len(parts) > 1
-        cid = parts[1]
+        info.check_returncode()
 
-        if sidecar_fpath is not None:
-            sidecar_metadata = {
-                'cid': cid,
-                'rel_path': os.fspath(path.relative_to(sidecar_fpath.parent)),
-                'config': dict(config),
-                'datetime_added': ub.timestamp(),
-                'add_duration': timer.elapsed,
-            }
-            sidecar_metadata = kwutil.Json.ensure_serializable(sidecar_metadata)
-            sidecar_text = kwutil.Yaml.dumps(sidecar_metadata)
-            # print(sidecar_text)
-            sidecar_fpath.write_text(sidecar_text)
-            print(f'Wrote to: sidecar_fpath={sidecar_fpath}')
+        if not config.only_hash:
+            # Only do postprocessing steps for non-dry runs
+            parts = info.stdout.strip().split(' ')
+            assert len(parts) > 1
+            cid = parts[1]
 
-        if config.name and not config.only_hash:
-            pin_argv = ['ipfs', 'pin', 'add']
-            pin_argv += ['--name', config.name]
-            if config.progress:
-                pin_argv += ['--progress']
-            pin_argv += [cid]
-            info = ub.cmd(pin_argv, verbose=3)
-            info.check_returncode()
+            if sidecar_fpath is not None:
+                sidecar_metadata = {
+                    'cid': cid,
+                    'rel_path': os.fspath(path.relative_to(sidecar_fpath.parent)),
+                    'config': dict(config),
+                    'datetime_added': ub.timestamp(),
+                    'add_duration': timer.elapsed,
+                }
+                sidecar_metadata = kwutil.Json.ensure_serializable(sidecar_metadata)
+                sidecar_text = kwutil.Yaml.dumps(sidecar_metadata)
+                # print(sidecar_text)
+                sidecar_fpath.write_text(sidecar_text)
+                print(f'Wrote to: sidecar_fpath={sidecar_fpath}')
+
+            if config.name:
+                pin_argv = ['ipfs', 'pin', 'add']
+                pin_argv += ['--name', config.name]
+                if config.progress:
+                    pin_argv += ['--progress']
+                pin_argv += [cid]
+                info = ub.cmd(pin_argv, verbose=3)
+                info.check_returncode()
 
 
 if __name__ == '__main__':
