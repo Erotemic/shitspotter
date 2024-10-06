@@ -43,10 +43,14 @@ class IPFSPull(scfg.DataConfig):
         >>> ipfs_add_argv = config._build_add_command()
         >>> IPFSAdd.main(argv=argv, **config)
         >>> ipfs_sidecar_fpath = dpath.augment(tail='.ipfs')
-        >>> IPFSPull.main(argv=argv, path=ipfs_sidecar_fpath)
+        >>> kwargs = dict(path=ipfs_sidecar_fpath, dry_run=1)
+        >>> IPFSPull.main(argv=argv, **kwargs)
+        >>> kwargs = dict(path=ipfs_sidecar_fpath, dry_run=0)
+        >>> IPFSPull.main(argv=argv, **kwargs)
     """
     __command__ = 'pull'
     path = scfg.Value(None, help='path to a tracked .ipfs file', position=1)
+    dry_run = scfg.Flag(False, short_alias=['n'], help='Only inspect what would be done and do basic error checking. No download / file modifiation')
 
     @classmethod
     def main(cls, argv=1, **kwargs):
@@ -57,13 +61,18 @@ class IPFSPull(scfg.DataConfig):
         if config.path is None:
             raise Exception('Path must be specified')
 
-        ipfs_sidecar_fpath = path = config.path
+        ipfs_sidecar_fpath = config.path
         assert ipfs_sidecar_fpath.exists(), '#todo: simpledvc-like flexibility'
 
         sidecar_metadata = kwutil.Yaml.load(ipfs_sidecar_fpath)
-        sidecar_metadata['cid']
+        root_cid = sidecar_metadata['cid']
+        dpath = ipfs_sidecar_fpath.parent
+        rel_path = sidecar_metadata['rel_path']
 
-        path = ub.Path(config.path)
+        if not config.dry_run:
+            sync_ipfs_pull(root_cid, dpath, rel_path)
+        else:
+            print('sidecar_metadata = {}'.format(ub.urepr(sidecar_metadata, nl=1)))
 
 
 @IPFS.register
