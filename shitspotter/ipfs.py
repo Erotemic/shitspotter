@@ -17,6 +17,56 @@ class IPFS(scfg.ModalCLI):
 
 
 @IPFS.register
+class IPFSPull(scfg.DataConfig):
+    """
+    This works with the DVC-like sidecars we create with IPFS add.
+
+    Add a folder to IPFS
+
+    Modifies defaults and extends some functionality of the regular kubo API
+
+    Extensions:
+        * Writes a dvc-like sidecar file
+        * Can specify a name for the initial pin in the add command
+
+    Example:
+        >>> # xdoctest: +REQUIRES(env:IPFS_TEST)
+        >>> from shitspotter.ipfs import *  # NOQA
+        >>> import ubelt as ub
+        >>> root_dpath = ub.Path.appdir('tests/ipfs').ensuredir()
+        >>> dpath = (root_dpath / 'dir1').ensuredir()
+        >>> fpath = (dpath / 'fpath1.txt')
+        >>> fpath.write_text('data')
+        >>> cls = IPFSAdd
+        >>> argv = 0
+        >>> kwargs = config = cls(path=dpath, name='scfg-ipfs-test-pin', only_hash=0)
+        >>> ipfs_add_argv = config._build_add_command()
+        >>> IPFSAdd.main(argv=argv, **config)
+        >>> ipfs_sidecar_fpath = dpath.augment(tail='.ipfs')
+        >>> IPFSPull.main(argv=argv, path=ipfs_sidecar_fpath)
+    """
+    __command__ = 'pull'
+    path = scfg.Value(None, help='path to a tracked .ipfs file', position=1)
+
+    @classmethod
+    def main(cls, argv=1, **kwargs):
+        argv = kwargs.pop('cmdline', argv)  # helper for cmdline->argv transition
+        config = cls.cli(argv=argv, data=kwargs, strict=True)
+        rich.print('config = ' + ub.urepr(config, nl=1))
+
+        if config.path is None:
+            raise Exception('Path must be specified')
+
+        ipfs_sidecar_fpath = path = config.path
+        assert ipfs_sidecar_fpath.exists(), '#todo: simpledvc-like flexibility'
+
+        sidecar_metadata = kwutil.Yaml.load(ipfs_sidecar_fpath)
+        sidecar_metadata['cid']
+
+        path = ub.Path(config.path)
+
+
+@IPFS.register
 class IPFSAdd(scfg.DataConfig):
     """
     Add a folder to IPFS
@@ -28,6 +78,7 @@ class IPFSAdd(scfg.DataConfig):
         * Can specify a name for the initial pin in the add command
 
     Example:
+        >>> # xdoctest: +REQUIRES(env:IPFS_TEST)
         >>> from shitspotter.ipfs import *  # NOQA
         >>> import ubelt as ub
         >>> root_dpath = ub.Path.appdir('tests/ipfs').ensuredir()
@@ -176,6 +227,104 @@ class IPFSAdd(scfg.DataConfig):
             if sidecar_fpath is not None:
                 print(sidecar_text)
                 print(f'Wrote to: sidecar_fpath={sidecar_fpath}')
+
+
+def sync_ipfs_pull(root_cid, dpath, rel_path):
+    """
+    Ignore:
+        root_cid = 'bafybeicbm6nljzd6jdhnx7iha6764ntcjarktfltytbeymrflwfi6zuldm'
+        dpath = '/home/joncrall/.cache/tests/ipfs'
+        rel_path = 'dir1'
+    """
+    import os
+    # import ipfsspec
+    # import logging
+    # import sys
+    import ubelt as ub
+    # avail = sorted(fsspec.available_protocols())
+    # print('avail = {}'.format(ub.urepr(avail, nl=1)))
+    # logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+    import uuid
+    uuid = uuid.uuid4()
+
+    dpath = ub.Path(dpath)
+    tmp_fname = f'tmp-{uuid}'
+    tmp_path = dpath / tmp_fname
+    out_path = dpath / rel_path
+
+    impl_version = 1
+    if impl_version == 1:
+        # Very rough initial implemention, force grab of everything followed by an
+        # rsync. Should try to do sync more incrementally. Could also check that
+        # hash of a directory is unchanged.
+        ub.cmd(['ipfs', 'get', '--progress=true', f'--output={tmp_path}', root_cid], verbose=3, check=True)
+        if out_path.exists():
+            # if the output already exists we have to sync it
+            # References: https://stackoverflow.com/questions/20300971/rsync-copy-directory-contents-but-not-directory-itself
+            # rsync interprets a directory with no trailing slash as copy this
+            # directory, and a directory with a trailing slash as copy the contents
+            # of this directory.
+            ub.cmd(['rsync', '-avprP', str(tmp_path) + '/', out_path], verbose=3, check=True)
+            tmp_path.delete()
+        else:
+            # in the case where the output doesnt exist yet we can be more efficent
+            os.rename(tmp_path, out_path)
+    elif impl_version == 2:
+        # FIXME
+        import fsspec
+        fs_cls = fsspec.get_filesystem_class('ipfs')
+        fs = fs_cls(asynchronous=False)
+        results = fs.ls(root_cid)
+        print('results = {}'.format(ub.urepr(results, nl=1)))
+
+        to_ensure = []
+        to_copy = []
+        for ipfs_root, dnames, fnames in ub.ProgIter(fs.walk(root_cid), desc='walking'):
+            ...
+            rel_root = os.path.relpath(ipfs_root, root_cid)
+            local_root = dpath / rel_root
+            if not local_root.exists():
+                to_ensure.append(local_root)
+
+            for fname in fnames:
+                ipfs_fpath = os.path.join(ipfs_root, fname)
+                local_fpath = local_root / fname
+                if not local_fpath.exists():
+                    to_copy.append({
+                        'src': ipfs_fpath,
+                        'dst': local_fpath,
+                        'overwrite': False,
+                    })
+                else:
+                    # if 'kwcoco' not in str(local_fpath) and '_cache' not in str(local_fpath):
+                    ipfs_stat = fs.stat(ipfs_fpath)
+                    local_stat = local_fpath.stat()
+                    # TODO: need better mechanism to determine if files are the same
+                    probably_same = (ipfs_stat['size'] == local_stat.st_size)
+                    if not probably_same:
+                        to_copy.append({
+                            'src': ipfs_fpath,
+                            'dst': local_fpath,
+                            'overwrite': True,
+                        })
+
+        # Execute Copy
+
+        for dpath in to_ensure:
+            dpath.ensuredir()
+
+        for task in ub.ProgIter(to_copy, desc='copy files'):
+            if task['overwrite']:
+                src = task['src']
+                dst = task['dst']
+                fs.get(src, str(dst))
+            else:
+                src = task['src']
+                dst = task['dst']
+                bak = dst.augment(suffix='.old')
+                dst.move(bak)
+                fs.get(src, str(dst))
+                bak.delete()
 
 
 if __name__ == '__main__':
