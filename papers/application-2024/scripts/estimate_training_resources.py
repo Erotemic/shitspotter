@@ -9,6 +9,11 @@ reg = kwutil.util_units.unit_registry()
 gpu_power = 345 * reg.watt
 time = 49.2 * reg.hour
 
+real_co2 = 1.84
+real_kwh = 8.76
+estimated_ratio = real_co2 / real_kwh
+print(estimated_ratio)
+
 co2kg_per_kwh = 0.210
 energy_usage = (gpu_power *  time).to(reg.kilowatt * reg.hour)
 

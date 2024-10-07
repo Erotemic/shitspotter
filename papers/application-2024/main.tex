@@ -107,7 +107,7 @@ Kitware\\
 %available as a benchmark dataset.
 We introduce a new --- currently 42 gigabyte --- "living" dataset of phone images of dog feces, annotated with manually drawn or AI-assisted polygon labels. There are 6k full resolution images and 4k detailed polygon annotations. The collection and annotation of images started in late 2020 and the dataset grows by roughly 1GB a month. 
 
-We train a baseline vision transformer to segment the objects of interest, exploring a grid of hyperparameters, and we evaluate their impact.  The best model achieves a pixelwise average precision of 0.83 on a 691-image validation set and 0.51 on a small independently captured 30-image contributor test set.
+We train a baseline vision transformer to segment the objects of interest, exploring a grid of hyperparameters, and we evaluate their impact.  The best model achieves a pixelwise average precision of 0.78 on a 691-image validation set and 0.51 on a small independently captured 30-image contributor test set.
 
 The most recent snapshot of dataset is made publicly available through three different distribution methods: one centralized and two decentralized (IPFS and BitTorrent).  We perform an analysis and observational comparison of the trade-offs between distribution methods and discuss the feasibility of each with respect to sharing open scientific data in a reliable and accessible manner.
 
@@ -525,13 +525,14 @@ Additionally, trained models are packaged and distributed with information about
             \multicolumn{4}{l}{} & \multicolumn{2}{c}{validation} & \multicolumn{2}{c}{test} \\
 config name &   lr & weight\_decay & perterb\_scale & AP & AUC & AP & AUC \\
 \midrule
-        \textcolor[HTML]{623682}{D05} & 1e-4 &   1e-6 &  3e-6 & \textbf{0.8325} &     \textbf{0.9927} &         0.5051  &              0.9125  \\
-        \textcolor[HTML]{87b787}{D04} & 1e-4 &   1e-7 &  3e-7 &         0.8225 &              0.9795  &         0.4346  &              0.8576  \\
-        \textcolor[HTML]{df8020}{D03} & 1e-4 &   1e-5 &  3e-7 &         0.8203 &              0.9679  &         0.4652  &              0.7965  \\
-        \textcolor[HTML]{207fdf}{D02} & 1e-4 &   1e-6 &  3e-7 &         0.8159 &              0.9872  & \textbf{0.5167} &      \textbf{0.9252} \\
-        \textcolor[HTML]{20df20}{D00} & 3e-4 &   3e-6 &  9e-7 &         0.8107 &              0.9685  &         0.4210  &              0.7766  \\
-        \textcolor[HTML]{df20df}{D01} & 1e-3 &   1e-5 &  3e-6 &         0.7665 &              0.9899  &         0.4607  &              0.9062  \\
-        \textcolor[HTML]{b00403}{D06} & 1e-4 &   1e-6 &  3e-8 &         0.7458 &              0.9663  &         0.4137  &              0.8157  \\
+        \textcolor[HTML]{623682}{D05} & 1e-4 &   1e-6 &  3e-6 & \textbf{0.7802} & \textbf{0.9943} &          0.5051 &          0.9125 \\
+        \textcolor[HTML]{df8020}{D03} & 1e-4 &   1e-5 &  3e-7 &          0.7758 &          0.9707 &          0.4346 &          0.8576 \\
+        \textcolor[HTML]{87b787}{D04} & 1e-4 &   1e-7 &  3e-7 &          0.7725 &          0.9818 &          0.4652 &          0.7965 \\
+        \textcolor[HTML]{207fdf}{D02} & 1e-4 &   1e-6 &  3e-7 &          0.7621 &          0.9893 & \textbf{0.5167} & \textbf{0.9252} \\
+        \textcolor[HTML]{20df20}{D00} & 3e-4 &   3e-6 &  9e-7 &          0.7571 &          0.9737 &          0.4210 &          0.7766 \\
+        \textcolor[HTML]{df20df}{D01} & 1e-3 &   1e-5 &  3e-6 &          0.7070 &          0.9913 &          0.4607 &          0.9062 \\
+        \textcolor[HTML]{b00403}{D06} & 1e-4 &   1e-6 &  3e-8 &          0.6800 &          0.9773 &          0.4137 &          0.8157 \\
+        
 \bottomrule
 \end{tabular}
 \caption{
@@ -591,7 +592,7 @@ The details of the top model for each run, along with relevant hyperparameters, 
   \Cref{tab:parameters_and_results}.
 This table also includes the results on the small, held out, test set for the top model.
 
-The results show strong performance on the validation set, with a maximum AP of $0.83$.
+The results show strong performance on the validation set, with a maximum AP of $0.78$.
 However, while the test AP for this model is good, it is significantly lower at $0.51$.
 To investigate this discrepancy, we turned to qualitative analysis.
 
@@ -699,17 +700,17 @@ print(round(kwutil.timedelta.coerce('00:27:31').to_pint().to('hours'), 2))
     \centering
 \begin{tabular}{llllr}
 \toprule
-        node & resource &           total &            mean &  num \\
+        node & resource    &           total  &           mean &  num \\
 \midrule
-eval        & time         & 7.87 hours     &  0.22 hours     &   35 \\
+eval        &        time  & 14.24 hours      & 0.41 hours     &   35 \\
 \rule{0pt}{2ex}%
-pred        & time         & 4.39 hours     &  0.13 hours     &   35 \\
-pred        & electricity  & 3.17 kWh       &  0.09 kWh       &   35 \\
-pred        & emissions    & 0.67 \cotwo kg &  0.02 \cotwo kg &   35 \\
+pred        &        time  & 11.97 hours      & 0.34 hours     &   35 \\
+pred        & electricity  &  8.76 kWh        & 0.25 kWh       &   35 \\
+pred        &   emissions  &  1.84 \cotwo kg  & 0.05 \cotwo kg &   35 \\
 \rule{0pt}{2ex}%
-train$^{*}$ & time         & 39.22 days      & 5.60 days      &   7 \\
-train$^{*}$ & electricity  & 324.75 kWh      & 46.39 kWh      &   7 \\
-train$^{*}$ & emissions    & 68.20 \cotwo kg & 9.74 \cotwo kg &   7 \\
+train$^{*}$ & time         &  39.22 days      & 5.60 days      &   7 \\
+train$^{*}$ & electricity  & 324.75 kWh       & 46.39 kWh      &   7 \\
+train$^{*}$ & emissions    &  68.20 \cotwo kg & 9.74 \cotwo kg &   7 \\
 \bottomrule
 \end{tabular}
 (a) presented experiment resources
@@ -722,14 +723,16 @@ train$^{*}$ & emissions    & 68.20 \cotwo kg & 9.74 \cotwo kg &   7 \\
 % additional number is because of rerun of one evaluation with different
 % parameters.
 % eval & time & 4 days 14:18:23 & 00:20:07 &  330 \\
-eval        & time        & 4.6 days        & 0.34 hours     &  329 \\
+% 5.85 * 399/400 = 5.84
+%eval &        time &    5.85 day &  0.35 hours &  400 \\
+eval        &        time &    5.84 days     &  0.35 hours    &  399 \\
 \rule{0pt}{2ex}%
-pred        & time        & 6.29 days       & 0.46 hours     &  329 \\
-pred        & electricity & 85.31 kWh       & 0.26 kWh       &  329 \\
-pred        & emissions   & 17.95 \cotwo kg & 0.05 \cotwo kg &  329 \\
+pred        &        time &    7.29 days     &  0.44 hours    &  399 \\
+pred        & electricity &  102.83 kWh      &   0.26 kWh     &  399 \\
+pred        &   emissions &  21.6 \cotwo kg  & 0.05 \cotwo kg &  399 \\
 \rule{0pt}{2ex}%
 train$^{*}$ & time        & 158.95 days      &     3.78 days  &   42 \\
-train$^{*}$ & electricity & 1,316.07 kWh      &     31.34 kWh  &   42 \\
+train$^{*}$ & electricity & 1,316.07 kWh     &     31.34 kWh  &   42 \\
 train$^{*}$ & emissions   & 276.37 \cotwo kg & 6.58 \cotwo kg &   42 \\
 \bottomrule
 \end{tabular}
@@ -792,6 +795,7 @@ Direct measurement of resource usage during training is still under development,
 We approximate electricity consumption by assuming a constant power draw of 345W from the 3090 GPU during
   training.
 Emissions are estimated using a conversion ratio of 0.21 $\frac{\textrm{kg}\cotwo{}}{\textrm{kWh}}$.
+% 
   
 Based on the validation set's 691 images, we estimate that predicting on a single image on our desktop
   requires approximately 1.15 seconds and 0.13 Wh of electricity.
@@ -1100,7 +1104,7 @@ The dataset contains several challenges including amorphous objects, multi-seaso
 We have described the dataset collection and annotation process and reported statistics on the dataset.
 
 We provided a recommended train/validation/test split of the dataset, and used this to train and evaluate
-  several baseline segmentation models, the best of which achieves a pixelwise AP of 0.83 on the validation
+  several baseline segmentation models, the best of which achieves a pixelwise AP of 0.78 on the validation
   set and 0.51 on the test set.
 In addition to providing quantitative and qualitative results of the models, we also report the resources
   required to perform these training, prediction, and evaluation experiments.

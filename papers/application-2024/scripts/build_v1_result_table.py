@@ -287,7 +287,9 @@ if 1:
         'metrics.heatmap_eval.salient_AUC': 'Pixelwise AUC',
     })
 
-    friendly = agg.resource_summary_table_friendly()
+    friendly = new_agg.resource_summary_table_friendly()
+    friendly = DataFrame(friendly)
+    friendly = friendly.reorder(head=['node', 'resource', 'total', 'mean', 'num'], axis=1)
     rich.print(friendly.to_string())
     # print(friendly.to_csv())
     text = friendly.to_latex(index=False, escape=False)
@@ -296,20 +298,22 @@ if 1:
     new_lines = []
 
     # Insert spacing between different node types
-    start = 0
+    find_insert_locations = 0
     prev = None
     for line in text.split('\n'):
-        if start:
+        if find_insert_locations:
             key = line.split(' ')[0]
             if prev is not None and prev != key:
                 new_lines.append(r'\rule{0pt}{2ex}%')
             prev = key
+        if line.startswith('\\bottomrule'):
+            find_insert_locations = 0
         new_lines.append(line)
         if line.startswith('\\midrule'):
-            start = 1
+            find_insert_locations = 1
     text = '\n'.join(new_lines)
-    text.replace('CO2KG', '\\cotwo kg')
-    text.replace('CO2KG', '\\cotwo kg')
+    text = text.replace('CO2Kg', '\\cotwo kg')
+    text = text.replace('hour', 'hours')
     print(ub.highlight_code(text, 'latex'))
     ###
 

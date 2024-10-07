@@ -361,6 +361,80 @@ python -m geowatch.mlops.aggregate \
     "
 
 
+# Result aggregation and reporting (Get full resouce table)
+DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals_2024_v2
+python -m geowatch.mlops.aggregate \
+    --pipeline='shitspotter.pipelines.polygon_evaluation_pipeline()' \
+    --target "
+        #- $EVAL_PATH
+        - $DVC_EXPT_DPATH/_shitspotter_evals_2024_v2
+        - $DVC_EXPT_DPATH/_shitspotter_evals
+    " \
+    --output_dpath="$EVAL_PATH/full_aggregate" \
+    --resource_report=1 \
+    --io_workers=0 \
+    --eval_nodes="
+        - heatmap_eval
+        #- detection_evaluation
+    " \
+    --stdout_report="
+        top_k: 10
+        per_group: null
+        macro_analysis: 0
+        analyze: 0
+        print_models: True
+        reference_region: null
+        concise: 0
+        show_csv: 0
+    " \
+    --plot_params="
+        enabled: 0
+        stats_ranking: 0
+        min_variations: 2
+        max_variations: 40
+        min_support: 1
+        params_of_interest:
+            - resolved_params.heatmap_pred_fit.model.init_args.arch_name
+            - resolved_params.heatmap_pred_fit.model.init_args.perterb_scale
+            - resolved_params.heatmap_pred_fit.optimizer.init_args.lr
+            - resolved_params.heatmap_pred_fit.optimizer.init_args.weight_decay
+            - resolved_params.heatmap_pred_fit.trainer.default_root_dir
+            - params.heatmap_pred.package_fpath
+    " \
+    --custom_query="
+
+        from geowatch.utils.util_pandas import DataFrame
+        for key, agg in eval_type_to_aggregator.items():
+            friendly = agg.resource_summary_table_friendly()
+            friendly = DataFrame(friendly)
+            friendly = friendly.reorder(head=['node', 'resource', 'total', 'mean', 'num'], axis=1)
+            text = friendly.to_latex(index=False, escape=False)
+            text = text.replace('heatmap_eval', 'eval')
+            text = text.replace('heatmap_pred', 'pred')
+            new_lines = []
+
+            # Insert spacing between different node types
+            find_insert_locations = 0
+            prev = None
+            for line in text.split(chr(10)):
+                if find_insert_locations:
+                    key = line.split(' ')[0]
+                    if prev is not None and prev != key:
+                        new_lines.append(chr(92) + r'rule{0pt}{2ex}%')
+                    prev = key
+                if line[1:].startswith('bottomrule'):
+                    find_insert_locations = 0
+                new_lines.append(line)
+                if line[1:].startswith('midrule'):
+                    find_insert_locations = 1
+            text = chr(10).join(new_lines)
+            text = text.replace('CO2Kg', chr(92) + chr(92) + 'cotwo kg')
+            text = text.replace('hour', 'hours')
+            print(ub.highlight_code(text, 'latex'))
+    "
+
+
 
 
 # Result aggregation and reporting
