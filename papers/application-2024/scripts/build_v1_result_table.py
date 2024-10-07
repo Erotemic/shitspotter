@@ -136,7 +136,7 @@ print(subtable_display.to_latex(index=False))
 
 # Add test results:
 # TODO: we should be reading this from the test mlops directory
-# and joining the information.
+# and joining the information. This could be a source of error.
 test_results_to_integrate = [
     {'default_root_dir': 'shitspotter_scratch_20240618_noboxes_v7',
      'salient_AP': 0.5051101001895235,
@@ -239,9 +239,137 @@ for idx in range(len(col)):
     test.iloc[idx][colname] = newval
 
 
-test.rename({
+test = test.rename({
     'salient_AP': 'AP',
     'salient_AUC': 'AUC',
+    'val': 'validation',
 }, axis=1)
 print(test.style.format_index().hide().to_latex())
 print(test.to_latex(index=False, escape=False))
+
+
+if 1:
+    import kwutil
+    plot_config = kwutil.Yaml.coerce(ub.codeblock(
+        '''
+        stats_ranking: 0
+        min_variations: 2
+        max_variations: 40
+        min_support: 1
+        params_of_interest:
+            - resolved_params.heatmap_pred_fit.model.init_args.arch_name
+            - resolved_params.heatmap_pred_fit.model.init_args.perterb_scale
+            - resolved_params.heatmap_pred_fit.optimizer.init_args.lr
+            - resolved_params.heatmap_pred_fit.optimizer.init_args.weight_decay
+            - resolved_params.heatmap_pred_fit.trainer.default_root_dir
+            - params.heatmap_pred.package_fpath
+        '''))
+    new_agg.output_dpath = ub.Path('/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals_2024_v2/aggregate')
+    rois = ['']
+    plotter = new_agg.build_plotter(rois, plot_config)
+    param_name = 'resolved_params.heatmap_pred_fit.trainer.default_root_dir'
+
+    from geowatch.utils.util_kwplot import Palette
+    import kwimage
+    result_palette = Palette()
+    valmap = {}
+    for dpath in plotter.macro_table[param_name].unique():
+        for k, v in root_lut.items():
+            if dpath.endswith(k):
+                break
+        hexcolor = colormap[v]
+        result_palette[dpath] = kwimage.Color.coerce('#' + hexcolor).as01()
+        valmap[dpath] = v
+    plotter.param_to_palette[param_name] = result_palette
+    plotter.modifier.update({
+        'resolved_params.heatmap_pred_fit.trainer.default_root_dir': 'trainer.default_root_dir',
+        'metrics.heatmap_eval.salient_AP': 'Pixelwise AP',
+        'metrics.heatmap_eval.salient_AUC': 'Pixelwise AUC',
+    })
+
+    friendly = agg.resource_summary_table_friendly()
+    rich.print(friendly.to_string())
+    # print(friendly.to_csv())
+    text = friendly.to_latex(index=False, escape=False)
+    text = text.replace('heatmap_eval', 'eval')
+    text = text.replace('heatmap_pred', 'pred')
+    new_lines = []
+
+    # Insert spacing between different node types
+    start = 0
+    prev = None
+    for line in text.split('\n'):
+        if start:
+            key = line.split(' ')[0]
+            if prev is not None and prev != key:
+                new_lines.append(r'\rule{0pt}{2ex}%')
+            prev = key
+        new_lines.append(line)
+        if line.startswith('\\midrule'):
+            start = 1
+    text = '\n'.join(new_lines)
+    text.replace('CO2KG', '\\cotwo kg')
+    text.replace('CO2KG', '\\cotwo kg')
+    print(ub.highlight_code(text, 'latex'))
+    ###
+
+    plotter.plot_resources()
+
+    plotter.param_to_valmap = {param_name: valmap}
+    assert plotter.macro_table is not None
+    # plotter.plot_requested()
+    # plotter.plot_resources()
+    from geowatch.mlops.aggregate_plots import Vantage
+    vantage = Vantage(
+            metric1='metrics.heatmap_eval.salient_AP',
+            metric2='metrics.heatmap_eval.salient_AUC',
+            scale1='linear',
+            scale2='linear',
+            objective1='maximize',
+            objective2='maximize',
+            name='salient_AP-vs-salient_AUC')
+    drawn_rows = plotter.plot_vantage_params(vantage, params_of_interest=[param_name])
+    type_to_row = {row['suffix']: row for row in drawn_rows[0]}
+    fpath1 = type_to_row['PLT04_box.png']['param_fpath']
+    fpath2 = type_to_row['PLT02_scatter_nolegend.png']['param_fpath']
+    fpath3 = type_to_row['PLT05_table.png']['param_fpath']
+    ub.cmd(f'eog {fpath1}')
+    ub.cmd(f'eog {fpath2}')
+    ub.cmd(f'eog {fpath3}')
+
+    target_dpath = ub.Path('/home/joncrall/code/shitspotter/papers/application-2024/figures')
+    fpaths = [fpath1, fpath2, fpath3]
+    import kwplot
+    kwplot.close_figures()
+
+    kwplot.autompl()
+    copyman = kwutil.CopyManager()
+    for fnum, src in enumerate(fpaths, start=1):
+        dst = target_dpath / src.name
+        job = ub.udict({
+            'src': src,
+            'dst': dst,
+        })
+        copyman.submit(**job, overwrite=True)
+
+    for fnum, job in enumerate(copyman._unsubmitted):
+        print(f'job = {ub.urepr(job, nl=1)}')
+        src = job['src']
+        dst = job['dst']
+        canvas1 = kwimage.imread(src)
+        if dst.exists():
+            canvas2 = kwimage.imread(dst)
+            canvas2 = kwimage.imresize(canvas2, dsize=canvas1.shape[0:2][::-1])
+            canvas1 = kwimage.ensure_float01(canvas1)[..., 0:3]
+            canvas2 = kwimage.ensure_float01(canvas2)[..., 0:3]
+            diff = np.abs(canvas2 - canvas1)
+            stack = kwimage.stack_images([canvas1, canvas2, diff], axis=1)
+        else:
+            stack = canvas1
+        print(f'fnum={fnum}')
+        kwplot.imshow(stack, fnum=fnum, doclf=1)
+
+    from kwutil.util_prompt import confirm_with_timeout
+    if confirm_with_timeout(msg='replace?'):
+        print(f'confirm_with_timeout={confirm_with_timeout}')
+        copyman.run()

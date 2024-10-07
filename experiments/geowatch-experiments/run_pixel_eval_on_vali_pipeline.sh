@@ -162,6 +162,45 @@ echo "
 - /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/last.pt
 " > "$HOME"/code/shitspotter/experiments/top_models.yaml
 
+echo "
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v4/lightning_logs/version_1/checkpoints/epoch=0073-step=101084-val_loss=0.017.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v2/lightning_logs/version_0/checkpoints/epoch=0062-step=086058-val_loss=0.022.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v3/lightning_logs/version_4/checkpoints/epoch=0103-step=142064-val_loss=0.021.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_2/checkpoints/epoch=0093-step=128404-val_loss=0.033.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v2/lightning_logs/version_0/checkpoints/last.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v4/lightning_logs/version_1/checkpoints/epoch=0068-step=094254-val_loss=0.018.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v5/lightning_logs/version_0/checkpoints/epoch=0070-step=096986-val_loss=0.018.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v6/lightning_logs/version_0/checkpoints/epoch=0073-step=101084-val_loss=0.017.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v5/lightning_logs/version_0/checkpoints/last.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v3/lightning_logs/version_4/checkpoints/last.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v2/lightning_logs/version_0/checkpoints/epoch=0072-step=099718-val_loss=0.022.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v4/lightning_logs/version_1/checkpoints/epoch=0076-step=105182-val_loss=0.018.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v3/lightning_logs/version_4/checkpoints/epoch=0089-step=122940-val_loss=0.021.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v5/lightning_logs/version_0/checkpoints/epoch=0072-step=099718-val_loss=0.016.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v2/lightning_logs/version_0/checkpoints/epoch=0065-step=090156-val_loss=0.022.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/epoch=0089-step=122940-val_loss=0.019.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v3/lightning_logs/version_4/checkpoints/epoch=0092-step=127038-val_loss=0.021.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v6/lightning_logs/version_0/checkpoints/epoch=0067-step=092888-val_loss=0.018.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v5/lightning_logs/version_0/checkpoints/epoch=0078-step=107914-val_loss=0.019.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_2/checkpoints/epoch=0103-step=142064-val_loss=0.034.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v4/lightning_logs/version_1/checkpoints/epoch=0049-step=068300-val_loss=0.017.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/epoch=0078-step=107914-val_loss=0.016.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/last.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v6/lightning_logs/version_0/checkpoints/last.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v6/lightning_logs/version_0/checkpoints/epoch=0074-step=102450-val_loss=0.016.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v4/lightning_logs/version_1/checkpoints/epoch=0072-step=099718-val_loss=0.017.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/epoch=0084-step=116110-val_loss=0.020.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v5/lightning_logs/version_0/checkpoints/epoch=0068-step=094254-val_loss=0.019.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_2/checkpoints/epoch=0097-step=133868-val_loss=0.032.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_0/checkpoints/epoch=0073-step=101084-val_loss=0.017.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v3/lightning_logs/version_4/checkpoints/epoch=0105-step=144796-val_loss=0.022.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_2/checkpoints/epoch=0094-step=129770-val_loss=0.033.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v6/lightning_logs/version_0/checkpoints/epoch=0076-step=105182-val_loss=0.018.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v8/lightning_logs/version_2/checkpoints/epoch=0096-step=132502-val_loss=0.032.ckpt.pt'
+- '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v2/lightning_logs/version_0/checkpoints/epoch=0063-step=087424-val_loss=0.021.ckpt.pt'
+" > "$HOME"/code/shitspotter/experiments/top_models2.yaml
+
+
 
 
 # specified models
@@ -179,7 +218,8 @@ python -m geowatch.mlops.schedule_evaluation \
             heatmap_pred.package_fpath:
                 # - $HOME/code/shitspotter/experiments/first_chosen_eval_batch1.yaml
                 # - $HOME/code/shitspotter/experiments/models.yaml
-                 - $HOME/code/shitspotter/experiments/top_models.yaml
+                # - $HOME/code/shitspotter/experiments/top_models.yaml
+                 - $HOME/code/shitspotter/experiments/top_models2.yaml
                 # - $DVC_DATA_DPATH/models/shitspotter_scratch_v025-version_2-epoch=1277-step=005112-val_loss=0.600.ckpt.pt
                 #- $HOME/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v4/lightning_logs/version_1/checkpoints/epoch=0076-step=105182-val_loss=0.018.ckpt.pt
             heatmap_pred.test_dataset:
@@ -187,7 +227,9 @@ python -m geowatch.mlops.schedule_evaluation \
             heatmap_eval.workers: 1
             heatmap_eval.draw_heatmaps: 0
             heatmap_eval.draw_curves: True
-            heatmap_pred.__enabled__: 0
+            heatmap_pred.__enabled__: 1
+            heatmap_eval.__enabled__: 1
+            extract_polygons.__enabled__: 0
             extract_polygons.workers:
                 - 4
             extract_polygons.thresh:
@@ -296,7 +338,7 @@ python -m geowatch.mlops.aggregate \
         show_csv: 0
     " \
     --plot_params="
-        enabled: 0
+        enabled: 1
         stats_ranking: 0
         min_variations: 2
         max_variations: 40
@@ -311,7 +353,7 @@ python -m geowatch.mlops.aggregate \
     " \
     --custom_query="
     import kwutil
-    top_models = kwutil.Yaml.coerce(ub.Path('~/code/shitspotter/experiments/top_models.yaml').expand())
+    top_models = kwutil.Yaml.coerce(ub.Path('~/code/shitspotter/experiments/top_models2.yaml').expand())
     new_eval_type_to_aggregator = {}
     for key, agg in eval_type_to_aggregator.items():
         flags = agg.table['resolved_params.heatmap_pred.package_fpath'].apply(lambda x: x in top_models)
@@ -323,7 +365,7 @@ python -m geowatch.mlops.aggregate \
 
 # Result aggregation and reporting
 DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
-EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals_2024_v2
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_evals
 python -m geowatch.mlops.aggregate \
     --pipeline='shitspotter.pipelines.heatmap_evaluation_pipeline()' \
     --target "

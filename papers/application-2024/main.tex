@@ -13,6 +13,9 @@
 \newif\ifnonanonymous
 \nonanonymoustrue % comment out to be anonymous
 
+\newif\ifuseappendix
+\useappendixtrue % comment out to remove appendix
+
 \ifnonanonymous
 %\usepackage{wacv}              % To produce the CAMERA-READY version
 \usepackage[pagenumbers]{wacv} % To force page numbers, e.g. for an arXiv version
@@ -1139,6 +1142,10 @@ We would would like to thank all of the dogs that produced subject matter for th
 \bibliography{citations}
 }
 
+
+\ifuseappendix
+\include{appendix}
+\fi
 
 
 %\bibliographystyle{unsrtnat}
