@@ -13,12 +13,14 @@
 .. .. +------------------+----------------------------------------------+
 
 
-This ``shitspotter`` repo is where I am building the "ShitSpotter" (or "ScatSpotter" in a formal setting)
-  poop-detection algorithm and dataset.
-The primary goal of this work is to allow for the creation of a phone app that finds where your dog pooped,
-  because you ran to grab the doggy-bags you forgot, and now you can't find the damn thing.
-Other applications can be envisioned, such as AR glasses that lets you know if you are about to walk into a
-  steamer, or perhaps city governments could use this to more efficiently clean public areas.
+This ``shitspotter`` repo is where I am building the "ShitSpotter" (or
+"ScatSpotter" in a formal setting) poop-detection algorithm and dataset.  The
+primary goal of this work is to allow for the creation of a phone app that
+finds where your dog pooped, because you ran to grab the doggy-bags you forgot,
+and now you can't find the damn thing.  Other applications can be envisioned,
+such as AR glasses that lets you know if you are about to walk into a steamer,
+or perhaps city governments could use this to more efficiently clean public
+areas.
 
 This module will contain an algorithm for training a pytorch network to detect poop in images, and a script
 for detecting poop in unseen images given a pretrained model.
