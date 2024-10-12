@@ -13,7 +13,7 @@
 .. .. +------------------+----------------------------------------------+
 
 
-This ``shitspotter`` repo is where I am building the "ShitSpotter" (or "ScatSpotter" if you want)
+This ``shitspotter`` repo is where I am building the "ShitSpotter" (or "ScatSpotter" in a formal setting)
   poop-detection algorithm and dataset.
 The primary goal of this work is to allow for the creation of a phone app that finds where your dog pooped,
   because you ran to grab the doggy-bags you forgot, and now you can't find the damn thing.
@@ -42,7 +42,8 @@ centralized mechanisms.
 Downloading
 ===========
 
-All data is publicly hosted on IPFS and is free to use under "Creative Commons Attribution 4.0 International".
+All data is publicly hosted on IPFS and is free to use under
+"Creative Commons Attribution 4.0 International" `(CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`_.
 
 We use IPFS because it supports content addressable storage (CAS).  CAS has a
 lot of benefits. Among these are: data duplication, simpler updates to "living
@@ -460,7 +461,7 @@ In addition to these licenses please:
 * Cite the work if you use it.
 * If you annotate any of the images, contribute the annotations back. Picking up shit is a team effort.
 * When asked to build something, particularly ML systems, think about the ethical implications, and act ethically.
-* Pin the dataset on IPFS if you can.
+* Pin the dataset on IPFS or seed it on BitTorrent if you can.
 
 Otherwise the data is free to use commercially or otherwise.
 
@@ -516,6 +517,17 @@ Current IPFS addresses for each top-level asset group are:
     bafybeiboaujmbfrmopu4qguc6klv2s7ubxq3z4fka2u3d5m6i7waykonuy - shitspotter_dvc/assets/poop-2023-12-19-T190904
     bafybeieyi3erbwzu5couwg4lrgr3xynq4xwtsoho3md6rhr6qfn5icl2vu - shitspotter_dvc/assets/poop-2023-12-19-T190904
     bafybeicxiansxev6cipgp4lyykcfwregg3zlzlz2w4udpiggoyig7fsq3i - shitspotter_dvc/assets/poop-2024-03-30-T213537
+
+Contributing
+============
+
+If you have an image of poop that you would like to contribute, please send it
+to ``crall.vision@gmail.com``.
+
+If you send me an image, make sure you are ok with it being released for free under:
+`(CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`_, and let
+me know how to give you credit. You should also let me know if you want any
+time / GPS / camera metadata to be removed from the images.
 
 
 Acknowledgements
