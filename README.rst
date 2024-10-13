@@ -624,7 +624,7 @@ When you contribute an image:
 * Let me know how to give you credit.
 * Let me know if you want time / GPS camera metadata to be removed from the images.
 
-For convinence you may also submit images via this: `Google Form for ShitSpotter Contributions <https://docs.google.com/forms/d/e/1FAIpQLSfqH1555hynVUwh0O0526svPOaS0NnWiR15n68sgr7DExB6TQ/viewform?usp=sf_link>`_.
+For convinence you may also submit images via the `Google Form for ShitSpotter Contributions <https://docs.google.com/forms/d/e/1FAIpQLSfqH1555hynVUwh0O0526svPOaS0NnWiR15n68sgr7DExB6TQ/viewform?usp=sf_link>`_.
 
 
 .. |Pypi| image:: https://img.shields.io/pypi/v/shitspotter.svg
