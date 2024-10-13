@@ -531,6 +531,8 @@ If you send me an image, make sure you are ok with it being released for free un
 me know how to give you credit. You should also let me know if you want any
 time / GPS / camera metadata to be removed from the images.
 
+For convinence you may also submit images via this: `Google Form for ShitSpotter Contributions <https://docs.google.com/forms/d/e/1FAIpQLSfqH1555hynVUwh0O0526svPOaS0NnWiR15n68sgr7DExB6TQ/viewform?usp=sf_link>`_.
+
 
 Acknowledgements
 ================
