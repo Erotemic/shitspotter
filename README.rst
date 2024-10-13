@@ -520,19 +520,6 @@ Current IPFS addresses for each top-level asset group are:
     bafybeieyi3erbwzu5couwg4lrgr3xynq4xwtsoho3md6rhr6qfn5icl2vu - shitspotter_dvc/assets/poop-2023-12-19-T190904
     bafybeicxiansxev6cipgp4lyykcfwregg3zlzlz2w4udpiggoyig7fsq3i - shitspotter_dvc/assets/poop-2024-03-30-T213537
 
-Contributing
-============
-
-If you have an image of poop that you would like to contribute, please send it
-to ``crall.vision@gmail.com``.
-
-If you send me an image, make sure you are ok with it being released for free under:
-`(CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`_, and let
-me know how to give you credit. You should also let me know if you want any
-time / GPS / camera metadata to be removed from the images.
-
-For convinence you may also submit images via this: `Google Form for ShitSpotter Contributions <https://docs.google.com/forms/d/e/1FAIpQLSfqH1555hynVUwh0O0526svPOaS0NnWiR15n68sgr7DExB6TQ/viewform?usp=sf_link>`_.
-
 
 Acknowledgements
 ================
@@ -624,6 +611,19 @@ diversity.
 .. .. image:: https://i.imgur.com/yaZi5bO.jpg
 ..   :height: 400px
 ..   :align: left
+
+Contributing
+============
+
+If you have an image of poop that you would like to contribute, please send it
+to ``crall.vision@gmail.com``.
+
+If you send me an image, make sure you are ok with it being released for free under:
+`(CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`_, and let
+me know how to give you credit. You should also let me know if you want any
+time / GPS / camera metadata to be removed from the images.
+
+For convinence you may also submit images via this: `Google Form for ShitSpotter Contributions <https://docs.google.com/forms/d/e/1FAIpQLSfqH1555hynVUwh0O0526svPOaS0NnWiR15n68sgr7DExB6TQ/viewform?usp=sf_link>`_.
 
 
 .. |Pypi| image:: https://img.shields.io/pypi/v/shitspotter.svg
