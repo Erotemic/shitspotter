@@ -618,10 +618,11 @@ Contributing
 If you have an image of poop that you would like to contribute, please send it
 to ``crall.vision@gmail.com``.
 
-If you send me an image, make sure you are ok with it being released for free under:
-`(CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`_, and let
-me know how to give you credit. You should also let me know if you want any
-time / GPS / camera metadata to be removed from the images.
+When you contribute an image:
+
+* Make sure you are ok with it being released for free under: `(CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`_
+* Let me know how to give you credit.
+* Let me know if you want time / GPS camera metadata to be removed from the images.
 
 For convinence you may also submit images via this: `Google Form for ShitSpotter Contributions <https://docs.google.com/forms/d/e/1FAIpQLSfqH1555hynVUwh0O0526svPOaS0NnWiR15n68sgr7DExB6TQ/viewform?usp=sf_link>`_.
 
