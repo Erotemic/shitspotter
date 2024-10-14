@@ -141,17 +141,21 @@ class IPFSPull(scfg.DataConfig):
             raise Exception('Path must be specified')
 
         ipfs_sidecar_fpath = ub.Path(config.path)
-        assert ipfs_sidecar_fpath.exists(), '#todo: simpledvc-like flexibility'
+        sidecar_fpaths = list(kwutil.util_path.coerce_patterned_paths(ipfs_sidecar_fpath, expected_extension='.ipfs'))
+        print(f'sidecar_fpaths = {ub.urepr(sidecar_fpaths, nl=1)}')
 
-        sidecar_metadata = kwutil.Yaml.load(ipfs_sidecar_fpath)
-        root_cid = sidecar_metadata['cid']
-        dpath = ipfs_sidecar_fpath.parent
-        rel_path = sidecar_metadata['rel_path']
+        for ipfs_sidecar_fpath in sidecar_fpaths:
+            assert ipfs_sidecar_fpath.exists(), '#todo: simpledvc-like flexibility'
 
-        if not config.dry_run:
-            sync_ipfs_pull(root_cid, dpath, rel_path)
-        else:
-            print('sidecar_metadata = {}'.format(ub.urepr(sidecar_metadata, nl=1)))
+            sidecar_metadata = kwutil.Yaml.load(ipfs_sidecar_fpath)
+            root_cid = sidecar_metadata['cid']
+            dpath = ipfs_sidecar_fpath.parent
+            rel_path = sidecar_metadata['rel_path']
+
+            if not config.dry_run:
+                sync_ipfs_pull(root_cid, dpath, rel_path)
+            else:
+                print('sidecar_metadata = {}'.format(ub.urepr(sidecar_metadata, nl=1)))
 
 
 @IPFS.register

@@ -14,7 +14,7 @@
 \nonanonymoustrue % comment out to be anonymous
 
 \newif\ifuseappendix
-\useappendixtrue % comment out to remove appendix
+%\useappendixtrue % comment out to remove appendix
 
 \ifnonanonymous
 %\usepackage{wacv}              % To produce the CAMERA-READY version
@@ -1192,6 +1192,9 @@ We would would like to thank all of the dogs that produced subject matter for th
     cd /home/joncrall/code/shitspotter/shitspotter_dvc
     geowatch spectra --src data.kwcoco.json --workers=16 --cache_dpath=_spectra_cache --dst spectra.png --bins 64 --valid_range=0:255
     cp spectra.png ~/code/shitspotter/papers/application-2024/figures/spectra.png
+
+    /home/joncrall/code/shitspotter/papers/application-2024
+    python -m shitspotter.ipfs pull .
 
 \end{comment}
 
