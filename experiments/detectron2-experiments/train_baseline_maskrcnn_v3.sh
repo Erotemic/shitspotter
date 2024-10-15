@@ -82,8 +82,6 @@ python -c "if 1:
             pred_class_indexes = torch_impl.numpy(instances.pred_classes)
 
             raise Exception
-
-
 "
 
 
@@ -172,6 +170,58 @@ python -m geowatch.mlops.schedule_evaluation \
 
 DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
 EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_detectron_evals
+python -m geowatch.mlops.aggregate \
+    --pipeline='shitspotter.pipelines.detectron_evaluation_pipeline()' \
+    --target "
+        - $EVAL_PATH
+    " \
+    --output_dpath="$EVAL_PATH/full_aggregate" \
+    --resource_report=1 \
+    --io_workers=0 \
+    --eval_nodes="
+        - detection_evaluation
+        - heatmap_eval
+    " \
+    --stdout_report="
+        top_k: 10
+        per_group: null
+        macro_analysis: 0
+        analyze: 0
+        print_models: True
+        reference_region: null
+        concise: 0
+        show_csv: 0
+    "
+
+
+# TEST dataset results
+DVC_DATA_DPATH=$(geowatch_dvc --tags="shitspotter_data")
+DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
+#WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER
+KWCOCO_BUNDLE_DPATH=$DVC_DATA_DPATH
+SRC_FPATH=$KWCOCO_BUNDLE_DPATH/test_imgs30_d8988f8c.kwcoco.zip
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_detectron_evals_test
+kwcoco info "$SRC_FPATH" -g1
+python -m geowatch.mlops.schedule_evaluation \
+    --params="
+        pipeline: 'shitspotter.pipelines.detectron_evaluation_pipeline()'
+        matrix:
+            detectron_pred.checkpoint_fpath:
+                 - $HOME/code/shitspotter/experiments/detectron_models.yaml
+            detectron_pred.src_fpath:
+                - $SRC_FPATH
+            detectron_pred.workers: 4
+            detectron_pred.write_heatmap: true
+            detectron_pred.nms_thresh: 0.5
+            detection_eval.__enabled__: 1
+            heatmap_eval.__enabled__: 1
+    " \
+    --root_dpath="$EVAL_PATH" \
+    --devices="0," --tmux_workers=1 \
+    --backend=tmux --skip_existing=1 \
+    --run=1
+DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_detectron_evals_test
 python -m geowatch.mlops.aggregate \
     --pipeline='shitspotter.pipelines.detectron_evaluation_pipeline()' \
     --target "

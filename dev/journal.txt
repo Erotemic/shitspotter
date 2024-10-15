@@ -78,3 +78,8 @@ I used vali_imgs228_20928c8c.kwcoco.zip instead of
 vali_imgs691_99b22ad0.kwcoco.zip. I suppose its good the paper was rejected,
 otherwise I would have had to issue a redaction. More time to get it right I
 suppose.
+
+# 2024-10-14
+
+Solicited pics on https://www.reddit.com/r/Albany/comments/1g28ger/albany_dog_poop_detection_send_me_your_poop_pics/
+Not sure if it will get any hits. Some of the responses were surprising.
