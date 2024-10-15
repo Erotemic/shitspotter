@@ -1,0 +1,13 @@
+*.log
+*.brf
+*.blg
+*.bbl
+*.aux
+*.pdf
+*.fls
+*.fdb_latexmk
+*.out
+*.synctex
+figures-submitted-2024-09-09
+figures
+plots
