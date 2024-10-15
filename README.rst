@@ -615,7 +615,7 @@ diversity.
 Contributing
 ============
 
-Please contribute! The quickest way is with the `Google Form for ShitSpotter Contributions <https://docs.google.com/forms/d/e/1FAIpQLSfqH1555hynVUwh0O0526svPOaS0NnWiR15n68sgr7DExB6TQ/viewform?usp=sf_link>`_.
+Please contribute! The quickest way is with the `Google Form for ShitSpotter Image Contributions <https://docs.google.com/forms/d/e/1FAIpQLSfqH1555hynVUwh0O0526svPOaS0NnWiR15n68sgr7DExB6TQ/viewform?usp=sf_link>`_.
 
 Alternatively, you can send me an image via email to: ``crall.vision@gmail.com``.
 
@@ -624,6 +624,11 @@ When you contribute an image:
 * Make sure you are ok with it being released for free under: `(CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`_
 * Let me know how to give you credit.
 * Let me know if you want time / GPS camera metadata to be removed from the images.
+
+Guide to taking an image:
+
+> Upload an image with poop in it. The poop need not be centered in the image. It could be close up, or far away. It should be visible, but it need not be obvious. The idea is that it could be difficult to see and we want to test if a machine learning algorithm can find it. The only requirement is that if a human looks at it carefully, they can tell there is poop in it.
+
 
 
 .. |Pypi| image:: https://img.shields.io/pypi/v/shitspotter.svg
