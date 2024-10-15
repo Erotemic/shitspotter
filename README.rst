@@ -627,7 +627,7 @@ When you contribute an image:
 
 Guide to taking an image:
 
-> Upload an image with poop in it. The poop need not be centered in the image. It could be close up, or far away. It should be visible, but it need not be obvious. The idea is that it could be difficult to see and we want to test if a machine learning algorithm can find it. The only requirement is that if a human looks at it carefully, they can tell there is poop in it.
+Upload an image with poop in it. The poop need not be centered in the image. It could be close up, or far away. It should be visible, but it need not be obvious. The idea is that it could be difficult to see and we want to test if a machine learning algorithm can find it. The only requirement is that if a human looks at it carefully, they can tell there is poop in it.
 
 
 
