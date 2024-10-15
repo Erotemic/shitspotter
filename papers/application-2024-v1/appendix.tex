@@ -1,0 +1,199 @@
+
+
+\appendix
+
+\section{Extra Dataset Information}
+
+In \Cref{sec:dataset} we provided an overview of several dataset statistics.
+In this appendix we expand on that with additional plots.
+The distribution of image pixel intensities is illustrated in \Cref{fig:spectra}.
+The distribution of images collected over time is shown in \Cref{fig:images_over_time}.
+The distribution of annotation location is shown in \Cref{fig:centroid_location_distri} and sizes is shown
+  in \Cref{fig:annot_obox_size_dist} and \Cref{fig:annot_area_verts_distri}.
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.4\textwidth]{figures/spectra.png}
+\caption[]{
+    The "spectra" or histogram of the pixel intensities in the dataset. 
+    The dataset rgb  mean/std is $[117, 124, 100], [61, 59, 63]$.
+    % (for reference the imagenet mean/std is $[124, 116, 104], [58, 57, 57]$).
+}
+\label{fig:spectra}
+\end{figure}
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.4\textwidth]{figures/appendix/images_over_time.png}
+\caption[]{
+    The number of images collected over time.
+}
+\label{fig:images_over_time}
+\end{figure}
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.4\textwidth]{figures/appendix/polygon_centroid_absolute_distribution.png}
+
+(a) absolute pixel coordinates
+\includegraphics[width=0.4\textwidth]{figures/appendix/polygon_centroid_relative_distribution.png}
+
+(b) relative image coordinates
+\caption[]{
+    The distribution of annotation centroids in terms of (a) absolute image
+    coordinates and (b) relative image coordinates.
+    The absolute centroid distribution is bimodal because some images are taken
+    in landscape mode and other in portrait mode.
+}
+\label{fig:centroid_location_distri}
+\end{figure}
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.4\textwidth]{figures/appendix/obox_size_distribution_jointplot.png}%
+
+(a) linear scale
+\includegraphics[width=0.4\textwidth]{figures/appendix/obox_size_distribution_logscale.png}%
+
+(b) log10 scale
+\caption[]{
+    The distribution of annotation sizes as measured by an oriented bounding box fit to each polygon.
+    (a) shows this plot on a linear scale and (b) show this plot on a log scale.
+}
+\label{fig:annot_obox_size_dist}
+\end{figure}
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.4\textwidth]{figures/appendix/polygon_area_vs_num_verts_jointplot.png}
+\caption[]{
+    The distribution of polygon areas versus the number of vertices in the polygon boundary.
+    The SAM model tends to produce polygons with a higher number of vertices
+    than manually drawn ones.  For smaller polygons there are two peaks in the
+    number of vertices histograms likely corresponding to pure-manual versus
+    AI-assisted annotations.
+}
+\label{fig:annot_area_verts_distri}
+\end{figure}
+
+\section{Extra Experiment Information}
+
+In \Cref{sec:models} we presented an experimental evaluation of several models trained with different
+  hyperparameters.
+This involved evaluating several checkpoints produced by each model run.
+Previously in \Cref{tab:parameters_and_results} we presented the top results.
+Here we've plotted the AP and AUC on the validation set for the top 5 AP-maximizing results from each of the
+  7 training runs.
+We also created a box-and-whisker plot for these top 5 results, which serves to assign a color and label to
+  each training run.
+These plots are shown in \Cref{fig:apauc_scatter}.
+
+
+\begin{figure}[ht]
+\centering
+
+\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_vs_metrics.heatmap_eval.salient_AUC_PLT02_scatter_nolegend.png}
+
+(a) AP and AUC of 35 checkpoints.
+
+\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_PLT04_box.png}
+
+(b) AP of 35 checkpoints.
+
+\caption[]{
+    (a) Scatterplot of pixelwise average precision (AP) and Area Under the ROC curve (AUC) for the top
+      5 checkpoints on the validation set.
+    Points of the same color represent checkpoints from the same training run, which used identical
+      hyperparameters.
+    (b) Box-and-whisker plot the AP values across the top 5 checkpoints evaluated on
+      the validation set.
+    For each run, corresponding varied hyperparameters and maximum APs are given in
+      \Cref{tab:parameters_and_results}.
+}
+\label{fig:apauc_scatter}
+\end{figure}
+
+
+\section{Extra Dataset Comparison}
+
+In \Cref{sec:relatedwork} we compared to related work. Here we expand on this
+by comparing our analysis plots. Every dataset is converted into the COCO
+format and visualized using the same logic. \Cref{fig:compare_allannots}
+visualizes the annotations of all datasets. We make similar visualizations 
+for other comparable dataset metrics.
+\Cref{fig:combo_anns_per_image_histogram_splity} shows the number of annotations per image.
+\Cref{fig:combo_image_size_scatter} shows of image sizes in each dataset.
+\Cref{fig:combo_obox_size_distribution_logscale} shows the distribution of width and heights of oriented bounding boxes fit to annotation polygons.
+\Cref{fig:combo_polygon_area_vs_num_verts_jointplot} shows the area of each polygon versus the number of vertices (which could be used to estimate the likelihood a polygon was generated by AI for our dataset).
+\Cref{fig:combo_polygon_centroid_relative_distribution} show the distribution of centroid positions (relative to the image size).
+
+
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{plots/appendix/dataset_compare/combo_all_polygons.png.png}
+\caption[]{
+    A comparison of all of the annotations for different datasets including ours.
+    All polygon annotations drawn in a single plot with 0.8 opacity to
+    demonstrate the distribution in annotation location, shape, and size with
+    respect to image coordinates.
+}
+\label{fig:compare_allannots}
+\end{figure*}
+
+
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{plots/appendix/dataset_compare/combo_anns_per_image_histogram_splity.png.png}
+\caption[]{
+    Number of annotations per image in each dataset.
+}
+\label{fig:combo_anns_per_image_histogram_splity}
+\end{figure*}
+
+
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{plots/appendix/dataset_compare/combo_image_size_scatter.png.png}
+\caption[]{
+    Image size distributions of each dataset.
+}
+\label{fig:combo_image_size_scatter}
+\end{figure*}
+
+
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{plots/appendix/dataset_compare/combo_obox_size_distribution_logscale.png.png}
+\caption[]{
+    Oriented bounding box size distributions (log10 scale) of each dataset.
+}
+\label{fig:combo_obox_size_distribution_logscale}
+\end{figure*}
+
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{plots/appendix/dataset_compare/combo_polygon_area_vs_num_verts_jointplot_logscale.png.png}
+\caption[]{
+    Polygon area versus number of vertices (log10 scale) for each dataset.
+}
+\label{fig:combo_polygon_area_vs_num_verts_jointplot}
+\end{figure*}
+
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{plots/appendix/dataset_compare/combo_polygon_centroid_relative_distribution.png.png}
+%(a) scatter and kde plot
+%\includegraphics[width=1.0\textwidth]{plots/appendix/dataset_compare/combo_polygon_centroid_relative_distribution_jointplot.png.png}
+%(b) jointplot
+\caption[]{
+    Polygon centroid relative distribution for each dataset.
+}
+\label{fig:combo_polygon_centroid_relative_distribution}
+\end{figure*}
+
+

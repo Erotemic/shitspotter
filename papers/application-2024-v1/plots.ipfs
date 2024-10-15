@@ -1,0 +1,17 @@
+type: ipfs-sidecar
+cid: bafybeibj6b2ihs2ujpzqdhbgtxybd6343o4ptjbspqwjg4da6e67c6lhia
+rel_path: plots
+size: 103.45 MiB
+num_items: 25
+add_config:
+  path: /home/joncrall/code/shitspotter/papers/application-2024/plots
+  name: shitspotter-plots
+  recursive: true
+  progress: true
+  cid_version: 1
+  raw_leaves: false
+  only_hash: false
+  pin: true
+  sidecar: true
+add_datetime: 2024-10-13T214230-5
+add_duration: 1.0056510229987907
