@@ -17,7 +17,7 @@ To add a new cohort of data use
 
     python -m shitspotter.phone_manager
 
-* Add manual annotations with labelme
+* Add manual annotations with labelme (or maybe bootstrap with existing models? todo)
 "
 
 # The gather script

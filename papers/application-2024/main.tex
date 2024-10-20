@@ -16,6 +16,9 @@
 \newif\ifuseappendix
 %\useappendixtrue % comment out to remove appendix
 
+\newif\ifuseacknowledgement
+%\useacknowledgementtrue % comment out to remove acknowledgements
+
 \ifnonanonymous
 %\usepackage{wacv}              % To produce the CAMERA-READY version
 \usepackage[pagenumbers]{wacv} % To force page numbers, e.g. for an arXiv version
@@ -74,7 +77,7 @@
 
 %%%%%%%%% PAPER ID  - PLEASE UPDATE
 \def\wacvPaperID{*****} % *** Enter the WACV Paper ID here
-\def\confName{WACV}
+\def\confName{CVPR}
 \def\confYear{2025}
 
 
@@ -336,6 +339,20 @@ Most of these images do not follow the B/A/N protocol and are marked for use onl
   \emph{not} included in the following analysis unless explicitly noted.
 
 
+\begin{figure}[ht]
+\centering
+\includegraphics[width=.4\textwidth]{figures/umap-screenshot.png}%
+\caption[]{
+    Example images from the dataset based on UMAP \cite{mcinnes_umap_2020}
+    clusters over a 200 image subset of the dataset.  Each row corresponds to a
+    selection from a 2D UMap projection shown on the left.  The darkened nodes
+    in the cluster visualization in each row correspond to the images shown on
+    the right.
+}
+\label{fig:umap_dataset_viz}
+\end{figure}
+
+
 \subsection{Dataset Annotation}
 
 Originally the "before" and "after" images were meant to help with automatic
@@ -467,12 +484,93 @@ We use the training, prediction, and evaluation system presented in \cite{Greenw
 %  \cite{dosovitskiy_image_2021} architecture, and does not attempt to explore all state-of-the-art methods.
 
 
-
-\subsection{Model Experiments}
-
 While the primary scope of this paper is introducing a new challenging dataset,
 we do include baseline model weights using two training systems: detectron2 and
 geowatch.
+
+Basic overview of each model, number of parameters, citation.
+
+
+\begin{tabular}{rrrrrrrr}
+\toprule
+\end{tabular}
+
+
+\begin{table*}[t]
+\centering
+\begin{tabular}{lrrrrrrrr}
+\toprule
+{} & \multicolumn{2}{l}{AP-box} & \multicolumn{2}{l}{AUC-box} & \multicolumn{2}{l}{AP-pixel} & \multicolumn{2}{l}{AUC-pixel} \\
+dataset\_name &      test &      vali &      test &      vali &      test &      vali &      test &      vali \\
+model\_type          &           &           &           &           &           &           &           &           \\
+\midrule
+MaskRCNN-pretrained &  0.661421 &  0.612043 &  0.691523 &  0.720612 &  0.846983 &  0.858144 &  0.858087 &  0.905497 \\
+MaskRCNN-scratch    &  0.384205 &  0.255499 &  0.573329 &  0.576224 &  0.352097 &  0.244544 &  0.679030 &  0.812224 \\
+VIT-sseg-scratch    &  0.520330 &  0.476194 &  0.522236 &  0.531523 &  0.505110 &  0.780174 &  0.912509 &  0.994300 \\
+\bottomrule
+\end{tabular}
+\caption[]{
+    TODO: put in detectron results from pretrained and from scratch.
+    Rows should be:
+    geowatch VITSegmentation model from scratch
+    detectron2 MaskRCNN model from scrach
+    detectron2 MaskRCNN model from pretrained.
+    Columns should be:
+    bbox-ap validation
+    bbox-auc validation
+    sseg-ap validation
+    sseg-auc validation
+    bbox-ap test
+    bbox-auc test
+    sseg-ap test
+    sseg-auc test
+
+}
+\label{tab:model_results}
+\end{table*}
+
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{figures/test_heatmaps_with_best_vali_model}%
+\hfill
+(a) test set
+\includegraphics[width=1.0\textwidth]{figures/vali_heatmaps_with_best_vali_model.jpg}%
+\hfill
+(b) validation set
+\includegraphics[width=1.0\textwidth]{figures/train_heatmaps_with_best_vali_model.jpg}%
+\hfill
+(c) training set
+\caption[]{
+    Qualitative results using the top-performing model on the validation set, applied to a selection of images
+      from the (a) test, (b) validation, and (c) training sets.
+    Success cases are presented on the left, with failure cases increasing towards the right.
+    %
+    Each figure is organized into three rows:
+    %
+    Top row:
+    Binarized classification map, where true positive pixels are shown in white, false positives in red, false
+      negatives in teal, and true negatives in black.
+    The threshold for binarization was chosen to maximize the F1 score for each image, showcasing the best
+      possible classification of the heatmap.
+    Middle row:
+    The predicted heatmap, illustrating the model's output before binarization.
+    Bottom row:
+    The input image, providing context for the prediction.
+    %
+    The majority of images in the test set (small, 30-image dataset) exhibit qualitatively good results.
+    Failure cases tend to occur with close-up images of older, sometimes partially deteriorated poops.
+    These examples were manually selected and ordered to demonstrate dataset
+    diversity in addition to representative results.
+    % (could recompute the order based on some measure).
+}
+\label{fig:test_heatmaps_with_best_vali_model}
+\end{figure*}
+
+
+TODO: figure for detectron2 model
+
+Report training time, energy usage, and carbon footprint with details in suplemental materials.
+
 
 
 
@@ -803,10 +901,13 @@ Ultimately, our goal is for this research to contribute meaningfully to the adva
   
   
 \ifnonanonymous
+\ifuseacknowledgement
 \section{Acknowledgements}
 We would would like to thank all of the dogs that produced subject matter for the dataset, all of the
   contributors for helping to construct a challenging test set, and Anthony Hoogs for several suggestions including taking the 
   third negative picture.
+
+\fi
 \fi
 
 %%%%%%%%% REFERENCES

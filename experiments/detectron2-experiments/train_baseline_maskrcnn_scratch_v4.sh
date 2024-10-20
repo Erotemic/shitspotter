@@ -115,7 +115,7 @@ python -m geowatch.mlops.schedule_evaluation \
             heatmap_eval.__enabled__: 1
     " \
     --root_dpath="$EVAL_PATH" \
-    --devices="1," --tmux_workers=1 \
+    --devices="0,1," --tmux_workers=2 \
     --backend=tmux --skip_existing=1 \
     --run=1
 
@@ -171,7 +171,7 @@ python -m geowatch.mlops.schedule_evaluation \
     --root_dpath="$EVAL_PATH" \
     --devices="0,1" --tmux_workers=8 \
     --backend=tmux --skip_existing=1 \
-    --run=1
+    --run=0
 DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
 EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_detectron_evals_v4_test
 python -m geowatch.mlops.aggregate \
