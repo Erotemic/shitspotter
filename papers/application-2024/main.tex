@@ -17,7 +17,7 @@
 %\useappendixtrue % comment out to remove appendix
 
 \newif\ifuseacknowledgement
-%\useacknowledgementtrue % comment out to remove acknowledgements
+\useacknowledgementtrue % comment out to remove acknowledgements
 
 \ifnonanonymous
 %\usepackage{wacv}              % To produce the CAMERA-READY version
@@ -642,6 +642,14 @@ Corresponding qualitative results are illustrated in \Cref{fig:test_results_all_
 %\label{fig:test_heatmaps_with_best_vali_model}
 %\end{figure*}
 
+All models were trained on a single machine with an 11900k CPU and a single 3090 GPU.
+
+Overall, prediction and evaluation on trained models took 15.6 days with prediction consuming 109.6.3 kWh of
+  electricity and causing an estimated emissions of 23.0 \cotwo kg as measured by CodeCarbon
+  \cite{lacoste2019codecarbon}.
+
+todo: train time resource usage for maskrcnn and vit, reacnknowledge
+limitation, break down results over each.
 
 Report training time, energy usage, and carbon footprint with details in supplemental materials.
 
