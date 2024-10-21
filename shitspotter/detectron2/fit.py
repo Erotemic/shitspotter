@@ -159,6 +159,10 @@ def detectron_fit(config):
     trainer.resume_or_load(resume=False)
     trainer.train()
 
+    model = trainer.model
+    total_params = sum(p.numel() for p in model.parameters())
+    print(f"Total number of parameters: {total_params}")
+
     proc_context.stop()
     print(f'proc_context.obj = {ub.urepr(proc_context.obj, nl=3)}')
 

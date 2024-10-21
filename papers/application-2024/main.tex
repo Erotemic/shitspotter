@@ -110,7 +110,11 @@ Kitware\\
 %available as a benchmark dataset.
 We introduce a new --- currently 42 gigabyte --- "living" dataset of phone images of dog feces, annotated with manually drawn or AI-assisted polygon labels. There are 6k full resolution images and 4k detailed polygon annotations. The collection and annotation of images started in late 2020 and the dataset grows by roughly 1GB a month. 
 
-We train a baseline vision transformer to segment the objects of interest, exploring a grid of hyperparameters, and we evaluate their impact.  The best model achieves a pixelwise average precision of 0.78 on a 691-image validation set and 0.51 on a small independently captured 30-image contributor test set.
+We train several baseline models to explore the difficulty of the dataset.
+The best model achieves a pixelwise average precision of 0.858 on a 691-image
+validation set and 0.847 on a small independently captured 30-image contributor
+test set.
+%We train a baseline vision transformer to segment the objects of interest, exploring a grid of hyperparameters, and we evaluate their impact. 
 
 The most recent snapshot of dataset is made publicly available through three different distribution methods: one centralized and two decentralized (IPFS and BitTorrent).  We perform an analysis and observational comparison of the trade-offs between distribution methods and discuss the feasibility of each with respect to sharing open scientific data in a reliable and accessible manner.
 
@@ -165,16 +169,16 @@ Note that the object is small relative to the image size.}
 \toprule
 Name & \#Cats & \#Images & \#Annots & Image W \times H & Annot Area$^{0.5}$ & Size & Annot Type \\
 \midrule
-ImageNet LSVRC2017 \cite{ILSVRC15} & 1,000 & 594,546 & 695,776 & 500 \times 374 & 239 & 166GB & box \\
-MSCOCO 2017 \cite{lin_microsoft_2014} & 80 & 123,287 & 896,782 & 428 \times 640 & 57 & 50GB & polygon \\
-CityScapes \cite{cordts2015cityscapes} & 40 & 5,000 & 287,465 & 2,048 \times 1,024 & 50 & 78GB & polygon \\
-ZeroWaste \cite{bashkirova_zerowaste_2022} & 4 & 4,503 & 26,766 & 1,920 \times 1,080 & 200 & 10GB & polygon \\
+ImageNet LSVRC2017 \cite{ILSVRC15}                                   & 1,000 & 594,546 & 695,776 & 500 \times 374 & 239 & 166GB & box \\
+MSCOCO 2017 \cite{lin_microsoft_2014}                                & 80 & 123,287 & 896,782 & 428 \times 640 & 57 & 50GB & polygon \\
+CityScapes \cite{cordts2015cityscapes}                               & 40 & 5,000 & 287,465 & 2,048 \times 1,024 & 50 & 78GB & polygon \\
+ZeroWaste \cite{bashkirova_zerowaste_2022}                           & 4 & 4,503 & 26,766 & 1,920 \times 1,080 & 200 & 10GB & polygon \\
 TrashCanV1 \cite{hong2020trashcansemanticallysegmenteddatasetvisual} & 22 & 7,212 & 12,128 & 480 \times 270 & 54 & 0.61GB & polygon \\
-UAVVaste \cite{rs13050965} & 1 & 772 & 3,718 & 3,840 \times 2,160 & 55 & 2.9GB & polygon \\
-SpotGarbage-GINI \cite{mittal2016spotgarbage} & 1 & 2,512 & 337 & 754 \times 754 & 355 & 1.5GB & classification \\
-TACO \cite{proenca_taco_2020} & 60 & 1,500 & 4,784 & 2,448 \times 3,264 & 119 & 17GB & polygon \\
-MSHIT \cite{mshit_2020} & 2 & 769 & 2,348 & 960 \times 540 & 99 & 4GB & box \\
-``ScatSpotter'' (ours) & 1 & 6,648 & 4,386 & 4,032 \times 3,024 & 96 & 42GB & polygon \\
+UAVVaste \cite{rs13050965}                                           & 1 & 772 & 3,718 & 3,840 \times 2,160 & 55 & 2.9GB & polygon \\
+SpotGarbage-GINI \cite{mittal2016spotgarbage}                        & 1 & 2,512 & 337 & 754 \times 754 & 355 & 1.5GB & classification \\
+TACO \cite{proenca_taco_2020}                                        & 60 & 1,500 & 4,784 & 2,448 \times 3,264 & 119 & 17GB & polygon \\
+MSHIT \cite{mshit_2020}                                              & 2 & 769 & 2,348 & 960 \times 540 & 99 & 4GB & box \\
+``ScatSpotter'' (ours)                                               & 1 & 6,648 & 4,386 & 4,032 \times 3,024 & 96 & 42GB & polygon \\
 \bottomrule
 \end{tabular}
 \caption{Related Datasets.
@@ -193,7 +197,7 @@ In addition to enabling several applications, poop detection is an interesting b
 It is relatively simple, with a narrow focus on a single class, making it suitable for exploring the
   capabilities of object detection models that target a single labeled class.
 However, the task includes non-trivial challenges such as resolution issues (e.g., camera quality,
-  distance), distractors (e.g., leaves, pine cones, sticks, dirt, and mud), occlusion (e.g., bushes, overgrown
+  distance), camouflaging distractors (e.g., leaves, pine cones, sticks, dirt, and mud), occlusion (e.g., bushes, overgrown
   grass), and variation in appearance (e.g., old vs. new, healthy vs. sick).
 An example of a challenging case is shown in \cref{fig:HardCase}.
 Investigation into cases where this problem is difficult may provide insight
@@ -223,7 +227,7 @@ This motivates us to compare and contrast the decentralized BitTorrent \cite{coh
 
 Our contributions are:
 1) A challenging new \textbf{open dataset} of images with polygon annotations.
-2) An experimental \textbf{evaluation of baseline training} methods.
+2) A set of trained \textbf{baseline models} methods.
 3) An observational \textbf{comparison of dataset distribution} methods.
 4) \textbf{Open code and models}.
 
@@ -339,20 +343,6 @@ Most of these images do not follow the B/A/N protocol and are marked for use onl
   \emph{not} included in the following analysis unless explicitly noted.
 
 
-\begin{figure}[ht]
-\centering
-\includegraphics[width=.4\textwidth]{figures/umap-screenshot.png}%
-\caption[]{
-    Example images from the dataset based on UMAP \cite{mcinnes_umap_2020}
-    clusters over a 200 image subset of the dataset.  Each row corresponds to a
-    selection from a 2D UMap projection shown on the left.  The darkened nodes
-    in the cluster visualization in each row correspond to the images shown on
-    the right.
-}
-\label{fig:umap_dataset_viz}
-\end{figure}
-
-
 \subsection{Dataset Annotation}
 
 Originally the "before" and "after" images were meant to help with automatic
@@ -377,6 +367,20 @@ illustrated in \Cref{fig:AllPolygons}.
 %segment the poop, many of these needed adjustments, especially in regions of
 %shadows, but there were cases that required a completely manual approach.
 %Unfortunately a clean record of what cases these were does not exist. 
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=.4\textwidth]{figures/umap-screenshot-edited.png}%
+\caption[]{
+    Example images from the dataset based on UMAP \cite{mcinnes_umap_2020}
+    clusters over a 200 image subset of the dataset.  Each row corresponds to a
+    selection from a 2D UMap projection shown on the left.  The highlighted
+    nodes circled in blue in the cluster visualization in each row correspond
+    to the images shown on the right.
+}
+\label{fig:umap_dataset_viz}
+\end{figure}
 
 \begin{figure}[ht]
 \centering
@@ -430,6 +434,9 @@ The data was captured at a relatively uniform rate over this period, primarily i
 Weather conditions varied across snowy, sunny, rainy, and foggy.
 A visual representation of the distribution of seasons, time-of-day, daylight, and capture rate is provided
   in \Cref{fig:TimeOfDayDistribution}.
+To provide a gist of this dataset variation we compute UMAP \cite{mcinnes_umap_2020} image embeddings based
+  on ResNet50 \cite{he2016deep} descriptors and select images to down variations within and between these
+  embedding clusters in \Cref{fig:umap_dataset_viz}.
 
 
 The dataset images are available in full resolution, without any resampling or resizing.
@@ -471,106 +478,172 @@ The test set, consisting of the 30 contributor images with at least one annotati
 These splits are provided in the COCO JSON format \cite{lin_microsoft_2014}.
 
 
-\section{Models}
+\section{Baseline Models}
 \label{sec:models}
-
-As our second contribution, we evaluate several trained models to establish a baseline for future
-  comparisons.
-
-
-We use the training, prediction, and evaluation system presented in \cite{Greenwell_2024_WACV,
-  crall_geowatch_2024}, which utilizes polygon annotations to train a pixelwise binary segmentation model.
-%It is important to note that this baseline is limited in that it only considers a single VIT-based
-%  \cite{dosovitskiy_image_2021} architecture, and does not attempt to explore all state-of-the-art methods.
-
-
-While the primary scope of this paper is introducing a new challenging dataset,
-we do include baseline model weights using two training systems: detectron2 and
-geowatch.
-
-Basic overview of each model, number of parameters, citation.
-
-
-\begin{tabular}{rrrrrrrr}
-\toprule
-\end{tabular}
-
 
 \begin{table*}[t]
 \centering
-\begin{tabular}{lrrrrrrrr}
+\begin{tabular}{ll|rrrr|rrrr}
 \toprule
-{} & \multicolumn{2}{l}{AP-box} & \multicolumn{2}{l}{AUC-box} & \multicolumn{2}{l}{AP-pixel} & \multicolumn{2}{l}{AUC-pixel} \\
-dataset\_name &      test &      vali &      test &      vali &      test &      vali &      test &      vali \\
-model\_type          &           &           &           &           &           &           &           &           \\
+dataset split: & {} & \multicolumn{4}{c}{Test} & \multicolumn{4}{c}{Validation} \\
+evaluation type: & {} & \multicolumn{2}{c}{Box} & \multicolumn{2}{c}{Pixel} & \multicolumn{2}{c}{Box} & \multicolumn{2}{c}{Pixel} \\
+{} &  \# params & AP & AUC & AP & AUC & AP & AUC & AP & AUC \\
 \midrule
-MaskRCNN-pretrained &  0.661421 &  0.612043 &  0.691523 &  0.720612 &  0.846983 &  0.858144 &  0.858087 &  0.905497 \\
-MaskRCNN-scratch    &  0.384205 &  0.255499 &  0.573329 &  0.576224 &  0.352097 &  0.244544 &  0.679030 &  0.812224 \\
-VIT-sseg-scratch    &  0.520330 &  0.476194 &  0.522236 &  0.531523 &  0.505110 &  0.780174 &  0.912509 &  0.994300 \\
+MaskRCNN-pretrained &  43.9e6 &  0.661 &   0.692 &    0.847 &     0.858 &  0.612 &   0.721 &    0.858 &     0.905 \\
+MaskRCNN-scratch    &  43.9e6 &  0.384 &   0.573 &    0.581 &     0.804 &  0.255 &   0.576 &    0.434 &     0.891 \\
+VIT-sseg-scratch    &  25.5e6 &  0.520 &   0.522 &    0.505 &     0.913 &  0.476 &   0.532 &    0.780 &     0.994 \\
 \bottomrule
 \end{tabular}
 \caption[]{
-    TODO: put in detectron results from pretrained and from scratch.
-    Rows should be:
-    geowatch VITSegmentation model from scratch
-    detectron2 MaskRCNN model from scrach
-    detectron2 MaskRCNN model from pretrained.
-    Columns should be:
-    bbox-ap validation
-    bbox-auc validation
-    sseg-ap validation
-    sseg-auc validation
-    bbox-ap test
-    bbox-auc test
-    sseg-ap test
-    sseg-auc test
-
+    Quantitative results on the test and validation datasets. 
+    Unsurprisingly, the model starting with pretrained weights scores best.
+    Models are evaluated using bounding-box metrics (under the Box column) as
+    well as pixelwise-segmentation metrics (under the Pixel column). The
+    average precision (AP) is the area under the precision/recall curve. The
+    AUC is the area under the receiver operating characteristic
+    recall/false-positive-rate curve .
+    Thus AP is more sensitive to precision
+    and AUC is more sensitive to false positives.
+    All metrics were computed using scikit-learn \cite{scikit-learn}.
+    We note an important limitation of our results: much more time was spent
+    tuning the VIT-sseg model. It is likely that MaskRCNN results could be
+    improved with further tuning. But these are baseline models; our core contribution is the dataset.
 }
 \label{tab:model_results}
 \end{table*}
 
+
 \begin{figure*}[ht]
 \centering
-\includegraphics[width=1.0\textwidth]{figures/test_heatmaps_with_best_vali_model}%
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/test_imgs30_d8988f8c.kwcoco/results_detectron-pretrained.jpg}%
 \hfill
-(a) test set
-\includegraphics[width=1.0\textwidth]{figures/vali_heatmaps_with_best_vali_model.jpg}%
+(a) MaskRCNN-pretrained (test set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/test_imgs30_d8988f8c.kwcoco/results_detectron-scratch.jpg}%
 \hfill
-(b) validation set
-\includegraphics[width=1.0\textwidth]{figures/train_heatmaps_with_best_vali_model.jpg}%
+(b) MaskRCNN-scratch (test set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/test_imgs30_d8988f8c.kwcoco/results_geowatch-scratch.jpg}%
 \hfill
-(c) training set
+(c) VIT-sseg-scratch (test set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/test_imgs30_d8988f8c.kwcoco/results_input_images.jpg}%
+\hfill
+(d) Input images from the 30-image test set
 \caption[]{
-    Qualitative results using the top-performing model on the validation set, applied to a selection of images
-      from the (a) test, (b) validation, and (c) training sets.
-    Success cases are presented on the left, with failure cases increasing towards the right.
-    %
-    Each figure is organized into three rows:
-    %
-    Top row:
-    Binarized classification map, where true positive pixels are shown in white, false positives in red, false
-      negatives in teal, and true negatives in black.
-    The threshold for binarization was chosen to maximize the F1 score for each image, showcasing the best
-      possible classification of the heatmap.
-    Middle row:
-    The predicted heatmap, illustrating the model's output before binarization.
-    Bottom row:
-    The input image, providing context for the prediction.
-    %
-    The majority of images in the test set (small, 30-image dataset) exhibit qualitatively good results.
-    Failure cases tend to occur with close-up images of older, sometimes partially deteriorated poops.
-    These examples were manually selected and ordered to demonstrate dataset
-    diversity in addition to representative results.
-    % (could recompute the order based on some measure).
+    Qualitative results using the top-performing model on the validation set, applied to a selection of
+      images from the test set.
+    Subfigure (d) shows the input image for the above predictions.
+    In the first three subfigures (a, b, and c), the top row is a binarized classification map, where true
+      positive pixels are shown in white, false positives in red, false negatives in teal, and true negatives
+      in black.
+    The second row in each subfigure is the predicted heatmap, illustrating the model's output before
+      binarization.
+    The threshold for binarization was set to $0.5$ in all cases.
 }
-\label{fig:test_heatmaps_with_best_vali_model}
+\label{fig:test_results_all_models}
 \end{figure*}
 
 
-TODO: figure for detectron2 model
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/vali_imgs691_99b22ad0.kwcoco/results_detectron-pretrained.jpg}%
+\hfill
+(a) MaskRCNN-pretrained (validation set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/vali_imgs691_99b22ad0.kwcoco/results_detectron-scratch.jpg}%
+\hfill
+(b) MaskRCNN-scratch (validation set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/vali_imgs691_99b22ad0.kwcoco/results_geowatch-scratch.jpg}%
+\hfill
+(c) VIT-sseg-scratch (validation set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/vali_imgs691_99b22ad0.kwcoco/results_input_images.jpg}%
+\hfill
+(d) Inputs from the 691-image validation set
+\caption[]{
+    Qualitative results using the top-performing model on the validation set, applied to a selection of
+      images from the validation set. See \Cref{fig:test_results_all_models} for an explanation of the visualizations.
+}
+\label{fig:vali_results_all_models}
+\end{figure*}
 
-Report training time, energy usage, and carbon footprint with details in suplemental materials.
+As our second contribution, we trained and evaluated models to establish a baseline for future comparisons.
+Specifically we train three model variants.
+We trained two MaskRCNN \cite{he2017mask} models (specifically the \texttt{R\_50\_FPN\_3x} configuration),
+  one starting from pretrained ImageNet weights (MaskRCNN-pretrained), and one starting from scratch
+  (MaskRCNN-scratch).
+We also trained a semantic segmentation vision transformer (VIT-sseg-scratch)
+  \cite{Greenwell_2024_WACV,crall_geowatch_2024}, which was only trained from scratch.
 
+%We use the training, prediction, and evaluation system presented in \cite{Greenwell_2024_WACV,
+%  crall_geowatch_2024}, which utilizes polygon annotations to train a pixelwise binary segmentation model.
+%It is important to note that this baseline is limited in that it only considers a single VIT-based
+%  \cite{dosovitskiy_image_2021} architecture, and does not attempt to explore all state-of-the-art methods.
+
+%While the primary scope of this paper is introducing a new challenging dataset,
+%we do include baseline model weights using two training systems: detectron2 and
+%geowatch.
+%Basic overview of each model, number of parameters, citation.
+
+We performed two types of evaluations on the models.
+"Box" evaluation computes standard COCO object detection metrics \cite{lin_microsoft_2014}.
+MaskRCNN natively outputs scored bouding boxes, but for the VIT-sseg model, we convert heatmaps into boxes
+  by thresholding the probability maps and converting taking the extend of the resulting polygons as bounding
+  boxes.
+The score is taken as the average heatmap response under the polygon.
+Bounding box evaluation has the advantage that small and large annotations contribute equally to the score,
+  but it can also be misleading for datasets where the notion of an object instance can be ambiguous.
+
+To complement the box evaluation, we performed a pixelwise evaluation, which is more sensitive to the
+  details of the segmented masks, but also can be biased towards larger annotations with more pixels.
+The corresponding truth and predicted pixels were accumulated into a confusion matrix, allowing us to
+  compute standard metrics such as precision, recall, false positive rate, etc... \cite{powers_evaluation_2011}.
+For the VIT-sseg model, computing this score is straightforward, but for MaskRCNN we accumulate per-box
+  heatmaps into a larger full image heatmap, which can then be scored.
+
+Quantitative results for each of these models on box and pixel metrics are shown in
+  \Cref{tab:model_results}.
+Because the independent test set is only 30 images, we also present results on the larger validation
+  dataset.
+Note that the evaluated models were selected based on their validation scores.
+Corresponding qualitative results are illustrated in \Cref{fig:test_results_all_models} for the test dataset
+  and \cref{fig:vali_results_all_models} for the validation dataset.
+
+%\begin{figure*}[ht]
+%\centering
+%\includegraphics[width=1.0\textwidth]{figures/test_heatmaps_with_best_vali_model}%
+%\hfill
+%(a) test set
+%\includegraphics[width=1.0\textwidth]{figures/vali_heatmaps_with_best_vali_model.jpg}%
+%\hfill
+%(b) validation set
+%\includegraphics[width=1.0\textwidth]{figures/train_heatmaps_with_best_vali_model.jpg}%
+%\hfill
+%(c) training set
+%\caption[]{
+%    Qualitative results using the top-performing model on the validation set, applied to a selection of images
+%      from the (a) test, (b) validation, and (c) training sets.
+%    Success cases are presented on the left, with failure cases increasing towards the right.
+%    %
+%    Each figure is organized into three rows:
+%    %
+%    Top row:
+%    Binarized classification map, where true positive pixels are shown in white, false positives in red, false
+%      negatives in teal, and true negatives in black.
+%    The threshold for binarization was chosen to maximize the F1 score for each image, showcasing the best
+%      possible classification of the heatmap.
+%    Middle row:
+%    The predicted heatmap, illustrating the model's output before binarization.
+%    Bottom row:
+%    The input image, providing context for the prediction.
+%    %
+%    The majority of images in the test set (small, 30-image dataset) exhibit qualitatively good results.
+%    Failure cases tend to occur with close-up images of older, sometimes partially deteriorated poops.
+%    These examples were manually selected and ordered to demonstrate dataset
+%    diversity in addition to representative results.
+%    % (could recompute the order based on some measure).
+%}
+%\label{fig:test_heatmaps_with_best_vali_model}
+%\end{figure*}
+
+
+Report training time, energy usage, and carbon footprint with details in supplemental materials.
 
 
 
@@ -871,8 +944,9 @@ The dataset contains several challenges including amorphous objects, multi-seaso
 We have described the dataset collection and annotation process and reported statistics on the dataset.
 
 We provided a recommended train/validation/test split of the dataset, and used this to train and evaluate
-  several baseline segmentation models, the best of which achieves a pixelwise AP of 0.78 on the validation
-  set and 0.51 on the test set.
+  several baseline segmentation models.
+%the best of which achieves a pixelwise AP of 0.78 on the validation
+%set and 0.51 on the test set.
 In addition to providing quantitative and qualitative results of the models, we also report the resources
   required to perform these training, prediction, and evaluation experiments.
 
@@ -884,10 +958,10 @@ Our evaluation of these distribution methods revealed that while decentralized a
   are available.
 
 Looking towards the future, our planned directions for research and development are:
-1) Extending our segmentation with an object detection head and evaluating object-detection metrics.
-2) Training a model optimized for mobile devices.
-3) Mine hard negatives based on false positives in the training set.
-4) Build and publish a phone application that uses the mobile-optimized model to detect poop in real time.
+%1) Extending our segmentation with an object detection head and evaluating object-detection metrics.
+1) Training a model optimized for mobile devices.
+2) Mine hard negatives based on false positives in the training set.
+3) Build and publish a phone application that uses the mobile-optimized model to detect poop in real time.
 % https://github.com/iterative/dvc/discussions/6777
 
 We envision exciting possibilities for the BAN protocol in computer vision research.

@@ -249,30 +249,32 @@ def detectron_predict(config):
                     ann['category_id'] = dset.ensure_category(catname)
                     ann['role'] = 'prediction'
                     dset.add_annotation(**ann)
+            else:
+                dets = kwimage.Detections.random(0)
+                dets.data['segmentations'] = []
 
-                if stitcher is not None:
+            if stitcher is not None:
+                frame_info = batch_item['frames'][0]
+                output_image_dsize = frame_info['output_image_dsize']
+                output_space_slice = frame_info['output_space_slice']
+                scale_outspace_from_vid = frame_info['scale_outspace_from_vid']
 
-                    frame_info = batch_item['frames'][0]
-                    output_image_dsize = frame_info['output_image_dsize']
-                    output_space_slice = frame_info['output_space_slice']
-                    scale_outspace_from_vid = frame_info['scale_outspace_from_vid']
+                import numpy as np
+                sorted_dets = dets.take(dets.scores.argsort())
+                probs = np.zeros(output_image_dsize[::-1], dtype=np.float32)
+                for sseg, score in zip(sorted_dets.data['segmentations'], sorted_dets.scores):
+                    sseg.data.fill(probs, value=float(score), assert_inplace=True)
 
-                    import numpy as np
-                    sorted_dets = dets.take(dets.scores.argsort())
-                    probs = np.zeros(output_image_dsize[::-1], dtype=np.float32)
-                    for sseg, score in zip(sorted_dets.data['segmentations'], sorted_dets.scores):
-                        sseg.data.fill(probs, value=float(score), assert_inplace=True)
-
-                    stitcher.accumulate_image(
-                        image_id, output_space_slice, probs,
-                        asset_dsize=output_image_dsize,
-                        scale_asset_from_stitchspace=scale_outspace_from_vid,
-                        # weights=output_weights,
-                        # downweight_edges=downweight_edges,
-                    )
-                    # hack / fixme: this is ok, when batches correspond with
-                    # images but not if we start to window.
-                    stitcher.submit_finalize_image(image_id)
+                stitcher.accumulate_image(
+                    image_id, output_space_slice, probs,
+                    asset_dsize=output_image_dsize,
+                    scale_asset_from_stitchspace=scale_outspace_from_vid,
+                    # weights=output_weights,
+                    # downweight_edges=downweight_edges,
+                )
+                # hack / fixme: this is ok, when batches correspond with
+                # images but not if we start to window.
+                stitcher.submit_finalize_image(image_id)
 
     if stitcher is not None:
         writer_queue.wait_until_finished()  # hack to avoid race condition
