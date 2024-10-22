@@ -14,7 +14,7 @@
 \nonanonymoustrue % comment out to be anonymous
 
 \newif\ifuseappendix
-%\useappendixtrue % comment out to remove appendix
+\useappendixtrue % comment out to remove appendix
 
 \newif\ifuseacknowledgement
 \useacknowledgementtrue % comment out to remove acknowledgements
@@ -102,6 +102,7 @@ Kitware\\
 }
 \maketitle
 
+
 %%%%%%%%% ABSTRACT
 \begin{abstract}
 
@@ -186,12 +187,26 @@ The first 4 columns provide the name of the dataset, the number of categories, i
 Image W \times H is the pixel width and height of the image with the median area. Annot Area$^{0.5}$ is the median sqrt(area) in pixels of the annotation polygon or box. The Size column refers to the amount of information in  gigabytes needed to download the entire dataset.
 Annot Type refers to if the dataset is annotated with bounding boxes,
 image-level classification labels, or polygon segmentations.
-%Of the datasets in this table, ours has the highest image resolution
+\Cref{fig:compare_allannots} provides a visual gist of the distribution of annotation shape, size, and positional in each dataset.
+%Of the datasets in this table, ours has the highest image resolution.
 %and the smallest annotation size relative to that resolution.
-% Of the waste related datasets, ours is among the largest, and of the poop related datasets, it is the largest.
+%Of the waste related datasets and in terms of number of images, ours is among the largest, and of the poop related datasets, it is the largest.
 }
 \label{tab:related_datasets}
 \end{table*}
+
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{plots/appendix/dataset_compare/combo_all_polygons.png.png}
+\caption[]{
+    A comparison of all of the annotations for different datasets including ours.
+    All polygon annotations drawn in a single plot with $0.8$ opacity to
+    demonstrate the distribution in annotation location, shape, and size with
+    respect to image coordinates.
+}
+\label{fig:compare_allannots}
+\end{figure*}
+
 
 In addition to enabling several applications, poop detection is an interesting benchmark problem.
 It is relatively simple, with a narrow focus on a single class, making it suitable for exploring the
@@ -287,7 +302,7 @@ For a review of additional waste related datasets, refer to \cite{agnieszka_wast
 In \Cref{sec:distribution} will discuss the logistics and tradeoffs between different mechanisms to
   distribute datasets with a focus on comparing centralized and decentralized methods.
 IPFS~\cite{cohen_incentives_2003} and BitTorrent~\cite{benet_ipfs_2014} are the decentralized distribution
-  mechanism we evaluate, but there are others such as Secure Scuttlebut \cite{tarr_secure_2019} and Hypercore
+  mechanisms we evaluate, but there are others such as Secure Scuttlebut \cite{tarr_secure_2019} and Hypercore
   \cite{frazee_dep-0002_nodate}, which we did not test.
 
   % Is hypercore dat? https://dat-ecosystem.org/ https://datproject.org/
@@ -340,7 +355,8 @@ These exceptions were programmatically identified.
   
 In addition to the primary dataset, we also received 84 images from contributors.
 Most of these images do not follow the B/A/N protocol and are marked for use only in testing and are
-  \emph{not} included in the following analysis unless explicitly noted.
+  \emph{not} included in the following analysis.
+  %unless explicitly noted.
 
 
 \subsection{Dataset Annotation}
@@ -373,11 +389,13 @@ illustrated in \Cref{fig:AllPolygons}.
 \centering
 \includegraphics[width=.4\textwidth]{figures/umap-screenshot-edited.png}%
 \caption[]{
-    Example images from the dataset based on UMAP \cite{mcinnes_umap_2020}
-    clusters over a 200 image subset of the dataset.  Each row corresponds to a
-    selection from a 2D UMap projection shown on the left.  The highlighted
-    nodes circled in blue in the cluster visualization in each row correspond
-    to the images shown on the right.
+    Example images from the dataset based on UMAP \cite{mcinnes_umap_2020} clusters over a 200 image subset
+      of the dataset.
+    Each row corresponds to a selection from a 2D UMAP projection shown on the left.
+    The highlighted nodes circled in blue in the cluster visualization in each row correspond to the images
+      with annotations (drawn in green) shown on the right.
+    An interesting observation is that the clear separation into two UMAP blobs represents snowy versus
+      non-snowy images.
 }
 \label{fig:umap_dataset_viz}
 \end{figure}
@@ -485,9 +503,9 @@ These splits are provided in the COCO JSON format \cite{lin_microsoft_2014}.
 \centering
 \begin{tabular}{ll|rrrr|rrrr}
 \toprule
-dataset split: & {} & \multicolumn{4}{c}{Test} & \multicolumn{4}{c}{Validation} \\
-evaluation type: & {} & \multicolumn{2}{c}{Box} & \multicolumn{2}{c}{Pixel} & \multicolumn{2}{c}{Box} & \multicolumn{2}{c}{Pixel} \\
-{} &  \# params & AP & AUC & AP & AUC & AP & AUC & AP & AUC \\
+\multicolumn{2}{c}{Dataset split:} & \multicolumn{4}{c}{Test} & \multicolumn{4}{c}{Validation} \\
+\multicolumn{2}{c}{Evaluation type:} & \multicolumn{2}{c}{Box} & \multicolumn{2}{c}{Pixel} & \multicolumn{2}{c}{Box} & \multicolumn{2}{c}{Pixel} \\
+Model type &  \# Params & AP & AUC & AP & AUC & AP & AUC & AP & AUC \\
 \midrule
 MaskRCNN-pretrained &  43.9e6 &  0.661 &   0.692 &    0.847 &     0.858 &  0.612 &   0.721 &    0.858 &     0.905 \\
 MaskRCNN-scratch    &  43.9e6 &  0.384 &   0.573 &    0.581 &     0.804 &  0.255 &   0.576 &    0.434 &     0.891 \\
@@ -507,7 +525,8 @@ VIT-sseg-scratch    &  25.5e6 &  0.520 &   0.522 &    0.505 &     0.913 &  0.476
     All metrics were computed using scikit-learn \cite{scikit-learn}.
     We note an important limitation of our results: much more time was spent
     tuning the VIT-sseg model. It is likely that MaskRCNN results could be
-    improved with further tuning. But these are baseline models; our core contribution is the dataset.
+    improved with further tuning. 
+    %But these are baseline models; our core contribution is the dataset.
 }
 \label{tab:model_results}
 \end{table*}
@@ -537,6 +556,9 @@ VIT-sseg-scratch    &  25.5e6 &  0.520 &   0.522 &    0.505 &     0.913 &  0.476
     The second row in each subfigure is the predicted heatmap, illustrating the model's output before
       binarization.
     The threshold for binarization was set to $0.5$ in all cases.
+    All three methods show clear responses to objects of interest, but cases where objects are close-up 
+      and partially deteriorated do seem to be a common failure mode.
+    
 }
 \label{fig:test_results_all_models}
 \end{figure*}
@@ -559,6 +581,11 @@ VIT-sseg-scratch    &  25.5e6 &  0.520 &   0.522 &    0.505 &     0.913 &  0.476
 \caption[]{
     Qualitative results using the top-performing model on the validation set, applied to a selection of
       images from the validation set. See \Cref{fig:test_results_all_models} for an explanation of the visualizations.
+    Each model was selected based on its performance on this dataset, which may
+      cause spurious cases that agree with the truth labels, but this dataset
+      was never used to compute a gradient, which still make these valuable
+      results for assessing generalizability. Notably the models were able to
+      pick out camouflaged cases on the left.
 }
 \label{fig:vali_results_all_models}
 \end{figure*}
@@ -642,16 +669,34 @@ Corresponding qualitative results are illustrated in \Cref{fig:test_results_all_
 %\label{fig:test_heatmaps_with_best_vali_model}
 %\end{figure*}
 
-All models were trained on a single machine with an 11900k CPU and a single 3090 GPU.
 
-Overall, prediction and evaluation on trained models took 15.6 days with prediction consuming 109.6.3 kWh of
-  electricity and causing an estimated emissions of 23.0 \cotwo kg as measured by CodeCarbon
-  \cite{lacoste2019codecarbon}.
+All models were trained on a single machine with an Intel Core i9-11900K CPU and an NVIDIA GeForce RTX 3090
+  GPU.
+The total time spent on prediction and evaluation across all experiments was 15.6 days, with prediction
+  consuming 109.6.3 kWh of electricity and causing an estimated emissions of 23.0 \cotwo kg as measured by
+  CodeCarbon \cite{lacoste2019codecarbon}.
 
-todo: train time resource usage for maskrcnn and vit, reacnknowledge
-limitation, break down results over each.
+We estimated train-time resource usage during training using indirect methods, assuming a constant power
+  draw of 345W from the RTX 3090 GPU.
+Electricity consumption was approximated accordingly, while emissions were calculated using a conversion
+  ratio of 0.21 $\frac{\textrm{kg}\cotwo{}}{\textrm{kWh}}$ derived from our prediction time measurements.
+Based on file timestamps, we estimated that running 44 different training runs took approximately 159.66
+  days, resulting in an estimated electricity usage and emissions of 1321.99 kWh and 277.612 $\cotwo$ kg,
+  respectively.
 
-Report training time, energy usage, and carbon footprint with details in supplemental materials.
+A key limitation of these results is the imbalance between model types, with 42 out of 44 trained models
+  being VIT-ssegs and only two MaskRCNN models, each taking approximately 8 hours to train.
+More details on the VIT-sseg experiments can be found in the supplemental materials.
+  
+
+%train$^{*}$ & time        & 158.95 days      &     3.78 days  &   42 \\
+%train$^{*}$ & electricity & 1,316.07 kWh     &     31.34 kWh  &   42 \\
+%train$^{*}$ & emissions   & 276.37 \cotwo kg & 6.58 \cotwo kg &   42 \\
+
+%todo: train time resource usage for maskrcnn and vit, reacnknowledge
+%limitation, break down results over each.
+
+%Report training time, energy usage, and carbon footprint with details in supplemental materials.
 
 
 
@@ -744,8 +789,9 @@ Report training time, energy usage, and carbon footprint with details in supplem
 % BitTorrent can be vulnerable to MITM:
 % https://www.reddit.com/r/technology/comments/1dpinuw/south_korean_telecom_company_attacks_torrent/
 
-The reproducibility "crisis" in science has raised concerns across various disciplines
-  \cite{baker_reproducibility_2016}.
+
+Empirical evidence suggests that a substantial proportion of scientific studies have low reproducibility
+  rates, which has raised concerns across various disciplines \cite{baker_reproducibility_2016}.
 Ideally, all scientific research should be independently reproducible.
 Despite higher success rates in computer science (up to 60\%) compared to other fields, there is still room for improvement
 \cite{NEURIPS2019_c429429b, collberg2016repeatability, desai_what_2024}.

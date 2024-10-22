@@ -42,9 +42,10 @@ def make_splits():
             keep_flags = has_annots.copy()
             protocol_version = '2img' if cohort_start <= change_point else '3img'
             if protocol_version == '2img':
-                # This cohort belongs to the 2 image protocol, if an image is
-                # annotated, we can infer that the image after it is likely a
-                # negative and include it in the split.
+                # This cohort belongs to the 2 image before/after (BA)
+                # protocol, if an image is annotated, we can infer that the
+                # image after it is likely a negative and include it in the
+                # split.
                 is_after_image = np.roll(has_annots, 1)
                 old_keep_flags = has_annots + is_after_image
 
@@ -54,9 +55,10 @@ def make_splits():
                 assert (old_keep_flags > 0).sum() == keep_flags.sum()
 
             elif protocol_version == '3img':
-                # This cohort belongs to the 3 image protocol, if an image is
-                # annotated, we can infer that two images after are likely a
-                # negative and include it in the split.
+                # This cohort belongs to the 3 image before/after/negative
+                # (BAN) protocol, if an image is annotated, we can infer that
+                # two images after are likely a negative and include it in the
+                # split.
                 is_after_image = np.roll(has_annots, 1)
                 is_negative_image = np.roll(has_annots, 2)
                 old_keep_flags = has_annots + is_after_image + is_negative_image

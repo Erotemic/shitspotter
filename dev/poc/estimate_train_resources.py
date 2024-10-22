@@ -3,6 +3,33 @@ import scriptconfig as scfg
 import ubelt as ub
 
 
+def estimate_training_duration(checkpoint_fpaths):
+    """
+    Given a list of checkpoints, estimate how long training took.
+    """
+    import kwutil
+    ckpt_times = []
+    for cpkt_fpath in checkpoint_fpaths:
+        ckpt_time = kwutil.datetime.coerce(cpkt_fpath.stat().st_mtime)
+        ckpt_times.append(ckpt_time)
+
+    if len(ckpt_times):
+        min_dtime = min(*ckpt_times)
+        max_dtime = max(*ckpt_times)
+        duration = max_dtime - min_dtime
+    else:
+        min_dtime = None
+        max_dtime = None
+        duration = 0
+
+    info = {
+        'min_dtime': min_dtime,
+        'max_dtime': max_dtime,
+        'duration': duration,
+    }
+    return info
+
+
 class EstimateTrainResourcesCLI(scfg.DataConfig):
     run_dpath = '/data/joncrall/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/'
     # param1 = scfg.Value(None, help='param1')
@@ -43,27 +70,20 @@ class EstimateTrainResourcesCLI(scfg.DataConfig):
 
             checkpoint_fpaths = list(ckpt_dpath.glob('*.ckpt'))
             print(f'checkpoint_fpaths = {ub.urepr(checkpoint_fpaths, nl=1)}')
-
-            hparams_time = kwutil.datetime.coerce(hparams_fpath.stat().st_mtime)
-
-            ckpt_times = []
-            for cpkt_fpath in checkpoint_fpaths:
-                ckpt_time = kwutil.datetime.coerce(cpkt_fpath.stat().st_mtime)
-                ckpt_times.append(ckpt_time)
-
-            min_dtime = min(hparams_time, *ckpt_times)
-            max_dtime = max(hparams_time, *ckpt_times)
-            duration = max_dtime - min_dtime
+            # hparams_time = kwutil.datetime.coerce(hparams_fpath.stat().st_mtime)
+            info = estimate_training_duration(checkpoint_fpaths)
+            # min_dtime = min(hparams_time, *ckpt_times)
+            # max_dtime = max(hparams_time, *ckpt_times)
+            # duration = max_dtime - min_dtime
             row = {
                 'expt_name': expt_name,
                 'dpath': dpath,
-                'duration': duration,
+                **info,
             }
             rows.append(row)
 
         # Infer more information from each training directory
         # including lineage
-        import kwutil
         for row in ub.ProgIter(rows, desc='Loading more train info'):
             dpath = row['dpath']
 

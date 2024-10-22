@@ -715,6 +715,9 @@ def main():
     grouped['co2_kg'].sum()
 
     detectron = deduped[deduped['dname'].str.contains('detectron')]
+    print('time', kwutil.timedelta.coerce(detectron['duration'].sum()).to('pint').to('days'))
+    print('kwh', detectron['kwh'].sum())
+    print('co2', detectron['co2_kg'].sum())
 
     for key, group in list(deduped.groupby(['node_type', 'dname', 'dataset_name'])):
         print(key)

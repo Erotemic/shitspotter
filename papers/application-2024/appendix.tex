@@ -133,17 +133,17 @@ for other comparable dataset metrics.
 \Cref{fig:combo_polygon_centroid_relative_distribution} show the distribution of centroid positions (relative to the image size).
 
 
-\begin{figure*}[ht]
-\centering
-\includegraphics[width=1.0\textwidth]{plots/appendix/dataset_compare/combo_all_polygons.png.png}
-\caption[]{
-    A comparison of all of the annotations for different datasets including ours.
-    All polygon annotations drawn in a single plot with 0.8 opacity to
-    demonstrate the distribution in annotation location, shape, and size with
-    respect to image coordinates.
-}
-\label{fig:compare_allannots}
-\end{figure*}
+%\begin{figure*}[ht]
+%\centering
+%\includegraphics[width=1.0\textwidth]{plots/appendix/dataset_compare/combo_all_polygons.png.png}
+%\caption[]{
+%    A comparison of all of the annotations for different datasets including ours.
+%    All polygon annotations drawn in a single plot with 0.8 opacity to
+%    demonstrate the distribution in annotation location, shape, and size with
+%    respect to image coordinates.
+%}
+%\label{fig:compare_allannots}
+%\end{figure*}
 
 
 \begin{figure*}[ht]
@@ -197,13 +197,14 @@ for other comparable dataset metrics.
 \end{figure*}
 
 
-\section{GeoWATCH Models}
+\section{VIT-sseg Models}
 \label{sec:models}
 
-This section provides more details about the training of GeoWATCH models.
+This section provides more details about the training of VIT-sseg models.
 
-We use the training, prediction, and evaluation system presented in \cite{Greenwell_2024_WACV,
-  crall_geowatch_2024}, which utilizes polygon annotations to train a pixelwise binary segmentation model.
+To train VIT-sseg models we use the training, prediction, and evaluation system presented in
+  \cite{Greenwell_2024_WACV, crall_geowatch_2024}, which utilizes polygon annotations to train a pixelwise
+  binary segmentation model.
 %It is important to note that this baseline is limited in that it only considers a single VIT-based
 %  \cite{dosovitskiy_image_2021} architecture, and does not attempt to explore all state-of-the-art methods.
 
@@ -237,7 +238,7 @@ We employ a OneCycle learning rate scheduler \cite{smith2019super} with a cosine
 Our effective batch size is 24 with a real batch size of 2 and 12 accumulate gradient steps.
 This setup consumes approximately 20 GB of GPU RAM during training.
 
-\subsection{GeoWATCH Model Experiments}
+\subsection{VIT-sseg Model Experiments}
 
 To establish a strong baseline, we evaluated 35 training runs where we varied input resolutions, window
   sizes, model depth, and other parameters.
