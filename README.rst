@@ -51,6 +51,7 @@ This following is the high level status of the project.
 - ☑ Dataset has enough images to train models (2023-03-03)
 - ☑ Dataset has enough annotations to train models (2023-11-17)
 - ☑ Baseline models are trained (2024-07-27)
+- ☐ Scientific paper about dataset published
 - ☐ Efficient models for phones are trained
 - ☐ Phone application is developed
 
