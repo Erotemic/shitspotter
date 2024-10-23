@@ -44,6 +44,8 @@ centralized mechanisms.
 Major Milestones and Goals
 ==========================
 
+This following is the high level status of the project.
+
 - ☑ Dataset has enough images to train models
 - ☑ Dataset has enough annotations to train models
 - ☑ Baseline models are trained
