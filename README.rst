@@ -46,9 +46,9 @@ Major Milestones and Goals
 
 This following is the high level status of the project.
 
-- ☑ Dataset has enough images to train models
-- ☑ Dataset has enough annotations to train models
-- ☑ Baseline models are trained
+- ☑ Dataset has enough images to train models (2023-03-03)
+- ☑ Dataset has enough annotations to train models (2023-11-17)
+- ☑ Baseline models are trained (2024-07-27)
 - ☐ Efficient models for phones are trained
 - ☐ Phone application is developed
 
@@ -349,7 +349,7 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 | 2024-09-16  | 7108     | ~2500               | 1824                  | 2501                  | bafybeibn3kmmz3ytrlmt2pwbifvcwv7veddoeuabtifgvztetilnav2gom  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
-| 2024-10-16  | 7456     | ~2616               | 1926                  | 2618                  |
+| 2024-10-16  | 7456     | ~2616               | 1926                  | 2618                  |                                                              |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 
 
