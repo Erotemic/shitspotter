@@ -81,43 +81,6 @@ The distribution of annotation location is shown in \Cref{fig:centroid_location_
 \label{fig:annot_area_verts_distri}
 \end{figure}
 
-\section{Extra Experiment Information}
-
-In \Cref{sec:models} we presented an experimental evaluation of several models trained with different
-  hyperparameters.
-This involved evaluating several checkpoints produced by each model run.
-Previously in \Cref{tab:parameters_and_results} we presented the top results.
-Here we've plotted the AP and AUC on the validation set for the top 5 AP-maximizing results from each of the
-  7 training runs.
-We also created a box-and-whisker plot for these top 5 results, which serves to assign a color and label to
-  each training run.
-These plots are shown in \Cref{fig:apauc_scatter}.
-
-
-\begin{figure}[ht]
-\centering
-
-\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_vs_metrics.heatmap_eval.salient_AUC_PLT02_scatter_nolegend.png}
-
-(a) AP and AUC of 35 checkpoints.
-
-\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_PLT04_box.png}
-
-(b) AP of 35 checkpoints.
-
-\caption[]{
-    (a) Scatterplot of pixelwise average precision (AP) and Area Under the ROC curve (AUC) for the top
-      5 checkpoints on the validation set.
-    Points of the same color represent checkpoints from the same training run, which used identical
-      hyperparameters.
-    (b) Box-and-whisker plot the AP values across the top 5 checkpoints evaluated on
-      the validation set.
-    For each run, corresponding varied hyperparameters and maximum APs are given in
-      \Cref{tab:parameters_and_results}.
-}
-\label{fig:apauc_scatter}
-\end{figure}
-
 
 \section{Extra Dataset Comparison}
 
@@ -198,7 +161,7 @@ for other comparable dataset metrics.
 
 
 \section{VIT-sseg Models}
-\label{sec:models}
+\label{sec:vit_models}
 
 This section provides more details about the training of VIT-sseg models.
 
@@ -427,6 +390,43 @@ print(round(kwutil.timedelta.coerce('00:27:31').to_pint().to('hours'), 2))
 1_316.07 / 276.37
 324.75 / 68.20
 \end{comment}
+
+%\section{Extra Experiment Information}
+
+%In \Cref{sec:models} we presented an experimental evaluation of several models trained with different
+%  hyperparameters.
+%This involved evaluating several checkpoints produced by each model run.
+In \Cref{tab:parameters_and_results} we only presented the top results.
+Here we've plotted the AP and AUC on the validation set for the top 5 AP-maximizing results from each of the
+  7 training runs.
+We also created a box-and-whisker plot for these top 5 results, which serves to assign a color and label to
+  each training run.
+These plots are shown in \Cref{fig:apauc_scatter}.
+
+
+\begin{figure}[ht]
+\centering
+
+\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_vs_metrics.heatmap_eval.salient_AUC_PLT02_scatter_nolegend.png}
+
+(a) AP and AUC of 35 checkpoints.
+
+\includegraphics[width=0.4\textwidth]{figures/macro_results_resolved_params.heatmap_pred_fit.trainer.default_root_dir_metrics.heatmap_eval.salient_AP_PLT04_box.png}
+
+(b) AP of 35 checkpoints.
+
+\caption[]{
+    (a) Scatterplot of pixelwise average precision (AP) and Area Under the ROC curve (AUC) for the top
+      5 checkpoints on the validation set.
+    Points of the same color represent checkpoints from the same training run, which used identical
+      hyperparameters.
+    (b) Box-and-whisker plot the AP values across the top 5 checkpoints evaluated on
+      the validation set.
+    For each run, corresponding varied hyperparameters and maximum APs are given in
+      \Cref{tab:parameters_and_results}.
+}
+\label{fig:apauc_scatter}
+\end{figure}
 
 
 

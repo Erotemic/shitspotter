@@ -10,34 +10,39 @@
 \usepackage[T1]{fontenc}    % use 8-bit T1 fonts
 %\usepackage[review,algorithms]{wacv}      % To produce the REVIEW version for the algorithms track
 
+
+% Define conditions
 \newif\ifnonanonymous
-\nonanonymoustrue % comment out to be anonymous
-
 \newif\ifuseappendix
-\useappendixtrue % comment out to remove appendix
-
 \newif\ifuseacknowledgement
+
+
+% ====================
+% CONDITIONAL SETTINGS
+% ====================
+\nonanonymoustrue % comment out to be anonymous
+%\useappendixtrue % comment out to remove appendix
 \useacknowledgementtrue % comment out to remove acknowledgements
+% ====================
 
 \ifnonanonymous
-%\usepackage{wacv}              % To produce the CAMERA-READY version
-\usepackage[pagenumbers]{wacv} % To force page numbers, e.g. for an arXiv version
+\usepackage{cvpr}              % To produce the CAMERA-READY version
+%\usepackage[pagenumbers]{cvpr} % To force page numbers, e.g. for an arXiv version
 \else
-\usepackage[review,applications]{wacv}      % To produce the REVIEW version for the applications track
+\usepackage[review]{cvpr}      % To produce the REVIEW version
 \fi
 
 
 
 % It is strongly recommended to use hyperref, especially for the review version.
 % hyperref with option pagebackref eases the reviewers' job.
-% Please disable hyperref *only* if you encounter grave issues, e.g. with the
-% file validation for the camera-ready version.
+% Please disable hyperref *only* if you encounter grave issues, 
+% e.g. with the file validation for the camera-ready version.
 %
-% If you comment hyperref and then uncomment it, you should delete
-% ReviewTempalte.aux before re-running LaTeX.
-% (Or just hit 'q' on the first LaTeX run, let it finish, and you
-%  should be clear).
-\usepackage[pagebackref,breaklinks,colorlinks]{hyperref}
+% If you comment hyperref and then uncomment it, you should delete *.aux before re-running LaTeX.
+% (Or just hit 'q' on the first LaTeX run, let it finish, and you should be clear).
+\definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
+\usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
 
 
 % Include other packages here, before hyperref.
@@ -76,12 +81,9 @@
 
 
 %%%%%%%%% PAPER ID  - PLEASE UPDATE
-\def\wacvPaperID{*****} % *** Enter the WACV Paper ID here
+\def\paperID{*****} % *** Enter the Paper ID here
 \def\confName{CVPR}
 \def\confYear{2025}
-
-
-\begin{document}
 
 \title{``ScatSpotter'' --- A Distributed Dog Poop Detection Dataset}
 
@@ -100,6 +102,8 @@ Kitware\\
 %First line of institution2 address\\
 %{\tt\small secondauthor@i2.org}
 }
+
+\begin{document}
 \maketitle
 
 
@@ -109,15 +113,15 @@ Kitware\\
 %This work chronicles one researcher's un-funded journey to build a phone
 %application that can detect dog poop in images, and make the data widely
 %available as a benchmark dataset.
-We introduce a new --- currently 42 gigabyte --- "living" dataset of phone images of dog feces, annotated with manually drawn or AI-assisted polygon labels. There are 6k full resolution images and 4k detailed polygon annotations. The collection and annotation of images started in late 2020 and the dataset grows by roughly 1GB a month. 
+We introduce a new --- currently 42 gigabyte --- ``living'' dataset of phone images of dog feces, annotated with manually drawn or AI-assisted polygon labels. There are 6k full resolution images and 4k detailed polygon annotations. The collection and annotation of images started in late 2020 and the dataset grows by roughly 1GB a month. 
 
-We train several baseline models to explore the difficulty of the dataset.
+We train VIT and MaskRCNN baseline models to explore the difficulty of the dataset.
 The best model achieves a pixelwise average precision of 0.858 on a 691-image
 validation set and 0.847 on a small independently captured 30-image contributor
 test set.
 %We train a baseline vision transformer to segment the objects of interest, exploring a grid of hyperparameters, and we evaluate their impact. 
 
-The most recent snapshot of dataset is made publicly available through three different distribution methods: one centralized and two decentralized (IPFS and BitTorrent).  We perform an analysis and observational comparison of the trade-offs between distribution methods and discuss the feasibility of each with respect to sharing open scientific data in a reliable and accessible manner.
+The most recent snapshot of dataset is made publicly available through three different distribution methods: one centralized and two decentralized (IPFS and BitTorrent).  We perform an observational study of the trade-offs between distribution methods and discuss the feasibility of each with respect to reliably sharing open scientific data.
 
 The code to reproduce the experiments is hosted on GitHub, and the data is published under the Creative Commons Attribution 4.0 International license.  Model weights are made publicly available with the dataset. Experimental hardware, time, energy, and emissions are quantified.
 
@@ -138,29 +142,34 @@ Many of these applications can be realized with modern object detection and segm
   \cite{sandler_mobilenetv2_2018, siam_rtseg_2018, yu_mobilenet_yolo_2023} combined with a large labeled
   dataset.
 
-\begin{figure}[ht]
+\begin{figure}[t]
 \centering
 \includegraphics[width=0.49\textwidth]{figures/zoom_leaf.jpg}
 %\hfill
 %\includegraphics[width=0.49\textwidth]{figures/Screenshot from 2024-09-07 19-20-25.png}
 \caption[]{
     A zoomed in example of an annotated object in a challenging
-    condition: a scene cluttered with leafs. Polygons were drawn an AI-assistant,
-    which means boundaries are sometimes imperfect.
+    condition: a scene cluttered with leafs. The similarity between the leafs
+    and the poop causes a camouflage effect that can make detecting it difficult.
+    %The leafs act as 
+    %The texture of 
+    %The leafs camouflage 
+    %Polygons were drawn an AI-assistant,
+    %which means boundaries are sometimes imperfect.
 }
 \label{fig:HardCase}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[t]
 \centering
 \includegraphics[width=0.49\textwidth]{figures/viz_three_images.jpg}
 \caption[]{
-The "before/after/negative" protocol.
+The ``before/after/negative'' protocol.
 The orange box highlights the location of the poop 
 %(note the actual annotation is a polygon)
-in the "before" image.
-In the "after" image, it is the same scene but the poop has been removed.
-The "negative" image is a nearby similar scene, potentially with a distractor.
+in the ``before'' image.
+In the ``after'' image, it is the same scene but the poop has been removed.
+The ``negative'' image is a nearby similar scene, potentially with a distractor.
 Note that the object is small relative to the image size.}
 \label{fig:ThreeImages}
 \end{figure}
@@ -184,7 +193,7 @@ MSHIT \cite{mshit_2020}                                              & 2 & 769 &
 \end{tabular}
 \caption{Related Datasets.
 The first 4 columns provide the name of the dataset, the number of categories, images, and annotations.
-Image W \times H is the pixel width and height of the image with the median area. Annot Area$^{0.5}$ is the median sqrt(area) in pixels of the annotation polygon or box. The Size column refers to the amount of information in  gigabytes needed to download the entire dataset.
+Image W \times H is the pixel width and height of the image with the median area. Annot Area$^{0.5}$ is the median sqrt(area) in pixels of the annotation polygon or box. The Size column refers to the size of the dataset in gigabytes.
 Annot Type refers to if the dataset is annotated with bounding boxes,
 image-level classification labels, or polygon segmentations.
 \Cref{fig:compare_allannots} provides a visual gist of the distribution of annotation shape, size, and positional in each dataset.
@@ -195,7 +204,7 @@ image-level classification labels, or polygon segmentations.
 \label{tab:related_datasets}
 \end{table*}
 
-\begin{figure*}[ht]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=1.0\textwidth]{plots/appendix/dataset_compare/combo_all_polygons.png.png}
 \caption[]{
@@ -205,6 +214,25 @@ image-level classification labels, or polygon segmentations.
     respect to image coordinates.
 }
 \label{fig:compare_allannots}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=1\textwidth]{figures/umap-v3.jpg}%
+\caption[]{
+    Example images from the dataset based on 2D UMAP \cite{mcinnes_umap_2020} clusters over the dataset.
+    Each point in the top image is a 2D-projected image embedding. Each
+    numbered orange dot corresponds to three nearby images, which are drawn in columns on the bottom.
+    Annotation boxes are drawn in blue.
+    %a 200 image subset
+    %  of the dataset.
+    %Each row corresponds to a selection from a 2D UMAP projection shown on the left.
+    %The highlighted nodes circled in blue in the cluster visualization in each row correspond to the images
+    %  with annotations (drawn in green) shown on the right.
+    An interesting observation is that there is a clear separation into two UMAP blobs represents snowy versus (columns 1 and 2)
+      non-snowy images (columns 3-13). We verified that this pattern holds beyond the examples explicitly shown here.
+}
+\label{fig:umap_dataset_viz}
 \end{figure*}
 
 
@@ -218,10 +246,12 @@ An example of a challenging case is shown in \cref{fig:HardCase}.
 Investigation into cases where this problem is difficult may provide insight
 into how to better train object detection and segmentation networks.
 
-Towards these ends we introduce a new dataset, which for the purpose of this paper we call "ScatSpotter".
+Towards these ends we introduce a new dataset, which 
+%for the purpose of this paper we call "ScatSpotter".
+we formally call ``ScatSpotter''.
 Poops are annotated with polygons making the dataset suitable for training detection and segmentation
   models.
-In order to assist with annotation and add variation, we collect images using a "before/after/negative"
+In order to assist with annotation and add variation, we collect images using a ``before/after/negative''
   protocol as shown in \Cref{fig:ThreeImages}.
 We train a segmentation model to classify which pixels in an image contain poop and which do not.
 Our models show strong performance, but there are notable failure cases indicating this problem is difficult
@@ -242,9 +272,9 @@ This motivates us to compare and contrast the decentralized BitTorrent \cite{coh
 
 Our contributions are:
 1) A challenging new \textbf{open dataset} of images with polygon annotations.
-2) A set of trained \textbf{baseline models} methods.
+2) A set of trained \textbf{baseline models}.
 3) An observational \textbf{comparison of dataset distribution} methods.
-4) \textbf{Open code and models}.
+%4) \textbf{Open code and models}.
 
 %\Cref{sec:dataset}.
 %\Cref{sec:models}.
@@ -270,8 +300,8 @@ Compared to benchmark object localization and segmentation datasets~\cite{ILSVRC
 However, when compared to litter and trash datasets
   \cite{bashkirova_zerowaste_2022,proenca_taco_2020,hong2020trashcansemanticallysegmenteddatasetvisual,mittal2016spotgarbage,rs13050965}
   ours is among the largest in terms of number of images / annotations, image size, and total dataset size.
-ZeroWaste~\cite{bashkirova_zerowaste_2022} uses a "before/after" protocol similar to our BAN-protocol.
-%% https://paperswithcode.com/dataset/taco
+ZeroWaste~\cite{bashkirova_zerowaste_2022} uses a ``before/after'' protocol similar to our BAN-protocol.
+%% https://paperswithcode.com/dataset/tackknnno
 We provide an overview of these related datasets in \Cref{tab:related_datasets}.
 Among all of these, ours stands out for having the highest resolution images and the smallest objects
   relative to that resolution.
@@ -299,10 +329,10 @@ For a review of additional waste related datasets, refer to \cite{agnieszka_wast
 % https://universe.roboflow.com/dataset-vmyna/poop-yxidr/dataset/1
 % 102 train images, 22 validation images, 0 test images.
 % human poop
-In \Cref{sec:distribution} will discuss the logistics and tradeoffs between different mechanisms to
-  distribute datasets with a focus on comparing centralized and decentralized methods.
-IPFS~\cite{cohen_incentives_2003} and BitTorrent~\cite{benet_ipfs_2014} are the decentralized distribution
-  mechanisms we evaluate, but there are others such as Secure Scuttlebut \cite{tarr_secure_2019} and Hypercore
+\Cref{sec:distribution} discusses the logistics and tradeoffs between dataset distribution mechanisms
+  with a focus on comparing centralized and decentralized methods.
+IPFS~\cite{cohen_incentives_2003} and BitTorrent~\cite{benet_ipfs_2014} are the decentralized 
+  mechanisms we evaluate, but others exist such as Secure Scuttlebut \cite{tarr_secure_2019} and Hypercore
   \cite{frazee_dep-0002_nodate}, which we did not test.
 
   % Is hypercore dat? https://dat-ecosystem.org/ https://datproject.org/
@@ -323,6 +353,9 @@ The data is annotated to support object detection and segmentation tasks.
 The majority of the images feature fresh poop from three specific dogs, but there are a significant number
   of images with poops of unknown age and from from unknown dogs.
 
+To provide a gist of the image variations in the dataset we computed UMAP \cite{mcinnes_umap_2020} image
+  embeddings based on ResNet50 \cite{he2016deep} descriptors display images
+  corresponding with clusters in this embedding in \Cref{fig:umap_dataset_viz}.
 
 More details about the dataset are available in a standardized datasheet
 \cite{gebru_datasheets_2021} that covers the motivation, composition,
@@ -337,38 +370,37 @@ When they encountered a poop in public areas --- usually freshly created by one 
 Occasionally, they would move closer or further away to add variation to the dataset.
 After taking a photo, they would pick it up and dispose of it.
 
-Most images in the dataset follow a "before/after/negative" (B/A/N) protocol.
-The first image is the "before" picture of the poop.
-After picking up the poop, an "after" picture of the same area was taken from approximately the same angle
+Most images in the dataset follow a ``before/after/negative'' (B/A/N) protocol.
+The first image is the ``before'' picture of the poop.
+After picking up the poop, an ``after'' picture of the same area was taken from approximately the same angle
   and distance.
-Finally, a "negative" image was captured of a nearby area or object that might be confused with dog poop
+Finally, a ``negative'' image was captured of a nearby area or object that might be confused with dog poop
   (e.g., pine cones, leaves, sticks, dark areas on snow).
 While we only use these B/A/N triples to sample negative regions, they may be useful for constructing
   contrastive triplet-style losses \cite{schroff_facenet_2015}.
 
 The majority of images follow the triple-pattern protocol.
 However, there are exceptions.
-The first six months of data collection only involved the "before/after" part of the protocol, and we began
+The first six months of data collection only involved the ``before/after'' part of the protocol, and we began
   collecting the third negative image after a colleague suggested it.
 In some cases, the researcher failed or was unable to take the second or third image.
 These exceptions were programmatically identified.
   
 In addition to the primary dataset, we also received 84 images from contributors.
-Most of these images do not follow the B/A/N protocol and are marked for use only in testing and are
+Most of these images do not follow the B/A/N protocol, are only used in testing, and are
   \emph{not} included in the following analysis.
   %unless explicitly noted.
 
 
 \subsection{Dataset Annotation}
 
-Originally the "before" and "after" images were meant to help with automatic
-annotation, but this idea was not successful due to unreliable image-alignment.
-However, with the development of the Segment Anything Model (SAM)
-\cite{kirillov_segment_2023} model, we were able to efficiently annotation the
-dataset. 
+Originally the ``before'' and ``after'' images were meant to help with automatic annotation, but this idea
+  was not successful due to unreliable image-alignment.
+However, with the Segment Anything Model (SAM) \cite{kirillov_segment_2023} model, we were able to
+  efficiently annotation the dataset.
 
 Specifically, images were annotated using labelme \cite{wada_labelmeailabelme_nodate}. 
-Most annotations were initialized using the SAM and a point prompt. 
+Most annotations were initialized using SAM and a point prompt. 
 All AI polygons were manually reviewed. In most cases only small manual
 adjustments were needed, but there were a significant number of cases where SAM
 did not work well and fully manual annotations were needed.
@@ -376,8 +408,8 @@ Regions with shadows seemed to cause SAM the most trouble, but there were other
 failure cases. Unfortunately, there is no metadata to indicate which polygons
 were manually created or done using AI.  However, the number of vertices may be
 a reasonable proxy to estimate this, as polygons generated by SAM tend to have
-higher fidelity boundaries.  The boundaries of 4,386 annotated polygons are
-illustrated in \Cref{fig:AllPolygons}.
+higher fidelity boundaries.  
+The boundaries of 4,386 annotated polygons are illustrated in \Cref{fig:compare_allannots}.
 
 %Anecdotal note: SAM \cite{kirillov_segment_2023} worked well to automatically
 %segment the poop, many of these needed adjustments, especially in regions of
@@ -385,36 +417,36 @@ illustrated in \Cref{fig:AllPolygons}.
 %Unfortunately a clean record of what cases these were does not exist. 
 
 
-\begin{figure}[ht]
-\centering
-\includegraphics[width=.4\textwidth]{figures/umap-screenshot-edited.png}%
-\caption[]{
-    Example images from the dataset based on UMAP \cite{mcinnes_umap_2020} clusters over a 200 image subset
-      of the dataset.
-    Each row corresponds to a selection from a 2D UMAP projection shown on the left.
-    The highlighted nodes circled in blue in the cluster visualization in each row correspond to the images
-      with annotations (drawn in green) shown on the right.
-    An interesting observation is that the clear separation into two UMAP blobs represents snowy versus
-      non-snowy images.
-}
-\label{fig:umap_dataset_viz}
-\end{figure}
+%\begin{figure}[t]
+%\centering
+%\includegraphics[width=.4\textwidth]{figures/umap-screenshot-edited.png}%
+%\caption[]{
+%    Example images from the dataset based on UMAP \cite{mcinnes_umap_2020} clusters over a 200 image subset
+%      of the dataset.
+%    Each row corresponds to a selection from a 2D UMAP projection shown on the left.
+%    The highlighted nodes circled in blue in the cluster visualization in each row correspond to the images
+%      with annotations (drawn in green) shown on the right.
+%    An interesting observation is that the clear separation into two UMAP blobs represents snowy versus
+%      non-snowy images.
+%}
+%\label{fig:umap_dataset_viz}
+%\end{figure}
 
-\begin{figure}[ht]
-\centering
-\includegraphics[width=0.4\textwidth]{figures/all_polygons.png}
-\caption[]{
-    All polygon annotations drawn in a single plot with 0.8 opacity to
-    demonstrate the distribution in annotation location, shape, and size with
-    respect to image coordinates. Annotations drawn with AI
-    assistance tend to have more curved boundaries than manually drawn ones
-    (several examples of manual annotations with more jagged boundaries can be
-    seen in the top left).
-}
-\label{fig:AllPolygons}
-\end{figure}
+%\begin{figure}[t]
+%\centering
+%\includegraphics[width=0.4\textwidth]{figures/all_polygons.png}
+%\caption[]{
+%    All polygon annotations drawn in a single plot with 0.8 opacity to
+%    demonstrate the distribution in annotation location, shape, and size with
+%    respect to image coordinates. Annotations drawn with AI
+%    assistance tend to have more curved boundaries than manually drawn ones
+%    (several examples of manual annotations with more jagged boundaries can be
+%    seen in the top left).
+%}
+%\label{fig:AllPolygons}
+%\end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[t]
 \centering
 \includegraphics[width=0.4\textwidth]{figures/images_timeofday_distribution.png}
 \caption[]{
@@ -429,14 +461,14 @@ illustrated in \Cref{fig:AllPolygons}.
 \end{figure}
 
 
-\begin{figure}[ht]
+\begin{figure}[t]
 \centering
 \includegraphics[width=0.4\textwidth]{figures/anns_per_image_histogram_splity.png}
 \caption[]{
     Histogram of the number of annotations per image. 
     Only 35\% (2,346) of the images contain annotations, the other 65\% (4,302)
-    are known not to contain poop. Of these 4,302 about half of them were taken
-    directly after the poop was picked up, and the other half are pictures of a
+    are known not to contain poop. Of these about half of them were taken
+    directly after the poop was picked up. The other half are pictures of a
     nearby location.
 }
 \label{fig:AnnotsPerImage}
@@ -452,9 +484,6 @@ The data was captured at a relatively uniform rate over this period, primarily i
 Weather conditions varied across snowy, sunny, rainy, and foggy.
 A visual representation of the distribution of seasons, time-of-day, daylight, and capture rate is provided
   in \Cref{fig:TimeOfDayDistribution}.
-To provide a gist of this dataset variation we compute UMAP \cite{mcinnes_umap_2020} image embeddings based
-  on ResNet50 \cite{he2016deep} descriptors and select images to down variations within and between these
-  embedding clusters in \Cref{fig:umap_dataset_viz}.
 
 
 The dataset images are available in full resolution, without any resampling or resizing.
@@ -466,7 +495,7 @@ The images are stored as 8-bit JPEGs with RGB channels, and most include overvie
   allowing for fast loading of downscaled versions.
 
 
-Due to the "B/A/N" protocol, approximately one-third of the dataset contains annotations, as the other
+Due to the ``B/A/N'' protocol, approximately one-third of the dataset contains annotations, as the other
   two-thirds of images were taken after removing the object of interest from the scene.
 Consequently, most images have no annotations.
 The next most frequent number of annotations is one, but images can contain multiple annotations due to
@@ -532,7 +561,7 @@ VIT-sseg-scratch    &  25.5e6 &  0.520 &   0.522 &    0.505 &     0.913 &  0.476
 \end{table*}
 
 
-\begin{figure*}[ht]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=1.0\textwidth]{figures/agg_viz_results/test_imgs30_d8988f8c.kwcoco/results_detectron-pretrained.jpg}%
 \hfill
@@ -564,7 +593,7 @@ VIT-sseg-scratch    &  25.5e6 &  0.520 &   0.522 &    0.505 &     0.913 &  0.476
 \end{figure*}
 
 
-\begin{figure*}[ht]
+\begin{figure*}[t]
 \centering
 \includegraphics[width=1.0\textwidth]{figures/agg_viz_results/vali_imgs691_99b22ad0.kwcoco/results_detectron-pretrained.jpg}%
 \hfill
@@ -609,7 +638,7 @@ We also trained a semantic segmentation vision transformer (VIT-sseg-scratch)
 %Basic overview of each model, number of parameters, citation.
 
 We performed two types of evaluations on the models.
-"Box" evaluation computes standard COCO object detection metrics \cite{lin_microsoft_2014}.
+``Box'' evaluation computes standard COCO object detection metrics \cite{lin_microsoft_2014}.
 MaskRCNN natively outputs scored bouding boxes, but for the VIT-sseg model, we convert heatmaps into boxes
   by thresholding the probability maps and converting taking the extend of the resulting polygons as bounding
   boxes.
@@ -632,7 +661,7 @@ Note that the evaluated models were selected based on their validation scores.
 Corresponding qualitative results are illustrated in \Cref{fig:test_results_all_models} for the test dataset
   and \cref{fig:vali_results_all_models} for the validation dataset.
 
-%\begin{figure*}[ht]
+%\begin{figure*}[t]
 %\centering
 %\includegraphics[width=1.0\textwidth]{figures/test_heatmaps_with_best_vali_model}%
 %\hfill
@@ -828,7 +857,7 @@ While trackers and torrent files are still prominent, torrents can be published 
 This makes it an strong candidate for a decentralized distribution mechanism.
 On the other hand, IPFS (InterPlanetary File System) \cite{benet_ipfs_2014, bieri_overview_2021} is a newer
   tool directly build directly on a DHT.
-IPFS has been likened to "a single BitTorrent swarm, exchanging objects within one Git repository".
+IPFS has been likened to ``a single BitTorrent swarm, exchanging objects within one Git repository''.
 %All data down to the block level is content addressable and stored in a Merkle DAG, which can simplify data
 %  versioning compared to using a torrent.
 %However, both IPFS and BitTorrent are effectively content addressable at the dataset level, which makes them
@@ -875,7 +904,7 @@ Rsync      & 5 & 4.84h & 1.39h & 3.10h & 6.10h \\
 \bottomrule
 \end{tabular}
 \caption[]{
-Transfer times (in hours) for our 42GB dataset, averaged over multiple trials (indicated in the "num" column).
+Transfer times (in hours) for our 42GB dataset, averaged over multiple trials (indicated in the ``num'' column).
 Girder and Rsync, tend to exhibit faster less varied transfer times compared to
 the IPFS and BitTorrent when few seeders are available.
 }
@@ -992,7 +1021,7 @@ The minimum time column shows that each method can be competitive, but on averag
 \section{Conclusion}
 
 We have introduced the largest open dataset of high resolution images with polygon
-  segmentations of dog poop, collected with a "before/after/negative" (BAN) protocol.
+  segmentations of dog poop, collected with a ``before/after/negative'' (BAN) protocol.
 The dataset contains several challenges including amorphous objects, multi-season variation, difficult
   distractors, daytime / nighttime variation.
 We have described the dataset collection and annotation process and reported statistics on the dataset.
@@ -1040,18 +1069,15 @@ We would would like to thank all of the dogs that produced subject matter for th
 
 %%%%%%%%% REFERENCES
 {\small
-\bibliographystyle{ieee_fullname}
+\bibliographystyle{ieeenat_fullname}
 \bibliography{citations}
 }
 
 
 \ifuseappendix
+% WARNING: do not forget to delete the supplementary pages from your submission 
 \include{appendix}
 \fi
-
-
-%\bibliographystyle{unsrtnat}
-%\bibliography{references}  %%% Uncomment this line and comment out the ``thebibliography'' section below to use the external .bib file (using bibtex) .
 
 
 \begin{comment}
