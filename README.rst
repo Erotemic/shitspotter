@@ -41,17 +41,26 @@ The data and pretrained models are distributed via IPFS, BitTorrent, and
 centralized mechanisms.
 
 
+Major Milestones and Goals
+==========================
+
+- [x] Dataset is big enough to train models
+- [x] Baseline models are trained
+- [ ] Efficient models for phones are trained
+- [ ] Phone application is developed
+
+
 Introduction
 ============
 
 In Fall 2019, I was at the local dog park, and I found myself in a situation
 where my dog pooped, but I had forgotten to bring bags with me. I walked to the
-local bag station (thank you DGS), grabbed one, but then I couldn't find where
+local bag station (thank you D.G.S.), grabbed one, but then I couldn't find where
 the poop was. The brown fallen leaves made it very difficult to find the poop.
 
-This happened every so often. Often I would be able to find it, but I'm afraid
-sometimes, I was unable to relocate the "object of interest". This got me
-thinking, what if I had a phone app that could scan the area with the camera
+This happened every so often. Usually I would be able to find it, but there
+were times I was completely unable to find the "object of interest". This got
+me thinking, what if I had a phone app that could scan the area with the camera
 and try to locate the poop? If I had a dataset, training a poop detection model
 with today's deep learning methods should work pretty well.
 
@@ -109,7 +118,7 @@ https://data.kitware.com/#user/598a19658d777f7d33e9c18b/folder/66b6bc34f87a98065
 
 .. .. OLD and broken (its a dead link!): https://data.kitware.com/#user/598a19658d777f7d33e9c18b/folder/65d6c52fb40ab0fa6c57909b
 
-Unlike IPFS, which (ideally) gives seemless access to the data, the centralized
+Unlike IPFS, which (ideally) gives seamless access to the data, the centralized
 storage has the upload from each update grouped in its own zipfile. If
 annotations for one of these folders changes, the entire zipfile will be
 reuploaded, so there will be no mechanism for version control.
@@ -550,7 +559,7 @@ I want to give special thanks to my first two poop machines - Honey and Bezoar
 Honey - (~2013 - ) - Adopted in June 2015, Honey is often called out for her
 resemblance to a fox and is notable for her eagerness for attention and
 outgoing personality.  DNA analysis indicates that she is part Boxer, Beagle,
-German Shepard, and Golden Retriever.  Honey's likes include: breakfast,
+German Shepherd, and Golden Retriever.  Honey's likes include: breakfast,
 sniffing stinky things, digging holes, sleeping on soft things, viciously
 shaking small furry objects, and whining for absolutely no reason.  Honey's
 dislikes include: baths, loud noises, phone calls, and arguments.  Honey came
@@ -569,7 +578,7 @@ Bezoar - (~2018 - 2023-10-19) - Adopted in July 2020 and named for a
 `calcified hairball <https://en.wikipedia.org/wiki/Bezoar>`_, Bezoar was an
 awkward and shy dog, but grew into a curious and loving sweetheart.  Her DNA
 test indicated she was part Stafford Terrier, Cane Corso, Labrador Retriever,
-German Shepard, and Rhodesian Ridgeback.  Bezoar's likes included: breakfast, a
+German Shepherd, and Rhodesian Ridgeback.  Bezoar's likes included: breakfast, a
 particular red coco plush, boops (muzzle nudges), chasing squirrels, and
 running in the park, Bezoar's dislikes included: baths, sudden movements, rainy
 weather, and coming inside before she is ready.  Bezoar came to us from Alabama
