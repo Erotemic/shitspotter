@@ -41,8 +41,40 @@ The data and pretrained models are distributed via IPFS, BitTorrent, and
 centralized mechanisms.
 
 
-Downloading
-===========
+Introduction
+============
+
+In Fall 2019, I was at the local dog park, and I found myself in a situation
+where my dog pooped, but I had forgotten to bring bags with me. I walked to the
+local bag station (thank you DGS), grabbed one, but then I couldn't find where
+the poop was. The brown fallen leaves made it very difficult to find the poop.
+
+This happened every so often. Often I would be able to find it, but I'm afraid
+sometimes, I was unable to relocate the "object of interest". This got me
+thinking, what if I had a phone app that could scan the area with the camera
+and try to locate the poop? If I had a dataset, training a poop detection model
+with today's deep learning methods should work pretty well.
+
+Thus, on 2020-12-18, I took my first picture. My dog pooped, I took a picture,
+I picked it up, and then I took an "after" picture. The idea is that I will
+align the pictures (probably via computing local features like sift or some
+deep variant and then estimating an affine/projective transform) and then take
+a difference image. That should let me seed some sort of semi-automated
+annotation process.
+
+Then in 2021-05-11, one of my colleagues suggested that I take a 3rd unrelated
+picture to use as negative examples, so I took that suggestion and started
+doing that. This is the process currently being used. The following figure
+illustrates an example of one of these "triples".
+
+.. image:: https://i.imgur.com/NnEC8XZ.jpg
+
+
+The name "ShitSpotter" is an homage to my earlier work: `HotSpotter <https://github.com/Erotemic/hotspotter>`_, which later became `IBEIS <https://github.com/Erotemic/ibeis>`_ This is work on individual animal identification, particularly Zebras. This work is continued by `WildMe <https://www.wildme.org/>`_.
+
+
+Downloading the Data
+====================
 
 All data is publicly hosted on IPFS and is free to use under
 "Creative Commons Attribution 4.0 International" `(CC BY 4.0) <https://creativecommons.org/licenses/by/4.0/deed.en>`_.
@@ -120,38 +152,6 @@ some time for it to fully drop.
 * 2021-11-23 - Added annotation process overview and dataset sample.
 * 2021-11-11 - Initial upload of data munging scripts.
 * 2020-12-18 - Took the first picture.
-
-
-Introduction
-============
-
-In Fall 2019, I was at the local dog park, and I found myself in a situation
-where my dog pooped, but I had forgotten to bring bags with me. I walked to the
-local bag station (thank you DGS), grabbed one, but then I couldn't find where
-the poop was. The brown fallen leaves made it very difficult to find the poop.
-
-This happened every so often. Often I would be able to find it, but I'm afraid
-sometimes, I was unable to relocate the "object of interest". This got me
-thinking, what if I had a phone app that could scan the area with the camera
-and try to locate the poop? If I had a dataset, training a poop detection model
-with today's deep learning methods should work pretty well.
-
-Thus, on 2020-12-18, I took my first picture. My dog pooped, I took a picture,
-I picked it up, and then I took an "after" picture. The idea is that I will
-align the pictures (probably via computing local features like sift or some
-deep variant and then estimating an affine/projective transform) and then take
-a difference image. That should let me seed some sort of semi-automated
-annotation process.
-
-Then in 2021-05-11, one of my colleagues suggested that I take a 3rd unrelated
-picture to use as negative examples, so I took that suggestion and started
-doing that. This is the process currently being used. The following figure
-illustrates an example of one of these "triples".
-
-.. image:: https://i.imgur.com/NnEC8XZ.jpg
-
-
-The name "ShitSpotter" is an homage to my earlier work: `HotSpotter <https://github.com/Erotemic/hotspotter>`_, which later became `IBEIS <https://github.com/Erotemic/ibeis>`_ This is work on individual animal identification, particularly Zebras. This work is continued by `WildMe <https://www.wildme.org/>`_.
 
 Related Work
 ============
