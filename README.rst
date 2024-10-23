@@ -44,7 +44,8 @@ centralized mechanisms.
 Major Milestones and Goals
 ==========================
 
-- ☑ Dataset is big enough to train models
+- ☑ Dataset has enough images to train models
+- ☑ Dataset has enough annotations to train models
 - ☑ Baseline models are trained
 - ☐ Efficient models for phones are trained
 - ☐ Phone application is developed
