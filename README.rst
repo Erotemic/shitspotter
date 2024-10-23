@@ -46,6 +46,8 @@ Major Milestones and Goals
 
 This following is the high level status of the project.
 
+- ☑ Image collection started (2020-12-18)
+- ☑ Image collection published (2021-12-30)
 - ☑ Dataset has enough images to train models (2023-03-03)
 - ☑ Dataset has enough annotations to train models (2023-11-17)
 - ☑ Baseline models are trained (2024-07-27)
