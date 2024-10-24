@@ -1,8 +1,8 @@
 type: ipfs-sidecar
-cid: bafybeibcho3molnx2fgbueeptwzk3kbvpcswkmbscwlkexpuwtaqkqo2ii
+cid: bafybeidbnl73jsr4fnx3j4ge4opyexfnqd6si4ob67lxnes3qxruwzvqki
 rel_path: figures
-size: 25.75 MiB
-num_items: 28
+size: 67.49 MiB
+num_items: 45
 add_config:
   path: /home/joncrall/code/shitspotter/papers/application-2024/figures
   name: shitspotter-figures
@@ -13,5 +13,5 @@ add_config:
   only_hash: false
   pin: true
   sidecar: true
-add_datetime: 2024-10-06T213737-5
-add_duration: 0.9248009730072226
+add_datetime: 2024-10-23T212322-5
+add_duration: 7.93515547500283
