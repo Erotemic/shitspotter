@@ -590,6 +590,8 @@ VIT-sseg-scratch    &  25.5e6 &  0.520 &   0.522 &    0.505 &     0.913 &  0.476
     The threshold for binarization was set to $0.5$ in all cases.
     All three methods show clear responses to objects of interest, but cases where objects are close-up 
       and partially deteriorated do seem to be a common failure mode.
+    Camouflage is likely a failure case, but this dataset does not contain
+      many examples.
     
 }
 \label{fig:test_results_all_models}
@@ -617,7 +619,7 @@ VIT-sseg-scratch    &  25.5e6 &  0.520 &   0.522 &    0.505 &     0.913 &  0.476
       cause spurious cases that agree with the truth labels, but this dataset
       was never used to compute a gradient, which still make these valuable
       results for assessing generalizability. Notably the models were able to
-      pick out camouflaged cases on the left.
+      pick out camouflaged cases on the left, but not all on the right.
 }
 \label{fig:vali_results_all_models}
 \end{figure*}
