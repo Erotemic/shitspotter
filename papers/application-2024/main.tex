@@ -121,7 +121,8 @@ validation set and 0.847 on a small independently captured 30-image contributor
 test set.
 %We train a baseline vision transformer to segment the objects of interest, exploring a grid of hyperparameters, and we evaluate their impact. 
 
-The most recent snapshot of dataset is made publicly available through three different distribution methods: one centralized and two decentralized (IPFS and BitTorrent).  We perform an observational study of the trade-offs between distribution methods and discuss the feasibility of each with respect to reliably sharing open scientific data.
+The most recent snapshot of dataset is made publicly available through three different distribution methods: one centralized (Girder) and two decentralized (IPFS and BitTorrent).  
+We study of the trade-offs between distribution methods and discuss the feasibility of each with respect to reliably sharing open scientific data.
 
 The code to reproduce the experiments is hosted on GitHub, and the data is published under the Creative Commons Attribution 4.0 International license.  Model weights are made publicly available with the dataset. Experimental hardware, time, energy, and emissions are quantified.
 
@@ -248,12 +249,15 @@ into how to better train object detection and segmentation networks.
 
 Towards these ends we introduce a new dataset, which 
 %for the purpose of this paper we call "ScatSpotter".
-we formally call ``ScatSpotter''.
+%we formally call ``ScatSpotter''.
+in formal settings, we call ``ScatSpotter''.
 Poops are annotated with polygons making the dataset suitable for training detection and segmentation
   models.
 In order to assist with annotation and add variation, we collect images using a ``before/after/negative''
   protocol as shown in \Cref{fig:ThreeImages}.
-We train a segmentation model to classify which pixels in an image contain poop and which do not.
+
+From this data, we train a segmentation model to classify which pixels in an image contain poop and which do
+  not.
 Our models show strong performance, but there are notable failure cases indicating this problem is difficult
   even for modern computer vision algorithms.
 
@@ -542,19 +546,18 @@ VIT-sseg-scratch    &  25.5e6 &  0.520 &   0.522 &    0.505 &     0.913 &  0.476
 \bottomrule
 \end{tabular}
 \caption[]{
-    Quantitative results on the test and validation datasets. 
+    Quantitative results on the test and validation datasets.
     Unsurprisingly, the model starting with pretrained weights scores best.
-    Models are evaluated using bounding-box metrics (under the Box column) as
-    well as pixelwise-segmentation metrics (under the Pixel column). The
-    average precision (AP) is the area under the precision/recall curve. The
-    AUC is the area under the receiver operating characteristic
-    recall/false-positive-rate curve .
-    Thus AP is more sensitive to precision
-    and AUC is more sensitive to false positives.
+    Models are evaluated using bounding-box metrics (under the Box column) as well as pixelwise-segmentation
+      metrics (under the Pixel column).
+    We consider positive predictive value (ppv or precision), true-positive-rate (tpr or recall), and false positive rate (fpr).
+    The average precision (AP) is the area under the ppv/tpr curve \cite{powers_evaluation_2011}.
+    The AUC is the area under the tpr/fpr curve.
+    Thus AP is more sensitive to ppv and AUC is more sensitive to fpr.
     All metrics were computed using scikit-learn \cite{scikit-learn}.
-    We note an important limitation of our results: much more time was spent
-    tuning the VIT-sseg model. It is likely that MaskRCNN results could be
-    improved with further tuning. 
+    We note an important limitation of our results:
+    much more time was spent tuning the VIT-sseg model.
+    It is likely that MaskRCNN results could be improved with further tuning.
     %But these are baseline models; our core contribution is the dataset.
 }
 \label{tab:model_results}
@@ -1045,6 +1048,7 @@ Looking towards the future, our planned directions for research and development 
 1) Training a model optimized for mobile devices.
 2) Mine hard negatives based on false positives in the training set.
 3) Build and publish a phone application that uses the mobile-optimized model to detect poop in real time.
+4) Collect more data.
 % https://github.com/iterative/dvc/discussions/6777
 
 We envision exciting possibilities for the BAN protocol in computer vision research.
