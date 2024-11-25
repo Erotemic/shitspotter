@@ -1,0 +1,6 @@
+[transcrypt]
+	version = 3.0.0-pre
+	cipher = aes-256-cbc
+	digest = sha512
+	kdf = pbkdf2
+	base-salt = 85c7d4aba5dbf6978e430f1909276f73
