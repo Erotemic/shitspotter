@@ -65,6 +65,9 @@ def detectron_predict(config):
         rich.print('config = ' + escape(ub.urepr(config, nl=1)))
     """
     # import shitspotter
+    import geowatch_tpl
+    detectron2 = geowatch_tpl.import_submodule('detectron2')
+    detectron2
     from detectron2.engine import DefaultPredictor
     from detectron2.config import get_cfg
     from detectron2 import model_zoo

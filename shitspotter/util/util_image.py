@@ -1,6 +1,7 @@
 """
 Image utilities
 """
+import ubelt as ub
 
 
 def imread_with_exif(fpath, overview=None):
@@ -26,58 +27,187 @@ def imread_with_exif(fpath, overview=None):
 def extract_exif_metadata(fpath):
     from PIL import Image, ExifTags
     from PIL.ExifTags import GPSTAGS
-    import ubelt as ub
 
     img = Image.open(fpath)
-    exif = {ExifTags.TAGS[k]: v for k, v in img._getexif().items()
-            if k in ExifTags.TAGS}
-    if 'GPSInfo' in exif:
-        # TODO: get raw rationals?
-        exif['GPSInfo'] = ub.map_keys(GPSTAGS, exif['GPSInfo'])
+    exif_data = img._getexif()
+    if exif_data is not None:
+        exif = {ExifTags.TAGS[k]: v for k, v in exif_data.items()
+                if k in ExifTags.TAGS}
+        if 'GPSInfo' in exif:
+            # TODO: get raw rationals?
+            exif['GPSInfo'] = ub.map_keys(GPSTAGS, exif['GPSInfo'])
+    else:
+        exif = {}
     return exif
 
 
-def scrub_exif_metadata(fpath, new_fpath):
+def scrub_exif_metadata(fpath, scrubbed_fpath, delta_fpath=None, remove_gps=True, remove_tags=True):
     """
     Test that we can modify EXIF data (e.g. remove GPS or timestamp)
     without modifying the image.
 
+    Args:
+        fpath (str): Path to the original image file with EXIF metadata.
+
+        scrubbed_fpath (str):
+            Path where the scrubbed image (without EXIF metadata) will be
+            saved.
+
+        delta_fpath (str | None):
+            Path to save a delta file that encodes the differences between the
+            original image and the scrubbed image. If None, no delta is saved.
+
+        remove_gps (bool): if True, remove all GPS info.
+
+        remove_tags (bool):
+            if True remove all other info.  TODO: allow for a list of EXIF tags
+            to keep/remove (e.g., ["Orientation", "DateTime", "ExposureTime"]).
+
     Example:
         >>> # xdoctest: +REQUIRES(module:PIL)
         >>> # xdoctest: +REQUIRES(module:piexif)
+        >>> # Test without the delta path
         >>> from shitspotter.util.util_image import *  # NOQA
-        >>> from shitspotter.util.util_image import *  # NOQA
-        >>> fpath = _dummy_exif_image()
-        >>> new_fpath = fpath.augment(stemsuffix='scrubed')
-        >>> scrub_exif_metadata(fpath, new_fpath)
+        >>> fpath = dummy_exif_image()
+        >>> scrubbed_fpath = fpath.augment(stemsuffix='.scrubed')
+        >>> scrub_exif_metadata(fpath, scrubbed_fpath)
         >>> import kwimage
         >>> data1 = kwimage.imread(fpath)
-        >>> data2 = kwimage.imread(new_fpath)
+        >>> data2 = kwimage.imread(scrubbed_fpath)
         >>> from kwimage.im_io import _imread_exif
         >>> meta1 = _imread_exif(fpath)
-        >>> meta2 = _imread_exif(new_fpath)
+        >>> meta2 = _imread_exif(scrubbed_fpath)
         >>> assert sum(len(v) for v in meta1.values() if v is not None) > 10
         >>> assert sum(len(v) for v in meta2.values() if v is not None) == 0
         >>> assert (data2 == data1).all()
 
-    Ignore:
-        ub.cmd(f'xxd {fpath} > b1.hex', shell=True)
-        ub.cmd(f'xxd {new_fpath} > b2.hex', shell=True)
-        _ = ub.cmd('diff -y b1.hex b2.hex', verbose=3, shell=1)
+    Example:
+        >>> # xdoctest: +SKIP(fixme: requires xdelta3)
+        >>> # xdoctest: +REQUIRES(module:PIL)
+        >>> # xdoctest: +REQUIRES(module:piexif)
+        >>> # Test with delta and reconstruction
+        >>> from shitspotter.util.util_image import *  # NOQA
+        >>> fpath = dummy_exif_image()
+        >>> scrubbed_fpath = fpath.augment(stemsuffix='.scrubed')
+        >>> delta_fpath = fpath.augment(stemsuffix='.delta')
+        >>> # Test the ability to reconstruct
+        >>> restored_fpath = fpath.augment(stemsuffix='.recon')
+        >>> scrub_exif_metadata(fpath, scrubbed_fpath, delta_fpath)
+        >>> import kwimage
+        >>> data1 = kwimage.imread(fpath)
+        >>> data2 = kwimage.imread(scrubbed_fpath)
+        >>> from kwimage.im_io import _imread_exif
+        >>> meta1 = _imread_exif(fpath)
+        >>> meta2 = _imread_exif(scrubbed_fpath)
+        >>> assert sum(len(v) for v in meta1.values() if v is not None) > 10
+        >>> assert sum(len(v) for v in meta2.values() if v is not None) == 0
+        >>> assert (data2 == data1).all()
+        >>> unscrub_exif_metadata(scrubbed_fpath, delta_fpath, restored_fpath)
+        >>> assert restored_fpath.exists()
+        >>> assert ub.hash_file(restored_fpath) == ub.hash_file(fpath)
+        >>> delta_size = delta_fpath.stat().st_size
+        >>> scrub_size = scrubbed_fpath.stat().st_size
+        >>> orig_size = fpath.stat().st_size
+        >>> print(f'delta_size = {ub.urepr(delta_size, nl=1)}')
+        >>> print(f'scrub_size = {ub.urepr(scrub_size, nl=1)}')
+        >>> print(f'orig_size = {ub.urepr(orig_size, nl=1)}')
+
+    Example:
+        >>> # xdoctest: +SKIP(fixme: requires xdelta3)
+        >>> # xdoctest: +REQUIRES(module:PIL)
+        >>> # xdoctest: +REQUIRES(module:piexif)
+        >>> # Test with only some tags removed
+        >>> from shitspotter.util.util_image import *  # NOQA
+        >>> fpath = dummy_exif_image()
+        >>> scrubbed_fpath = fpath.augment(stemsuffix='.scrubed')
+        >>> delta_fpath = fpath.augment(stemsuffix='.delta')
+        >>> # Test the ability to reconstruct
+        >>> restored_fpath = fpath.augment(stemsuffix='.recon')
+        >>> scrub_exif_metadata(fpath, scrubbed_fpath, delta_fpath, remove_tags=False)
+        >>> import kwimage
+        >>> data1 = kwimage.imread(fpath)
+        >>> data2 = kwimage.imread(scrubbed_fpath)
+        >>> from kwimage.im_io import _imread_exif
+        >>> meta1 = _imread_exif(fpath)
+        >>> meta2 = _imread_exif(scrubbed_fpath)
+        >>> assert sum(len(v) for v in meta1.values() if v is not None) > 20
+        >>> assert sum(len(v) for v in meta2.values() if v is not None) < 20
+        >>> assert (data2 == data1).all()
+        >>> unscrub_exif_metadata(scrubbed_fpath, delta_fpath, restored_fpath)
+        >>> assert restored_fpath.exists()
+        >>> assert ub.hash_file(restored_fpath) == ub.hash_file(fpath)
+        >>> delta_size = delta_fpath.stat().st_size
+        >>> scrub_size = scrubbed_fpath.stat().st_size
+        >>> orig_size = fpath.stat().st_size
+        >>> print(f'delta_size = {ub.urepr(delta_size, nl=1)}')
+        >>> print(f'scrub_size = {ub.urepr(scrub_size, nl=1)}')
+        >>> print(f'orig_size = {ub.urepr(orig_size, nl=1)}')
     """
     import piexif
     import os
-    new_exif = piexif.dump({})
     raw_bytes = fpath.read_bytes()
-    # old_exif = piexif.load(raw_bytes)
-    piexif.insert(new_exif, raw_bytes, new_file=os.fspath(new_fpath))
+
+    exif_dict = piexif.load(raw_bytes)
+
+    # Define the EXIF fields to remove
+    if remove_gps:
+        # Specifically remove GPS data
+        if "GPS" in exif_dict:
+            exif_dict["GPS"] = {}  # Remove all GPS data
+
+    if remove_tags:
+        # Filter out other EXIF fields while keeping specified tags
+        keep_tags = []
+        for ifd, ifd_data in exif_dict.items():
+            if isinstance(ifd_data, dict):  # Skip non-dictionary segments
+                # idf_names = [
+                #     piexif.TAGS[ifd].get(tag, {}).get("name")
+                #     for tag in ifd_data
+                # ]
+                keys_to_remove = [
+                    tag for tag in ifd_data if piexif.TAGS[ifd].get(tag, {}).get("name") not in keep_tags
+                ]
+                for key in keys_to_remove:
+                    del ifd_data[key]
+
+    # new_exif = piexif.dump({})
+    new_exif = piexif.dump(exif_dict)
+
+    piexif.insert(new_exif, raw_bytes, new_file=os.fspath(scrubbed_fpath))
+    if delta_fpath is not None:
+        # https://pypi.org/project/xdelta3/
+        if delta_fpath.exists():
+            delta_fpath.delete()
+        # TODO: bsdiff backend? regular diff backend?
+        # diff --binary foo.scrubbed.jpg foo.jpg > foo.diff
+        # patch foo.scrubbed.jpg < foo.diff
+        info = ub.cmd(f'xdelta3 -e -s {scrubbed_fpath} {fpath} {delta_fpath}', verbose=0)
+        if info.returncode != 0:
+            print('Failed:', info['command'])
+            print(info.stdout)
+            print(info.stderr)
+            print(f'info.stdout = {ub.urepr(info.stdout, nl=1)}')
+            info.check_returncode()
+            raise RuntimeError
 
 
-def _dummy_exif_image():
+def unscrub_exif_metadata(scrubbed_fpath, delta_fpath, restored_fpath):
+    if restored_fpath.exists():
+        restored_fpath.delete()
+    info = ub.cmd(f'xdelta3 -d -s {scrubbed_fpath} {delta_fpath} {restored_fpath}', verbose=0)
+    if info.returncode != 0:
+        print('Failed:', info['command'])
+        print(info.stdout)
+        print(info.stderr)
+        print(f'info.stdout = {ub.urepr(info.stdout, nl=1)}')
+        info.check_returncode()
+        raise RuntimeError
+
+
+def dummy_exif_image():
     import kwimage
     from PIL import Image
     import piexif
-    import ubelt as ub
     dpath = ub.Path.appdir('shitspotter/tests/exif').ensuredir()
     fpath = dpath / 'test_1.jpg'
     # Create a basic EXIF dictionary with dummy camera data

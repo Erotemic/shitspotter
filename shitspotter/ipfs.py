@@ -309,6 +309,9 @@ class IPFSAdd(scfg.DataConfig):
                 # Also handle .gitignore
 
             if config.name:
+                # TODO: maybe default the name to the filename or foldername?
+                # TODO: maybe make a wrapped version of the pin that includes
+                # the .ipfs sidecar file?
                 pin_argv = ['ipfs', 'pin', 'add']
                 pin_argv += ['--name', config.name]
                 if config.progress:

@@ -5,6 +5,9 @@ CommandLine:
     python -m shitspotter.phone_manager
 
 https://app.pinata.cloud/pinmanager
+
+TODO:
+    - [ ] Move to a staging area first so images can be scrubbed if necessary.
 """
 import ubelt as ub
 import shutil
@@ -40,11 +43,11 @@ class RemoteFromPhoneConfig(scfg.DataConfig):
         'The location on the PC to transfer all new pictures to'))
 
     @classmethod
-    def main(TransferConfig, cmdline=True, **kwargs):
+    def main(RemoteFromPhoneConfig, cmdline=True, **kwargs):
         """
         Execute main transfer logic
         """
-        config = TransferConfig.cli(cmdline=cmdline, strict=True, data=kwargs)
+        config = RemoteFromPhoneConfig.cli(cmdline=cmdline, strict=True, data=kwargs)
         import rich
         rich.print('config = {}'.format(ub.urepr(config, nl=1)))
 
@@ -260,11 +263,77 @@ class GVFSAndroidConnection(ub.Path):
         return phone_image_infos
 
 
+class SFTPAndroidConnection:
+    """
+    The SSH Server app can be used to start a sftp connection
+    """
+
+    def __init__(self):
+        ...
+
+    @classmethod
+    def from_hostname(cls):
+        """
+        Generated in part by ChatGPT
+        """
+        host = 'jonpixel5'
+
+        ...
+        import paramiko
+        # Initialize the SSH client
+        ssh_client = paramiko.SSHClient()
+
+        # Automatically add the server's host key (use with caution in production)
+        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
+        # Load SSH configuration from ~/.ssh/config
+        ssh_config = paramiko.SSHConfig()
+        with open(ub.Path("~/.ssh/config").expand()) as ssh_config_file:
+            ssh_config.parse(ssh_config_file)
+
+        # Look up the host configuration
+        host_config = ssh_config.lookup(host)
+        hostname = host_config["hostname"]
+        username = host_config.get("user")
+        port = int(host_config.get("port", 22))
+        key_filename = host_config.get("identityfile", [None])[-1]
+
+        # Need to fixup the keyfiles on my machine
+
+        # Connect to the server
+        ssh_client.connect(
+            hostname=hostname,
+            port=port,
+            username=username,
+            key_filename=key_filename,
+        )
+        print(f"Connected to {hostname} as {username}")
+
+        # Open an SFTP session
+        sftp = ssh_client.open_sftp()
+        remote_path = '.'
+        print(f"Listing directories in: {remote_path}")
+        print(f'sftp={sftp}')
+
+        # List all files and directories
+        for item in sftp.listdir_attr(remote_path):
+            if paramiko.SFTPAttributes.S_IFDIR & item.st_mode:  # Check if it's a directory
+                print(f"Directory: {item.filename}")
+
+        # Close the SFTP session and SSH client
+        sftp.close()
+        ssh_client.close()
+        print("Disconnected from server.")
+
+
 def prepare_phone_transfer(config):
     """
     Gather information about the files that need to be transfered.
     """
-    phone = GVFSAndroidConnection.discover()[0]
+    # TODO: get this working over sftp as well
+    found = GVFSAndroidConnection.discover()
+    assert len(found) == 1, 'should only have 1'
+    phone = found[0]
     phone_image_infos = phone.dcim_image_infos()
     print(f'Found {len(phone_image_infos)=} phone pictures')
 
@@ -393,8 +462,12 @@ def transfer_phone_pictures(new_dpath, needs_transfer_infos):
 
 def finalize_transfer(new_dpath):
     """
-    from shitspotter.phone_manager import *  # NOQA
-    new_dpath = "/data/store/Pictures/Phone-DCIM-2023-03-11-T165018"
+    TODO:
+        This needs to be update to handle privacy scrubbing
+
+    Ignore:
+        from shitspotter.phone_manager import *  # NOQA
+        new_dpath = "/data/store/Pictures/Phone-DCIM-2023-03-11-T165018"
     """
     import shitspotter
     import xdev
@@ -404,8 +477,10 @@ def finalize_transfer(new_dpath):
     new_dpath = ub.Path(new_dpath)
     new_stamp = new_dpath.name.split('-', 2)[2]
 
-    coco_fpath = shitspotter.util.find_shit_coco_fpath()
-    asset_dpath = coco_fpath.parent / 'assets'
+    staging_dpath = shitspotter.util.find_staging_dpath()
+
+    shitspotter_dvc_dpath = shitspotter.util.find_data_dpath()
+    asset_dpath = staging_dpath / 'assets'
 
     new_shit_dpath = asset_dpath / f'poop-{new_stamp}'
     new_shit_dpath.ensuredir()
@@ -443,13 +518,24 @@ def finalize_transfer(new_dpath):
         # Update the README based on the output of these scripts
         '''), 'bash'))
 
+    print_pin_instructions(shitspotter_dvc_dpath, new_shit_dpath)
+
+
+def print_pin_instructions(shitspotter_dvc_dpath, new_shit_dpath):
+    """
+    Ignore:
+        import sys, ubelt
+        sys.path.append(ubelt.expandpath('~/code/shitspotter'))
+        from shitspotter.phone_manager import *  # NOQA
+        import shitspotter
+        shitspotter_dvc_dpath = shitspotter.util.util_data.find_data_dpath()
+        new_shit_dpath = ub.Path('/home/joncrall/code/shitspotter/shitspotter_dvc/assets/poop-2024-12-30-T212347')
+    """
     # print('Next step is to run the gather script: `python -m shitspotter.gather`')
     # print('Next step is to run the matching script: `python -m shitspotter.matching autofind_pair_hueristic`')
     # print('Next step is to run the plots script: `python -m shitspotter.plots update_analysis_plots`')
     print('')
     print('# Then repin the updated dataset to IPFS')
-
-    shitspotter_dvc_dpath = coco_fpath.parent
 
     import kwutil
     today = kwutil.util_time.datetime.coerce('now').date()

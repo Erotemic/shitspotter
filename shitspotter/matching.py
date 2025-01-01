@@ -43,8 +43,15 @@ def autofind_pair_hueristic(coco_dset=None):
 
     image_df = pd.DataFrame(coco_dset.dataset['images'])
 
-    has_annots = [len(aids) > 0 for aids in coco_dset.images(image_df['id']).aids]
-    image_df['has_annots'] = has_annots
+    images = coco_dset.images(image_df['id'])
+
+    classes_of_interest = {'poop'}
+    has_annots_of_interest = []
+    for annots in images.annots:
+        flag = len(set(annots.cnames) & set(classes_of_interest)) > 0
+        has_annots_of_interest.append(flag)
+
+    image_df['has_annots'] = has_annots_of_interest
     image_df = image_df.sort_values('datetime')
 
     ordered_gids = image_df.id.tolist()
@@ -273,8 +280,14 @@ def autofind_pair_hueristic(coco_dset=None):
     print(f'total_images = {total_imgs}')
 
     num_images_with_annots = sum([bool(a) for a in coco_dset.images().annots])
+
+    num_images_with_annots_of_interest = sum([
+        bool(set(a.cnames) & classes_of_interest)
+        for a in coco_dset.images().annots])
+
     num_annots = coco_dset.n_annots
     print('num_images_with_annots = {}'.format(ub.urepr(num_images_with_annots, nl=1)))
+    print('num_images_with_annots_of_interest = {}'.format(ub.urepr(num_images_with_annots_of_interest, nl=1)))
     print('num_annots = {}'.format(ub.urepr(num_annots, nl=1)))
 
     if 1:
@@ -285,7 +298,7 @@ def autofind_pair_hueristic(coco_dset=None):
             '# Images': total_imgs,
             '# Estimated Groups': total_estimated_number_of_tups,
             '# Registered Groups': total_matchable_tups,
-            '# Annotated Images': num_images_with_annots,
+            '# Annotated Images': num_images_with_annots_of_interest,
         }
         print('New row for README')
         print('| {:<12s}| {:<8s} | {:<18s}  | {:<22s}| {:<22s}|'.format(*list(row.keys())))

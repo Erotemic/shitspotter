@@ -51,7 +51,8 @@ This following is the high level status of the project.
 - ☑ Dataset has enough images to train models (2023-03-03)
 - ☑ Dataset has enough annotations to train models (2023-11-17)
 - ☑ Baseline models are trained (2024-07-27)
-- ☐ Scientific paper about dataset published
+- ☐ Scientific paper about dataset `published on arxiv <https://www.arxiv.org/abs/2412.16473>`_ (2024-12-21)
+- ☐ Scientific paper about dataset peer-reviewed
 - ☐ Efficient models for phones are trained
 - ☐ Phone application is developed
 
@@ -135,6 +136,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2024-12-31 - It is the end of 2024, lots has changed: new varied images, new privacy policy, and new contributions. Happy new year 🎊, all new 2025 images will go into the train set.
 * 2024-09-16 - It's not part of a triple (I did not have a bag with me) but the dataset now has an international poop.
 * 2024-07-03 - Happy 4th 🎆, my dogs are shitting themselves.
 * 2024-06-15 - Small image drop. Working on writeup. Training new models.
@@ -352,8 +354,9 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 | 2024-09-16  | 7108     | ~2500               | 1824                  | 2501                  | bafybeibn3kmmz3ytrlmt2pwbifvcwv7veddoeuabtifgvztetilnav2gom  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
-| 2024-10-16  | 7456     | ~2616               | 1926                  | 2618                  |                                                              |
+| 2024-12-31  | 8291     | ~2894               | 2108                  | 2898                  | bafybeie2nfp6km4x63ldpysnje4qaggijnh5jilgawjcdnahoddvxln3xm  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
+
 
 
 

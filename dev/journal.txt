@@ -83,3 +83,60 @@ suppose.
 
 Solicited pics on https://www.reddit.com/r/Albany/comments/1g28ger/albany_dog_poop_detection_send_me_your_poop_pics/
 Not sure if it will get any hits. Some of the responses were surprising.
+
+# 2024-12-29
+
+A few days ago I got 75 high-quality pictures from someone online. It doesn't
+seem related to the albany reddit post which got nothing. There are some
+challenging cases in the images and they are perfect for testing. Very happy
+about that.
+
+I've been unable to update as frequently as I would have liked in the past 2
+months. I'm trying to figure out the best way to temporarily remove
+identifiable metadata (i.e. GPS location). This is challenging for a few
+reasons. GPS turns out to be less accurate than I would like, and surrounding
+buildings seem to throw things off by a lot to the point where there isn't a
+good line between locations I want to be public and those I want to be private.
+
+What I've done so far is:
+* setup a transcrypt repo that stores secret logic for how I determine which images will have their metadata removed. Some of this can be based on geolocation, but due to GPS errors that is not enough, and we need a different non-public method.
+* After running the images through the logic, the ones that are sensitive are marked to have their GPS info removed.
+* Given a list of marked images, I scrub the metadata, but I also create a binary diff that if applied to the original image would "rehydrate" it and restore it to its original state.
+
+These diffs are going to be stored in an encrypted format and distributed with
+the dataset. I do eventually want to "rehydrate" the stripped metadata, as
+noisy GPS locations won't be sensitive forever (and frankly aren't that
+sensitive right now, but this is more of a privacy exercise than a critical
+component, otherwise I wouldn't even post the encrypted version online). An
+interesting way I can think to do this would be to set up a dead man's switch
+on Ethereum's EVM. Perhaps using https://sarcophagus.io/
+
+RPI grad has a paper about kill switches: https://arxiv.org/html/2407.10302v1
+
+The idea would be to store the encrypted version of the key on the blockchain
+and then after some amount of time passes or some other condition is met the
+decryption will automatically take place, and the full dataset will effectively
+become public.
+
+I'm currently using the detectron2 model to seed annotations for the next
+round.  I think its at the point where it is ultimately less work. I'm also
+annotating false positives (e.g. rock / leaf) so the network can be given those 
+regions explicitly as hard negatives.
+
+# 2024-12-30
+
+Well, I got the scrubbing and release done. The pattern of uploading the entire
+dataset to IPFS every time is somewhat unsustainable. It needs to scan 53GB to
+build the final CID currently. Its taking over 30 minutes to just build the
+CID. Not the end of the world, but it shouldn't be taking this long, or at least 
+we should be able to have a system where only the new data needs to be scanned.
+
+I think what I will do is use the new shitspotter.ipfs logic to build DVC like
+sidecar files and then push the sidecars to a git repo. This will give much
+better response times in the future.
+
+However, something to note is that pinning on a new machine where all of the
+sub-cids have been pinned, it is very fast. Err, this might not be correct.
+
+Yeah, the CID it spat out was something that already existed, and the issue was
+that it could read in a file with write protections. 
