@@ -318,5 +318,34 @@ if __name__ == "__main__":
     Hmm, maybe not, that caused a significant drop in hash rate, down to 10Hz,
     but maybe that is ok if there are enough workers?
 
+    export IPFS_PATH=$HOME/tmp/ipfs-test5
+    mkdir -p "$IPFS_PATH"
+    ipfs init --profile badgerds
+    python ~/code/shitspotter/dev/poc/ipns_vanity_v2.py
+
+    Oh yeah, using badgerds is much quicker, and it looks like it can run in
+    parallel without too much issue.
+
+    export IPFS_PATH=$HOME/tmp/ipfs-test6
+    mkdir -p "$IPFS_PATH"
+    ipfs init --profile badgerds
+    python ~/code/shitspotter/dev/poc/ipns_vanity_v2.py
+
+    export IPFS_PATH=$HOME/tmp/ipfs-test7
+    mkdir -p "$IPFS_PATH"
+    ipfs init --profile badgerds
+    python ~/code/shitspotter/dev/poc/ipns_vanity_v2.py
+
+    export IPFS_PATH=$HOME/tmp/ipfs-test8
+    mkdir -p "$IPFS_PATH"
+    ipfs init --profile badgerds
+    python ~/code/shitspotter/dev/poc/ipns_vanity_v2.py
+
+    export IPFS_PATH=$HOME/tmp/ipfs-test9
+    mkdir -p "$IPFS_PATH"
+    ipfs init --profile badgerds
+    python ~/code/shitspotter/dev/poc/ipns_vanity_v2.py
+
+
     """
     main()
