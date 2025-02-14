@@ -140,3 +140,32 @@ sub-cids have been pinned, it is very fast. Err, this might not be correct.
 
 Yeah, the CID it spat out was something that already existed, and the issue was
 that it could read in a file with write protections. 
+
+
+# 2025-02-07
+
+
+I found a new related dataset:
+
+Poultry fecal imagery dataset for health status prediction: A case of South-West Nigeria
+Halleluyah O Aworinde 1, Segun Adebayo 2, Akinwale O Akinwunmi 1, Olufemi M
+Alabi 2, Adebamiji Ayandiji 2, Aderonke B Sakpere 3, Abel K Oyebamiji 2, Oke
+Olaide 1, Ezenma Kizito 1, Abayomi J Olawuyi 1
+Affiliations Expand
+PMID: 37674505 PMCID: PMC10477973 DOI: 10.1016/j.dib.2023.109517
+
+https://pubmed.ncbi.nlm.nih.gov/37674505/
+
+https://universe.roboflow.com/search?q=class:fecal%20matter
+
+https://chatgpt.com/c/67a6a1ed-bd94-8013-b5a8-f19f8f9c9bd2
+
+https://ieee-dataport.org/documents/fecal-microscopy-dataset
+
+https://universe.roboflow.com/thesis-pr4oh/fecal-lbh0j
+
+https://arxiv.org/pdf/1903.10578
+
+https://www.reddit.com/r/poop/
+
+https://www.theverge.com/2019/10/29/20937108/poop-database-ai-training-photo-upload-first-mit
