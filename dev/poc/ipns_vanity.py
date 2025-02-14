@@ -25,8 +25,8 @@ vanity_target_infos = [
     {'suffix': 'shit', 'primary': True},
     {'suffix': 'scat', 'primary': False},
     {'suffix': 'poop', 'primary': False},
-    {'suffix': '5h1t', 'primary': True},
-    {'suffix': 'shat', 'primary': True},
+    {'suffix': '5h1t', 'primary': False},
+    {'suffix': 'shat', 'primary': False},
 ]
 
 
@@ -145,7 +145,7 @@ def main():
                         substate['best_key'] = key_name
                         prog.update_info(kwutil.Yaml.dumps(state))
                         if text_suffix == target_suffix and target_info['primary']:
-                            print(f"🎉 Found match: {ipns_address}")
+                            print(f"🎉 Found match: {ipns_address} to {text_suffix}: with {target_info}")
                             subprocess.run(["ipfs", "key", "export", "--output", f"{key_name}.pem", key_name])
                             stop_event.set()
                             break
@@ -211,7 +211,7 @@ def external_cleanup():
 
 if __name__ == "__main__":
     """
-    python ~/code/shitspotter/dev/poc/ipns_vanity_v2.py
+    python ~/code/shitspotter/dev/poc/ipns_vanity.py
 
     Note: ran for  2 days, 8:34:3[2
 
@@ -223,6 +223,100 @@ if __name__ == "__main__":
         │ num_keys_checked: 2539916    │
         │ num_cleanups: 2538     │
         │ best_address: k51qzi5uqu5dklsefqn1j2cdfs50fzobbne40r3mtlm0f0h1zccgzk98hvihit     │
-        │ best_key: vanity-key-rd45u2c5f2i5s4sfxes9nhcs5rne1yiq │
+
+
+    🔍 Found top scoring match: k51qzi5uqu5dgntcdk6a41hsl3rmqsdunqg0ojrfrmjep2ey4lq9psq4s77h1t to 5h1t
+    🔍 Found top scoring match: k51qzi5uqu5dlth41fpl038clf7ucfup5tbz8p1g7hfr6nddqcm84up8o0soop to poop
+
+    ⏹️  Stopping...
+    ╭──────────────────────────────────────────────────────────────────────────────────────
+    │ num_keys_checked: 331042                                                             │
+    │ num_cleanups: 65                                                                     │
+    │ substates:                                                                           │
+    │   shit:                                                                              │
+    │     partial_score_hist:                                                              │
+    │       1: 35536                                                                       │
+    │       2: 1481                                                                        │
+    │       3: 32                                                                          │
+    │     best_score: 3                                                                    │
+    │     best_address: k51qzi5uqu5dga9xtfxz5l3v3u1l9bvvm9absavjkd99ag7cms07hrtg3x1hit     │
+    │     best_match: 1hit                                                                 │
+    │   scat:                                                                              │
+    │     partial_score_hist:                                                              │
+    │       1: 35130                                                                       │
+    │       2: 1504                                                                        │
+    │       3: 26                                                                          │
+    │     best_score: 3                                                                    │
+    │     best_address: k51qzi5uqu5di05qxz3ss4hlawj7legxrt09amtwof87119uljxxmhxh64slat     │
+    │     best_match: slat                                                                 │
+    │   poop:                                                                              │
+    │     partial_score_hist:                                                              │
+    │       1: 34607                                                                       │
+    │       2: 1524                                                                        │
+    │       3: 25                                                                          │
+    │     best_score: 3                                                                    │
+    │     best_address: k51qzi5uqu5dlth41fpl038clf7ucfup5tbz8p1g7hfr6nddqcm84up8o0soop     │
+    │     best_match: soop                                                                 │
+    │   5h1t:                                                                              │
+    │     partial_score_hist:                                                              │
+    │       1: 35309                                                                       │
+    │       2: 1509                                                                        │
+    │       3: 23                                                                          │
+    │     best_score: 3                                                                    │
+    │     best_address: k51qzi5uqu5dgntcdk6a41hsl3rmqsdunqg0ojrfrmjep2ey4lq9psq4s77h1t     │
+    │     best_match: 7h1t                                                                 │
+    │   shat:                                                                              │
+    │     partial_score_hist:                                                              │
+    │       1: 35264                                                                       │
+    │       2: 1446                                                                        │
+    │       3: 28                                                                          │
+    │     best_score: 3                                                                    │
+    │     best_address: k51qzi5uqu5dks8om1zkgwqndegoksgxx573ykechdqh5vafrooxg6vz57sh1t     │
+    │     best_match: sh1t                                                                 │
+    │                                                                                      │
+    ╰───────────────────────────────────────────────────────────────────────────────────────
+    searching ⠧ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━   0% 333347/? 13.95 Hz eta  total 7:04:16
+
+    I feel like I'm getting very unlucky.
+
+    Also, running on my other much older machine is giving much much faster
+    hash rates. 41Hz vs 13Hz. No idea why this is. Both are on IPFS version
+    0.30.0
+
+    Turning off a bunch of other procs
+
+    OH, it must be that IPFS_PATH is pointing to an hdd versus an ssd
+
+    export IPFS_PATH=$HOME/tmp/ipfs-test
+    mkdir -p "$IPFS_PATH"
+    ipfs init
+
+    And now that makes things go much much faster: 35Hz, but still slower than
+    my other machine. Weird. The old machine is using badgerds and the new
+    machine is using leveldb, mabye that it is the issue.
+
+    The new machine also started to slow down to 20 hz
+
+    # But maybe we can run a few in parallel now
+    export IPFS_PATH=$HOME/tmp/ipfs-test2
+    mkdir -p "$IPFS_PATH"
+    ipfs init
+    python ~/code/shitspotter/dev/poc/ipns_vanity_v2.py
+
+    # But maybe we can run a few in parallel now
+    export IPFS_PATH=$HOME/tmp/ipfs-test3
+    mkdir -p "$IPFS_PATH"
+    ipfs init
+    python ~/code/shitspotter/dev/poc/ipns_vanity_v2.py
+
+    # But maybe we can run a few in parallel now
+    export IPFS_PATH=$HOME/tmp/ipfs-test4
+    mkdir -p "$IPFS_PATH"
+    ipfs init
+    python ~/code/shitspotter/dev/poc/ipns_vanity_v2.py
+
+    Hmm, maybe not, that caused a significant drop in hash rate, down to 10Hz,
+    but maybe that is ok if there are enough workers?
+
     """
     main()
