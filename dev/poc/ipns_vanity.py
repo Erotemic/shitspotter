@@ -346,6 +346,16 @@ if __name__ == "__main__":
     ipfs init --profile badgerds
     python ~/code/shitspotter/dev/poc/ipns_vanity_v2.py
 
+    ipfs pin ls --type="recursive" --names
+
+    ipfs name resolve /ipns/k51qzi5uqu5dje1ees96dtsoslauh124drt5ajrtr85j12ae7fwsfhxb07shit
+    bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y
+    ipfs pin add --name shitspotter-2024-07-03 --progress bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y
+
+    ipfs name publish --key=shitspotter-key /ipfs/bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y
+
+    ipfs ls /ipfs/bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y
+    ipfs ls /ipns/k51qzi5uqu5dje1ees96dtsoslauh124drt5ajrtr85j12ae7fwsfhxb07shit
 
     """
     main()
