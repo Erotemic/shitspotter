@@ -169,3 +169,41 @@ https://arxiv.org/pdf/1903.10578
 https://www.reddit.com/r/poop/
 
 https://www.theverge.com/2019/10/29/20937108/poop-database-ai-training-photo-upload-first-mit
+
+
+# 2025-03-07
+
+I haven't been updating this project much in the last 2-3 months, but I've
+still been taking pictures.
+
+I'm starting an update today, but its a big bundle of 1199 images from my phone
+(of which some are for this dataset). Looks like 440 of them were poop images,
+so 145ish new poop images, which should give us over 2k positive examples.
+
+My picture taking pattern has also changed, given that we moved from a place
+without a yard to a place with a yard. Now the images are much more bursty as I
+don't need to take the dogs out on a leash. So I pick a bunch up later. That
+means less diverse time of day, but now there is less of a freshness bias as
+I'll wait a few days before picking everything up. I do still go on walks into
+the city, so there are still new fresh and not-my-dogs examples coming in.
+
+Been working on the YOLO training. Out of the box it did not work. I had to do
+some rewrites of the WongKinYiu https://github.com/MultimediaTechLab/YOLO.git
+YOLO fork. 
+https://github.com/MultimediaTechLab/YOLO/pull/150
+
+After I wrote code to visualize the training bathes, I realized the
+augmentations were all wrong for this dataset, there was no flipping, and
+the mosic and crop/resize probably hurt convergence. I played with exposing
+more lightning CLI features and tuned gradient clipping, lr, batch size, and
+simplified the dataset (merged small nearby boxes into a single box) with the
+intent of helping YOLO learn better. ChatGPT said it had an unstable loss
+surface, but I'd like to see sources that better explain why. I believe it
+though. YOLO is a bitch to train. Was in v2, and it seems like it still is in
+v9. But when it work, it does work well. But I've noticed gradients like to
+explode. Wish I understood if this actually was more likely to happen or not
+with YOLO vs other models.
+
+Running with the simplified data, a low LR of 0.0003, a batch size of 16*50,
+and starting from v9 weights seems to be doing better than I've done on this
+dataset before.

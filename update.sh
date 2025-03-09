@@ -17,6 +17,8 @@ To add a new cohort of data use
 
     python -m shitspotter.phone_manager
 
+This will transfer data into a staging area.
+
 * Add manual annotations with labelme (or maybe bootstrap with existing models? todo)
 "
 

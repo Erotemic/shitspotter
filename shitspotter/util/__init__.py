@@ -3,7 +3,6 @@ mkinit ~/code/shitspotter/shitspotter/util/__init__.py --lazy -w
 """
 
 
-
 def lazy_import(module_name, submodules, submod_attrs):
     import importlib
     import os

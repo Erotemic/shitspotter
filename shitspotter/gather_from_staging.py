@@ -1,21 +1,21 @@
-def gather_from_staging():
+def gather_from_staging(staging_shit_dpath, staging_dpath, shitspotter_dvc_dpath):
     """
     Given a path to raw staged data, scrub and copy the data into the DVC /
     version controlled data repo.
-    """
-    import ubelt as ub
-    staging_dpath = ub.Path('/home/joncrall/data/dvc-repos/shitspotter_staging')
-    data_dpath = ub.Path('/home/joncrall/data/dvc-repos/shitspotter_dvc')
 
+    Ignore:
+        new_shit_dpath
+        data_dpath
+        staging_dpath = ub.Path('/home/joncrall/data/dvc-repos/shitspotter_staging')
+        shitspotter_dvc_dpath = ub.Path('/home/joncrall/data/dvc-repos/shitspotter_dvc')
+        staging_shit_dpath = staging_dpath / 'assets/poop-2024-12-30-T212347/'
+    """
     from shitspotter.gather import _new_generic_gather_image_rows
     from shitspotter.gather import _new_generic_image_gdf_expand
-
-    image_dpath = staging_dpath / 'assets/poop-2024-12-30-T212347/'
-
-    image_rows = _new_generic_gather_image_rows(image_dpath)
+    data_dpath = shitspotter_dvc_dpath
+    image_rows = _new_generic_gather_image_rows(staging_shit_dpath)
     image_gdf = _new_generic_image_gdf_expand(image_rows)
-    copy_to_repo(image_gdf)
-
+    copy_to_repo(image_gdf, staging_dpath, data_dpath)
     # Now at this point, we can run gather like normal
 
 

@@ -10,7 +10,6 @@ TODO:
     - [ ] Move to a staging area first so images can be scrubbed if necessary.
 """
 import ubelt as ub
-import shutil
 import os
 import re
 import scriptconfig as scfg
@@ -43,11 +42,23 @@ class RemoteFromPhoneConfig(scfg.DataConfig):
         'The location on the PC to transfer all new pictures to'))
 
     @classmethod
-    def main(RemoteFromPhoneConfig, cmdline=True, **kwargs):
+    def main(RemoteFromPhoneConfig, argv=True, **kwargs):
         """
         Execute main transfer logic
+
+        Ignore:
+
+            IPython interaction starting point.
+
+            >>> import sys, ubelt
+            >>> sys.path.append(ubelt.expandpath('~/code/shitspotter'))
+            >>> from shitspotter.phone_manager import *  # NOQA
+            >>> argv = False
+            >>> kwargs = {}
+
+
         """
-        config = RemoteFromPhoneConfig.cli(cmdline=cmdline, strict=True, data=kwargs)
+        config = RemoteFromPhoneConfig.cli(argv=argv, strict=True, data=kwargs)
         import rich
         rich.print('config = {}'.format(ub.urepr(config, nl=1)))
 
@@ -71,16 +82,19 @@ class RemoteFromPhoneConfig(scfg.DataConfig):
             print('FIXME: delete cache?')
             cache_dpath.delete()
             raise
+        else:
+            # Write the intermediate state to a cache so we can resume if there
+            # is an interruption. (TODO: resuming needs to be implemented)
+            prepared_transfer_fpath.write_bytes(pickle.dumps({
+                'new_dpath': new_dpath,
+                'needs_transfer_infos': needs_transfer_infos,
+            }))
+            # Move everything local
+            transfer_phone_pictures(new_dpath, needs_transfer_infos)
 
-        prepared_transfer_fpath.write_bytes(pickle.dumps({
-            'new_dpath': new_dpath,
-            'needs_transfer_infos': needs_transfer_infos,
-        }))
-
-        transfer_phone_pictures(new_dpath, needs_transfer_infos)
-        finalize_transfer(new_dpath)
-
-        cache_dpath.delete()
+            finalize_transfer(new_dpath)
+        finally:
+            cache_dpath.delete()
 
 
 class AndroidConventions:
@@ -208,12 +222,12 @@ class AndroidConventions:
         return info
 
 
-class GVFSAndroidConnection(ub.Path):
+class GVFSAndroidPath(ub.Path):
     """
     Discover connected android devices using a filesystem interface.
 
     Example:
-        connections = GVFSAndroidConnection.discover()
+        connections = GVFSAndroidPath.discover()
         phone = self = connections[0]
         phone_paths_infos = self.dcim_image_infos()
     """
@@ -331,7 +345,7 @@ def prepare_phone_transfer(config):
     Gather information about the files that need to be transfered.
     """
     # TODO: get this working over sftp as well
-    found = GVFSAndroidConnection.discover()
+    found = GVFSAndroidPath.discover()
     assert len(found) == 1, 'should only have 1'
     phone = found[0]
     phone_image_infos = phone.dcim_image_infos()
@@ -414,45 +428,24 @@ def transfer_phone_pictures(new_dpath, needs_transfer_infos):
 
         nautilius mtp://Google_Pixel_5_0A141FDD40091U/
     """
+    import kwutil
+    copyman = kwutil.CopyManager(mode='thread', workers=8)
 
     # First to transfer to a temp directory so we avoid race conditions
     # tmp_dpath = new_dpath.augment(prefix='_tmp_').ensuredir()
     tmp_dpath = new_dpath.augment(prefix='_tmp_').ensuredir()
-    copy_jobs = []
     for p in needs_transfer_infos:
-        copy_jobs.append({
-            'src': p['fpath'],
-            'dst': tmp_dpath / p['fpath'].name,
-        })
+        copyman.submit(
+            src=p['fpath'],
+            dst=tmp_dpath / p['fpath'].name,
+            skip_existing=True,
+        )
 
     print(f'Start {len(needs_transfer_infos)} copy jobs to {tmp_dpath=}')
+    # print(f'# Needs Copy {len(eager_copy_jobs)} / {len(copy_jobs)}')
+    # copyman.report(sizes=False)
 
-    class CopyManager:
-        """
-        TODO: wrap some super fast protocol like rsync.
-        Progress bars like with dvc would be neat.
-
-        TODO: see kwutil CopyManager
-        """
-        pass
-
-    def safe_copy(src, dst):
-        if not dst.exists():
-            return shutil.copy2(src, dst)
-
-    jobs = ub.JobPool(mode='thread', max_workers=8)
-    eager_copy_jobs = [d for d in copy_jobs if not d['dst'].exists()]
-    print(f'# Needs Copy {len(eager_copy_jobs)} / {len(copy_jobs)}')
-
-    # Could use kwutil CopyManager
-
-    for copy_job in ub.ProgIter(copy_jobs, desc='submit jobs'):
-        src, dst = copy_job['src'], copy_job['dst']
-        job = jobs.submit(safe_copy, src, dst)
-        job.copy_job = copy_job
-
-    for job in jobs.as_completed(desc='copying'):
-        job.result()
+    copyman.run()
 
     print('Copy finished, renaming...')
     os.rename(tmp_dpath, new_dpath)
@@ -476,26 +469,59 @@ def finalize_transfer(new_dpath):
     print(f'Finalize transfer to {new_dpath}')
     new_dpath = ub.Path(new_dpath)
     new_stamp = new_dpath.name.split('-', 2)[2]
+    new_name = f'poop-{new_stamp}'
 
-    staging_dpath = shitspotter.util.find_staging_dpath()
+    staging_dpath = shitspotter.util.util_data.find_staging_dpath()
 
-    shitspotter_dvc_dpath = shitspotter.util.find_data_dpath()
-    asset_dpath = staging_dpath / 'assets'
+    shitspotter_dvc_dpath = shitspotter.util.util_data.find_data_dpath()
+    asset_dpath = shitspotter_dvc_dpath / 'assets'
+    new_shit_dpath = asset_dpath / new_name
 
-    new_shit_dpath = asset_dpath / f'poop-{new_stamp}'
-    new_shit_dpath.ensuredir()
+    staging_asset_dpath = staging_dpath / 'assets'
+    staging_shit_dpath = staging_asset_dpath / new_name
+    staging_shit_dpath.ensuredir()
 
     print('Need to manually move shit images')
 
     print('from new_dpath = {!r}'.format(new_dpath))
-    print('to new_shit_dpath = {!r}'.format(new_shit_dpath))
+    print('to new_shit_dpath = {!r}'.format(staging_shit_dpath))
 
     xdev.startfile(new_dpath)
-    xdev.startfile(new_shit_dpath)
+    xdev.startfile(staging_shit_dpath)
 
     ans = Confirm.ask('Manually move images and then enter y to continue')
     while not ans:
         ans = Confirm.ask('Manually move images and then enter y to continue')
+
+    print(ub.codeblock(
+        '''
+        TODO: the next step is to scrub images of metadata depending on what
+        the privacy policy is.
+
+        This will require that we:
+
+            * Have the transcrypt repo decrypted
+
+            * From there you can call the script:
+                source ~/code/shitspotter/secrets/secret_setup.sh
+                mount_shit_secrets
+
+              which will mount the encrypted file in rw mode, to write any of
+              the secret metadata we want to hide, but not outright delete.
+
+            * Call logic in shitspotter.gather_from_staging
+
+            * This should place a bunch of new images from the staging folder
+              into the final folder, and some of the images may be scrubbed.
+
+              Can now re-encrypt the secret metadata.
+
+            source ~/code/shitspotter/secrets/secret_setup.sh
+
+
+        At this point, we can do any annotation we wish, but whenever
+        annotations change we need to rerun gather and make splits.
+        '''))
 
     print('# Ensure IPFS is running')
     print('sudo systemctl start ipfs')
@@ -660,7 +686,7 @@ def delete_shit_images_on_phone():
     """
     import shitspotter
     import kwcoco
-    phone = GVFSAndroidConnection.discover()[0]
+    phone = GVFSAndroidPath.discover()[0]
     phone_image_infos = phone.dcim_image_infos()
     phone_fpaths = [p['fpath'] for p in phone_image_infos]
 

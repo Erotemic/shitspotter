@@ -57,12 +57,14 @@ class SimplifyKwcocoCLI(scfg.DataConfig):
         dset.reroot(absolute=True)
         dset._update_fpath(config.dst)
 
-        category_hist = ub.dict_hist(dset.annots().category_names)
+        category_hist = {c: 0 for c in dset.categories().lookup('name')} | ub.dict_hist(dset.annots().category_names)
         print(f'category_hist = {ub.urepr(category_hist, nl=1)}')
         remove_catnames = [k for k, f in category_hist.items() if f < config.minimum_instances]
         keep_catnames = set(category_hist) - set(remove_catnames)
         print(f'remove_catnames={remove_catnames}')
         print(f'keep_catnames={keep_catnames}')
+
+        dset.remove_categories(remove_catnames)
 
         to_remove = []
         new_anns = []
