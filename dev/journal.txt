@@ -207,3 +207,11 @@ with YOLO vs other models.
 Running with the simplified data, a low LR of 0.0003, a batch size of 16*50,
 and starting from v9 weights seems to be doing better than I've done on this
 dataset before.
+
+# 2025-03-08
+
+The two LRs I tested yesterday did about the same. Today I got AdamW working
+(and maybe CosineLR - although its not clear I got the scheduler right), and it
+converges to about the same performance much much quicker. Getting AP@.5 of
+~64% and AP%0.5:0.95; of 42% small recall is about 60%, medium recall is about
+80%

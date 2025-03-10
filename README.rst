@@ -136,6 +136,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2025-03-09 - Bunch of new images, with somewhat of a domain shift. The detectron model is good at annotating new images, but still not good enough. More work to be done.
 * 2024-12-31 - It is the end of 2024, lots has changed: new varied images, new privacy policy, and new contributions. Happy new year 🎊, all new 2025 images will go into the train set.
 * 2024-09-16 - It's not part of a triple (I did not have a bag with me) but the dataset now has an international poop.
 * 2024-07-03 - Happy 4th 🎆, my dogs are shitting themselves.
@@ -356,8 +357,8 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 | 2024-12-31  | 8291     | ~2894               | 2108                  | 2898                  | bafybeie2nfp6km4x63ldpysnje4qaggijnh5jilgawjcdnahoddvxln3xm  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
-
-
+| 2025-03-09  | 8726     | ~3040               | 2200                  | 3046                  | bafybeihsd6rwjha4kbeluwdjzizxshrkcsynkwgjx7fipm5pual6eexax4  |
++-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 
 
 

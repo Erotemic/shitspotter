@@ -494,7 +494,7 @@ def finalize_transfer(new_dpath):
         ans = Confirm.ask('Manually move images and then enter y to continue')
 
     print(ub.codeblock(
-        '''
+        r'''
         TODO: the next step is to scrub images of metadata depending on what
         the privacy policy is.
 
@@ -518,6 +518,21 @@ def finalize_transfer(new_dpath):
 
             source ~/code/shitspotter/secrets/secret_setup.sh
 
+        We should seed predictions on the new data with
+
+            python -m shitspotter.cli.predict
+
+        e.g.
+
+            python -m shitspotter.cli.predict \
+                --src /home/joncrall/code/shitspotter/shitspotter_dvc/assets/_contributions/sam-2025-03-07 \
+                --package_fpath ~/code/shitspotter/shitspotter_dvc/models/train_baseline_maskrcnn_v3_v_966e49df_model_0014999.pth \
+                --create_labelme True
+
+            python -m shitspotter.cli.predict \
+                --src /home/joncrall/code/shitspotter/shitspotter_dvc/assets/poop-2025-03-08-T224918 \
+                --package_fpath ~/code/shitspotter/shitspotter_dvc/models/train_baseline_maskrcnn_v3_v_966e49df_model_0014999.pth \
+                --create_labelme True
 
         At this point, we can do any annotation we wish, but whenever
         annotations change we need to rerun gather and make splits.

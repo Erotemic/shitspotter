@@ -34,6 +34,18 @@ class SimplifyKwcocoCLI(scfg.DataConfig):
             >>> config = cls(**kwargs)
             >>> cls.main(argv=argv, **config)
 
+            >>> kwargs['src'] = '/home/joncrall/data/dvc-repos/shitspotter_dvc/train_imgs7350_4f0174d0.kwcoco.zip'
+            >>> kwargs['dst'] = '/home/joncrall/data/dvc-repos/shitspotter_dvc/simplified_train_imgs7350_4f0174d0.kwcoco.zip'
+            >>> kwargs['minimum_instances'] = 100
+            >>> config = cls(**kwargs)
+            >>> cls.main(argv=argv, **config)
+
+            >>> kwargs['src'] = '/home/joncrall/data/dvc-repos/shitspotter_dvc/vali_imgs1258_07ec447d.kwcoco.zip'
+            >>> kwargs['dst'] = '/home/joncrall/data/dvc-repos/shitspotter_dvc/simplified_vali_imgs1258_07ec447d.kwcoco.zip'
+            >>> kwargs['minimum_instances'] = 100
+            >>> config = cls(**kwargs)
+            >>> cls.main(argv=argv, **config)
+
         Example:
             >>> # xdoctest: +SKIP
             >>> from shitspotter.cli.simplify_kwcoco import *  # NOQA
