@@ -105,11 +105,9 @@ Wikipedia article on:
 
 
 The following `IPNS <https://docs.ipfs.tech/concepts/ipns/>`_ address should always point to the latest version of the dataset:
-
 `/ipns/k51qzi5uqu5dje1ees96dtsoslauh124drt5ajrtr85j12ae7fwsfhxb07shit <https://ipfs.io/ipns/k51qzi5uqu5dje1ees96dtsoslauh124drt5ajrtr85j12ae7fwsfhxb07shit>`_.
 
 This should resolve to the most recent `IPFS CID <https://docs.ipfs.tech/concepts/content-addressing/>`_ (Content Identifier) of:
-
 `/ipfs/bafybeihsd6rwjha4kbeluwdjzizxshrkcsynkwgjx7fipm5pual6eexax4 <https://ipfs.io/ipfs/QmQonrckXZq37ZHDoRGN4xVBkqedvJRgYyzp2aBC5Ujpyp?redirectURL=bafybeihsd6rwjha4kbeluwdjzizxshrkcsynkwgjx7fipm5pual6eexax4&autoadapt=0&requiresorigin=0&web3domain=0&immediatecontinue=1&magiclibraryconfirmation=0>`_.
 
 This can be viewed in a webbrowser through an IPFS gateway:
