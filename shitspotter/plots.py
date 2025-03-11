@@ -107,6 +107,8 @@ def spacetime_scatterplot(coco_dset):
     from shapely import geometry
     from pyproj import CRS
     import kwplot
+    crs84 = CRS.from_user_input('OGC:CRS84')
+
     sns = kwplot.autosns()
 
     # image_locs
@@ -121,7 +123,7 @@ def spacetime_scatterplot(coco_dset):
                 row['geometry'] = geometry.Point(point)
                 rows.append(row)
 
-    img_locs = gpd.GeoDataFrame(rows, crs='crs84')
+    img_locs = gpd.GeoDataFrame(rows, crs=crs84)
 
     # ip_pt = ip_loc.iloc[0].geometry
     utm_crs = CRS.from_epsg(utm_epsg_from_latlon(img_locs.iloc[0].geometry.y, img_locs.iloc[0].geometry.x))  # NOQA
@@ -248,7 +250,8 @@ def plot_on_map(coco_dset, dump_dpath):
                 point = [Rational.coerce(x) for x in coords]
                 row['geometry'] = geometry.Point(point)
                 rows.append(row)
-    img_locs = gpd.GeoDataFrame(rows, crs='crs84')
+    crs84 = CRS.from_user_input('OGC:CRS84')
+    img_locs = gpd.GeoDataFrame(rows, crs=crs84)
     total_imgs = coco_dset.n_images
 
     # First group data points by UTM zone, and then within a UTM zone group by
@@ -1184,9 +1187,8 @@ def data_on_maps(coco_dset):
                 point = [Rational.coerce(x) for x in coords]
                 row['geometry'] = geometry.Point(point)
                 rows.append(row)
-    img_locs = gpd.GeoDataFrame(rows, crs='crs84')
-
-    crs84 = CRS.from_user_input('crs84')
+    crs84 = CRS.from_user_input('OGC:CRS84')
+    img_locs = gpd.GeoDataFrame(rows, crs=crs84)
 
     # wld_map_crs84_gdf = gpd.read_file(
     #     gpd.datasets.get_path('naturalearth_lowres')

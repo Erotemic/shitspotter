@@ -103,14 +103,16 @@ Wikipedia article on:
 * `content addressable storage <https://en.wikipedia.org/wiki/Content-addressable_storage>`_,
 * `IPFS <https://en.wikipedia.org/wiki/InterPlanetary_File_System>`_.
 
-The `IPFS CID <https://docs.ipfs.tech/concepts/content-addressing/>`_ (Content Identifier) for the most recent dataset is:
 
-.. code::
+The following `IPNS <https://docs.ipfs.tech/concepts/ipns/>`_ address should always point to the latest version of the dataset:
 
-    bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y
+`ipns/k51qzi5uqu5dje1ees96dtsoslauh124drt5ajrtr85j12ae7fwsfhxb07shit <https://ipfs.io/ipns/k51qzi5uqu5dje1ees96dtsoslauh124drt5ajrtr85j12ae7fwsfhxb07shit>_`.
 
-The dataset can be viewed in a webbrowser through an IPFS gateway:
-`bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y <https://ipfs.io/ipfs/QmQonrckXZq37ZHDoRGN4xVBkqedvJRgYyzp2aBC5Ujpyp?redirectURL=bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y&autoadapt=0&requiresorigin=0&web3domain=0&immediatecontinue=1&magiclibraryconfirmation=0>`_.
+This should resolve to the most recent `IPFS CID <https://docs.ipfs.tech/concepts/content-addressing/>`_ (Content Identifier) of:
+
+`bafybeihsd6rwjha4kbeluwdjzizxshrkcsynkwgjx7fipm5pual6eexax4 <https://ipfs.io/ipfs/QmQonrckXZq37ZHDoRGN4xVBkqedvJRgYyzp2aBC5Ujpyp?redirectURL=bafybeihsd6rwjha4kbeluwdjzizxshrkcsynkwgjx7fipm5pual6eexax4&autoadapt=0&requiresorigin=0&web3domain=0&immediatecontinue=1&magiclibraryconfirmation=0>`_.
+
+This can be viewed in a webbrowser through an IPFS gateway:
 
 If you have an IPFS node, please help keep this dataset alive and available by pinning it.
 
@@ -129,6 +131,13 @@ Unlike IPFS, which (ideally) gives seamless access to the data, the centralized
 storage has the upload from each update grouped in its own zipfile. If
 annotations for one of these folders changes, the entire zipfile will be
 reuploaded, so there will be no mechanism for version control.
+
+
+While we are interested in IPFS as a distribution mechanism, we recognize it is
+a newer technology and we also periodically seed versions of the dataset using
+bittorrent:
+
+https://academictorrents.com/details/ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49
 
 Recent Updates
 ==============
