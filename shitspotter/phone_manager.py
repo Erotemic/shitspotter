@@ -7,7 +7,7 @@ CommandLine:
 https://app.pinata.cloud/pinmanager
 
 TODO:
-    - [ ] Move to a staging area first so images can be scrubbed if necessary.
+    - [x] Move to a staging area first so images can be scrubbed if necessary.
 """
 import ubelt as ub
 import os
@@ -698,6 +698,12 @@ def delete_shit_images_on_phone():
     """
     Looks for shit images that have been backed up in the shitspotter database
     and then removes them from the phone SD card.
+
+    TODO:
+        Currently I run this in IPython, it needs an entry point.
+
+    Ignore:
+        from shitspotter.phone_manager import *
     """
     import shitspotter
     import kwcoco
@@ -715,6 +721,11 @@ def delete_shit_images_on_phone():
     dvc_name_to_fpath = {p.name: p for p in dvc_fpaths}
     phone_name_to_fpath = {p.name: p for p in phone_fpaths}
 
+    DO_WE_WANT_SCRUBS = False
+    if not DO_WE_WANT_SCRUBS:
+        aliases = {k.replace('.scrubbed', ''): v for k, v in dvc_name_to_fpath.items() if '.scrubbed' in k}
+        dvc_name_to_fpath.update(aliases)
+
     common = set(dvc_name_to_fpath) & set(phone_name_to_fpath)
 
     print(f'{len(common)=}')
@@ -722,25 +733,36 @@ def delete_shit_images_on_phone():
     print(f'{len(phone_name_to_fpath)=}')
 
     to_delete = []
+    num_bytes = 0
     for key in ub.ProgIter(common, desc='checking files are probably the same'):
         phone_fpath = phone_name_to_fpath[key]
         dvc_fpath = dvc_name_to_fpath[key]
         # Minimal checking that these the same file
         dvc_stat = dvc_fpath.stat()
         phone_stat = phone_fpath.stat()
-        assert phone_stat.st_size == dvc_stat.st_size
-        # assert phone_stat.st_mtime == dvc_stat.st_mtime
+        if 'scrubbed' in dvc_fpath.name:
+            assert 0 <= (phone_stat.st_size - dvc_stat.st_size) <= 400
+        else:
+            assert phone_stat.st_size == dvc_stat.st_size
+        to_delete.append({
+            'path': phone_fpath,
+            'st_size': phone_stat.st_size,
+        })
+        num_bytes += phone_stat.st_size
 
-        to_delete.append(phone_fpath)
+    to_delete = sorted(to_delete, key=lambda d: d['st_size'])
 
     from rich.prompt import Confirm
+    import pint
+    delete_size = (num_bytes * pint.Unit('byte')).to('gigabyte')
     print('to_delete = {}'.format(ub.urepr(to_delete, nl=1)))
     print(len(to_delete))
+    print(f'delete_size = {ub.urepr(delete_size, nl=1)}')
 
     ans = Confirm.ask('Ready to delete?')
     if ans:
-        for p in ub.ProgIter(to_delete, desc='deleting file'):
-            p.unlink(missing_ok=True)
+        for row in ub.ProgIter(to_delete, desc='deleting file'):
+            row['path'].unlink(missing_ok=True)
 
         # ub.hash_file(dvc_fpath)
         # ub.hash_file(phone_fpath)
