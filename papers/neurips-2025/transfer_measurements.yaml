@@ -7,7 +7,7 @@
    The distance between home and work is about 30km.
 
    SeeAlso:
-       ~/code/shitspotter/papers/application-2024/scripts/gather_measurements.py
+       ~/code/shitspotter/papers/neurips-2025/scripts/gather_measurements.py
 
 
 machine_info:
@@ -1060,7 +1060,7 @@ network_measurements:
     time.real: 14m41.930s
     time.user: 0m47.250s
     time.sys: 1m1.140s
-    end_date: Sat Apr 19 01:50:03 PM  2025
+    time.end_date: Sat Apr 19 01:50:03 PM  2025
     script: |-
         /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py \
         --before_script 'rm -f shitspotter-snapshot-2024-08-09T185233-5' \
@@ -1078,7 +1078,7 @@ network_measurements:
     time.real: 12m39.040s
     time.user: 0m44.970s
     time.sys: 1m0.420s
-    end_date: Sat Apr 19 02:07:38 PM  2025
+    time.end_date: Sat Apr 19 02:07:38 PM  2025
     script: |-
         /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script 'rm -rf shitspotter-snapshot-2024-08-09T185233-5' --script 'girder-client --api-url https://data.kitware.com/api/v1 download 66b6bc34f87a980650f41f90' --meta '
                  action: transfer
@@ -1091,7 +1091,7 @@ network_measurements:
     src_machine: toothbrush
     dst_machine: toothbrush
     action: transfer-local-disk
-    method: rsync
+    method: rsync-local-disk
     comment: get lower bound on transfer times by moving between two nvme disks on the same machine
     time.start_date: '2025-04-19 14:45:27.197643'
     status: success
@@ -1099,7 +1099,7 @@ network_measurements:
     time.real: 0m32.600s
     time.user: 0m8.130s
     time.sys: 0m27.560s
-    end_date: Sat Apr 19 02:45:59 PM  2025
+    time.end_date: Sat Apr 19 02:45:59 PM  2025
     script: |-
           /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script '
                    bash -c '"'"'
@@ -1111,7 +1111,7 @@ network_measurements:
                     src_machine: toothbrush
                     dst_machine: toothbrush
                     action: transfer-local-disk
-                    method: rsync
+                    method: rsync-local-disk
                     comment: get lower bound on transfer times by moving between two nvme disks on the same machine
                  '
                      '
@@ -1121,16 +1121,220 @@ network_measurements:
     src_machine: toothbrush
     dst_machine: namek
     action: upload
-    method: rsync
-    comment: upload zipped structure
+    method: rsync-compressed
     time.start_date: '2025-04-19 14:49:29.193698'
     status: success
     duration: 12155.158642053604 seconds
+    comment: "upload zipped structure. this was an rsync upload, which is limited by my slow IPS upload speed."
     time.real: 202m35.120s
     time.user: 0m7.950s
     time.sys: 0m23.510s
-    end_date: Sat Apr 19 06:12:04 PM  2025
+    time.end_date: Sat Apr 19 06:12:04 PM  2025
 
+  - uuid: be4ac9f1-01ac-469a-ba86-79e5d9b6375f
+    recording_time: 2025-04-19T173329-5
+    src_machine: namek
+    dst_machine: toothbrush
+    action: transfer
+    method: rsync-compressed
+    content: compressed
+    comment: download zipped structure
+    time.start_date: '2025-04-19 18:33:29.746810'
+    status: success
+    duration: 4058.765785932541 seconds
+    time.real: 67m38.740s
+    time.user: 0m7.780s
+    time.sys: 0m25.560s
+    time.end_date: Sat Apr 19 07:41:08 PM  2025
+    script: |-
+        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script '
+                   rm -rf ~/download-tmp && mkdir -p  ~/download-tmp
+               ' --script '
+               rsync -avPR namek:upload-tmp/./shitspotter-snapshot-2024-08-09T185233-5 ~/download-tmp
+               ' --meta '
+                  src_machine: namek
+                  dst_machine: toothbrush
+                  action: transfer
+                  method: rsync-compressed
+                  content: compressed
+                  comment: download zipped structure
+               '
+
+  - uuid: cd4534d6-3b31-4470-b775-fd952ebda928
+    recording_time: 2025-04-19T210436-5
+    src_machine: namek
+    dst_machine: toothbrush
+    action: transfer
+    method: rsync-compressed
+    content: compressed
+    comment: download zipped structure
+    time.start_date: '2025-04-19 22:04:36.532833'
+    status: success
+    duration: 4034.7585089206696 seconds
+    time.real: 67m14.730s
+    time.user: 1m49.330s
+    time.sys: 1m14.480s
+    end_date: Sat Apr 19 11:11:51 PM  2025
+    script: |-
+        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script '
+                           bash -c "rm -rf ~/download-tmp && mkdir -p  ~/download-tmp"
+                       ' --script '
+                       rsync -avPR namek:upload-tmp/./shitspotter-snapshot-2024-08-09T185233-5 ~/download-tmp
+                       ' --meta '
+                          src_machine: namek
+                          dst_machine: toothbrush
+                          action: transfer
+                          method: rsync-compressed
+                          content: compressed
+                          comment: download zipped structure
+                       '
+
+
+  - uuid: 3917dc37-1172-4e46-a54e-3107fae6beab
+    recording_time: 2025-04-19T221644-5
+    src_machine: namek
+    dst_machine: toothbrush
+    action: transfer
+    method: rsync-compressed
+    content: compressed
+    comment: download zipped structure
+    time.start_date: '2025-04-19 23:16:47.620154'
+    status: success
+    duration: 3901.882259130478 seconds
+    time.real: 65m1.850s
+    time.user: 1m48.760s
+    time.sys: 1m13.790s
+    end_date: Sun Apr 20 12:21:49 AM  2025
+    script: |-
+        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script '
+                                   bash -c "rm -rf ~/download-tmp && mkdir -p  ~/download-tmp"
+                               ' --script '
+                               rsync -avPR namek:upload-tmp/./shitspotter-snapshot-2024-08-09T185233-5 ~/download-tmp
+                               ' --meta '
+                                  src_machine: namek
+                                  dst_machine: toothbrush
+                                  action: transfer
+                                  method: rsync-compressed
+                                  content: compressed
+                                  comment: download zipped structure
+                               '
+
+  - uuid: 2e77f396-e198-423b-9bf3-83c837d36d37
+    recording_time: 2025-04-20T084510-5
+    src_machine: namek
+    dst_machine: toothbrush
+    action: transfer
+    method: rsync-compressed
+    content: compressed
+    comment: download zipped structure
+    time.start_date: '2025-04-20 09:45:12.998627'
+    status: success
+    duration: 3861.775628089905 seconds
+    time.real: 64m21.750s
+    time.user: 1m50.100s
+    time.sys: 1m13.990s
+    end_date: Sun Apr 20 10:49:34 AM  2025
+    script: |-
+        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script '
+                                           bash -c "rm -rf ~/download-tmp && mkdir -p  ~/download-tmp"
+                                       ' --script '
+                                       rsync -avPR namek:upload-tmp/./shitspotter-snapshot-2024-08-09T185233-5 ~/download-tmp
+                                       ' --meta '
+                                          src_machine: namek
+                                          dst_machine: toothbrush
+                                          action: transfer
+                                          method: rsync-compressed
+                                          content: compressed
+                                          comment: download zipped structure
+                                       '
+
+  - uuid: 3b805c42-d6cb-42a4-9645-db404ba9e117
+    recording_time: 2025-04-20T150905-5
+    src_machine: namek
+    dst_machine: toothbrush
+    action: transfer
+    method: rsync-compressed
+    content: compressed
+    comment: download zipped structure
+    time.start_date: '2025-04-20 16:09:08.501499'
+    status: success
+    duration: 3888.2749741077423 seconds
+    time.real: 64m48.250s
+    time.user: 1m50.110s
+    time.sys: 1m13.670s
+    end_date: Sun Apr 20 05:13:56 PM  2025
+    script: |-
+        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script '
+                                                   bash -c "rm -rf ~/download-tmp && mkdir -p  ~/download-tmp"
+                                               ' --script '
+                                               rsync -avPR namek:upload-tmp/./shitspotter-snapshot-2024-08-09T185233-5 ~/download-tmp
+                                               ' --meta '
+                                                  src_machine: namek
+                                                  dst_machine: toothbrush
+                                                  action: transfer
+                                                  method: rsync-compressed
+                                                  content: compressed
+                                                  comment: download zipped structure
+                                               '
+
+
+  - uuid: a9f8502f-4249-49d8-bb43-dc25c65a0191
+    recording_time: 2025-04-20T163425-5
+    src_machine: namek
+    dst_machine: toothbrush
+    action: transfer
+    method: rsync
+    content: uncompressed
+    comment: download unzipped structure
+    time.start_date: '2025-04-20 17:34:28.181227'
+    status: success
+    duration: 3943.5611050128937 seconds
+    time.real: 65m43.530s
+    time.user: 0m9.080s
+    time.sys: 0m29.340s
+    end_date: Sun Apr 20 06:40:11 PM  2025
+    script: |-
+        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script '
+                   bash -c '"'"'rm -rf ~/download-tmp && mkdir -p  ~/download-tmp'"'"'
+               ' --script '
+               rsync -avPR namek:data/dvc-repos/./shitspotter_dvc ~/download-tmp
+               ' --meta '
+                  src_machine: namek
+                  dst_machine: toothbrush
+                  action: transfer
+                  method: rsync
+                  content: uncompressed
+                  comment: download unzipped structure
+               '
+
+  - uuid: d2051644-4fd1-4739-be03-b7feb68dd582
+    recording_time: 2025-04-20T181903-5
+    src_machine: namek
+    dst_machine: toothbrush
+    action: transfer
+    method: rsync
+    content: uncompressed
+    comment: download unzipped structure
+    time.start_date: '2025-04-20 19:19:03.540432'
+    status: success
+    duration: 4035.140928030014 seconds
+    time.real: 67m15.100s
+    time.user: 2m2.430s
+    time.sys: 1m19.150s
+    end_date: Sun Apr 20 08:26:18 PM  2025
+    script: |-
+        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script '
+                           bash -c '"'"'rm -rf ~/download-tmp && mkdir -p  ~/download-tmp'"'"'
+                       ' --script '
+                       rsync -avPR namek:data/dvc-repos/./shitspotter_dvc ~/download-tmp
+                       ' --meta '
+                          src_machine: namek
+                          dst_machine: toothbrush
+                          action: transfer
+                          method: rsync
+                          content: uncompressed
+                          comment: download unzipped structure
+                       '
 
 .__taildoc__: |-
      python ~/code/shitspotter/papers/neurips-2025/scripts/gather_measurements.py
@@ -1215,16 +1419,29 @@ network_measurements:
 
      python ~/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py \
        --before_script "
-           rm -rf ~/download-tmp && mkdir -p  ~/download-tmp
+           bash -c 'rm -rf ~/download-tmp && mkdir -p  ~/download-tmp'
        " \
        --script '
-       rsync -avPR namek:upload-tmp/./shitspotter-snapshot-2024-08-09T185233-5 ~/download-tmp
+       rsync -avPR namek:data/dvc-repos/./shitspotter_dvc ~/download-tmp
        ' \
        --meta "
           src_machine: namek
           dst_machine: toothbrush
           action: transfer
           method: rsync
-          content: compressed
-          comment: download zipped structure
+          content: uncompressed
+          comment: download unzipped structure
        "
+
+        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script '
+                                                   bash -c "rm -rf ~/download-tmp && mkdir -p  ~/download-tmp"
+                                               ' --script '
+                                               rsync -avPR namek:upload-tmp/./shitspotter-snapshot-2024-08-09T185233-5 ~/download-tmp
+                                               ' --meta '
+                                                  src_machine: namek
+                                                  dst_machine: toothbrush
+                                                  action: transfer
+                                                  method: rsync
+                                                  content: compressed
+                                                  comment: download zipped structure
+                                               '

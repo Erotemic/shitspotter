@@ -581,6 +581,8 @@ def main():
     learn_coco_dset = process_image_rows(learn_image_rows, coco_dset=learn_coco_dset)
     learn_coco_dset.fpath = str(learn_coco_fpath)
 
+    learn_coco_dset.dataset['license'] = "cc-by-4.0"
+
     test_image_rows = gather_test_rows(dpath)
     test_coco_dset = process_image_rows(test_image_rows, coco_dset=test_coco_dset)
     test_coco_dset.fpath = str(test_coco_fpath)

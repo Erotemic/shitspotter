@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Creates data suitable for uploading to data.kitware.com
+Creates data suitable for uploading to data.kitware.com, huggingface, etc...
 
 https://data.kitware.com/?#user/598a19658d777f7d33e9c18b/folder/65d6c52fb40ab0fa6c57909b
 """
@@ -57,6 +57,6 @@ def main():
 if __name__ == '__main__':
     """
     CommandLine:
-        python ~/code/shitspotter/snapshot_dataset.py
+        python ~/code/shitspotter/shitspotter/snapshot_dataset.py
     """
     main()

@@ -282,74 +282,73 @@ class SFTPAndroidConnection:
     The SSH Server app can be used to start a sftp connection
     """
 
-    def __init__(self):
-        ...
+    def __init__(self, sftp):
+        self.sftp = sftp
 
     @classmethod
     def from_hostname(cls):
         """
         Generated in part by ChatGPT
         """
-        host = 'jonpixel5'
-
-        ...
+        host = os.environ.get('PIXEL5_HOST', None)
+        phone_pass = os.environ.get('PIXEL5_PASS', None)
+        assert host
+        if not phone_pass:
+            raise AssertionError
         import paramiko
-        # Initialize the SSH client
-        ssh_client = paramiko.SSHClient()
-
-        # Automatically add the server's host key (use with caution in production)
-        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        # Load SSH configuration from ~/.ssh/config
+        from paramiko import Transport, SFTPClient
         ssh_config = paramiko.SSHConfig()
         with open(ub.Path("~/.ssh/config").expand()) as ssh_config_file:
             ssh_config.parse(ssh_config_file)
-
         # Look up the host configuration
         host_config = ssh_config.lookup(host)
         hostname = host_config["hostname"]
         username = host_config.get("user")
         port = int(host_config.get("port", 22))
-        key_filename = host_config.get("identityfile", [None])[-1]
+        # key_path = host_config.get("identityfile", [None])[-1]
+        # FIXME: public key auth does not seem to be working.
+        # Using a password in the meantime.
+        transport = Transport((hostname, port))
+        transport.connect(username=username, password=phone_pass)
+        sftp = SFTPClient.from_transport(transport)
+        self = cls(sftp)
+        return self
 
-        # Need to fixup the keyfiles on my machine
+    def dcim_image_infos(self, verbose=1):
+        self.sftp.chdir('/0/DCIM/Camera')
+        file_names = self.sftp.listdir()
 
-        # Connect to the server
-        ssh_client.connect(
-            hostname=hostname,
-            port=port,
-            username=username,
-            key_filename=key_filename,
-        )
-        print(f"Connected to {hostname} as {username}")
-
-        # Open an SFTP session
-        sftp = ssh_client.open_sftp()
-        remote_path = '.'
-        print(f"Listing directories in: {remote_path}")
-        print(f'sftp={sftp}')
-
-        # List all files and directories
-        for item in sftp.listdir_attr(remote_path):
-            if paramiko.SFTPAttributes.S_IFDIR & item.st_mode:  # Check if it's a directory
-                print(f"Directory: {item.filename}")
-
-        # Close the SFTP session and SSH client
-        sftp.close()
-        ssh_client.close()
-        print("Disconnected from server.")
+        phone_image_infos = []
+        for fname in ub.ProgIter(file_names, desc='build image info'):
+            if not fname.startswith('.') and fname != 'thumbnails':
+                info = AndroidConventions.parse_image_filename(fname)
+                if info is None:
+                    print('Not an known image file: {}'.format(fname))
+                info['fpath'] = f'/0/DCIM/Camera/{fname}'
+                info['datetime_captured'] = dateparser.parse(info['timestamp'])
+                # stat = fpath.stat()
+                # datetime_created = datetime.datetime.fromtimestamp(stat.st_ctime)
+                # info['datetime_created'] = datetime_created
+                phone_image_infos.append(info)
+        return phone_image_infos
 
 
 def prepare_phone_transfer(config):
     """
     Gather information about the files that need to be transfered.
     """
-    # TODO: get this working over sftp as well
-    found = GVFSAndroidPath.discover()
-    assert len(found) == 1, 'should only have 1'
-    phone = found[0]
-    phone_image_infos = phone.dcim_image_infos()
-    print(f'Found {len(phone_image_infos)=} phone pictures')
+
+    USE_GVFS = True
+    if USE_GVFS:
+        # TODO: get this working over sftp as well
+        found = GVFSAndroidPath.discover()
+        assert len(found) == 1, 'should only have 1'
+        phone = found[0]
+        phone_image_infos = phone.dcim_image_infos()
+        print(f'Found {len(phone_image_infos)=} phone pictures')
+    else:
+        sftp_conn = SFTPAndroidConnection.from_hostname()
+        phone_image_infos = sftp_conn.dcim_image_infos()
 
     if not len(phone_image_infos):
         raise Exception(ub.paragraph(
@@ -391,6 +390,8 @@ def prepare_phone_transfer(config):
     prev_infos = []
     for fpath in prev_fpaths:
         info = AndroidConventions.parse_image_filename(fpath.name)
+        if info is None:
+            continue
         info['fpath'] = fpath
         prev_infos.append(info)
 
@@ -429,23 +430,31 @@ def transfer_phone_pictures(new_dpath, needs_transfer_infos):
         nautilius mtp://Google_Pixel_5_0A141FDD40091U/
     """
     import kwutil
-    copyman = kwutil.CopyManager(mode='thread', workers=8)
-
     # First to transfer to a temp directory so we avoid race conditions
     # tmp_dpath = new_dpath.augment(prefix='_tmp_').ensuredir()
     tmp_dpath = new_dpath.augment(prefix='_tmp_').ensuredir()
-    for p in needs_transfer_infos:
-        copyman.submit(
-            src=p['fpath'],
-            dst=tmp_dpath / p['fpath'].name,
-            skip_existing=True,
-        )
-
     print(f'Start {len(needs_transfer_infos)} copy jobs to {tmp_dpath=}')
-    # print(f'# Needs Copy {len(eager_copy_jobs)} / {len(copy_jobs)}')
-    # copyman.report(sizes=False)
 
-    copyman.run()
+    USE_GVFS = True
+    if USE_GVFS:
+        copyman = kwutil.CopyManager(mode='thread', workers=8)
+        for p in needs_transfer_infos:
+            copyman.submit(
+                src=p['fpath'],
+                dst=tmp_dpath / p['fpath'].name,
+                skip_existing=True,
+            )
+
+        # print(f'# Needs Copy {len(eager_copy_jobs)} / {len(copy_jobs)}')
+        # copyman.report(sizes=False)
+        copyman.run()
+    else:
+        sftp_conn = SFTPAndroidConnection.from_hostname()
+        sftp = sftp_conn.sftp
+        for p in ub.ProgIter(needs_transfer_infos, desc='sftp transfer'):
+            dst = tmp_dpath / ub.Path(p['fpath']).name
+            if not dst.exists():
+                sftp.get(p['fpath'], dst)
 
     print('Copy finished, renaming...')
     os.rename(tmp_dpath, new_dpath)
@@ -494,7 +503,7 @@ def finalize_transfer(new_dpath):
         ans = Confirm.ask('Manually move images and then enter y to continue')
 
     print(ub.codeblock(
-        r'''
+        fr'''
         TODO: the next step is to scrub images of metadata depending on what
         the privacy policy is.
 
@@ -511,6 +520,13 @@ def finalize_transfer(new_dpath):
 
             * Call logic in shitspotter.gather_from_staging
 
+                e.g.
+
+                python -m shitspotter.gather_from_staging \
+                    --staging_dpath '{staging_dpath}' \
+                    --shitspotter_dvc_dpath '{shitspotter_dvc_dpath}' \
+                    --staging_shit_dpath '{staging_shit_dpath}'
+
             * This should place a bunch of new images from the staging folder
               into the final folder, and some of the images may be scrubbed.
 
@@ -521,6 +537,11 @@ def finalize_transfer(new_dpath):
         We should seed predictions on the new data with
 
             python -m shitspotter.cli.predict
+
+            python -m shitspotter.cli.predict \
+                --src {staging_shit_dpath} \
+                --package_fpath ~/code/shitspotter/shitspotter_dvc/models/train_baseline_maskrcnn_v3_v_966e49df_model_0014999.pth \
+                --create_labelme True
 
         e.g.
 

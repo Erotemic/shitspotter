@@ -137,12 +137,17 @@ bittorrent:
 
 https://academictorrents.com/details/ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49
 
+We also have the dataset on `hugging face
+<https://huggingface.co/datasets/erotemic/shitspotter>`__, which is currently
+offering the best download speeds.
+
 Recent Updates
 ==============
 
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2025-04-20 - The number of images is now over 9000! The dataset is now `mirrored on hugging face <https://huggingface.co/datasets/erotemic/shitspotter>`__.
 * 2025-03-09 - Bunch of new images, with somewhat of a domain shift. The detectron model is good at annotating new images, but still not good enough. More work to be done.
 * 2024-12-31 - It is the end of 2024, lots has changed: new varied images, new privacy policy, and new contributions. Happy new year 🎊, all new 2025 images will go into the train set.
 * 2024-09-16 - It's not part of a triple (I did not have a bag with me) but the dataset now has an international poop.
@@ -366,6 +371,9 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 | 2025-03-09  | 8726     | ~3040               | 2200                  | 3046                  | bafybeihsd6rwjha4kbeluwdjzizxshrkcsynkwgjx7fipm5pual6eexax4  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
+| 2025-04-20  | 9175     | ~3189               | 2316                  | 3198                  | bafybeia2uv3ea3aoz27ytiwbyudrjzblfuen47hm6tyfrjt6dgf6iadta4  |
++-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
+
 
 
 
@@ -505,8 +513,8 @@ Current IPFS addresses for each top-level asset group are:
 
 .. code::
 
-    bafybeieydez2b6tksq5c26l4quhx5475et5ttvipuc7hs6n5khaolomilm - shitspotter_dvc/assets/_contributions
-    bafybeidap2man4erddpk74ql253cutjeqisxoeu5mtaal52hpjbwrdy3fy - shitspotter_dvc/assets/_horse-poop-2022-05-26
+    bafybeidvihxq3wlaeymbxeeogefvmvcyaz6cjhshnrcd4zqa4ndogxx2n4 - shitspotter_dvc/assets/_contributions
+    bafybeifmudpqd7hyc3ahzq6onjjcbkfddsolgndhycdnc6g3ah452uonpm - shitspotter_dvc/assets/_horse-poop-2022-05-26
     bafybeidmcwo5lugzs5pjdwp3rvhgorz6zzw2of6s3surdnth5yz4hkxt2m - shitspotter_dvc/assets/_poop-unstructured-2021-02-06
     bafybeiczsscdsbs7ffqz55asqdf3smv6klcw3gofszvwlyarci47bgf354 - shitspotter_dvc/assets/_trashed
     bafybeigl4v7dlltjmyvujoo563wf6uoj7pqrbudkatar7h4zagqbe73hd4 - shitspotter_dvc/assets/_unstructured
@@ -547,6 +555,16 @@ Current IPFS addresses for each top-level asset group are:
     bafybeiboaujmbfrmopu4qguc6klv2s7ubxq3z4fka2u3d5m6i7waykonuy - shitspotter_dvc/assets/poop-2023-12-19-T190904
     bafybeieyi3erbwzu5couwg4lrgr3xynq4xwtsoho3md6rhr6qfn5icl2vu - shitspotter_dvc/assets/poop-2023-12-19-T190904
     bafybeicxiansxev6cipgp4lyykcfwregg3zlzlz2w4udpiggoyig7fsq3i - shitspotter_dvc/assets/poop-2024-03-30-T213537
+    bafybeia4cjh42u6wa3eykb5kow3qpvh5otae34ksbs7t6t2xs7nnrzwrly - shitspotter_dvc/assets/poop-2024-05-21-T133127
+    bafybeie4xnm4ba2nevrouz3drn5oanl4a34lxfxek743wyspwz4drone3i - shitspotter_dvc/assets/poop-2024-06-15-T163943
+    bafybeieg7n6rkrdudzsyqe3e4kanvscdk7qyd3sf5qubwvldfung2cozh4 - shitspotter_dvc/assets/poop-2024-07-03-T144034
+    bafybeihghjiuil27tzk3td43d6y44liivi4q3jemmp3c2vpfm4zirikoke - shitspotter_dvc/assets/poop-2024-09-16-T130352
+    bafybeibwijhponhdmw5wixkm5tvptmbh2vnusjnxhd7qch7mplnyk2hbzq - shitspotter_dvc/assets/poop-2024-10-16-T223026
+    bafybeiallyvshbkuxlnjp4nlc4tk5mlphqejp27vv6ewekpwpzbebavcf4 - shitspotter_dvc/assets/poop-2024-11-22-T195205
+    bafybeihgnfs6hku3xlqa7fnoqujkmq2ezk7lvidw32dvgjhsmk7wpk72cy - shitspotter_dvc/assets/poop-2024-12-30-T212347
+    bafybeidvaphwcib2qezdcey4cj3a2r7r7oxskl56yaccgdi75pdou4ggmm - shitspotter_dvc/assets/poop-2025-03-08-T224918
+    bafybeieyl6yzi6cyz3minjyvmz53ydbpxmljxs5gytv6cwu6ci7tmwyvjq - shitspotter_dvc/assets/poop-2025-04-20-T172113
+
 
 
 Acknowledgements

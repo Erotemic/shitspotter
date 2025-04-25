@@ -215,3 +215,21 @@ The two LRs I tested yesterday did about the same. Today I got AdamW working
 converges to about the same performance much much quicker. Getting AP@.5 of
 ~64% and AP%0.5:0.95; of 42% small recall is about 60%, medium recall is about
 80%
+
+
+# 2025-04-21
+
+Working on getting the dataset ready for another submission. Hugging face has
+impressive dataset distribution infastructure. It's somewhat decentralized in
+that it uses git-lfs, so maybe it is best of both worlds. In any case, I had
+uploaded the 2024-08-09 snapshot to it before, which happens to correspond to
+the 2024-07-03 dataset (as I didn't update the data while I was working on that
+original submission). Additionally I tagged it with its IPFS CID:
+bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y, which
+unfortunately won't match the data because its zipped, and I think the CID had
+a few extra files that belong to it. In any case, I'm writing this to document
+that all 3 of those identifiers belong to the same dataset.
+
+The updated version of the dataset for the new publication will have a CID of:
+bafybeia2uv3ea3aoz27ytiwbyudrjzblfuen47hm6tyfrjt6dgf6iadta4 and its zipped
+snapshot date is: 2025-04-21T184031-5.
