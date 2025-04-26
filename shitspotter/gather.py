@@ -601,6 +601,7 @@ def main():
     # learn_code = build_code(learn_coco_dset)
     test_code = build_code(test_coco_dset)
     test_coco_dset.fpath = os.fspath(dpath / ('test_' + test_code + '.kwcoco.zip'))
+    ub.symlink(test_coco_dset.fpath, link_path=test_coco_dset.fpath.parent / 'train.kwcoco.zip', overwrite=True, verbose=3)
 
     import rich
     for dset in [learn_coco_dset, test_coco_dset]:
