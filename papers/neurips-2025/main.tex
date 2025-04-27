@@ -1,15 +1,7 @@
-% WACV 2024 Paper Template
-% based on the CVPR 2023 template (https://media.icml.cc/Conferences/CVPR2023/cvpr2023-author_kit-v1_1-1.zip) with 2-track changes from the WACV 2023 template (https://github.com/wacv-pcs/WACV-2023-Author-Kit)
-% based on the CVPR template provided by Ming-Ming Cheng (https://github.com/MCG-NKU/CVPR_Template)
-% modified and extended by Stefan Roth (stefan.roth@NOSPAMtu-darmstadt.de)
-
 \documentclass{article}
 %%%%%%%%% PAPER TYPE  - PLEASE UPDATE FOR FINAL VERSION
-
 %\usepackage[utf8]{inputenc} % allow utf-8 input
 \usepackage[T1]{fontenc}    % use 8-bit T1 fonts
-%\usepackage[review,algorithms]{wacv}      % To produce the REVIEW version for the algorithms track
-
 
 % Define conditions
 \newif\ifnonanonymous
@@ -20,9 +12,9 @@
 % ====================
 % CONDITIONAL SETTINGS
 % ====================
-\nonanonymoustrue % comment out to be anonymous
+%\nonanonymoustrue % comment out to be anonymous
 \useappendixtrue % comment out to remove appendix
-\useacknowledgementtrue % comment out to remove acknowledgements
+%\useacknowledgementtrue % comment out to remove acknowledgements
 % ====================
 
 \ifnonanonymous
@@ -72,6 +64,8 @@
 \usepackage{lipsum}         % Can be removed after putting your text content
 %\usepackage[numbers]{natbib}
 \usepackage{doi}
+\usepackage{seqsplit}
+
 
 %% extra
 \usepackage{listings}
@@ -91,11 +85,6 @@
 
 \newcommand{\cotwo}{\ensuremath{\mathrm{CO_2}}}
 
-
-%%%%%%%%% PAPER ID  - PLEASE UPDATE
-%\def\paperID{*****} % *** Enter the Paper ID here
-%\def\confName{CVPR}
-%\def\confYear{2025}
 
 \title{``ScatSpotter'' --- A Dog Poop Detection Dataset}
 
@@ -126,18 +115,21 @@ Kitware\\
 %This work chronicles one researcher's un-funded journey to build a phone
 %application that can detect dog poop in images, and make the data widely
 %available as a benchmark dataset.
-We introduce a new dataset containing phone images of dog feces, annotated with manually drawn or AI-assisted polygon labels.
+We introduce a new dataset containing phone images of dog feces, annotated with manually drawn or
+  AI-assisted polygon labels.
 Its over 9000 ``before/after/negative'' full resolution images contain 6000 polygon annotations.
 The collection and annotation of images started in late 2020 and is still growing as of May 2025.
 Our experiments use a defined checkpoint.
 We train VIT and MaskRCNN baseline models to explore the difficulty of the dataset.
-The best model achieves a pixelwise average precision of 0.858 on a 691-image validation set and 0.810 on a small independently captured 121-image contributor test set.
-Dataset snapshots are publicly available through four different distribution methods:
+The best model achieves a pixelwise average precision of 0.858 on a 691-image validation set and 0.810 on a
+  small independently captured 121-image contributor test set.
+Dataset snapshots are available through four different distribution methods:
 two centralized (Girder and HuggingFace) and two decentralized (IPFS and BitTorrent).
-We study of the trade-offs between distribution methods and discuss the feasibility of each with respect to reliably sharing open scientific data.
+We study of the trade-offs between distribution methods and discuss the feasibility of each with respect to
+  reliably sharing open scientific data.
 The code for experiments is hosted on GitHub.
 The data license is CC-BY 4.0.
-Model weights are publicly available with the dataset.
+Model weights are available with the dataset.
 Experiment hardware, time, energy, and emissions are quantified.
 
 %We train a baseline vision transformer to segment the objects of interest, exploring a grid of hyperparameters, and we evaluate their impact. 
@@ -166,7 +158,7 @@ Many of these applications can be realized with modern object detection and segm
     \includegraphics[width=\linewidth]{figures/zoom_leaf.jpg}
     \caption[]{
         A zoomed in example of an annotated object in a challenging
-        condition: a scene cluttered with leafs. The similarity between the leafs
+        condition: a scene cluttered with leaves. The similarity between the leaves
         and the poop causes a camouflage effect that can make detecting it difficult.
         The poop is highlighted in blue.
     }
@@ -190,37 +182,6 @@ Many of these applications can be realized with modern object detection and segm
 \label{fig:Combined}
 \end{figure}
   
-%\begin{figure}[t]
-%\centering
-%\includegraphics[width=0.49\textwidth]{figures/zoom_leaf.jpg}
-%%\hfill
-%%\includegraphics[width=0.49\textwidth]{figures/Screenshot from 2024-09-07 19-20-25.png}
-%\caption[]{
-%    A zoomed in example of an annotated object in a challenging
-%    condition: a scene cluttered with leafs. The similarity between the leafs
-%    and the poop causes a camouflage effect that can make detecting it difficult.
-%    %The leafs act as 
-%    %The texture of 
-%    %The leafs camouflage 
-%    %Polygons were drawn an AI-assistant,
-%    %which means boundaries are sometimes imperfect.
-%}
-%\label{fig:HardCase}
-%\end{figure}
-
-%\begin{figure}[t]
-%\centering
-%\includegraphics[width=0.49\textwidth]{figures/viz_three_images.jpg}
-%\caption[]{
-%The ``before/after/negative'' protocol.
-%The orange box highlights the location of the poop 
-%%(note the actual annotation is a polygon)
-%in the ``before'' image.
-%In the ``after'' image, it is the same scene but the poop has been removed.
-%The ``negative'' image is a nearby similar scene, potentially with a distractor.
-%Note that the object is small relative to the image size.}
-%\label{fig:ThreeImages}
-%\end{figure}
 
 \begin{table*}[t]
 \begin{tabular}{lrrrcrrl}
@@ -316,13 +277,13 @@ An example of a challenging case is shown in \cref{fig:HardCase}.
 Investigation into cases where this problem is difficult may provide insight
 into how to better train object detection and segmentation networks.
 
-Towards these ends we introduce a new dataset, which 
+Towards these ends we introduce a new dataset which, 
 %for the purpose of this paper we call "ScatSpotter".
 %we formally call ``ScatSpotter''.
 in formal settings, we call ``ScatSpotter''.
 Poops are annotated with polygons making the dataset suitable for training detection and segmentation
   models.
-In order to assist with annotation and add variation, we collect images using a ``before/after/negative''
+In order to assist with annotation and add variation, we collect images using a ``before/after/negative'' (BAN)
   protocol as shown in \Cref{fig:ThreeImages}.
 
 From this data, we train a segmentation model to classify which pixels in an image contain poop and which do
@@ -349,11 +310,6 @@ Our contributions are:
 3) A \textbf{comparison of dataset distribution} methods.
 %4) \textbf{Open code and models}.
 
-%\Cref{sec:dataset}.
-%\Cref{sec:models}.
-%\Cref{sec:distribution}.
-%\Cref{sec:relatedwork}.
-
 
 %-------------------------------------------------------------------------
 \section{Related Work}
@@ -373,7 +329,7 @@ Compared to benchmark object localization and segmentation datasets~\cite{ILSVRC
 However, when compared to litter and trash datasets
   \cite{bashkirova_zerowaste_2022,proenca_taco_2020,hong2020trashcansemanticallysegmenteddatasetvisual,mittal2016spotgarbage,rs13050965}
   ours is among the largest in terms of number of images / annotations, image size, and total dataset size.
-ZeroWaste~\cite{bashkirova_zerowaste_2022} uses a ``before/after'' protocol similar to our BAN-protocol.
+ZeroWaste~\cite{bashkirova_zerowaste_2022} uses a ``before/after'' protocol similar to our BAN protocol.
 %% https://paperswithcode.com/dataset/tackknnno
 We provide an overview of these related datasets in \Cref{tab:related_datasets}.
 Among all of these, ours stands out for having the highest resolution images and the smallest objects
@@ -397,14 +353,15 @@ IPFS~\cite{cohen_incentives_2003} and BitTorrent~\cite{benet_ipfs_2014} are the 
 \label{sec:dataset}
 
 Our first contribution is the creation of a new open dataset which consists of images of dog poop in mostly
-  urban, mostly outdoor environments.
+  urban, mostly outdoor environments, from mostly a single city.
 The data is annotated to support object detection and segmentation tasks.
-The majority of the images feature fresh poop from three specific dogs, but there are a significant number
-  of images with poops of unknown age and from from unknown dogs.
+The majority of the images feature fresh poop from three specific dogs (weighing 16kg, 20kg, and 23kg), but there are
+  a significant number of images with poops of unknown age and from from unknown dogs.
 
-To provide a gist of the image variations in the dataset we computed UMAP \cite{mcinnes_umap_2020} image
-  embeddings based on ResNet50 \cite{he2016deep} descriptors display images
-  corresponding with clusters in this embedding in \Cref{fig:umap_dataset_viz}.
+Despite these biases, the dataset has significant image variations.
+To provide a gist, we computed UMAP \cite{mcinnes_umap_2020} image embeddings based on ResNet50
+  \cite{he2016deep} descriptors display images corresponding with clusters in this embedding in
+  \Cref{fig:umap_dataset_viz}.
 
 More details about the dataset are available in a standardized datasheet
 \cite{gebru_datasheets_2021} that covers the motivation, composition,
@@ -445,6 +402,12 @@ Unfortunately, there is no metadata to indicate which polygons were manually cre
 However, the number of vertices may be a reasonable proxy to estimate this, as polygons generated by SAM
   tend to have higher fidelity boundaries.
 The boundaries of the annotated polygons are illustrated in \Cref{fig:compare_allannots}.
+
+Data collected after 2024-07-03 was annotated with the help of models trained
+on prior data. Again, all predictions were manually verified or corrected. In
+these later cases, false positive annotations were labeled (e.g. stick, leaf),
+but because these categories are not labeled exhaustively, we exclude them from
+all analysis in this paper.
 
 
 \begin{figure}[t]
@@ -487,8 +450,8 @@ The boundaries of the annotated polygons are illustrated in \Cref{fig:compare_al
 %kwutil.datetime.coerce('now') - kwutil.datetime.coerce('2020-12-18')
 %kwutil.datetime.coerce('2025-04-20') - kwutil.datetime.coerce('2020-12-18')
 
-The data was captured regularly rate over this period, primarily in parks and sidewalks within
-  a small city.
+The data was captured at a regular rate over 4.3 years, primarily in parks and sidewalks within a small
+  city.
 Weather conditions varied across snowy, sunny, rainy, and foggy.
 A visual representation of the distribution of seasons, time-of-day, daylight, and capture rate is provided
   in \Cref{fig:TimeOfDayDistribution}.
@@ -503,10 +466,10 @@ The images are stored as 8-bit JPEGs with RGB channels, and most include overvie
 
 
 Due to the BAN protocol, about one-third of the images contain
-annotations, the rest were taken after the object(s) were removed.  Thus, most
+annotations, the rest were taken after the object(s) were removed.  Consequently, most
 images have no annotations. When present, annotations are usually singular, but
 multiple annotations are common and can be due to:
-1) fragmented poop,
+1) fragmented dropping,
 2) dogs pooping together,
 3) repeated poops in the same area over time (sometimes hard to distinguish from dirt).
 The number of annotations per image is illustrated in \Cref{fig:AnnotsPerImage}.
@@ -514,13 +477,14 @@ The number of annotations per image is illustrated in \Cref{fig:AnnotsPerImage}.
 
 \subsection{Dataset Splits}
 
-Our dataset is split into training, validation, and test sets based on the year and day of image capture.
-Specifically, images from 2021-2023 are assigned to the training set, while images from 2020 are
-  used for validation.
-For data from 2024, we consider the ordinal date $n$ of each image and include it in the validation set if
-$n \equiv 0 \ (\textrm{mod}\ 3)$; otherwise, it is assigned to the training set.
-Data beyond 2025 is put into the training set.
+Our dataset is split into training, validation, and test sets based on the year and day of image capture and
+  photographer.
 Only data captured by the authors is used for training and validation.
+Of these, images from 2021-2023, 2025 and beyond are assigned to the training set. 
+Images from from 2020 are used for
+  validation.
+For data from 2024, we consider the ordinal date $n$ of each image and include it in the validation set if
+  $n \equiv 0 \ (\textrm{mod}\ 3)$; otherwise, it is assigned to the training set.
 
 
 For testing data, we use contributor images to not bias our results based on the way the authors took
@@ -538,6 +502,7 @@ We trained two MaskRCNN \cite{he2017mask} models (specifically the \texttt{R\_50
   (MaskRCNN-scratch).
 We also trained a semantic segmentation vision transformer variant (VIT-sseg-scratch)
   \cite{Greenwell_2024_WACV,crall_geowatch_2024}, which was only trained from scratch.
+Hyperparameters are available in supplemental materials.
 
 For these baseline models, the training data was limited to an older subset taken before 2024-07-03.
 Our training dataset consists of 5,747 images and is identified by a suffix of {\tt 1e73d54f}, which is the
@@ -545,6 +510,7 @@ Our training dataset consists of 5,747 images and is identified by a suffix of {
 The validation set contains 691 images and has a suffix of {\tt 99b22ad0}.
 The test set, consists of the 121 images, has a suffix of {\tt 6cb3b6ff}, and includes contributor images
   up to 2025-04-20.
+The evaluated models were selected based on their validation scores.
 
 We performed two types of evaluations on the models.
 ``Box'' evaluation computes standard COCO object detection metrics \cite{lin_microsoft_2014}.
@@ -558,7 +524,7 @@ Bounding box evaluation has the advantage that small and large annotations contr
 To complement the box evaluation, we performed a pixelwise evaluation, which is more sensitive to the
   details of the segmented masks, but also can be biased towards larger annotations with more pixels.
 The corresponding truth and predicted pixels were accumulated into a confusion matrix, allowing us to
-  compute standard metrics such as precision, recall, false positive rate, etc... \cite{powers_evaluation_2011}.
+  compute standard metrics \cite{powers_evaluation_2011} such as precision, recall, false positive rate, etc.
 For the VIT-sseg model, computing this score is straightforward, but for MaskRCNN we accumulate per-box
   heatmaps into a larger full image heatmap, which can then be scored.
 
@@ -566,7 +532,6 @@ Quantitative results for each of these models on box and pixel metrics are shown
   \Cref{tab:model_results}.
 Because the independent test set is only 121 images, we also present results on the larger validation
   dataset.
-Note that the evaluated models were selected based on their validation scores.
 Corresponding qualitative results are illustrated in \Cref{fig:test_results_all_models} for the test dataset
   and \cref{fig:vali_results_all_models} for the validation dataset.
 
@@ -614,16 +579,16 @@ VIT-s      & 25.5e6    & 0.422      & 0.426      & 0.473      & \tb{0.902} & 0.4
 \centering
 \includegraphics[width=1.0\textwidth]{figures/agg_viz_results/test_imgs30_d8988f8c.kwcoco/results_detectron-pretrained.jpg}%
 \hfill
-(a) MaskRCNN-pretrained (test set results)
+(a) MaskRCNN-pretrained (test set results).
 \includegraphics[width=1.0\textwidth]{figures/agg_viz_results/test_imgs30_d8988f8c.kwcoco/results_detectron-scratch.jpg}%
 \hfill
-(b) MaskRCNN-scratch (test set results)
+(b) MaskRCNN-scratch (test set results).
 \includegraphics[width=1.0\textwidth]{figures/agg_viz_results/test_imgs30_d8988f8c.kwcoco/results_geowatch-scratch.jpg}%
 \hfill
-(c) VIT-sseg-scratch (test set results)
+(c) VIT-sseg-scratch (test set results).
 \includegraphics[width=1.0\textwidth]{figures/agg_viz_results/test_imgs30_d8988f8c.kwcoco/results_input_images.jpg}%
 \hfill
-(d) Input images from the 121-image test set
+(d) Input images from the test set.
 \caption[]{
     Qualitative results from the top model on the validation set, applied to test images.
     The first three subfigures (a, b, c) display a binarized classification map (true positives in white, false
@@ -655,16 +620,16 @@ VIT-s      & 25.5e6    & 0.422      & 0.426      & 0.473      & \tb{0.902} & 0.4
 \centering
 \includegraphics[width=1.0\textwidth]{figures/agg_viz_results/vali_imgs691_99b22ad0.kwcoco/results_detectron-pretrained.jpg}%
 \hfill
-(a) MaskRCNN-pretrained (validation set results)
+(a) MaskRCNN-pretrained (validation set results).
 \includegraphics[width=1.0\textwidth]{figures/agg_viz_results/vali_imgs691_99b22ad0.kwcoco/results_detectron-scratch.jpg}%
 \hfill
-(b) MaskRCNN-scratch (validation set results)
+(b) MaskRCNN-scratch (validation set results).
 \includegraphics[width=1.0\textwidth]{figures/agg_viz_results/vali_imgs691_99b22ad0.kwcoco/results_geowatch-scratch.jpg}%
 \hfill
-(c) VIT-sseg-scratch (validation set results)
+(c) VIT-sseg-scratch (validation set results).
 \includegraphics[width=1.0\textwidth]{figures/agg_viz_results/vali_imgs691_99b22ad0.kwcoco/results_input_images.jpg}%
 \hfill
-(d) Inputs from the 691-image validation set
+(d) Inputs from the validation set.
 \caption[]{
     %Qualitative results using the top-performing model on the validation set, applied to a selection of
     %  images from the validation set. See \Cref{fig:test_results_all_models} for an explanation of the visualizations.
@@ -686,11 +651,32 @@ The total time spent on prediction and evaluation across all experiments was 15.
 
 We estimated train-time resource usage during training using indirect methods, assuming a constant power
   draw of 345W from the RTX 3090 GPU.
-Electricity consumption was approximated accordingly, while emissions were calculated using a conversion
+Energy consumption was approximated accordingly, while emissions were calculated using a conversion
   ratio of 0.21 $\frac{\textrm{kg}\cotwo{}}{\textrm{kWh}}$ derived from our prediction time measurements.
 Based on file timestamps, we estimated that running 44 different training runs took approximately 159.66
   days, resulting in an estimated energy usage and emissions of 1321.99 kWh and 277.612 $\cotwo$ kg,
   respectively.
+For context, at $\frac{\$0.16}{\textrm{kWh}}$ and $\frac{\$25.00}{1000 \cotwo \textrm{kg}}$, the cost of training
+  and evaluating was $\$229.06$.
+
+\begin{comment}
+import pint
+reg = pint.UnitRegistry()
+reg.define('CO2 = []')
+reg.define('dollar = []')
+kwh = reg.Unit('kilowatt/hour')
+energy_cost = 0.16 * reg.dollar / (kwh)
+emission_cost = 25 * reg.dollar / (1000 * reg.CO2 * reg.metric_ton)
+energy = 1321.99 * kwh
+emission = 277.612 * reg.CO2 * reg.kg
+train = (energy * energy_cost + emission * emission_cost)
+
+energy = 109.63 * kwh
+emission = 23 * reg.CO2 * reg.kg
+eval = (energy * energy_cost + emission * emission_cost)
+
+train + eval
+\end{comment}
 
 A key limitation of these results is the imbalance between model types, with 42 out of 44 trained models
   being VIT-ssegs and only two MaskRCNN models, each taking approximately 8 hours to train.
@@ -792,7 +778,7 @@ More details on the VIT-sseg experiments can be found in the supplemental materi
 
 Empirical evidence suggests that a substantial proportion of scientific studies have low reproducibility
   rates, which has raised concerns across various disciplines \cite{baker_reproducibility_2016}.
-Ideally, all scientific research should be independently reproducible.
+Ideally, scientific research should be independently reproducible.
 Despite higher success rates in computer science (up to 60\%) compared to other fields, there is still room for improvement
 \cite{NEURIPS2019_c429429b, collberg2016repeatability, desai_what_2024}.
 Addressing this issue requires not just better experimental documentation but also more reliable and
@@ -837,8 +823,8 @@ Both IPFS and BitTorrent are content addressable at the dataset level, which mak
   our use case where we seek a static address that can be used to robustly access data.
 
 It is worth noting that centralized systems like HuggingFace~\cite{huggingface_datasets} that use git
-  \cite{chacon2014progit} with large file storage (git-lfs) do gain some decentralized properties, but not
-  content identifiers.
+  \cite{chacon2014progit} with large file storage (git-lfs) do gain some decentralized properties via multiple
+  git remotes, but not content identifiers.
 
 For practitioners, key concerns are how quickly and reliably data can be accessed.
 By comparing decentralized and centralized mechanisms access times for our dataset, we aim to make
@@ -851,7 +837,8 @@ By comparing decentralized and centralized mechanisms access times for our datas
 
 \subsection{Dataset Transfer Experiment}
 
-Our third contribution is an experiment study of decentralized and centralized data distribution methods.
+Our third contribution is an experiment that studies transfer rates of decentralized and centralized data
+  distribution methods.
 For centralized distribution, we use a self-hosted instance of Girder~\cite{girder_2024} and the HuggingFace
   datasets~\cite{huggingface_datasets} platform.
 For decentralized clients, we use Transmission~\cite{transmission_2024} (BitTorrent) and
@@ -859,14 +846,17 @@ For decentralized clients, we use Transmission~\cite{transmission_2024} (BitTorr
 As a baseline, we also measure direct transfers using Rsync~\cite{rsyncprojectrsync_2024}.
 
 For all data transfer experiments, the 2024-07-03 version of the dataset was used. These are content-addressed with the IPFS CID (content identifier) of:
-{\tt bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y}.
+\texttt{\seqsplit{bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y}}
+%{\tt bafybei edwp2zvmdyb2c 2axrcl455xfbv 2mgdbhgkc3dil e4dftiimwth2y}.
+%{\tt bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y}.
 %\begin{lstlisting}[basicstyle=\normalsize]
 %bafybeiedwp2zvmdyb2c2axrcl455x
 %fbv2mgdbhgkc3dile4dftiimwth2y
 %\end{lstlisting}
 The torrent has a magnet URL of:
-{\tt magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49}, and is 
-tracked on Academic Torrents \cite{academic_torrents_Cohen2014}.
+\texttt{\seqsplit{magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49}},
+%{\tt magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49},
+and is tracked on Academic Torrents \cite{academic_torrents_Cohen2014}.
 %\begin{lstlisting}[basicstyle=\normalsize]
 %\end{lstlisting}
 
@@ -906,8 +896,8 @@ For BitTorrent, were unable to use the mainline DHT and fell back to using track
 We believe these peer discovery issues are because the dataset has a small number of seeders.
 To test this, we downloaded other established datasets via IPFS and BitTorrent and found that the peer
   discovery time was almost immediate, suggesting that this becomes less of an issue as a dataset is shared.
-However, the inability to quickly find a single nearby peer with the data is a major issue for initial or
-  private dataset development.
+However, the inability to quickly find a nearby peer with the data is a major issue for initial or private
+  dataset development.
 
 
 \begin{wraptable}{r}{0.5\textwidth}
@@ -942,75 +932,17 @@ Uncompressed transfers provide granular access to individual files, but compress
 % https://arxiv.org/pdf/1804.07617
 
 
-The HuggingFace results are worth noting, as they are faster than an rsync.
-We believe this speed is enabled by content delivery networks, which utilize the CAKE system
-  \cite{hoiland2018piece} to minimize buffer bloat \cite{gettys2012bufferbloat} and an optimized client
-  implementation.
+The HuggingFace results stand out, as they are faster than rsync.
+We believe this is due to an optimized client and content delivery networks, utilizing CAKE
+  \cite{hoiland2018piece} to minimize buffer bloat \cite{gettys2012bufferbloat}.
 However, this speed relies on costly centralized infrastructure.
-The best speeds from more modest centralized networks are ~4x slower.
+The expected speed from a more modest centralized service is $\sim\!20\times$ slower.
 
-There is an additional ~4x slowdown between compressed and uncompressed rsync baselines, which needs to be
+There is an additional $\sim\!4\times$  slowdown between compressed and uncompressed rsync baselines, which needs to be
   considered when comparing decentralized results.
 The minimum time column shows that decentralized methods method can be competitive with rsync, but on
   average decentralized mechanisms are significantly slower and can be stifled by long peer-discovery times.
   
-%While the ability to manually connect peers is useful, if it is required it severely limits the usefulness
-%  of IPFS in automated systems.
-%For BitTorrent, even with trackers, we also observed a significant lag-time for peer discovery, but were
-%  eventually able to resolve without intervention.
-
-%In summary, our measurements suggest that decentralized mechanisms generally take longer and exhibit more
-%  variance compared to centralized methods.
-%The Girder method demonstrated very fast access times, taking slightly more than an hour.
-%However, it benefits from fewer file boundaries, making rsync a more relevant comparison point as it
-%  involves a direct transfer between machines of the exact unarchived dataset used in other tests.
-%IPFS is compelling, as it approaches rsync times more closely than BitTorrent, but potentially only due to
-%  more seeders available for older parts of the dataset.
-
-
-%current conclusion is that while the static content-addressable
-%  data of decentralized mechanisms is appealing, data access times remain a significant barrier.
-%Therefore, maintaining a centralized mirror of a dataset on seeks to distribute remains important.
-
-%With this context, these measurements suggest that  that the decentralized mechanisms do indeed tend to take
-%  longer and have more variance than the centralized mechanisms.
-%The girder method has a very fast access time, only taking slightly more than an hour.
-%However, it does have the aforementioned advantage of having fewer file boundaries, thus rsync may be the
-%  better comparison point as it is a direct transfer between machines of the exact unarchived datasets used in
-%  other tests.
-%In this respect IPFS is compelling coming much closer to rsync times than bittorrent.
-%However, this may be due to more seeders available for older parts of the dataset on IPFS.
-
-
-%We also record anecdotal observations 
-%decentralized distribution of datasets, we perform an observational study.
-%We attempt to download the dataset via each of the 3 primary distribution mechanisms, and measure the time
-%  it takes to complete.
-
-%\begin{itemize}
-%    \item IPFS via https using gateways does not always work well.
-%    \item IPFS usually works well if you use the CLI.
-%    \item IPFS is easier to update.
-%    \item IPFS does rehash every file, which induces an O(N) scalability constraint.
-
-%    \item BitTorrent and IPFS seem to both take awhile to establish connection
-%          to a peer when there are a small number of pinners/seeders.
-
-%          IPFS has a mechanism to directly connect to a peer, which seems to
-%          work fairly quickly, but not immediately.
-
-%          This issue is mitigated as the number of seeders/pinners grows.
-%          A test download of ImageNet LSVRC 2017 dataset from academic torrents
-%          almost immediately connected to 2 seeders.
-
-%    \item Centralized solutions depend on an organization providing a service,
-%          and that organization can choose to stop providing that service.
-%\end{itemize}
-
-% https://academictorrents.com/docs/about.html
-% magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49&tr=https%3A%2F%2Facademictorrents.com%2Fannounce.php%3Fpasskey%3D9ffbb169f882f3be1330a48ea87416e7&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce
-
-
 \section{Conclusion}
 
 We have introduced the largest open dataset of high resolution images with polygon
@@ -1019,37 +951,22 @@ The dataset contains several challenges including amorphous objects, multi-seaso
   distractors, daytime / nighttime variation.
 We have described the dataset collection and annotation process and reported statistics on the dataset.
 
-We provided a recommended train/validation/test split of the dataset, and trained
-  baseline segmentation models.
-%the best of which achieves a pixelwise AP of 0.78 on the validation
-%set and 0.51 on the test set.
+We provided a recommended train/validation/test split of the dataset, and trained baseline segmentation
+  models that perform well, but could likely be improved.
 In addition to providing quantitative and qualitative results of the models, we also estimate the resources
   required to perform these training, prediction, and evaluation experiments.
 
 We have published our data and models under a permissive license, and made them available through both
   centralized (Girder and HuggingFace) and decentralized (BitTorrent and IPFS) mechanisms.
-Decentralized methods have robustness properties like content-identifiers, but suffer from significant
-  network transfer overhead.
+Decentralized methods have robustness properties, but suffer from significant network transfer overhead.
 HuggingFace has exceptionally fast transfer speeds, and due to its usage of git-lfs has some decentralized
-  properties.
+  properties, but lacks content identifiers.
 
-Our work can be used to train detection models, enabling applications such as: 
+Our work can be used to train detection models, enabling applications such as:
 Mobile apps for locating feces.
 Urban cleanliness monitoring by municipalities.
 Augmented reality poop collision warning systems.
-We believe the negative applications of our work are limited, respectful use of
-this open dataset is expected.
-
-
-%At best it is 2x, at worse it is 130x.
-%We discuss properties of decentralized methods and quantify the slowdown of transfer speed.
-%Our measurement of access times quantifies the speed penalty of decentralized
-%dataset distribution. 
-
-%We evaluate data access time
-%Our evaluation of these distribution methods show that decentralized access
-%time is much slower than centralized methods, and discuss tradeoffs.
-
+We believe the negative potential of our work is limited; respectful use of this dataset is expected.
 
 % Looking towards the future, our planned directions for research and development are:
 % %1) Extending our segmentation with an object detection head and evaluating object-detection metrics.
@@ -1086,11 +1003,11 @@ We would would like to thank all of the dogs that produced subject matter for th
 }
 
 
-%\ifuseappendix
+\ifuseappendix
 % WARNING: do not forget to delete the supplementary pages from your submission 
 \include{appendix}
 \include{neurips_2025_checklist}
-%\fi
+\fi
 
 
 \begin{comment}

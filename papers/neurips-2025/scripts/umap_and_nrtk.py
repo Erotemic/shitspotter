@@ -1,3 +1,19 @@
+# /// script
+# dependencies = [
+#   "geowatch",
+#   "kwimage",
+#   "ubelt",
+#   "einops",
+#   "nrtk_explorer",
+#   "numpy",
+#   "torch",
+#   "kwutil",
+#   "umap",
+#   "scikit-learn",
+#   "fast_tsp",
+# ]
+# requires-python = ">=3.11"
+# ///
 from geowatch.tasks.fusion.datamodules.kwcoco_dataset import KWCocoVideoDataset
 import kwimage
 import ubelt as ub
@@ -45,7 +61,6 @@ class WrappedDataset(KWCocoVideoDataset):
 
 
 def our_collate(batch_tups):
-    import numpy as np
     tostack = []
     imageids = []
     for imdata, image_id in batch_tups:
@@ -231,6 +246,13 @@ def play_with_descriptors():
     pip install fast-tsp
     """
     import kwcoco
+    import umap
+    import kwarray
+    import sklearn
+    import sklearn.cluster
+    from scipy.spatial.distance import pdist, squareform
+    import fast_tsp
+    import kwplot
     fpath = '/home/joncrall/data/dvc-repos/shitspotter_dvc/data.kwcoco.with-descriptors.json'
     dset = kwcoco.CocoDataset(fpath)
 
@@ -245,8 +267,6 @@ def play_with_descriptors():
     image_ids = np.array(image_ids)
     descriptors = np.array(descriptors)
 
-    import umap
-    import kwarray
     rng = kwarray.ensure_rng(0)
     kwargs = {}
     kwargs['random_state'] = rng
@@ -254,8 +274,6 @@ def play_with_descriptors():
     umap = umap.UMAP(n_components=2, **kwargs)
     reduced = umap.fit_transform(descriptors)
 
-    import sklearn
-    import sklearn.cluster
     num_neighbs = 3
     n_clusters = 13
     neighbors = sklearn.neighbors.NearestNeighbors(n_neighbors=num_neighbs * 4, algorithm='brute')
@@ -268,7 +286,6 @@ def play_with_descriptors():
     unique_labels, groupxs = kwarray.group_indices(labels)
     colors = kwimage.Color.distinct(len(unique_labels))
 
-    import kwplot
     kwplot.autompl()
 
     rng2 = kwarray.ensure_rng(1)
@@ -314,8 +331,6 @@ def play_with_descriptors():
     points = np.array([t['xy'] for t in tasks])
     # Make it harder to move in the y direction
     points[:, 1] *= 2
-    from scipy.spatial.distance import pdist, squareform
-    import fast_tsp
     dist_matrix = squareform(pdist(points))
 
     # Choose the leftmost point at the start
@@ -383,7 +398,6 @@ def play_with_descriptors():
         stack = kwimage.draw_header_text(text=str(tour_pos + 1), image=stack, bg_color='white', color='black')
         vert_parts.append(stack)
 
-    import kwplot
     image_canvas = kwimage.stack_images(vert_parts, axis=1, pad=20, bg_value='white')
     height, width = image_canvas.shape[0:2]
 
@@ -401,7 +415,6 @@ def play_with_descriptors():
     fpath = ub.Path('~/code/shitspotter/papers/neurips-2025/figures/umap-v3.jpg').expand()
 
     kwimage.imwrite(fpath, canvas)
-    import ubelt as ub
     ub.cmd(f'eog {fpath}')
 
     kwplot.imshow(canvas, fnum=3)
@@ -411,8 +424,5 @@ if __name__ == '__main__':
     """
     CommandLine:
         python ~/code/shitspotter/papers/neurips-2025/scripts/umap_and_nrtk.py
-
-
-
     """
     main()
