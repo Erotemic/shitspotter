@@ -614,6 +614,8 @@ def main():
     for dset in [learn_coco_dset, test_coco_dset]:
         rich.print('dset.fpath = {}'.format(ub.urepr(dset.fpath, nl=1)))
 
+    # Combine learn and test into "full" for analysis.
+
 
 def build_code(coco_dset):
     hashid = coco_dset._build_hashid()[0:8]

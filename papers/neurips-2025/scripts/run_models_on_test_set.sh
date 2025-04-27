@@ -70,8 +70,8 @@ python -m geowatch.mlops.aggregate \
     --rois=None \
     --io_workers=0 \
     --eval_nodes="
-        - heatmap_eval
         - detection_evaluation
+        - heatmap_eval
     " \
     --stdout_report="
         top_k: 10
@@ -127,8 +127,8 @@ python -m geowatch.mlops.aggregate \
     --rois=None \
     --io_workers=0 \
     --eval_nodes="
-        - detection_evaluation
         - heatmap_eval
+        - detection_evaluation
     " \
     --stdout_report="
         top_k: 10
@@ -144,28 +144,34 @@ python -m geowatch.mlops.aggregate \
 
 __results__="
 
-VIT heatmap
-
-               region_id  param_hashid  salient_AP  salient_AUC
-0  test_imgs121_6cb3b6ff  nrxvegahrndd    0.473143     0.902277
-
-VIT detection
+VIT box
 
   region_id  param_hashid        ap       auc  max_f1_f1  max_f1_tpr  max_f1_ppv
 0   unknown  pbuznriqmgbh  0.421657  0.425515   0.556886     0.41704    0.837838
 
+VIT pixel
+
+               region_id  param_hashid  salient_AP  salient_AUC
+0  test_imgs121_6cb3b6ff  nrxvegahrndd    0.473143     0.902277
 
 
+
+
+DETECTRON box
 Top 2 / 2 for detection_evaluation, unknown
 region_id param_hashid       ap      auc  max_f1_f1  max_f1_tpr  max_f1_ppv
   unknown hsvbfwcwqurw 0.252947 0.464412   0.346253    0.300448    0.408537
   unknown lhrhjkrbsrte 0.612810 0.697425   0.650367    0.596413    0.715054
 
 
+DETECTRON pixel
+
 Top 2 / 2 for heatmap_eval, test_imgs121_6cb3b6ff
             region_id param_hashid  salient_AP  salient_AUC
 test_imgs121_6cb3b6ff hsvbfwcwqurw    0.383513     0.797828
 test_imgs121_6cb3b6ff lhrhjkrbsrte    0.810477     0.849399
+
+
 
 
 "

@@ -233,3 +233,36 @@ that all 3 of those identifiers belong to the same dataset.
 The updated version of the dataset for the new publication will have a CID of:
 bafybeia2uv3ea3aoz27ytiwbyudrjzblfuen47hm6tyfrjt6dgf6iadta4 and its zipped
 snapshot date is: 2025-04-21T184031-5.
+
+
+# 2025-04-26
+
+
+Hugging face is so fast. I spoke with colleages, the likely reason is CDNs and
+cake, which prevent buffer bloat.
+
+Here are notes I took:
+
+CDNs and CAKE.
+Cake solves buffer bloat - look into this.
+Filling all buffers along TCP path.
+https://github.com/huggingface/hf_transfer
+https://www.bufferbloat.net/projects/codel/wiki/Cake/
+
+
+Talks on Data. 
+https://www.youtube.com/watch?v=KD5TwLQnq_8
+https://www.youtube.com/watch?v=KD5TwLQnq_8
+https://www.youtube.com/watch?v=PgFcqRMDqlk
+https://www.bufferbloat.net/projects/codel/wiki/Cake/
+
+Also we may want to make these points: 
+
+Annotations for data collected in <confirm time range> late 2024-2025 used
+trained models to seed initial detections. However, each case is still manually
+checked.  For simple cases this worked well, but there were a significant
+number of errors that needed to be corrected. We did not delete the false
+positive detections. Instead we gave them new category names (e.g. leaf, stick,
+grass, shadow). These can serve as explicit hard negatives. We also began
+adding notes to some annotations indicating the appearance of the poop (e.g.
+old, smashed, wet).
