@@ -12,9 +12,9 @@
 % ====================
 % CONDITIONAL SETTINGS
 % ====================
-%\nonanonymoustrue % comment out to be anonymous
+\nonanonymoustrue % comment out to be anonymous
+\useacknowledgementtrue % comment out to remove acknowledgements
 \useappendixtrue % comment out to remove appendix
-%\useacknowledgementtrue % comment out to remove acknowledgements
 % ====================
 
 \ifnonanonymous
@@ -273,7 +273,7 @@ It is relatively simple, with a narrow focus on a single class, making it suitab
 However, the task includes non-trivial challenges such as resolution issues (e.g., camera quality,
   distance), camouflaging distractors (e.g., leaves, pine cones, sticks, dirt, and mud), occlusion (e.g., bushes, overgrown
   grass), and variation in appearance (e.g., old vs. new, healthy vs. sick).
-An example of a challenging case is shown in \cref{fig:HardCase}.
+An example of a challenging case is shown in \Cref{fig:HardCase}.
 Investigation into cases where this problem is difficult may provide insight
 into how to better train object detection and segmentation networks.
 
@@ -338,7 +338,7 @@ For a review of additional waste related datasets, refer to \cite{agnieszka_wast
 
 \Cref{sec:distribution} discusses the logistics and tradeoffs between dataset distribution mechanisms
   with a focus on comparing centralized and decentralized methods.
-IPFS~\cite{cohen_incentives_2003} and BitTorrent~\cite{benet_ipfs_2014} are the decentralized 
+IPFS~\cite{benet_ipfs_2014} and BitTorrent~\cite{cohen_incentives_2003} are the decentralized 
   mechanisms we evaluate, but others exist such as Secure Scuttlebut \cite{tarr_secure_2019} and Hypercore
   \cite{frazee_dep-0002_nodate}, which we did not test.
 
@@ -355,8 +355,8 @@ IPFS~\cite{cohen_incentives_2003} and BitTorrent~\cite{benet_ipfs_2014} are the 
 Our first contribution is the creation of a new open dataset which consists of images of dog poop in mostly
   urban, mostly outdoor environments, from mostly a single city.
 The data is annotated to support object detection and segmentation tasks.
-The majority of the images feature fresh poop from three specific dogs (weighing 16kg, 20kg, and 23kg), but there are
-  a significant number of images with poops of unknown age and from from unknown dogs.
+The majority of the images feature fresh poop from three specific medium sized dogs, but there are
+  a significant number of images with poops of unknown age and from unknown dogs.
 
 Despite these biases, the dataset has significant image variations.
 To provide a gist, we computed UMAP \cite{mcinnes_umap_2020} image embeddings based on ResNet50
@@ -387,8 +387,9 @@ These exceptions are often programmatically identifiable.
 We also received 121 contributor images, mostly outside the BAN protocol.
 These images are held out and used as our test set.
 %These are used only for testing and are \emph{excluded} from the analysis in \Cref{subsec:datastat}.
-The small size of this test set is the reason that our main results include
-validation and test scores.
+Due to the small size, our main results also include validation scores.
+%The small size of this test set is the reason that our main results include
+%validation and test scores.
 
 \subsection{Dataset Annotation}
 
@@ -416,10 +417,11 @@ all analysis in this paper.
     \centering
     \includegraphics[width=\textwidth]{figures/images_timeofday_distribution.png}
     \caption{
-        Scatterplot of time-of-year vs time-of-day when each image was taken.
-        On the x-axis, 0 is January 1st. On the y-axis, 0 is midnight.
-        Color indicates estimated daylight.
-        Most images are in daylight, but many were taken at night with flash or long exposure.
+        The time-of-year vs time-of-day of each image show diurnal and seasonal
+        variation.  On the x-axis, 0 is January 1st. On the y-axis, 0 is
+        midnight.  Color estimates daylight based on location (if available).
+        Most images are in the day, but many were taken at night with flash or
+        long exposure.
     }
     \label{fig:TimeOfDayDistribution}
 \end{subfigure}
@@ -428,7 +430,7 @@ all analysis in this paper.
     \centering
     \includegraphics[width=\textwidth]{figures/anns_per_image_histogram_splity.png}
     \caption{
-        Histogram of annotations per image.
+        The histogram of annotations per image shows object density variation.
         Only 35\% (3,314) of images contain annotations; 65\% (5,982) are known negatives.
         About half of the negatives were taken immediately after pickup; the
         rest are from nearby locations with potential lookalikes.
@@ -481,7 +483,7 @@ Our dataset is split into training, validation, and test sets based on the year 
   photographer.
 Only data captured by the authors is used for training and validation.
 Of these, images from 2021-2023, 2025 and beyond are assigned to the training set. 
-Images from from 2020 are used for
+Images from 2020 are used for
   validation.
 For data from 2024, we consider the ordinal date $n$ of each image and include it in the validation set if
   $n \equiv 0 \ (\textrm{mod}\ 3)$; otherwise, it is assigned to the training set.
@@ -498,11 +500,11 @@ These splits are provided in the COCO JSON format \cite{lin_microsoft_2014} as w
 As our second contribution, we trained and evaluated models to establish a baseline for future comparisons.
 Specifically we train three model variants.
 We trained two MaskRCNN \cite{he2017mask} models (specifically the \texttt{R\_50\_FPN\_3x} configuration),
-  one starting from pretrained ImageNet weights (MaskRCNN-pretrained), and one starting from scratch
-  (MaskRCNN-scratch).
-We also trained a semantic segmentation vision transformer variant (VIT-sseg-scratch)
+  one starting from pretrained ImageNet weights (MaskRCNN-p), and one starting from scratch
+  (MaskRCNN-s).
+We also trained a semantic segmentation vision transformer variant (VIT-sseg-s)
   \cite{Greenwell_2024_WACV,crall_geowatch_2024}, which was only trained from scratch.
-Hyperparameters are available in supplemental materials.
+Hyperparameters are given in supplemental materials.
 
 For these baseline models, the training data was limited to an older subset taken before 2024-07-03.
 Our training dataset consists of 5,747 images and is identified by a suffix of {\tt 1e73d54f}, which is the
@@ -532,8 +534,8 @@ Quantitative results for each of these models on box and pixel metrics are shown
   \Cref{tab:model_results}.
 Because the independent test set is only 121 images, we also present results on the larger validation
   dataset.
-Corresponding qualitative results are illustrated in \Cref{fig:test_results_all_models} for the test dataset
-  and \cref{fig:vali_results_all_models} for the validation dataset.
+Corresponding qualitative test results are illustrated in \Cref{fig:test_results_all_models} and validation
+  results in \Cref{fig:vali_results_all_models}.
 
 \newcommand{\tb}[1]{\textbf{#1}}
 
@@ -645,10 +647,14 @@ Qualitative results of the top model on unseen validation images (see \Cref{fig:
 
 All models were trained on a single machine with an Intel Core i9-11900K CPU and an NVIDIA GeForce RTX 3090
   GPU.
-The total time spent on prediction and evaluation across all experiments was 15.6 days, with prediction
+A key limitation of these results is the imbalance between model types, with 42 out of 44 trained models
+  being VIT-ssegs and only two MaskRCNN models, each taking approximately 8 hours to train.
+Future work could further optimize MaskRCNN models to improve comparability.
+More details on the VIT-sseg experiments can be found in the supplemental materials.
+
+\paragraph{Environmental Impact} The total time spent on prediction and evaluation across all experiments was 15.6 days, with prediction
   consuming 109.63 kWh of energy and causing an estimated emissions of 23.0 \cotwo kg as measured by
   CodeCarbon \cite{lacoste2019codecarbon}.
-
 We estimated train-time resource usage during training using indirect methods, assuming a constant power
   draw of 345W from the RTX 3090 GPU.
 Energy consumption was approximated accordingly, while emissions were calculated using a conversion
@@ -677,10 +683,6 @@ eval = (energy * energy_cost + emission * emission_cost)
 
 train + eval
 \end{comment}
-
-A key limitation of these results is the imbalance between model types, with 42 out of 44 trained models
-  being VIT-ssegs and only two MaskRCNN models, each taking approximately 8 hours to train.
-More details on the VIT-sseg experiments can be found in the supplemental materials.
   
 
 %train$^{*}$ & time        & 158.95 days      &     3.78 days  &   42 \\
@@ -802,7 +804,7 @@ By leveraging content-addressable storage, where the dataset checksum acts as bo
   validate the data, these methods ensure data integrity and nearly eliminate the risk of dead URLs, provided
   that at least one peer retains the data.
 While decentralized systems face challenges such as longer connection times, increased network overhead, and
-  the need for a robust peer network, their ability to ensure data accessibility via a static address
+  the need for a robust peer network, their ability to ensure data access via a static address
   motivates our investigation
 
 Specifically, we focus on two prominent candidates:
@@ -822,9 +824,9 @@ IPFS has been likened to ``a single BitTorrent swarm, exchanging objects within 
 Both IPFS and BitTorrent are content addressable at the dataset level, which makes them both appropriate for
   our use case where we seek a static address that can be used to robustly access data.
 
-It is worth noting that centralized systems like HuggingFace~\cite{huggingface_datasets} that use git
-  \cite{chacon2014progit} with large file storage (git-lfs) do gain some decentralized properties via multiple
-  git remotes, but not content identifiers.
+It is worth noting that git-based \cite{chacon2014progit} systems like
+  HuggingFace~\cite{huggingface_datasets} with large file storage do gain some decentralized
+  properties via multiple remotes, but not content identifiers.
 
 For practitioners, key concerns are how quickly and reliably data can be accessed.
 By comparing decentralized and centralized mechanisms access times for our dataset, we aim to make
@@ -845,7 +847,8 @@ For decentralized clients, we use Transmission~\cite{transmission_2024} (BitTorr
   Kubo~\cite{ipfskubo_2024} (IPFS).
 As a baseline, we also measure direct transfers using Rsync~\cite{rsyncprojectrsync_2024}.
 
-For all data transfer experiments, the 2024-07-03 version of the dataset was used. These are content-addressed with the IPFS CID (content identifier) of:
+For data transfer experiments, we use the 2024-07-03 version of the dataset. 
+This is content-addressed with the IPFS CID (content identifier):
 \texttt{\seqsplit{bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y}}
 %{\tt bafybei edwp2zvmdyb2c 2axrcl455xfbv 2mgdbhgkc3dil e4dftiimwth2y}.
 %{\tt bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y}.
@@ -862,8 +865,8 @@ and is tracked on Academic Torrents \cite{academic_torrents_Cohen2014}.
 
 To assess the effectiveness of each mechanism we programmatically download our 42GB dataset and measure the
   time required to complete the transfer.
-Each experiment was run multiple times, machines were separated by approximately 30 kilometers with an
-  average ping time of 48.48 ms.
+Each experiment was run five times, machines we controlled were separated by $\sim\!30$ kilometers
+  with an average ping time of 48.48 ms.
 For each test, we log transfer start and end times along with notes and code (provided in supplemental
   materials).
 
@@ -890,14 +893,14 @@ Despite significant testing limitations, our measurements quantify the expected 
   gain the advantages of decentralized mechanisms.
 With these limitations acknowledged, we present the transfer times statistics in \Cref{tab:transfertime}.
 Alongside these measurements, several observations are worth noting.
-Transferring files using IPFS involved prohibitively expensive peer discovery times, and we were only able
-  to connect two machines after manually informing them of each other's peer ID.
+Transferring files using IPFS had significantly delayed peer discovery times, and we were only able to
+  connect two machines after manually informing them of each other's peer ID.
 For BitTorrent, were unable to use the mainline DHT and fell back to using trackers.
 We believe these peer discovery issues are because the dataset has a small number of seeders.
 To test this, we downloaded other established datasets via IPFS and BitTorrent and found that the peer
   discovery time was almost immediate, suggesting that this becomes less of an issue as a dataset is shared.
-However, the inability to quickly find a nearby peer with the data is a major issue for initial or private
-  dataset development.
+However, the inability to quickly find a nearby peer is a major issue for initial or private dataset
+  development.
 
 
 \begin{wraptable}{r}{0.5\textwidth}
@@ -962,20 +965,18 @@ Decentralized methods have robustness properties, but suffer from significant ne
 HuggingFace has exceptionally fast transfer speeds, and due to its usage of git-lfs has some decentralized
   properties, but lacks content identifiers.
 
-Our work can be used to train detection models, enabling applications such as:
-Mobile apps for locating feces.
-Urban cleanliness monitoring by municipalities.
-Augmented reality poop collision warning systems.
-We believe the negative potential of our work is limited; respectful use of this dataset is expected.
 
-% Looking towards the future, our planned directions for research and development are:
-% %1) Extending our segmentation with an object detection head and evaluating object-detection metrics.
-% 1) Training a model optimized for mobile devices.
-% 2) Mine hard negatives based on false positives in the training set.
-% 3) Build and publish a phone application that uses the mobile-optimized model to detect poop in real time.
-% 4) Collect more data.
-% % https://github.com/iterative/dvc/discussions/6777
+Limitations of our work include:
+1) geographic concentration of the dataset,
+2) the small size of the independent test set,
+3) limited exploration of the better-performing model variant, and
+4) uncontrolled network conditions during distribution experiments.
+Future work could address these by expanding dataset diversity, training a
+broader range of models, and improving decentralized hosting strategies.
 
+Our dataset enables applications such as mobile apps for detecting feces, urban
+cleanliness monitoring, and augmented reality collision warnings. We believe
+negative impacts are limited and expect respectful use of the dataset.
 We envision exciting possibilities for the BAN protocol in computer vision research.
 We hope our work will inspire others to consider decentralized content addressable data sharing, fostering
   open collaboration and reproducible experiments.
@@ -1006,7 +1007,7 @@ We would would like to thank all of the dogs that produced subject matter for th
 \ifuseappendix
 % WARNING: do not forget to delete the supplementary pages from your submission 
 \include{appendix}
-\include{neurips_2025_checklist}
+%\include{neurips_2025_checklist}
 \fi
 
 

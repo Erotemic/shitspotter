@@ -61,7 +61,7 @@ if __name__ == '__main__':
     """
 
     CommandLine:
-        python ~/code/shitspotter/papers/neurips-2025/compress_pdf.py
+        python ~/code/shitspotter/papers/neurips-2025/scripts/compress_pdf.py ~/code/shitspotter/papers/neurips-2025/main.pdf
         python -m compress_pdf
     """
     __cli__.main()

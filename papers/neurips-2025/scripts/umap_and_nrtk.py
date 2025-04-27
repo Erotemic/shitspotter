@@ -22,7 +22,6 @@ import einops
 import torch
 import shitspotter
 import numpy as np
-# import json
 import base64
 from nrtk_explorer.library.embeddings_extractor import EmbeddingsExtractor
 
