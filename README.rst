@@ -141,6 +141,9 @@ We also have the dataset on `hugging face
 <https://huggingface.co/datasets/erotemic/shitspotter>`__, which is currently
 offering the best download speeds.
 
+
+Models are also available on huggingface: https://huggingface.co/erotemic/shitspotter-models
+
 Recent Updates
 ==============
 

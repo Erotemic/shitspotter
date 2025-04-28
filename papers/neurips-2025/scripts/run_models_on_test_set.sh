@@ -22,6 +22,13 @@ The best models on the validation set were:
     (MaskRCNN From Scratch)
     /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_scratch_v4/v_280638bd/model_0099999.pth
 
+    # Make sure experiment models are copied to the data repo for distribution.
+    cp ~/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/epoch=0089-step=122940-val_loss=0.019.ckpt.pt \
+        ~/code/shitspotter/shitspotter_dvc/models/shitspotter_scratch_20240618_noboxes_v7_epoch=0089-step=122940-val_loss=0.019.ckpt.pt
+
+    cp ~/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/train_baseline_maskrcnn_scratch_v4/v_280638bd/model_0099999.pth \
+        ~/code/shitspotter/shitspotter_dvc/models/train_baseline_maskrcnn_scratch_v4_v_280638bd_model_0099999.pth
+
 "
 
 ### VIT MODELS
