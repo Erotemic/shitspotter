@@ -22,7 +22,7 @@ class EnsureDaemon(scfg.ModalCLI):
         Use systemctl to start the transmission-daemon.service
         """
         @classmethod
-        def main(cls, cmdline=1, **kwargs):
+        def main(cls, argv=True, **kwargs):
             ub.cmd('sudo systemctl start transmission-daemon.service', system=True)
 
     class status(scfg.DataConfig):
@@ -30,7 +30,7 @@ class EnsureDaemon(scfg.ModalCLI):
         Query systemctl for the status of transmission-daemon.service
         """
         @classmethod
-        def main(cls, cmdline=1, **kwargs):
+        def main(cls, argv=True, **kwargs):
             ub.cmd('systemctl status transmission-daemon.service --no-pager', system=True)
 
 
@@ -43,10 +43,32 @@ class TransmissionList(scfg.DataConfig):
     auth = scfg.Value('transmission:transmission', help='auth argument')
 
     @classmethod
-    def main(cls, cmdline=1, **kwargs):
-        config = cls.cli(cmdline=cmdline, data=kwargs)
+    def main(cls, argv=True, **kwargs):
+        config = cls.cli(argv=argv, data=kwargs)
         # This command may need to be modified
         ub.cmd(f'transmission-remote --auth {config.auth} --list', system=True)
+
+
+@TransmissionModal.register
+class TransmissionInfo(scfg.DataConfig):
+    """
+    Show information about a specific torrent.
+    """
+    __command__ = 'info'
+    identifier = scfg.Value(None, position=1, help='name or id of the torrent')
+    auth = scfg.Value('transmission:transmission', help='auth argument')
+    verbose = scfg.Value(0, isflag=True, help='verbosity')
+
+    @classmethod
+    def main(cls, argv=True, **kwargs):
+        config = cls.cli(argv=argv, data=kwargs)
+        torrent_id = lookup_torrent_id(config.identifier, config.auth, verbose=config.verbose)
+        if torrent_id is None:
+            print('error')
+            return 1
+        else:
+            out = ub.cmd(f'transmission-remote --auth {config.auth} --torrent {torrent_id} --info', verbose=config.verbose)
+            return out.returncode
 
 
 @TransmissionModal.register
@@ -55,14 +77,14 @@ class TransmissionLookupID(scfg.DataConfig):
     Lookup the id of a torrent by its name.
     """
     __command__ = 'lookup_id'
-    torrent_name = scfg.Value(None, position=1, help='name of the torrent')
+    identifier = scfg.Value(None, position=1, help='name of the torrent')
     auth = scfg.Value('transmission:transmission', help='auth argument')
     verbose = scfg.Value(0, isflag=True, help='verbosity')
 
     @classmethod
-    def main(cls, cmdline=1, **kwargs):
-        config = cls.cli(cmdline=cmdline, data=kwargs)
-        torrent_id = cls.lookup_torrent_id(**config)
+    def main(cls, argv=True, **kwargs):
+        config = cls.cli(argv=argv, data=kwargs)
+        torrent_id = lookup_torrent_id(**config)
         if torrent_id is None:
             print('error')
             return 1
@@ -70,23 +92,31 @@ class TransmissionLookupID(scfg.DataConfig):
             print(torrent_id)
             return 0
 
-    @staticmethod
-    def lookup_torrent_id(torrent_name, auth, verbose=0):
-        import re
-        # This command may need to be modified
-        out = ub.cmd(
-            f'transmission-remote --auth {auth} --list',
-            shell=True, verbose=verbose, check=True)
-        splitpat = re.compile('   *')
-        for line in out.stdout.split(chr(10)):
-            line_ = line.strip()
-            if not line_ or line_.startswith(('Sum:', 'ID')):
-                continue
-            row_vals = splitpat.split(line_)
-            name = row_vals[-1]
-            torrent_id = row_vals[0].strip('*')
-            if name == torrent_name:
-                return torrent_id
+
+def lookup_torrent_id(identifier, auth, verbose=0):
+    import re
+    # If given as an integer, assume they are using the right id
+    try:
+        torrent_id = int(identifier)
+    except Exception:
+        ...
+    else:
+        return torrent_id
+
+    # This command may need to be modified
+    out = ub.cmd(
+        f'transmission-remote --auth {auth} --list',
+        shell=True, verbose=verbose, check=True)
+    splitpat = re.compile('   *')
+    for line in out.stdout.split(chr(10)):
+        line_ = line.strip()
+        if not line_ or line_.startswith(('Sum:', 'ID')):
+            continue
+        row_vals = splitpat.split(line_)
+        name = row_vals[-1]
+        torrent_id = row_vals[0].strip('*')
+        if name == identifier:
+            return torrent_id
 
 
 if __name__ == '__main__':
