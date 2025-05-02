@@ -72,21 +72,20 @@ class TransmissionLookupID(scfg.DataConfig):
 
     @staticmethod
     def lookup_torrent_id(torrent_name, auth, verbose=0):
-        import sys
         import re
         # This command may need to be modified
         out = ub.cmd(
             f'transmission-remote --auth {auth} --list',
             shell=True, verbose=verbose, check=True)
         splitpat = re.compile('   *')
-        for line in out.split(chr(10)):
+        for line in out.stdout.split(chr(10)):
             line_ = line.strip()
             if not line_ or line_.startswith(('Sum:', 'ID')):
                 continue
             row_vals = splitpat.split(line_)
             name = row_vals[-1]
             torrent_id = row_vals[0].strip('*')
-            if name == sys.argv[1]:
+            if name == torrent_name:
                 return torrent_id
 
 
