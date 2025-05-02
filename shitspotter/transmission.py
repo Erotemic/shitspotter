@@ -77,7 +77,7 @@ class TransmissionLookupID(scfg.DataConfig):
         # This command may need to be modified
         out = ub.cmd(
             f'transmission-remote --auth {auth} --list',
-            shell=True, universal_newlines=True, verbose=verbose, check=True)
+            shell=True, verbose=verbose, check=True)
         splitpat = re.compile('   *')
         for line in out.split(chr(10)):
             line_ = line.strip()
