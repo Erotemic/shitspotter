@@ -40,6 +40,13 @@ def main():
 
     idenfifiers.append({
         'patterns': [
+            kwutil.Pattern.from_regex('Anthony Hoogs', ignorecase=True),
+        ],
+        'replacement': '<ANONIMIZED_PERSON>',
+    })
+
+    idenfifiers.append({
+        'patterns': [
             kwutil.Pattern.from_regex('albany', ignorecase=True),
             kwutil.Pattern.from_regex('new york', ignorecase=True),
             kwutil.Pattern.from_regex('\\b' + 'NY' + '\\b', ignorecase=True),

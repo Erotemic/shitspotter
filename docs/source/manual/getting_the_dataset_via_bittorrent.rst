@@ -189,3 +189,31 @@ Instructions To Download/Seed The Torrent
 
 
    MAGNENT_LINK="magnet:?xt=urn:btih:040b6645b16518de50278f5d4b2584b3a18438d5&dn=shitspotter%5Fdvc&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80"
+
+
+Getting the 2025-04-20 dataset seeding
+--------------------------------------
+
+Steps I took to get the data seeding. On my main box, academic torrents didn't
+see that I was seeding via deluge. Might be a port issue. Putting it on my seed
+box, which should make it visible.
+
+Turns out the issue was that I just wasn't using the right tracker URL. In deluge changing it to: https://academictorrents.com/announce.php worked.
+In any case, I need to put the data on my seed box anyway.
+
+.. code:: bash
+
+    rsync /var/lib/transmission-daemon/downloads/shitspotter_dvc-2025-04-20.torrent jojo:.
+
+    ssh jojo
+
+    # On jojo
+    transmission-remote --auth transmission:transmission --add shitspotter_dvc-2025-04-20.torrent --download-dir /var/lib/transmission-daemon/downloads/
+    transmission-remote --auth transmission:transmission --list
+
+    # On main machine, hack to get the data seeding
+    rsync -avPR /var/lib/transmission-daemon/downloads/./shitspotter_dvc-2025-04-20 jojo:/var/lib/transmission-daemon/downloads/
+
+    # Note, once I got deluge to recognize, I stopped rsyncing and am checking that transmission will complete the download.
+    python -m shitspotter.transmission list
+

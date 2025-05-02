@@ -1336,6 +1336,37 @@ network_measurements:
                           comment: download unzipped structure
                        '
 
+  - recording_time: 2025-05-01T202523-5
+    uuid: 41565fbb-238b-43f8-b60f-0446112548a1
+    action: create-torrent
+    machine: toothbrush
+    command: |-
+      date && sudo time transmission-create --outfile /var/lib/transmission-daemon/downloads/shitspotter_dvc-2025-04-20.torrent \
+        --tracker udp://open.tracker.cl:1337/announce \
+        --comment 'ShitSpotter dataset 2025-04-20' "/var/lib/transmission-daemon/downloads/shitspotter_dvc-2025-04-20" && \
+      date
+    duration: ""
+    time.start_date: 'Thu May  1 10:01:39 PM EDT 2025'
+    time.real: ""
+    time.user: ""
+    time.sys: ""
+    time.end_date:
+    data_size: "60G"
+    notes: |-
+      sudo rsync -avrP /data/joncrall/dvc-repos/shitspotter_dvc/ /var/lib/transmission-daemon/downloads/shitspotter_dvc-2025-04-20
+      cd /var/lib/transmission-daemon/downloads/shitspotter_dvc
+      cd /data/joncrall/dvc-repos/shitspotter_dvc
+      sudo chown -R $USER:debian-transmission .
+      transmission-remote --auth transmission:transmission \
+         --add "/var/lib/transmission-daemon/downloads/shitspotter_dvc-2025-04-20.torrent" \
+         --download-dir "/var/lib/transmission-daemon/downloads"
+      transmission-remote --auth transmission:transmission --list
+      real	0m55.648s
+      user	0m28.653s
+      sys	0m17.576s
+    status: null
+
+
 .__taildoc__: |-
      python ~/code/shitspotter/papers/neurips-2025/scripts/gather_measurements.py
 

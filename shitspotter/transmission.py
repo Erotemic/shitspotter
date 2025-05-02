@@ -69,13 +69,14 @@ class TransmissionLookupID(scfg.DataConfig):
             print(torrent_id)
             return 0
 
-    def lookup_torrent_id(torrent_name):
+    @staticmethod
+    def lookup_torrent_id(torrent_name, auth):
         import subprocess
         import sys
         import re
         # This command may need to be modified
         out = subprocess.check_output(
-            'transmission-remote --auth {self.auth} --list',
+            'transmission-remote --auth {auth} --list',
             shell=True, universal_newlines=True)
         splitpat = re.compile('   *')
         for line in out.split(chr(10)):
@@ -95,5 +96,6 @@ if __name__ == '__main__':
         python -m shitspotter.transmission --help
         python -m shitspotter.transmission ensure_deamon
         python -m shitspotter.transmission list
+        python -m shitspotter.transmission lookup_id coco2014
     """
     TransmissionModal.main()

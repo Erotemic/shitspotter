@@ -12,9 +12,9 @@
 % ====================
 % CONDITIONAL SETTINGS
 % ====================
-\nonanonymoustrue % comment out to be anonymous
+%\nonanonymoustrue % comment out to be anonymous
 \useacknowledgementtrue % comment out to remove acknowledgements
-\useappendixtrue % comment out to remove appendix
+%\useappendixtrue % comment out to remove appendix
 % ====================
 
 \ifnonanonymous
@@ -112,25 +112,24 @@ Kitware\\
 \begin{abstract}
 
 
-%This work chronicles one researcher's un-funded journey to build a phone
-%application that can detect dog poop in images, and make the data widely
-%available as a benchmark dataset.
-We introduce a new dataset containing phone images of dog feces, annotated with manually drawn or
-  AI-assisted polygon labels.
-Its over 9000 ``before/after/negative'' full resolution images contain 6000 polygon annotations.
-The collection and annotation of images started in late 2020 and is still growing as of May 2025.
-Our experiments use a defined checkpoint.
-We train VIT and MaskRCNN baseline models to explore the difficulty of the dataset.
-The best model achieves a pixelwise average precision of 0.858 on a 691-image validation set and 0.810 on a
-  small independently captured 121-image contributor test set.
-Dataset snapshots are available through four different distribution methods:
-two centralized (Girder and HuggingFace) and two decentralized (IPFS and BitTorrent).
-We study of the trade-offs between distribution methods and discuss the feasibility of each with respect to
-  reliably sharing open scientific data.
-The code for experiments is hosted on GitHub.
-The data license is CC-BY 4.0.
-Model weights are available with the dataset.
-Experiment hardware, time, energy, and emissions are quantified.
+We introduce a new dataset containing phone images of dog feces, annotated with
+manually drawn or AI-assisted polygon labels.  Its over 9000
+``before/after/negative'' full resolution images contain 6000 polygon
+annotations.  The collection and annotation of images started in late 2020.
+This paper focuses on two checkpoints from 2025-04-20 and 2024-07-03.  We train
+VIT and MaskRCNN baseline models to explore the difficulty of the dataset.  The
+best model achieves a pixelwise average precision of 0.858 on a 691-image
+validation set and 0.810 on a small independently captured 121-image
+contributor test set.  Dataset snapshots are available through four different
+distribution methods: two centralized (Girder and HuggingFace) and two
+decentralized (IPFS and BitTorrent).  We study of the trade-offs between
+distribution methods and discuss the feasibility of each with respect to
+reliably sharing open scientific data.  The code for experiments is hosted on
+GitHub.  The data license is CC-BY 4.0.  Model weights are available with the
+dataset.  Experiment hardware, time, energy, and emissions are quantified.
+
+
+% Keywords: poop, feces, dataset, dataset distribution, detection, segmentation, IPFS, BitTorrent, HuggingFace
 
 %We train a baseline vision transformer to segment the objects of interest, exploring a grid of hyperparameters, and we evaluate their impact. 
 %A phone application to detect poop with these models is being developed and 
@@ -197,7 +196,7 @@ UAVVaste    & 1 & 772 & 3,718 & 3,840 \times 2,160 & 55 & 2.9GB & polygon \\
 SpotGarbage & 1 & 2,512 & 337 & 754 \times 754 & 355 & 1.5GB & category \\
 TACO        & 60 & 1,500 & 4,784 & 2,448 \times 3,264 & 119 & 17GB & polygon \\
 MSHIT       & 2 & 769 & 2,348 & 960 \times 540 & 99 & 4GB & box \\
-Ours        & 1 & 9,296 & 6,594 & 4,032 \times 3,024 & 87 & 61GB & polygon \\
+Ours        & 1 & 9,296 & 6,594 & 4,032 \times 3,024 & 87 & 60GB & polygon \\
 \bottomrule
 \end{tabular}
 \caption{Related Datasets.
