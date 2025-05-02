@@ -137,7 +137,7 @@ class TransmissionVerify(scfg.DataConfig):
             print('error')
             return 1
         else:
-            out = ub.cmd(f'transmission-remote --auth {config.auth} --torrent {torrent_id} --verify"',
+            out = ub.cmd(f'transmission-remote --auth {config.auth} --torrent {torrent_id} --verify',
                          verbose=max(1, config.verbose))
             return out.returncode
 
