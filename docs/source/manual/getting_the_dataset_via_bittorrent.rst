@@ -224,3 +224,4 @@ In any case, I need to put the data on my seed box anyway.
     python -m shitspotter.transmission info shitspotter_dvc-2025-04-20
 
     python -m shitspotter.transmission add_tracker shitspotter_dvc-2025-04-20 https://academictorrents.com/announce.php --verbose=3
+    python -m shitspotter.transmission find shitspotter_dvc-2025-04-20 /var/lib/transmission-daemon/downloads/ --verbose=3
