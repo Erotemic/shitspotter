@@ -120,6 +120,29 @@ class TransmissionFind(scfg.DataConfig):
 
 
 @TransmissionModal.register
+class TransmissionVerify(scfg.DataConfig):
+    """
+    Verify the selected torrent.
+    """
+    __command__ = 'verify'
+    identifier = scfg.Value(None, position=1, help='name or id of the torrent')
+    auth = scfg.Value('transmission:transmission', help='auth argument')
+    verbose = scfg.Value(0, isflag=True, help='verbosity')
+
+    @classmethod
+    def main(cls, argv=True, **kwargs):
+        config = cls.cli(argv=argv, data=kwargs)
+        torrent_id = lookup_torrent_id(config.identifier, config.auth, verbose=config.verbose)
+        if torrent_id is None:
+            print('error')
+            return 1
+        else:
+            out = ub.cmd(f'transmission-remote --auth {config.auth} --torrent {torrent_id} --verify"',
+                         verbose=max(1, config.verbose))
+            return out.returncode
+
+
+@TransmissionModal.register
 class TransmissionLookupID(scfg.DataConfig):
     """
     Lookup the id of a torrent by its name.
