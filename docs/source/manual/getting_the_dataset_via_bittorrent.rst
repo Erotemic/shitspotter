@@ -217,3 +217,5 @@ In any case, I need to put the data on my seed box anyway.
     # Note, once I got deluge to recognize, I stopped rsyncing and am checking that transmission will complete the download.
     python -m shitspotter.transmission list
 
+    python -m shitspotter.transmission lookup_id coco2014
+    python -m shitspotter.transmission lookup_id shitspotter_dvc-2025-04-20

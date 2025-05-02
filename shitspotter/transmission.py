@@ -57,6 +57,7 @@ class TransmissionLookupID(scfg.DataConfig):
     __command__ = 'lookup_id'
     torrent_name = scfg.Value(None, position=1, help='name of the torrent')
     auth = scfg.Value('transmission:transmission', help='auth argument')
+    verbose = scfg.Value(0, isflag=True, help='verbosity')
 
     @classmethod
     def main(cls, cmdline=1, **kwargs):
@@ -70,14 +71,14 @@ class TransmissionLookupID(scfg.DataConfig):
             return 0
 
     @staticmethod
-    def lookup_torrent_id(torrent_name, auth):
+    def lookup_torrent_id(torrent_name, auth, verbose=0):
         import subprocess
         import sys
         import re
         # This command may need to be modified
         out = subprocess.check_output(
             f'transmission-remote --auth {auth} --list',
-            shell=True, universal_newlines=True)
+            shell=True, universal_newlines=True, verbose=verbose)
         splitpat = re.compile('   *')
         for line in out.split(chr(10)):
             line_ = line.strip()
