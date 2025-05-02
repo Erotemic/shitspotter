@@ -67,7 +67,7 @@ class TransmissionInfo(scfg.DataConfig):
             print('error')
             return 1
         else:
-            out = ub.cmd(f'transmission-remote --auth {config.auth} --torrent {torrent_id} --info', verbose=config.verbose)
+            out = ub.cmd(f'transmission-remote --auth {config.auth} --torrent {torrent_id} --info', verbose=max(1, config.verbose))
             return out.returncode
 
 

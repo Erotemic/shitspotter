@@ -219,3 +219,6 @@ In any case, I need to put the data on my seed box anyway.
 
     python -m shitspotter.transmission lookup_id coco2014 --verbose
     TORRENT_ID=$(python -m shitspotter.transmission lookup_id shitspotter_dvc-2025-04-20)
+
+    python -m shitspotter.transmission info coco2014
+    python -m shitspotter.transmission info shitspotter_dvc-2025-04-20
