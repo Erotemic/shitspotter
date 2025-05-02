@@ -76,7 +76,7 @@ class TransmissionLookupID(scfg.DataConfig):
         import re
         # This command may need to be modified
         out = subprocess.check_output(
-            'transmission-remote --auth {auth} --list',
+            f'transmission-remote --auth {auth} --list',
             shell=True, universal_newlines=True)
         splitpat = re.compile('   *')
         for line in out.split(chr(10)):
