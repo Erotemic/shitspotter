@@ -55,7 +55,7 @@ class TransmissionStart(scfg.DataConfig):
     Start (unpause) a torrent.
     """
     __command__ = 'start'
-    identifier = scfg.Value(None, position=1, help='name or id of the torrent')
+    identifier = scfg.Value(None, position=1, help='name, hash, or id of the torrent')
     auth = scfg.Value('transmission:transmission', help='auth argument')
     verbose = scfg.Value(0, isflag=True, help='verbosity')
 
@@ -78,7 +78,7 @@ class TransmissionStop(scfg.DataConfig):
     Stop (pause) a torrent.
     """
     __command__ = 'stop'
-    identifier = scfg.Value(None, position=1, help='name or id of the torrent')
+    identifier = scfg.Value(None, position=1, help='name, hash, or id of the torrent')
     auth = scfg.Value('transmission:transmission', help='auth argument')
     verbose = scfg.Value(0, isflag=True, help='verbosity')
 
@@ -101,7 +101,7 @@ class TransmissionInfo(scfg.DataConfig):
     Show information about a specific torrent.
     """
     __command__ = 'info'
-    identifier = scfg.Value(None, position=1, help='name or id of the torrent')
+    identifier = scfg.Value(None, position=1, help='name, hash, or id of the torrent')
     auth = scfg.Value('transmission:transmission', help='auth argument')
     verbose = scfg.Value(0, isflag=True, help='verbosity')
 
@@ -123,7 +123,7 @@ class TransmissionAddTracker(scfg.DataConfig):
     Add a tracker to an existing torrent.
     """
     __command__ = 'add_tracker'
-    identifier = scfg.Value(None, position=1, help='name or id of the torrent')
+    identifier = scfg.Value(None, position=1, help='name, hash, or id of the torrent')
     tracker_url = scfg.Value(None, position=2, help='url of the tracker to add')
     auth = scfg.Value('transmission:transmission', help='auth argument')
     verbose = scfg.Value(0, isflag=True, help='verbosity')
@@ -142,12 +142,34 @@ class TransmissionAddTracker(scfg.DataConfig):
 
 
 @TransmissionModal.register
+class TransmissionReannounce(scfg.DataConfig):
+    """
+    Show information about a specific torrent.
+    """
+    __command__ = 'reannounce'
+    identifier = scfg.Value(None, position=1, help='name, hash, or id of the torrent')
+    auth = scfg.Value('transmission:transmission', help='auth argument')
+    verbose = scfg.Value(0, isflag=True, help='verbosity')
+
+    @classmethod
+    def main(cls, argv=True, **kwargs):
+        config = cls.cli(argv=argv, data=kwargs)
+        torrent_id = lookup_torrent_id(config.identifier, config.auth, verbose=config.verbose)
+        if torrent_id is None:
+            print('error')
+            return 1
+        else:
+            out = ub.cmd(f'transmission-remote --auth {config.auth} --torrent {torrent_id} --reannounce', verbose=max(1, config.verbose))
+            return out.returncode
+
+
+@TransmissionModal.register
 class TransmissionFind(scfg.DataConfig):
     """
     Tell Transmission where to look for the current torrents' data.
     """
     __command__ = 'find'
-    identifier = scfg.Value(None, position=1, help='name or id of the torrent')
+    identifier = scfg.Value(None, position=1, help='name, hash, or id of the torrent')
     dpath = scfg.Value(None, position=2, help='path to look for the data')
     auth = scfg.Value('transmission:transmission', help='auth argument')
     verbose = scfg.Value(0, isflag=True, help='verbosity')
@@ -161,6 +183,30 @@ class TransmissionFind(scfg.DataConfig):
             return 1
         else:
             out = ub.cmd(f'transmission-remote --auth {config.auth} --torrent {torrent_id} --find "{config.dpath}"',
+                         verbose=max(1, config.verbose))
+            return out.returncode
+
+
+@TransmissionModal.register
+class TransmissionMove(scfg.DataConfig):
+    """
+    Tell Transmission where to look for the current torrents' data.
+    """
+    __command__ = 'move'
+    identifier = scfg.Value(None, position=1, help='name, hash, or id of the torrent')
+    dpath = scfg.Value(None, position=2, help='path to move the data to')
+    auth = scfg.Value('transmission:transmission', help='auth argument')
+    verbose = scfg.Value(0, isflag=True, help='verbosity')
+
+    @classmethod
+    def main(cls, argv=True, **kwargs):
+        config = cls.cli(argv=argv, data=kwargs)
+        torrent_id = lookup_torrent_id(config.identifier, config.auth, verbose=config.verbose)
+        if torrent_id is None:
+            print('error')
+            return 1
+        else:
+            out = ub.cmd(f'transmission-remote --auth {config.auth} --torrent {torrent_id} --move "{config.dpath}"',
                          verbose=max(1, config.verbose))
             return out.returncode
 

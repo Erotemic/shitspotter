@@ -222,8 +222,22 @@ In any case, I need to put the data on my seed box anyway.
     transmission-remote --auth transmission:transmission -t$TORRENT_ID --files | head
 
     python -m shitspotter.transmission info coco2014
-    python -m shitspotter.transmission info shitspotter_dvc-2025-04-20
+    python -m shitspotter.transmission info shitspotter_dvc-2025-04-20 --verbose=3
 
     python -m shitspotter.transmission add_tracker shitspotter_dvc-2025-04-20 https://academictorrents.com/announce.php --verbose=3
     python -m shitspotter.transmission find shitspotter_dvc-2025-04-20 /var/lib/transmission-daemon/downloads/ --verbose=3
     python -m shitspotter.transmission verify shitspotter_dvc-2025-04-20 --verbose=3
+
+
+    # Enable DHT, PEX, and LPD
+    transmission-remote --auth transmission:transmission --dht
+    transmission-remote --auth transmission:transmission --pex
+    transmission-remote --auth transmission:transmission --lpd
+
+    # Check session stats:
+    transmission-remote --auth transmission:transmission -t4 --info-trackers
+    transmission-remote --auth transmission:transmission --session-info
+    transmission-remote --auth transmission:transmission --session-stats
+
+    # Move the torrent data
+    transmission-remote --auth transmission:transmission -t4 --move /flash/debian-transmission-downloads
