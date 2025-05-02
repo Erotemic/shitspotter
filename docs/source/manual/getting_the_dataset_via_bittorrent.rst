@@ -219,9 +219,11 @@ In any case, I need to put the data on my seed box anyway.
 
     python -m shitspotter.transmission lookup_id coco2014 --verbose
     TORRENT_ID=$(python -m shitspotter.transmission lookup_id shitspotter_dvc-2025-04-20)
+    transmission-remote --auth transmission:transmission -t$TORRENT_ID --files | head
 
     python -m shitspotter.transmission info coco2014
     python -m shitspotter.transmission info shitspotter_dvc-2025-04-20
 
     python -m shitspotter.transmission add_tracker shitspotter_dvc-2025-04-20 https://academictorrents.com/announce.php --verbose=3
     python -m shitspotter.transmission find shitspotter_dvc-2025-04-20 /var/lib/transmission-daemon/downloads/ --verbose=3
+    python -m shitspotter.transmission verify shitspotter_dvc-2025-04-20 --verbose=3

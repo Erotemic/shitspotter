@@ -50,6 +50,52 @@ class TransmissionList(scfg.DataConfig):
 
 
 @TransmissionModal.register
+class TransmissionStart(scfg.DataConfig):
+    """
+    Start (unpause) a torrent.
+    """
+    __command__ = 'start'
+    identifier = scfg.Value(None, position=1, help='name or id of the torrent')
+    auth = scfg.Value('transmission:transmission', help='auth argument')
+    verbose = scfg.Value(0, isflag=True, help='verbosity')
+
+    @classmethod
+    def main(cls, argv=True, **kwargs):
+        config = cls.cli(argv=argv, data=kwargs)
+        torrent_id = lookup_torrent_id(config.identifier, config.auth, verbose=config.verbose)
+        if torrent_id is None:
+            print('error')
+            return 1
+        else:
+            out = ub.cmd(f'transmission-remote --auth {config.auth} --torrent {torrent_id} --start',
+                         verbose=max(1, config.verbose))
+            return out.returncode
+
+
+@TransmissionModal.register
+class TransmissionStop(scfg.DataConfig):
+    """
+    Stop (pause) a torrent.
+    """
+    __command__ = 'stop'
+    identifier = scfg.Value(None, position=1, help='name or id of the torrent')
+    auth = scfg.Value('transmission:transmission', help='auth argument')
+    verbose = scfg.Value(0, isflag=True, help='verbosity')
+
+    @classmethod
+    def main(cls, argv=True, **kwargs):
+        config = cls.cli(argv=argv, data=kwargs)
+        torrent_id = lookup_torrent_id(config.identifier, config.auth, verbose=config.verbose)
+        if torrent_id is None:
+            print('error')
+            return 1
+        else:
+            out = ub.cmd(f'transmission-remote --auth {config.auth} --torrent {torrent_id} --stop',
+                         verbose=max(1, config.verbose))
+            return out.returncode
+
+
+@TransmissionModal.register
 class TransmissionInfo(scfg.DataConfig):
     """
     Show information about a specific torrent.
@@ -143,9 +189,33 @@ class TransmissionVerify(scfg.DataConfig):
 
 
 @TransmissionModal.register
+class TransmissionFiles(scfg.DataConfig):
+    """
+    Get a file list for the current torrent.
+    """
+    __command__ = 'files'
+    identifier = scfg.Value(None, position=1, help='name or id of the torrent')
+    auth = scfg.Value('transmission:transmission', help='auth argument')
+    verbose = scfg.Value(0, isflag=True, help='verbosity')
+
+    @classmethod
+    def main(cls, argv=True, **kwargs):
+        config = cls.cli(argv=argv, data=kwargs)
+        torrent_id = lookup_torrent_id(config.identifier, config.auth, verbose=config.verbose)
+        if torrent_id is None:
+            print('error')
+            return 1
+        else:
+            out = ub.cmd(f'transmission-remote --auth {config.auth} --torrent {torrent_id} --files',
+                         verbose=max(1, config.verbose))
+            return out.returncode
+
+
+@TransmissionModal.register
 class TransmissionLookupID(scfg.DataConfig):
     """
-    Lookup the id of a torrent by its name.
+    Lookup the id of a torrent by its name for use with the raw
+    transmission-remote tool.
     """
     __command__ = 'lookup_id'
     identifier = scfg.Value(None, position=1, help='name of the torrent')
