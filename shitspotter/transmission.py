@@ -110,19 +110,14 @@ class TransmissionAdd(scfg.DataConfig):
     @classmethod
     def main(cls, argv=True, **kwargs):
         config = cls.cli(argv=argv, data=kwargs)
-        torrent_id = lookup_torrent_id(config.identifier, config.auth, verbose=config.verbose)
-        if torrent_id is None:
-            print('error')
-            return 1
-        else:
-            command = [
-                'transmission-remote', '--auth', config.auth,
-                '--add', config.identifier
-            ]
-            if config.download_dir is not None:
-                command += ['--download-dir', config.download_dir]
-            out = ub.cmd(command, verbose=max(1, config.verbose))
-            return out.returncode
+        command = [
+            'transmission-remote', '--auth', config.auth,
+            '--add', config.identifier
+        ]
+        if config.download_dir is not None:
+            command += ['--download-dir', config.download_dir]
+        out = ub.cmd(command, verbose=max(1, config.verbose))
+        return out.returncode
 
 
 @TransmissionModal.register

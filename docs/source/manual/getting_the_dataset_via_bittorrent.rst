@@ -246,4 +246,6 @@ In any case, I need to put the data on my seed box anyway.
 
     python -m shitspotter.transmission move shitspotter_dvc /flash/debian-transmission-downloads --verbose=3
 
+    python -m shitspotter.transmission add "magnet:?xt=urn:btih:27a2512ae93298f75544be6d2d629dfb186f86cf&tr=https%3A%2F%2Facademictorrents.com%2Fannounce.php%3Fpasskey%3D9ffbb169f882f3be1330a48ea87416e7&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce" --verbose=3
+
     python -m shitspotter.transmission remove shitspotter_dvc-2025-04-20
