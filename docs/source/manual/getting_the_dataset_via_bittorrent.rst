@@ -236,8 +236,14 @@ In any case, I need to put the data on my seed box anyway.
 
     # Check session stats:
     transmission-remote --auth transmission:transmission -t4 --info-trackers
+    transmission-remote --auth transmission:transmission -t4 --info
     transmission-remote --auth transmission:transmission --session-info
     transmission-remote --auth transmission:transmission --session-stats
 
     # Move the torrent data
-    transmission-remote --auth transmission:transmission -t4 --move /flash/debian-transmission-downloads
+    transmission-remote --auth transmission:transmission -t4 --move /flash/debian-transmission-downloads -w /flash/debian-transmission-downloads
+    transmission-remote --auth transmission:transmission -t4 --info
+
+    python -m shitspotter.transmission move shitspotter_dvc /flash/debian-transmission-downloads --verbose=3
+
+    python -m shitspotter.transmission remove shitspotter_dvc-2025-04-20

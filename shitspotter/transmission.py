@@ -96,6 +96,64 @@ class TransmissionStop(scfg.DataConfig):
 
 
 @TransmissionModal.register
+class TransmissionAdd(scfg.DataConfig):
+    """
+    Add a torrent.
+    """
+    __command__ = 'add'
+    identifier = scfg.Value(None, position=1, help='path to torrent file, url, or hashid')
+    download_dir = scfg.Value(None, position=2, short_alias=['-w'],
+                              help='if specified override the default download path')
+    auth = scfg.Value('transmission:transmission', help='auth argument')
+    verbose = scfg.Value(0, isflag=True, help='verbosity')
+
+    @classmethod
+    def main(cls, argv=True, **kwargs):
+        config = cls.cli(argv=argv, data=kwargs)
+        torrent_id = lookup_torrent_id(config.identifier, config.auth, verbose=config.verbose)
+        if torrent_id is None:
+            print('error')
+            return 1
+        else:
+            command = [
+                'transmission-remote', '--auth', config.auth,
+                '--add', config.identifier
+            ]
+            if config.download_dir is not None:
+                command += ['--download-dir', config.download_dir]
+            out = ub.cmd(command, verbose=max(1, config.verbose))
+            return out.returncode
+
+
+@TransmissionModal.register
+class TransmissionRemove(scfg.DataConfig):
+    """
+    Remove a torrent
+    """
+    __command__ = 'remove'
+    identifier = scfg.Value(None, position=1, help='name, hash, or id of the torrent')
+    auth = scfg.Value('transmission:transmission', help='auth argument')
+    verbose = scfg.Value(0, isflag=True, help='verbosity')
+    delete_data = scfg.Value(False, isflag=True, help='if True, also delete the data')
+
+    @classmethod
+    def main(cls, argv=True, **kwargs):
+        config = cls.cli(argv=argv, data=kwargs)
+        torrent_id = lookup_torrent_id(config.identifier, config.auth, verbose=config.verbose)
+        if torrent_id is None:
+            print('error')
+            return 1
+        else:
+            if config.delete_data:
+                out = ub.cmd(f'transmission-remote --auth {config.auth} --torrent {torrent_id} --remove-and-delete',
+                             verbose=max(1, config.verbose))
+            else:
+                out = ub.cmd(f'transmission-remote --auth {config.auth} --torrent {torrent_id} --remove',
+                             verbose=max(1, config.verbose))
+            return out.returncode
+
+
+@TransmissionModal.register
 class TransmissionInfo(scfg.DataConfig):
     """
     Show information about a specific torrent.
