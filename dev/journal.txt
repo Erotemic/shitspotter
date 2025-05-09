@@ -266,3 +266,15 @@ positive detections. Instead we gave them new category names (e.g. leaf, stick,
 grass, shadow). These can serve as explicit hard negatives. We also began
 adding notes to some annotations indicating the appearance of the poop (e.g.
 old, smashed, wet).
+
+
+# 2025-05-03
+
+Spend some time getting the 2025-04-20 version of the dataset into a torrent.
+Made some updates to the CLI wrapper around transmission-remote. Was having a
+hard time getting new downloads to start, but after some time I realized I
+forgot to forward port 51413 to my torrent box running transmission. Seems to
+be starting now.
+
+Also going to try forwarding 58334 to my box running deluge, and that seemed to
+work.

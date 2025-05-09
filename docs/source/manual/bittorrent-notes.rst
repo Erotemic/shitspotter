@@ -147,3 +147,79 @@ References:
 
     https://askubuntu.com/questions/397589/enable-logging-for-service
     https://superuser.com/questions/385685/failed-sharing-my-first-file-with-bittorrent
+
+
+Getting the 2025-04-20 dataset seeding
+--------------------------------------
+
+Steps I took to get the data seeding. On my main box, academic torrents didn't
+see that I was seeding via deluge. Might be a port issue. Putting it on my seed
+box, which should make it visible.
+
+Turns out the issue was that I just wasn't using the right tracker URL. In deluge changing it to: https://academictorrents.com/announce.php worked.
+In any case, I need to put the data on my seed box anyway.
+
+.. code:: bash
+
+    rsync /var/lib/transmission-daemon/downloads/shitspotter_dvc-2025-04-20.torrent jojo:.
+
+    ssh jojo
+
+    # On jojo
+    transmission-remote --auth transmission:transmission --add shitspotter_dvc-2025-04-20.torrent --download-dir /var/lib/transmission-daemon/downloads/
+    transmission-remote --auth transmission:transmission --list
+
+    # On main machine, hack to get the data seeding
+    rsync -avPR /var/lib/transmission-daemon/downloads/./shitspotter_dvc-2025-04-20 jojo:/var/lib/transmission-daemon/downloads/
+
+    # Note, once I got deluge to recognize, I stopped rsyncing and am checking that transmission will complete the download.
+    python -m shitspotter.transmission list
+
+    python -m shitspotter.transmission lookup_id coco2014 --verbose
+    TORRENT_ID=$(python -m shitspotter.transmission lookup_id shitspotter_dvc-2025-04-20)
+    transmission-remote --auth transmission:transmission -t$TORRENT_ID --files | head
+
+    python -m shitspotter.transmission info coco2014
+    python -m shitspotter.transmission info shitspotter_dvc-2025-04-20 --verbose=3
+
+    python -m shitspotter.transmission add_tracker shitspotter_dvc-2025-04-20 https://academictorrents.com/announce.php --verbose=3
+    python -m shitspotter.transmission find shitspotter_dvc-2025-04-20 /var/lib/transmission-daemon/downloads/ --verbose=3
+    python -m shitspotter.transmission verify shitspotter_dvc-2025-04-20 --verbose=3
+
+
+    # Enable DHT, PEX, and LPD
+    transmission-remote --auth transmission:transmission --dht
+    transmission-remote --auth transmission:transmission --pex
+    transmission-remote --auth transmission:transmission --lpd
+
+    # Check session stats:
+    transmission-remote --auth transmission:transmission -t4 --info-trackers
+    transmission-remote --auth transmission:transmission -t4 --info
+    transmission-remote --auth transmission:transmission --session-info
+    transmission-remote --auth transmission:transmission --session-stats
+
+    # Move the torrent data
+    transmission-remote --auth transmission:transmission -t4 --move /flash/debian-transmission-downloads -w /flash/debian-transmission-downloads
+    transmission-remote --auth transmission:transmission -t4 --info
+
+    python -m shitspotter.transmission move shitspotter_dvc /flash/debian-transmission-downloads --verbose=3
+
+    python -m shitspotter.transmission add "magnet:?xt=urn:btih:27a2512ae93298f75544be6d2d629dfb186f86cf" --verbose=3
+    python -m shitspotter.transmission info "27a2512ae93298f75544be6d2d629dfb186f86cf"
+    python -m shitspotter.transmission remove shitspotter_dvc-2025-04-20
+
+    python -m shitspotter.transmission add "magnet:?xt=urn:btih:27a2512ae93298f75544be6d2d629dfb186f86cf" --verbose=3
+    python -m shitspotter.transmission remove 27a2512ae93298f75544be6d2d629dfb186f86cf
+
+    # Using the magnent link was having issues, downloading the torrent file directly
+    curl -O https://academictorrents.com/download/27a2512ae93298f75544be6d2d629dfb186f86cf.torrent
+    python -m shitspotter.transmission add 27a2512ae93298f75544be6d2d629dfb186f86cf.torrent --verbose=3
+
+    # Maybe it won't download because of the ufw rules on jojo, lets stop it, do an rsync, and then
+    # ensure external downloads work.
+    python -m shitspotter.transmission stop shitspotter_dvc-2025-04-20 --verbose=3
+    rsync -avPR /var/lib/transmission-daemon/downloads/./shitspotter_dvc-2025-04-20 jojo:/flash/debian-transmission-downloads
+    python -m shitspotter.transmission start shitspotter_dvc-2025-04-20 --verbose=3
+    python -m shitspotter.transmission info shitspotter_dvc-2025-04-20
+    python -m shitspotter.transmission verify shitspotter_dvc-2025-04-20
+    python -m shitspotter.transmission list

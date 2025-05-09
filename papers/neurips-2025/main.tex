@@ -14,7 +14,7 @@
 % ====================
 %\nonanonymoustrue % comment out to be anonymous
 \useacknowledgementtrue % comment out to remove acknowledgements
-%\useappendixtrue % comment out to remove appendix
+\useappendixtrue % comment out to remove appendix
 % ====================
 
 \ifnonanonymous
@@ -23,10 +23,17 @@
 % [preprint] option:
 %     \usepackage[preprint]{neurips_2025}
 \else
-\usepackage{neurips_2025}
+%\usepackage{neurips_2025}
+\usepackage[nonatbib]{neurips_2025}
 \fi
 
-
+\newcommand{\redact}[1]{%
+    \ifnonanonymous
+        #1% Show the original text if nonanonymous is true
+    \else
+        [redacted for peer review]% Redact if false
+    \fi
+}
 
 % It is strongly recommended to use hyperref, especially for the review version.
 % hyperref with option pagebackref eases the reviewers' job.
@@ -62,7 +69,7 @@
 \usepackage{nicefrac}       % compact symbols for 1/2, etc.
 \usepackage{microtype}      % microtypography
 \usepackage{lipsum}         % Can be removed after putting your text content
-%\usepackage[numbers]{natbib}
+\usepackage[numbers]{natbib}
 \usepackage{doi}
 \usepackage{seqsplit}
 
@@ -112,22 +119,7 @@ Kitware\\
 \begin{abstract}
 
 
-We introduce a new dataset containing phone images of dog feces, annotated with
-manually drawn or AI-assisted polygon labels.  Its over 9000
-``before/after/negative'' full resolution images contain 6000 polygon
-annotations.  The collection and annotation of images started in late 2020.
-This paper focuses on two checkpoints from 2025-04-20 and 2024-07-03.  We train
-VIT and MaskRCNN baseline models to explore the difficulty of the dataset.  The
-best model achieves a pixelwise average precision of 0.858 on a 691-image
-validation set and 0.810 on a small independently captured 121-image
-contributor test set.  Dataset snapshots are available through four different
-distribution methods: two centralized (Girder and HuggingFace) and two
-decentralized (IPFS and BitTorrent).  We study of the trade-offs between
-distribution methods and discuss the feasibility of each with respect to
-reliably sharing open scientific data.  The code for experiments is hosted on
-GitHub.  The data license is CC-BY 4.0.  Model weights are available with the
-dataset.  Experiment hardware, time, energy, and emissions are quantified.
-
+We introduce a new dataset containing phone images of dog feces, annotated with manually drawn or AI-assisted polygon labels.  Its over 9000 ``before/after/negative'' full resolution images contain 6000 polygon annotations.  The collection and annotation of images started in late 2020.  This paper focuses on two checkpoints from 2025-04-20 and 2024-07-03.  We train VIT and MaskRCNN baseline models to explore the difficulty of the dataset.  The best model achieves a pixelwise average precision of 0.858 on a 691-image validation set and 0.810 on a small independently captured 121-image contributor test set.  Dataset snapshots are available through four different distribution methods: two centralized (Girder and HuggingFace) and two decentralized (IPFS and BitTorrent).  We study of the trade-offs between distribution methods and discuss the feasibility of each with respect to reliably sharing open scientific data.  The code for experiments is hosted on GitHub.  The data license is CC-BY 4.0.  Model weights are available with the dataset.  Experiment hardware, time, energy, and emissions are quantified.
 
 % Keywords: poop, feces, dataset, dataset distribution, detection, segmentation, IPFS, BitTorrent, HuggingFace
 
@@ -183,49 +175,44 @@ Many of these applications can be realized with modern object detection and segm
   
 
 \begin{table*}[t]
-\begin{tabular}{lrrrcrrl}
-\toprule
-Name & \#Cats & \#Images & \#Annots & Image W \times H & \makecell{Annot\\Area$^{0.5}$} & \makecell{Disk\\Size} & \makecell{Annot\\Type} \\
-\midrule
-ImageNet    & 1,000 & 594,546 & 695,776 & 500 \times 374 & 239 & 166GB & box \\
-MSCOCO      & 80 & 123,287 & 896,782 & 428 \times 640 & 57 & 50GB & polygon \\
-CityScapes  & 40 & 5,000 & 287,465 & 2,048 \times 1,024 & 50 & 78GB & polygon \\
-ZeroWaste   & 4 & 4,503 & 26,766 & 1,920 \times 1,080 & 200 & 10GB & polygon \\
-TrashCanV1  & 22 & 7,212 & 12,128 & 480 \times 270 & 54 & 0.61GB & polygon \\
-UAVVaste    & 1 & 772 & 3,718 & 3,840 \times 2,160 & 55 & 2.9GB & polygon \\
-SpotGarbage & 1 & 2,512 & 337 & 754 \times 754 & 355 & 1.5GB & category \\
-TACO        & 60 & 1,500 & 4,784 & 2,448 \times 3,264 & 119 & 17GB & polygon \\
-MSHIT       & 2 & 769 & 2,348 & 960 \times 540 & 99 & 4GB & box \\
-Ours        & 1 & 9,296 & 6,594 & 4,032 \times 3,024 & 87 & 60GB & polygon \\
-\bottomrule
-\end{tabular}
-\caption{Related Datasets.
+\caption{Related datasets.
 %
 Columns list dataset name, number of categories, images, and annotations.
-Image W \times H gives median image dimensions;
+Image W \times{} H gives median image dimensions;
 Ann Area$^{0.5}$ is the median square root of annotation area (pixels);
 Size is disk requirements in GB; 
 Annot Type is the labeling method.
 \Cref{fig:compare_allannots} shows the distribution of annotation shapes, sizes, and locations.
-%The columns provide the name of the dataset, the number of categories, images, and annotations.
-%Image W \times H is the pixel width and height of the image with the median area. Ann Area$^{0.5}$ is the median sqrt(area) in pixels of the annotation polygon or box. The Size column refers to the size of the dataset in gigabytes.
-%Annot Type refers to if the dataset is annotated with bounding boxes,
-%image-level category labels, or polygon segmentations.
-%\Cref{fig:compare_allannots} provides a visual gist of the distribution of annotation shape, size, and positional in each dataset.
-Citations: ImageNet \cite{ILSVRC15},
-MSCOCO \cite{lin_microsoft_2014},
-CityScapes \cite{cordts2015cityscapes},
-ZeroWaste \cite{bashkirova_zerowaste_2022},
-TrashCanV1 \cite{hong2020trashcansemanticallysegmenteddatasetvisual},
-UAVVaste \cite{rs13050965},
-SpotGarbage-GINI \cite{mittal2016spotgarbage},
-TACO \cite{proenca_taco_2020},
-MSHIT \cite{mshit_2020}.
+%Citations: ImageNet \cite{ILSVRC15}
+%MSCOCO \cite{lin_microsoft_2014},
+%CityScapes \cite{cordts2015cityscapes},
+%ZeroWaste \cite{bashkirova_zerowaste_2022},
+%TrashCanV1 \cite{hong2020trashcansemanticallysegmenteddatasetvisual},
+%UAVVaste \cite{rs13050965},
+%SpotGarbage-GINI \cite{mittal2016spotgarbage},
+%TACO \cite{proenca_taco_2020},
+%MSHIT \cite{mshit_2020}.
 %Of the datasets in this table, ours has the highest image resolution.
 %and the smallest annotation size relative to that resolution.
 %Of the waste related datasets and in terms of number of images, ours is among the largest, and of the poop related datasets, it is the largest.
 }
 \label{tab:related_datasets}
+\begin{tabular}{lrrrcrrl}
+\toprule
+Name & \#Cats & \#Images & \#Annots & \makecell{Image\\W \times{} H} & \makecell{Annot\\Area$^{0.5}$} & \makecell{Disk\\Size} & \makecell{Annot\\Type} \\
+\midrule
+ImageNet\cite{ILSVRC15}    & 1,000 & 594,546 & 695,776 & 500 \times{} 374 & 239 & 166GB & box \\
+MSCOCO\cite{lin_microsoft_2014}      & 80 & 123,287 & 896,782 & 428 \times{} 640 & 57 & 50GB & polygon \\
+CityScapes\cite{cordts2015cityscapes}  & 40 & 5,000 & 287,465 & 2,048 \times{} 1,024 & 50 & 78GB & polygon \\
+ZeroWaste \cite{bashkirova_zerowaste_2022}   & 4 & 4,503 & 26,766 & 1,920 \times{} 1,080 & 200 & 10GB & polygon \\
+TrashCanV1\cite{hong2020trashcansemanticallysegmenteddatasetvisual}  & 22 & 7,212 & 12,128 & 480 \times{} 270 & 54 & 0.61GB & polygon \\
+UAVVaste\cite{rs13050965}    & 1 & 772 & 3,718 & 3,840 \times{} 2,160 & 55 & 2.9GB & polygon \\
+SpotGarbage\cite{mittal2016spotgarbage} & 1 & 2,512 & 337 & 754 \times{} 754 & 355 & 1.5GB & category \\
+TACO\cite{proenca_taco_2020}        & 60 & 1,500 & 4,784 & 2,448 \times{} 3,264 & 119 & 17GB & polygon \\
+MSHIT\cite{mshit_2020}       & 2 & 769 & 2,348 & 960 \times{} 540 & 99 & 4GB & box \\
+Ours        & 1 & 9,296 & 6,594 & 4,032 \times{} 3,024 & 87 & 60GB & polygon \\
+\bottomrule
+\end{tabular}
 \end{table*}
 
 \begin{figure*}[t]
@@ -416,7 +403,7 @@ all analysis in this paper.
     \centering
     \includegraphics[width=\textwidth]{figures/images_timeofday_distribution.png}
     \caption{
-        The time-of-year vs time-of-day of each image show diurnal and seasonal
+        The time-of-year vs time-of-day of each image show lighting and seasonal
         variation.  On the x-axis, 0 is January 1st. On the y-axis, 0 is
         midnight.  Color estimates daylight based on location (if available).
         Most images are in the day, but many were taken at night with flash or
@@ -539,19 +526,6 @@ Corresponding qualitative test results are illustrated in \Cref{fig:test_results
 \newcommand{\tb}[1]{\textbf{#1}}
 
 \begin{table}[t]
-\centering
-\begin{tabular}{ll|rrrr|rrrr}
-\toprule
-\multicolumn{2}{c}{Dataset split:} & \multicolumn{4}{c}{Test (n=121)} & \multicolumn{4}{c}{Validation (n=691)} \\
-\multicolumn{2}{c}{Evaluation type:} & \multicolumn{2}{c}{Box} & \multicolumn{2}{c}{Pixel} & \multicolumn{2}{c}{Box} & \multicolumn{2}{c}{Pixel} \\
-%%%                      T-Box        T-Box        T-Pixel      T-Pixel    | V-Box        V-Box        V-Pixel      V-Pixel
-Model type & \# Params & AP         & AUC        & AP         & AUC        & AP         & AUC        & AP         & AUC \\
-\midrule
-MaskRCNN-p & 43.9e6    & \tb{0.613} & \tb{0.697} & \tb{0.810} & 0.849      & \tb{0.612} & \tb{0.721} & \tb{0.858} & 0.905 \\
-MaskRCNN-s & 43.9e6    & 0.253      & 0.464      & 0.384      & 0.798      & 0.255      & 0.576      & 0.434      & 0.891 \\
-VIT-s      & 25.5e6    & 0.422      & 0.426      & 0.473      & \tb{0.902} & 0.476      & 0.532      & 0.780      & \tb{0.994} \\
-\bottomrule
-\end{tabular}
 \caption[]{
     Results for MaskRCNN and VIT models (suffix -p: pretrained, -s: scratch) on test and validation sets.
     Evaluated with box and pixel metrics --- AP (ppv-tpr area) \cite{powers_evaluation_2011} and AUC (tpr-fpr area) --- computed via scikit-learn \cite{scikit-learn}.
@@ -573,6 +547,20 @@ VIT-s      & 25.5e6    & 0.422      & 0.426      & 0.473      & \tb{0.902} & 0.4
     %But these are baseline models; our core contribution is the dataset.
 }
 \label{tab:model_results}
+\centering
+\begin{tabular}{ll rrrr rrrr}
+\toprule
+\multicolumn{2}{c}{Dataset split:} & \multicolumn{4}{c}{Test (n=121)} & \multicolumn{4}{c}{Validation (n=691)} \\
+%\multicolumn{2}{c}{Evaluation type:} & \multicolumn{2}{c}{Box} & \multicolumn{2}{c}{Pixel} & \multicolumn{2}{c}{Box} & \multicolumn{2}{c}{Pixel} \\
+\multicolumn{2}{c}{Evaluation type:} & Box & Box & Pixel & Pixel & Box & Box & Pixel & Pixel \\
+%%%                      T-Box        T-Box        T-Pixel      T-Pixel    | V-Box        V-Box        V-Pixel      V-Pixel
+Model type & \# Params & AP         & AUC        & AP         & AUC        & AP         & AUC        & AP         & AUC \\
+\midrule
+MaskRCNN-p & 43.9e6    & \tb{0.613} & \tb{0.697} & \tb{0.810} & 0.849      & \tb{0.612} & \tb{0.721} & \tb{0.858} & 0.905 \\
+MaskRCNN-s & 43.9e6    & 0.253      & 0.464      & 0.384      & 0.798      & 0.255      & 0.576      & 0.434      & 0.891 \\
+VIT-s      & 25.5e6    & 0.422      & 0.426      & 0.473      & \tb{0.902} & 0.476      & 0.532      & 0.780      & \tb{0.994} \\
+\bottomrule
+\end{tabular}
 \end{table}
 
 
@@ -902,23 +890,10 @@ However, the inability to quickly find a nearby peer is a major issue for initia
   development.
 
 
-\begin{wraptable}{r}{0.5\textwidth}
-\centering
-\small
-\vspace{-1.2em} % optional tweak
-\begin{tabular}{lrrrr}
-\toprule
-{}           &        \mu &     \sigma &   min &    max \\
-method       &            &            &       &        \\
-\midrule       
-BitTorrent-u &      8.36h &      5.16h & 2.21h & 14.39h \\
-IPFS-u       &     10.68h &      9.54h & 1.80h & 24.62h \\
-Rsync-u      &      4.84h &      1.39h & 3.10h &  6.10h \\
-Girder-c     &      2.85h &      2.31h & 1.05h &  6.24h \\
-HF-c         & \bf{0.14h} &      0.03h & 0.11h &  0.18h \\
-Rsync-c      &      1.10h &      0.03h & 1.07h &  1.13h \\
-\bottomrule
-\end{tabular}
+%\begin{wraptable}{r}{0.5\textwidth}
+%\small
+\begin{table}[t]
+%\vspace{-1.2em} % optional tweak
 \caption[]{
 Transfer times (in hours) for our 42GB dataset: trials (n), mean (\mu), std (\sigma).
 Each experiment was run 5 times.
@@ -926,7 +901,23 @@ Suffix (-u) means uncompressed, (-c) means compressed.
 Uncompressed transfers provide granular access to individual files, but compressed transfers are faster.
 }
 \label{tab:transfertime}
-\end{wraptable}
+\centering
+\setlength{\tabcolsep}{5.35pt} % Reduce horizontal padding
+\begin{tabular}{lrrrr}
+\toprule
+{}           &        \mu &     \sigma &   Min &    Max \\
+Method       &            &            &       &        \\
+\midrule       
+BitTorrent-u &      8.36h &      5.16h & 2.21h & 14.39h \\
+IPFS-u       &     10.68h &      9.54h & 1.80h & 24.62h \\
+Rsync-u      &      4.84h &      1.39h & 3.10h &  6.10h \\
+Girder-c     &      2.85h &      2.31h & 1.05h &  6.24h \\
+HuggingFace-c & \bf{0.14h} &      0.03h & 0.11h &  0.18h \\
+Rsync-c      &      1.10h &      0.03h & 1.07h &  1.13h \\
+\bottomrule
+\end{tabular}
+%\end{wraptable}
+\end{table}
 
 % https://huggingface.co/papers/2307.12169
 % https://github.com/huggingface/hf_transfer
@@ -986,14 +977,13 @@ Ultimately, our goal is for this research to contribute meaningfully to the adva
   and have a positive impact on society.
   
   
-\ifnonanonymous
+%\ifnonanonymous
 \ifuseacknowledgement
 \section{Acknowledgements}
 We would would like to thank all of the dogs that produced subject matter for the dataset, all of the
-  contributors for helping to construct a challenging test set, and Anthony Hoogs for several suggestions including taking the 
+contributors for helping to construct a challenging test set, and \redact{Anthony Hoogs} for several suggestions including taking the 
   third negative picture.
-
-\fi
+%\fi
 \fi
 
 %%%%%%%%% REFERENCES
@@ -1006,7 +996,7 @@ We would would like to thank all of the dogs that produced subject matter for th
 \ifuseappendix
 % WARNING: do not forget to delete the supplementary pages from your submission 
 \include{appendix}
-%\include{neurips_2025_checklist}
+\include{neurips_2025_checklist}
 \fi
 
 

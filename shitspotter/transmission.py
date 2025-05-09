@@ -334,6 +334,7 @@ class TransmissionLookupID(scfg.DataConfig):
 
 
 def lookup_torrent_id(identifier, auth, verbose=0):
+    # FIXME: return data as-is if given as a hash
     import re
     # If given as an integer, assume they are using the right id
     try:
