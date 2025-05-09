@@ -139,7 +139,8 @@ Our primary motivating use case is a phone application that assists dog owners i
   in a leafy park for easier cleanup.
 Many of these applications can be realized with modern object detection and segmentation methods
   \cite{sandler_mobilenetv2_2018, siam_rtseg_2018, yu_mobilenet_yolo_2023} combined with a large labeled
-  dataset.
+  dataset. 
+%In this paper, we make a significant step towards building this dataset.
 
 
 \begin{figure}[t]
@@ -275,7 +276,7 @@ In order to assist with annotation and add variation, we collect images using a 
 From this data, we train a segmentation model to classify which pixels in an image contain poop and which do
   not.
 Our models show strong performance, but there are notable failure cases indicating this problem is difficult
-  even for modern computer vision algorithms.
+  even for modern computer vision algorithms. 
 
 To enable others to build on our results, it is essential that the dataset is accessible and hosted
   reliably.
@@ -890,33 +891,57 @@ However, the inability to quickly find a nearby peer is a major issue for initia
   development.
 
 
-%\begin{wraptable}{r}{0.5\textwidth}
-%\small
+%%\begin{wraptable}{r}{0.5\textwidth}
+%%\small
+%\begin{table}[t]
+%%\vspace{-1.2em} % optional tweak
+%\caption[]{
+%Transfer times (in hours) for our 42GB dataset: trials (n), mean (\mu), std (\sigma).
+%Each experiment was run 5 times.
+%Suffix (-u) means uncompressed, (-c) means compressed.
+%Uncompressed transfers provide granular access to individual files, but compressed transfers are faster.
+%}
+%\label{tab:transfertime}
+%\centering
+%\setlength{\tabcolsep}{5.35pt} % Reduce horizontal padding
+%\begin{tabular}{lrrrr}
+%\toprule
+%{}           &        \mu &     \sigma &   Min &    Max \\
+%Method       &            &            &       &        \\
+%\midrule       
+%BitTorrent-u &      8.36h &      5.16h & 2.21h & 14.39h \\
+%IPFS-u       &     10.68h &      9.54h & 1.80h & 24.62h \\
+%Rsync-u      &      4.84h &      1.39h & 3.10h &  6.10h \\
+%Girder-c     &      2.85h &      2.31h & 1.05h &  6.24h \\
+%HuggingFace-c & \bf{0.14h} &      0.03h & 0.11h &  0.18h \\
+%Rsync-c      &      1.10h &      0.03h & 1.07h &  1.13h \\
+%\bottomrule
+%\end{tabular}
+%%\end{wraptable}
+%\end{table}
+
+
 \begin{table}[t]
-%\vspace{-1.2em} % optional tweak
-\caption[]{
-Transfer times (in hours) for our 42GB dataset: trials (n), mean (\mu), std (\sigma).
+\caption{
+Transfer times (in hours) for our 42GB dataset: trials (n), mean ($\mu$), std ($\sigma$).
 Each experiment was run 5 times.
-Suffix (-u) means uncompressed, (-c) means compressed.
-Uncompressed transfers provide granular access to individual files, but compressed transfers are faster.
+Uncompressed transfers provide granular access to individual files, while compressed transfers are faster.
 }
 \label{tab:transfertime}
 \centering
-\setlength{\tabcolsep}{5.35pt} % Reduce horizontal padding
-\begin{tabular}{lrrrr}
+\setlength{\tabcolsep}{4.5pt} % Adjusted padding for new column
+\begin{tabular}{lcrrrr}
 \toprule
-{}           &        \mu &     \sigma &   Min &    Max \\
-Method       &            &            &       &        \\
+Method       & Compressed & $\mu$     & $\sigma$ & Min    & Max     \\
 \midrule       
-BitTorrent-u &      8.36h &      5.16h & 2.21h & 14.39h \\
-IPFS-u       &     10.68h &      9.54h & 1.80h & 24.62h \\
-Rsync-u      &      4.84h &      1.39h & 3.10h &  6.10h \\
-Girder-c     &      2.85h &      2.31h & 1.05h &  6.24h \\
-HuggingFace-c & \bf{0.14h} &      0.03h & 0.11h &  0.18h \\
-Rsync-c      &      1.10h &      0.03h & 1.07h &  1.13h \\
+BitTorrent   & No         & 8.36h     & 5.16h    & 2.21h  & 14.39h  \\
+IPFS         & No         & 10.68h    & 9.54h    & 1.80h  & 24.62h  \\
+Rsync        & No         & 4.84h     & 1.39h    & 3.10h  & 6.10h   \\
+Girder       & Yes        & 2.85h     & 2.31h    & 1.05h  & 6.24h   \\
+HuggingFace  & Yes        & \bf{0.14h}& 0.03h    & 0.11h  & 0.18h   \\
+Rsync        & Yes        & 1.10h     & 0.03h    & 1.07h  & 1.13h   \\
 \bottomrule
 \end{tabular}
-%\end{wraptable}
 \end{table}
 
 % https://huggingface.co/papers/2307.12169
@@ -954,6 +979,8 @@ We have published our data and models under a permissive license, and made them 
 Decentralized methods have robustness properties, but suffer from significant network transfer overhead.
 HuggingFace has exceptionally fast transfer speeds, and due to its usage of git-lfs has some decentralized
   properties, but lacks content identifiers.
+Combining IPFS with a content distribution network may be a path to a best-of-both-worlds system.
+%It may be possible to build a best of both worlds protocol and distribution network.
 
 
 Limitations of our work include:
@@ -971,7 +998,7 @@ We envision exciting possibilities for the BAN protocol in computer vision resea
 We hope our work will inspire others to consider decentralized content addressable data sharing, fostering
   open collaboration and reproducible experiments.
 Furthermore, we encourage the community to track experimental resource usage to better understand and offset
-  our experiments' environmental impact.
+  our experiments' small, but real environmental impact.
 Moreover, we aspire for our dataset to enable the creation of poop-aware applications.
 Ultimately, our goal is for this research to contribute meaningfully to the advancement of computer vision
   and have a positive impact on society.
@@ -983,6 +1010,7 @@ Ultimately, our goal is for this research to contribute meaningfully to the adva
 We would would like to thank all of the dogs that produced subject matter for the dataset, all of the
 contributors for helping to construct a challenging test set, and \redact{Anthony Hoogs} for several suggestions including taking the 
   third negative picture.
+This work is dedicated to \redact{Bezoar}, a very weird and very good girl.
 %\fi
 \fi
 

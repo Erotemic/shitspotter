@@ -5,11 +5,10 @@ Manage data checked into IPFS
 
 # To update the data
 
-python -m shitspotter.ipfs add /home/joncrall/code/shitspotter/papers/neurips-2025/figures-submitted-2024-09-09 --name "shitspotter-figures-submitted-2024-09-09"
-python -m shitspotter.ipfs add /home/joncrall/code/shitspotter/papers/neurips-2025/figures --name "shitspotter-figures"
-python -m shitspotter.ipfs add /home/joncrall/code/shitspotter/papers/neurips-2025/plots --name "shitspotter-plots"
+python -m shitspotter.ipfs add /home/joncrall/code/shitspotter/papers/neurips-2025/figures --name "shitspotter-figures-neurips-2025"
+python -m shitspotter.ipfs add /home/joncrall/code/shitspotter/papers/neurips-2025/plots --name "shitspotter-plots-neurips-2025"
 
-cat /home/joncrall/code/shitspotter/papers/neurips-2025/figures-submitted-2024-09-09.ipfs
+cat /home/joncrall/code/shitspotter/papers/neurips-2025/shitspotter-figures-neurips-2025
 cd /home/joncrall/code/shitspotter/papers/neurips-2025/
 git add figures-submitted-2024-09-09.ipfs
 

@@ -122,13 +122,28 @@ def main():
                 accum[img_fpath.name].append((row, img_fpath))
 
         print(f'accum = {ub.urepr(accum, nl=True)}')
+        name = 'all_polygons.png'
+        paths = accum[name]
         for name, paths in accum.items():
             stack = []
             for row, p in paths:
                 canvas = kwimage.imread(p)
+                # if name.startswith('all_polygons.'):
+                #     canvas = kwimage.imresize(canvas, dsize=(None, 1434))
                 canvas = kwimage.draw_header_text(canvas, row['name'], fontScale=3, thickness=3, color='black', bg_color='white')
                 stack.append(canvas)
-            canvas = kwimage.stack_images_grid(stack, chunksize=5, axis=0)
+
+            if name.startswith('all_polygons.'):
+                # hack: using resize=True happens to make this figure look better
+                canvas = kwimage.stack_images_grid(stack, chunksize=5, axis=0, resize=True)
+            else:
+                canvas = kwimage.stack_images_grid(stack, chunksize=5, axis=0)
+
+            # canvas = kwimage.stack_images_grid(stack, chunksize=5, axis=0, resize=True)
+
+            is_alpha = canvas[:, :, 3] == 0
+            canvas[is_alpha] = (255, 255, 255, 255)
+
             dpath = ub.Path('/home/joncrall/code/shitspotter/papers/neurips-2025/plots/appendix/dataset_compare')
             canvas_fpath = (dpath / ('combo_' + name + '.png'))
             # import kwplot

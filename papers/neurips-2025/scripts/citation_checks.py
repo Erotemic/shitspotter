@@ -1,3 +1,13 @@
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#   "ubelt",
+#   "pylatexenc",
+#   "xdev",
+#   "rich",
+# ]
+# ///
 import ubelt as ub
 import pylatexenc
 from pylatexenc.latexnodes.nodes import LatexNodesVisitor
