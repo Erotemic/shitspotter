@@ -1,0 +1,17 @@
+type: ipfs-sidecar
+cid: bafybeieowqfa7gwxz2kuh6dm7ikzwc7dup3pxuiydab4z34nefowazy6hq
+rel_path: plots
+size: 105.11 MiB
+num_items: 25
+add_config:
+  path: /home/joncrall/code/shitspotter/papers/neurips-2025/plots
+  name: shitspotter-plots-neurips-2025
+  recursive: true
+  progress: true
+  cid_version: 1
+  raw_leaves: false
+  only_hash: false
+  pin: true
+  sidecar: true
+add_datetime: 2025-05-09T161108-5
+add_duration: 12.063451475987677
