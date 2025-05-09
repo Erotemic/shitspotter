@@ -70,7 +70,11 @@ def main():
             continue
         dst_path = anon_dpath / rel_path
         if src_path.is_file():
-            orig_text = src_path.read_text()
+            try:
+                orig_text = src_path.read_text()
+            except Exception:
+                print(f'Failed to read src_path = {ub.urepr(src_path, nl=1)}')
+                raise
             text = orig_text
             for idpats in idenfifiers:
                 for pat in idpats['patterns']:
