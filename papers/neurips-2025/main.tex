@@ -12,19 +12,19 @@
 % ====================
 % CONDITIONAL SETTINGS
 % ====================
-%\nonanonymoustrue % comment out to be anonymous
+\nonanonymoustrue % comment out to be anonymous
 \useacknowledgementtrue % comment out to remove acknowledgements
 \useappendixtrue % comment out to remove appendix
 % ====================
 
 \ifnonanonymous
-\usepackage[final]{neurips_2025}
+\usepackage[nonatbib,final]{neurips_2025}
 % to compile a preprint version, e.g., for submission to arXiv, add add the
 % [preprint] option:
 %     \usepackage[preprint]{neurips_2025}
 \else
 %\usepackage{neurips_2025}
-\usepackage[nonatbib]{neurips_2025}
+\usepackage[nonatbib,preprint]{neurips_2025}
 \fi
 
 \newcommand{\redact}[1]{%

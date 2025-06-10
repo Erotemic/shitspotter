@@ -644,6 +644,19 @@ def print_pin_instructions(shitspotter_dvc_dpath, new_shit_dpath):
         "
 
         # Also see: ~/code/shitspotter/dev/sync_shit.sh
+
+
+        NEW:
+
+        We also want to update the IPNS address
+
+        NEW_ROOT_CID=bafybeia2uv3ea3aoz27ytiwbyudrjzblfuen47hm6tyfrjt6dgf6iadta4
+        crontab -l | sed "s/bafybe[^ ]* /$NEW_ROOT_CID /" | crontab -
+
+        # Cron entry should look like this:
+        IPFS_PATH=/flash/ipfs
+        0 0 * * * /home/joncrall/.local/bin/ipfs name publish --key=shitspotter-key /ipfs/bafybeia2uv3ea3aoz27ytiwbyudrjzblfuen47hm6tyfrjt6dgf6iadta4 >> ~/ipfs_cron.log 2>&1
+
         '''
     )
     # Note:

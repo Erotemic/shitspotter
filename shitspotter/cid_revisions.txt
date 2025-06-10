@@ -33,3 +33,11 @@ bafybeifrg4v45uhvkz72n27lcyh5jx7gzn6dnxxeyduw2as3r65eeizmmu
 bafybeie2nfp6km4x63ldpysnje4qaggijnh5jilgawjcdnahoddvxln3xm
 bafybeihsd6rwjha4kbeluwdjzizxshrkcsynkwgjx7fipm5pual6eexax4
 bafybeia2uv3ea3aoz27ytiwbyudrjzblfuen47hm6tyfrjt6dgf6iadta4
+
+# ---
+ipfs pin add --name shitspotter-2025-04-21 --progress bafybeia2uv3ea3aoz27ytiwbyudrjzblfuen47hm6tyfrjt6dgf6iadta4
+ipfs swarm connect /p2p/12D3KooWCFcfiBevjQD42aRAELMUZXAGScRiN2NcAthokF4dMnVU
+ipfs swarm connect /p2p/12D3KooWPyQK2JEXnqK1QxiV9Y7bG3UsUQC5iQvDxn8bV1uqvsbi
+# ---
+
+

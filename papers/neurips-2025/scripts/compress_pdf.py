@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#   "ubelt",
+#   "scriptconfig",
+#   "rich",
+# ]
+# ///
 import scriptconfig as scfg
 import ubelt as ub
 
