@@ -278,3 +278,129 @@ be starting now.
 
 Also going to try forwarding 58334 to my box running deluge, and that seemed to
 work.
+
+
+# 2025-07-02
+
+Annotating a bunch of images taken since the 2024-04-20 release, have ~600
+images, so ~200 with poop.  Its interesting to see the MaskRCNN failure cases.
+It certainly gets it right a lot of the time, but there are still some (what
+seem to be easy) misses. There is definately an issue with leafs, helicopter
+seeds, and sticks. But now those will be false positive annotations. 
+
+Missing cases where the poop is in a strong light gradient. Occluded cases.
+Generally noisy images cases. Some cases, which are probably due to NMS issues,
+but not 100% sure.
+
+Pretty good at cases in beds of clover or in short grass.
+Rocks with strong shadows are causing false positives.
+
+I should probably retrain the model its at least 6 months out of date.
+
+What is my image capture rate? / Dataset growth rate? A: 170-215 images /
+month.
+
+Should make a wordcloud of negative annotations.
+
+Current tag / cat histograms are:
+
+cat_hist = {
+    'mulch': 1,
+    'yellowsnow': 1,
+    'acorn-cap': 1,
+    'cigarette': 1,
+    'wood': 1,
+    'tree-trunk': 1,
+    'plant-matter': 1,
+    'root': 1,
+    'acorn': 1,
+    'dogtoy': 1,
+    'nut': 2,
+    'treebark': 2,
+    'treeroot': 2,
+    'background': 2,
+    'residue': 2,
+    'pine-leafs': 2,
+    'pipe': 2,
+    'bottle-cap': 2,
+    'shadow': 2,
+    'woodpost': 2,
+    'wood-chip': 3,
+    'leafs': 4,
+    'dirt': 4,
+    'crushed-nut': 4,
+    'bark': 5,
+    'helicopter-seed': 5,
+    'grass-patch': 6,
+    'rock': 10,
+    'ignore': 11,
+    'stick': 13,
+    'helicopterseed': 13,
+    'unknown': 14,
+    'pine-cone': 16,
+    'leaf': 134,
+    'poop': 6817,
+}
+tag_hist = {
+    'from-roadie': 1,
+    'sqashed': 1,
+    'blury': 1,
+    'dark': 1,
+    'blurry': 1,
+    'big-pile': 1,
+    'stringy': 1,
+    'polygon-hole': 1,
+    'hard': 1,
+    'partial-occlusion': 1,
+    'wet': 1,
+    'digestedtoy': 1,
+    'frozen': 1,
+    'shiney': 1,
+    'maybe-sick': 1,
+    'confusor': 1,
+    'crumbling': 1,
+    'residue': 1,
+    'liquidy': 1,
+    'some crud in it, maybe a toy': 1,
+    'liquid': 1,
+    'unsure': 1,
+    'soft': 1,
+    'inside': 1,
+    'ambiguous': 1,
+    'hardcase': 1,
+    'hairy': 1,
+    'difficult': 2,
+    'smeared': 2,
+    'splatter': 2,
+    'occlusion': 2,
+    'gross': 3,
+    'decomposing': 3,
+    'residual': 3,
+    'minor-occlusion': 3,
+    'splat': 3,
+    'camo': 4,
+    'hidden': 5,
+    'camoflauged': 5,
+    'squashed': 6,
+    'messy': 7,
+    'sick': 9,
+    'diarrhea': 13,
+    'snowcovered': 13,
+    'occluded': 17,
+    'crumbly': 19,
+    'smashed': 19,
+    'fresh': 25,
+    'old': 105,
+}
+
+
+I need to think about this project's end state.
+
+When is the dataset big enought? I'm thinking I want about 10,000 images with
+good poop annotations as an arbitrary number. That will take about 7-10 more
+years at current growth rates.
+
+But maybe the end state is really:
+
+* There exists a good phone app that has a very high detection F1 to the point
+  of being useful.

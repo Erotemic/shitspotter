@@ -265,40 +265,18 @@ def process_image_rows(image_rows, coco_dset=None):
             row['geos_point'] = geos_point
         new_image_rows.append(row)
 
-    img_info_df = pd.DataFrame(new_image_rows)
+    if len(new_image_rows) > 0:
+        img_info_df = pd.DataFrame(new_image_rows)
+        print(img_info_df)
+        print(xdev.byte_str(sum(img_info_df.nbytes)))
 
-    # HANDLE_PRIVACY = True
-    # if HANDLE_PRIVACY:
-    #     """
-    #     sudo apt-get install xdelta3
-    #     """
-    #     # Strip out privacy relevant data. Depending on the privacy policy,
-    #     # either discard it entirely or save it into a secure encrypted form.
-    #     # (in the latter case this allows the metadata to be released later
-    #     # after it is no longer sensitive)
-    #     from shitspotter.util.util_data import find_secret_dpath
-    #     from shitspotter.util.util_data import is_probably_encrypted
-    #     secret_dpath = find_secret_dpath()
-    #     privacy_rules_fpath = secret_dpath / 'privacy_rules.py'
-    #     if is_probably_encrypted(privacy_rules_fpath):
-    #         raise EnvironmentError('The privacy rules file is still encrypted')
-    #     privacy_rules = ub.import_module_from_path(privacy_rules_fpath)
-    #     img_info_df = privacy_rules.apply_privacy_rules(img_info_df)
-    # else:
-    #     raise NotImplementedError(
-    #         'todo: without privacy rules, we just copy from staging to the repo')
-    #     ...
-
-    print(img_info_df)
-    print(xdev.byte_str(sum(img_info_df.nbytes)))
-
-    for row in img_info_df.to_dict('records'):
-        row = row.copy()
-        row.pop('nbytes_str', None)
-        row.pop('is_double', None)
-        row['file_name'] = row.pop('gpath')
-        row.pop('datestamp', None)
-        coco_dset.add_image(**row)
+        for row in img_info_df.to_dict('records'):
+            row = row.copy()
+            row.pop('nbytes_str', None)
+            row.pop('is_double', None)
+            row['file_name'] = row.pop('gpath')
+            row.pop('datestamp', None)
+            coco_dset.add_image(**row)
 
     # Hacks so geowatch handles the dataset nicely
     # In the future geowatch should be more robust
@@ -413,7 +391,10 @@ def _new_generic_image_gdf_expand(image_rows):
     geos_points = gpd.GeoSeries([
         geos_to_shapely_point(p) for p in img_info_df['geos_point']
     ])
-    image_gdf = gpd.GeoDataFrame(img_info_df, geometry=geos_points, crs=util_gis.get_crs84())
+    crs84 = util_gis.get_crs84()
+    # Note: this may print an error if images are missing geos point data
+    # But it is harmless.
+    image_gdf = gpd.GeoDataFrame(img_info_df, geometry=geos_points, crs=crs84)
     image_gdf['time'] = image_gdf['datetime'].apply(kwutil.datetime.coerce)
 
     image_gdf = image_gdf.sort_values('datetime')
@@ -578,13 +559,14 @@ def main():
         image_rows = learn_image_rows  # NOQA
 
     learn_image_rows = gather_learn_rows(dpath)
-    learn_coco_dset = process_image_rows(learn_image_rows, coco_dset=learn_coco_dset)
+    learn_coco_dset = process_image_rows(image_rows=learn_image_rows,
+                                         coco_dset=learn_coco_dset)
     learn_coco_dset.fpath = str(learn_coco_fpath)
-
     learn_coco_dset.dataset['license'] = "cc-by-4.0"
 
     test_image_rows = gather_test_rows(dpath)
-    test_coco_dset = process_image_rows(test_image_rows, coco_dset=test_coco_dset)
+    test_coco_dset = process_image_rows(image_rows=test_image_rows,
+                                        coco_dset=test_coco_dset)
     test_coco_dset.fpath = str(test_coco_fpath)
 
     print(f'test_coco_dset.fpath={test_coco_dset.fpath}')
@@ -601,7 +583,6 @@ def main():
     # learn_code = build_code(learn_coco_dset)
     test_code = build_code(test_coco_dset)
     test_coco_dset.fpath = os.fspath(dpath / ('test_' + test_code + '.kwcoco.zip'))
-    ub.symlink(test_coco_dset.fpath, link_path=test_coco_dset.fpath.parent / 'train.kwcoco.zip', overwrite=True, verbose=3)
 
     import rich
     for dset in [learn_coco_dset, test_coco_dset]:
@@ -613,6 +594,9 @@ def main():
     print('Wrote:')
     for dset in [learn_coco_dset, test_coco_dset]:
         rich.print('dset.fpath = {}'.format(ub.urepr(dset.fpath, nl=1)))
+
+    test_lpath = ub.Path(learn_coco_dset.fpath).parent / 'test.kwcoco.zip'
+    ub.symlink(test_coco_dset.fpath, link_path=test_lpath, overwrite=True, verbose=3)
 
     # Combine learn and test into "full" for analysis.
 

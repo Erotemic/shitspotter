@@ -58,15 +58,15 @@ class RemoteFromPhoneConfig(scfg.DataConfig):
 
 
         """
+        # STEP 1:
         config = RemoteFromPhoneConfig.cli(argv=argv, strict=True, data=kwargs)
         import rich
-        rich.print('config = {}'.format(ub.urepr(config, nl=1)))
-
+        if config.verbose:
+            rich.print('config = {}'.format(ub.urepr(config, nl=1)))
         # Import to make sure they are installed
         import shitspotter  # NOQA
         import xdev  # NOQA
         import pickle
-
         cache_dpath = ub.Path.appdir('shitspotter/transfer_session').ensuredir()
         lock_fpath = cache_dpath / 'transfering.lock'
         prepared_transfer_fpath = cache_dpath / 'prepared_transfer.pkl'
@@ -77,23 +77,29 @@ class RemoteFromPhoneConfig(scfg.DataConfig):
         lock_fpath.touch()
 
         try:
+            # STEP 2:
             new_dpath, needs_transfer_infos = prepare_phone_transfer(config)
         except Exception:
             print('FIXME: delete cache?')
             cache_dpath.delete()
             raise
         else:
+            # STEP 3:
             # Write the intermediate state to a cache so we can resume if there
             # is an interruption. (TODO: resuming needs to be implemented)
             prepared_transfer_fpath.write_bytes(pickle.dumps({
                 'new_dpath': new_dpath,
                 'needs_transfer_infos': needs_transfer_infos,
             }))
+
+            # STEP 4:
             # Move everything local
             transfer_phone_pictures(new_dpath, needs_transfer_infos)
 
+            # STEP 5:
             finalize_transfer(new_dpath)
         finally:
+            # STEP 6:
             cache_dpath.delete()
 
 
@@ -533,30 +539,38 @@ def finalize_transfer(new_dpath):
               Can now re-encrypt the secret metadata.
 
             source ~/code/shitspotter/secrets/secret_setup.sh
+            dismount_shit_secrets
 
         We should seed predictions on the new data with
 
             python -m shitspotter.cli.predict
 
             python -m shitspotter.cli.predict \
-                --src {staging_shit_dpath} \
-                --package_fpath ~/code/shitspotter/shitspotter_dvc/models/train_baseline_maskrcnn_v3_v_966e49df_model_0014999.pth \
+                --src {new_shit_dpath} \
+                --package_fpath ~/code/shitspotter/shitspotter_dvc/models/maskrcnn/train_baseline_maskrcnn_v3_v_966e49df_model_0014999.pth \
                 --create_labelme True
+
+            # Also cleanup the intermediate directories...
+            # or fix the above script to do that.
+            rm -rf {new_shit_dpath}-predict-output
 
         e.g.
 
             python -m shitspotter.cli.predict \
                 --src /home/joncrall/code/shitspotter/shitspotter_dvc/assets/_contributions/sam-2025-03-07 \
-                --package_fpath ~/code/shitspotter/shitspotter_dvc/models/train_baseline_maskrcnn_v3_v_966e49df_model_0014999.pth \
+                --package_fpath ~/code/shitspotter/shitspotter_dvc/models/maskrcnn/train_baseline_maskrcnn_v3_v_966e49df_model_0014999.pth \
                 --create_labelme True
 
             python -m shitspotter.cli.predict \
                 --src /home/joncrall/code/shitspotter/shitspotter_dvc/assets/poop-2025-03-08-T224918 \
-                --package_fpath ~/code/shitspotter/shitspotter_dvc/models/train_baseline_maskrcnn_v3_v_966e49df_model_0014999.pth \
+                --package_fpath ~/code/shitspotter/shitspotter_dvc/models/maskrcnn/train_baseline_maskrcnn_v3_v_966e49df_model_0014999.pth \
                 --create_labelme True
 
         At this point, we can do any annotation we wish, but whenever
         annotations change we need to rerun gather and make splits.
+
+        cd {new_shit_dpath}
+        labelme .
         '''))
 
     print('# Ensure IPFS is running')

@@ -20,7 +20,7 @@ def update_analysis_plots():
     dump_dpath = (ub.Path(coco_dset.bundle_dpath) / 'analysis').ensuredir()
     print('coco_dset = {!r}'.format(coco_dset))
 
-    fig = data_over_time(coco_dset, fnum=1)
+    fig = data_over_time(coco_dset, dump_dpath, fnum=1)
     fig.set_size_inches(np.array([6.4, 4.8]) * 1.5)
     fig.tight_layout()
     fig.savefig(dump_dpath / 'images_over_time.png')
@@ -35,10 +35,19 @@ def update_analysis_plots():
 
     fig = show_3_images(coco_dset, dump_dpath)
 
+    descriptions = [z for z in coco_dset.annots().lookup('description', None) if z is not None]
+    all_tags = ub.flatten([[t.strip() for t in d.strip().split(';')] for d in descriptions])
+    tag_hist = ub.dict_hist(all_tags)
+    cat_hist = ub.dict_hist(coco_dset.annots().cnames)
+    tag_hist = ub.udict.sorted_values(tag_hist)
+    cat_hist = ub.udict.sorted_values(cat_hist)
+    print(f'cat_hist = {ub.urepr(cat_hist, nl=1)}')
+    print(f'tag_hist = {ub.urepr(tag_hist, nl=1)}')
+
     dump_demo_warp_img(coco_dset, dump_dpath)
 
 
-def data_over_time(coco_dset, fnum=1):
+def data_over_time(coco_dset, dump_dpath, fnum=1):
     """
     import shitspotter
     coco_dset = shitspotter.open_shit_coco()
@@ -54,14 +63,133 @@ def data_over_time(coco_dset, fnum=1):
 
     img_df['pd_datetime'] = pd.to_datetime(img_df.datetime)
 
+    # Hack for extra table
     import kwplot
     sns = kwplot.autosns()
+
+    summary_df = summarize_image_collection_rate(img_df)
+    latest_date = img_df.pd_datetime.max().date().isoformat()
+    kwplot.dataframe_table(summary_df, dump_dpath / 'growth_rate.png', title=f'Growth rate as of {latest_date}')
+
     fig = kwplot.figure(fnum=3, doclf=True)
     ax = fig.gca()
     sns.histplot(data=img_df, x='pd_datetime', ax=ax, cumulative=True)
     sns.lineplot(data=img_df, x='pd_datetime', y='collection_size')
     ax.set_title('Images collected over time')
     return fig
+
+
+def summarize_image_collection_rate(
+    img_df: pd.DataFrame,
+):
+    """
+    Summarizes image collection statistics and growth rate.
+
+    Args:
+        img_df (pd.DataFrame): DataFrame with datetime and size columns.
+
+    Returns:
+        DataFrame: Summary stats with overall and sliding window rates.
+
+    References:
+        https://chatgpt.com/c/6868117c-88c4-8013-87e0-5d4bed403545
+    """
+    from xdev import byte_str
+    datetime_col = 'pd_datetime'
+    size_col = 'nbytes'
+    windows_months = [6, 3]
+
+    df = img_df[[datetime_col, size_col]].copy().dropna()
+    df[datetime_col] = pd.to_datetime(df[datetime_col])
+    df = df.sort_values(datetime_col)
+    df["year_month"] = df[datetime_col].dt.to_period("M")
+
+    # Monthly aggregates
+    monthly = df.groupby("year_month").agg(
+        images=(datetime_col, "count"),
+        bytes=(size_col, "sum"),
+        start_time=(datetime_col, "min"),
+        end_time=(datetime_col, "max"),
+    ).reset_index()
+
+    monthly["days"] = (monthly["end_time"] - monthly["start_time"]).dt.total_seconds() / (60 * 60 * 24)
+    monthly["daily_growth_bytes"] = monthly["bytes"] / monthly["days"]
+    monthly["monthly_growth_bytes"] = monthly["daily_growth_bytes"] * 30.44
+
+    # Overall normalized growth
+    start = df[datetime_col].min()
+    end = df[datetime_col].max()
+    total_days = (end - start).total_seconds() / (60 * 60 * 24)
+    total_bytes = df[size_col].sum()
+    total_images = len(df)
+
+    overall_daily_growth = total_bytes / total_days
+    overall_monthly_growth = overall_daily_growth * 30.44
+    overall_images_per_month = total_images / (total_days / 30.44)
+
+    # Build summary dict
+    result = {
+        "daily_growth_bytes": {
+            "overall": overall_daily_growth,
+            "monthly_median": monthly["daily_growth_bytes"].median(),
+        },
+        "monthly_growth_bytes": {
+            "overall": overall_monthly_growth,
+            "monthly_median": monthly["monthly_growth_bytes"].median(),
+        },
+        "images_per_month": {
+            "overall": overall_images_per_month,
+            "monthly_median": monthly["images"].median(),
+        }
+    }
+
+    for months in windows_months:
+        label = f"past_{months}_months"
+        recent = monthly.tail(months)
+        result["daily_growth_bytes"][label] = recent["daily_growth_bytes"].mean()
+        result["monthly_growth_bytes"][label] = recent["monthly_growth_bytes"].mean()
+        result["images_per_month"][label] = recent["images"].mean()
+
+    # Build final DataFrame
+    summary_df = pd.DataFrame(result).T
+
+    # Pretty format byte values
+    byte_fields = ["daily_growth_bytes", "monthly_growth_bytes"]
+
+    for c in summary_df.columns:
+        summary_df[c] = summary_df[c].astype(object)
+
+    for field in byte_fields:
+        old_vals = summary_df.loc[field]
+        new_vals = old_vals.apply(
+            lambda x: byte_str(x) if pd.notnull(x) else x
+        ).astype(object)
+        summary_df.loc[field] = new_vals
+
+    if 1:
+        # Current and target image counts
+        current_images = len(df)
+        target_images = 30_000
+
+        # Growth rate (images per month)
+        images_per_month = summary_df.loc['images_per_month']['past_6_months']
+
+        # Compute how many more images are needed
+        remaining_images = target_images - current_images
+
+        (df.pd_datetime.max() - df.pd_datetime.min())
+
+        # Compute the number of months needed
+        months_needed = remaining_images / images_per_month
+        years_needed = months_needed / 12
+
+        time_collecting_so_far = (df.pd_datetime.max() - df.pd_datetime.min())
+        years_collecting_so_far = time_collecting_so_far.days / 365.25
+        print(f'years_collecting_so_far={years_collecting_so_far}')
+
+        print(f"It will take approximately {years_needed:.1f} years to reach {target_images} images.")
+
+    return summary_df
 
 
 def spacetime_scatterplot(coco_dset):

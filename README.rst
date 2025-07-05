@@ -86,7 +86,7 @@ illustrates an example of one of these "triples".
 .. image:: https://i.imgur.com/NnEC8XZ.jpg
 
 
-The name "ShitSpotter" is an homage to my earlier work: `HotSpotter <https://github.com/Erotemic/hotspotter>`_, which later became `IBEIS <https://github.com/Erotemic/ibeis>`_ This is work on individual animal identification, particularly Zebras. This work is continued by `WildMe <https://www.wildme.org/>`_.
+The name "ShitSpotter" is an homage to my earlier work: `HotSpotter <https://github.com/Erotemic/hotspotter>`_, which later became `IBEIS <https://github.com/Erotemic/ibeis>`_ This is work on individual animal identification, particularly Zebras. After 2017, this work was continued in Wildbook by `WildMe <https://www.wildme.org/>`_, which merged with `Conservation X Labs <https://www.conservationxlabs.com/>`_ in 2024.
 
 
 Downloading the Data
@@ -108,7 +108,7 @@ The following `IPNS <https://docs.ipfs.tech/concepts/ipns/>`_ address should alw
 `/ipns/k51qzi5uqu5dje1ees96dtsoslauh124drt5ajrtr85j12ae7fwsfhxb07shit <https://ipfs.io/ipns/k51qzi5uqu5dje1ees96dtsoslauh124drt5ajrtr85j12ae7fwsfhxb07shit>`_.
 
 This should resolve to the most recent `IPFS CID <https://docs.ipfs.tech/concepts/content-addressing/>`_ (Content Identifier) of:
-`/ipfs/bafybeihsd6rwjha4kbeluwdjzizxshrkcsynkwgjx7fipm5pual6eexax4 <https://ipfs.io/ipfs/QmQonrckXZq37ZHDoRGN4xVBkqedvJRgYyzp2aBC5Ujpyp?redirectURL=bafybeihsd6rwjha4kbeluwdjzizxshrkcsynkwgjx7fipm5pual6eexax4&autoadapt=0&requiresorigin=0&web3domain=0&immediatecontinue=1&magiclibraryconfirmation=0>`_.
+`/ipfs/bafybeidfxayyacq4jbbhjcxbxumqlspmsmkj52nq2ns4vfew5udgysocoy <https://ipfs.io/ipfs/QmQonrckXZq37ZHDoRGN4xVBkqedvJRgYyzp2aBC5Ujpyp?redirectURL=bafybeidfxayyacq4jbbhjcxbxumqlspmsmkj52nq2ns4vfew5udgysocoy&autoadapt=0&requiresorigin=0&web3domain=0&immediatecontinue=1&magiclibraryconfirmation=0>`_.
 
 This can be viewed in a webbrowser through an IPFS gateway:
 
@@ -150,6 +150,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2025-07-04 - Releasing new data on IPFS. The growth seems to be increasing. Will take 7-9 more years to get 30k images.
 * 2025-04-20 - The number of images is now over 9000! The dataset is now `mirrored on hugging face <https://huggingface.co/datasets/erotemic/shitspotter>`__.
 * 2025-03-09 - Bunch of new images, with somewhat of a domain shift. The detectron model is good at annotating new images, but still not good enough. More work to be done.
 * 2024-12-31 - It is the end of 2024, lots has changed: new varied images, new privacy policy, and new contributions. Happy new year 🎊, all new 2025 images will go into the train set.
@@ -376,7 +377,8 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 | 2025-04-20  | 9175     | ~3189               | 2316                  | 3198                  | bafybeia2uv3ea3aoz27ytiwbyudrjzblfuen47hm6tyfrjt6dgf6iadta4  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
-
+| 2025-07-04  | 9790     | ~3394               | 2444                  | 3406                  | bafybeidfxayyacq4jbbhjcxbxumqlspmsmkj52nq2ns4vfew5udgysocoy  |
++-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 
 
 
@@ -567,6 +569,7 @@ Current IPFS addresses for each top-level asset group are:
     bafybeihgnfs6hku3xlqa7fnoqujkmq2ezk7lvidw32dvgjhsmk7wpk72cy - shitspotter_dvc/assets/poop-2024-12-30-T212347
     bafybeidvaphwcib2qezdcey4cj3a2r7r7oxskl56yaccgdi75pdou4ggmm - shitspotter_dvc/assets/poop-2025-03-08-T224918
     bafybeieyl6yzi6cyz3minjyvmz53ydbpxmljxs5gytv6cwu6ci7tmwyvjq - shitspotter_dvc/assets/poop-2025-04-20-T172113
+    bafybeicz7kxvmxojmu33pskfrkglosz3tndgsmpzz6cmmcxynaau5xzfeu - shitspotter_dvc/assets/poop-2025-07-03-T230656
 
 
 

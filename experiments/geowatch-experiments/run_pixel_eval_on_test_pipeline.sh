@@ -177,7 +177,7 @@ python -m geowatch.mlops.schedule_evaluation \
     --root_dpath="$EVAL_PATH" \
     --devices="0,1," --tmux_workers=2 \
     --backend=tmux --skip_existing=1 \
-    --run=1
+    --run=0
 
 
 # Simple no-dependency result readout
