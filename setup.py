@@ -209,12 +209,14 @@ if __name__ == "__main__":
         "all": parse_requirements("requirements.txt", versions="loose"),
         "runtime": parse_requirements("requirements/runtime.txt", versions="loose"),
         "tests": parse_requirements("requirements/tests.txt", versions="loose"),
+        "lint": parse_requirements("requirements/lint.txt", versions="loose"),
         "optional": parse_requirements("requirements/optional.txt", versions="loose"),
         "docs": parse_requirements("requirements/docs.txt", versions="loose"),
         "all-strict": parse_requirements("requirements.txt", versions="strict"),
         "runtime-strict": parse_requirements(
             "requirements/runtime.txt", versions="strict"
         ),
+        "lint-strict": parse_requirements("requirements/lint.txt", versions="strict"),
         "tests-strict": parse_requirements("requirements/tests.txt", versions="strict"),
         "optional-strict": parse_requirements(
             "requirements/optional.txt", versions="strict"

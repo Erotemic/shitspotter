@@ -7,3 +7,5 @@ pyhesaff>=2.1.0
 pyflann_ibeis>=2.4.0
 plottool_ibeis>=2.3.0
 vtool_ibeis_ext>=0.1.1
+
+transformers>=4.53.3

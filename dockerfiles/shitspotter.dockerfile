@@ -103,6 +103,9 @@ RUN mkdir -p /root/code/shitspotter
 # Based on the state of the repo this copies the host .git data over and then
 # checks out the extact version of REPO requested by REPO_GIT_HASH. It then
 # performs a basic install of shitspotter into the virtual environment.
+
+# NOTE: our .dockerignore file prevents us from copying in populated secrets /
+# credentials
 COPY .git /root/code/shitspotter/.git
 RUN <<EOF
 set -e
@@ -119,8 +122,11 @@ git reset --hard "$REPO_GIT_HASH"
 # TODO: add lock file for reproducibility
 uv pip install -r requirements.txt
 
-uv pip install -e .[headless] 
+uv pip install -e .[headless,optional,tests,lint] 
 #--resolution lowest-direct
+
+# Handle special dependencies
+geowatch finish_install
 
 # Cleanup for smaller cache
 rm -rf /root/.cache/
@@ -178,18 +184,22 @@ REPO_GIT_HASH=$(git rev-parse --short=12 HEAD)
 
 # Build REPO in a reproducible way.
 DOCKER_BUILDKIT=1 docker build --progress=plain \
-    -t shitspotter:$REPO_GIT_HASH-uv0.7.29-python3.13 \
-    --build-arg PYTHON_VERSION=3.13 \
+    -t shitspotter:$REPO_GIT_HASH-uv0.7.29-python3.11 \
+    --build-arg PYTHON_VERSION=3.11 \
     --build-arg UV_VERSION=0.7.19 \
     --build-arg REPO_GIT_HASH=$REPO_GIT_HASH \
     -f ./dockerfiles/shitspotter.dockerfile .
 
 # Add latest tags for convinience
-docker tag shitspotter:$REPO_GIT_HASH-uv0.7.29-python3.13 shitspotter:latest-uv0.7.29-python3.13
-docker tag shitspotter:$REPO_GIT_HASH-uv0.7.29-python3.13 shitspotter:latest
+docker tag shitspotter:$REPO_GIT_HASH-uv0.7.29-python3.11 shitspotter:latest-uv0.7.29-python3.11
+docker tag shitspotter:$REPO_GIT_HASH-uv0.7.29-python3.11 shitspotter:latest
 
 # Verify that GPUs are visible and that each shitspotter command works
 docker run --gpus=all -it shitspotter:latest nvidia-smi
+
+# Start a shell and run any custom tests
+# (TODO: show how to replicate experiments)
+docker run --gpus=all -it shitspotter:latest bash
 
 ' > /dev/null
 

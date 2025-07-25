@@ -18,7 +18,6 @@ class PredictGroundingDinoCLI(scfg.DataConfig):
     def main(cls, argv=1, **kwargs):
         """
         Example:
-            >>> # xdoctest: +SKIP
             >>> from shitspotter.other.predict_grounding_dino import *  # NOQA
             >>> argv = 0
             >>> kwargs = dict()
