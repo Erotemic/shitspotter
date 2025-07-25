@@ -2,6 +2,12 @@
 # References:
 # https://colab.research.google.com/drive/16jcaJoc6bCFAQ96jDe2HwtXj7BMD_-m5#scrollTo=HUjkwRsOn1O0
 # https://github.com/facebookresearch/detectron2/issues/2442
+
+__doc__="
+Notes:
+    Similar experiments run on larger test set here:
+    ~/code/shitspotter/papers/neurips-2025/scripts/run_models_on_test_set.sh
+"
 export CUDA_VISIBLE_DEVICES="1,"
 #export CUDA_VISIBLE_DEVICES=0
 DVC_DATA_DPATH=$HOME/data/dvc-repos/shitspotter_dvc

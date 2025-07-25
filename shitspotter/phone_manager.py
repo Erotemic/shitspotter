@@ -652,7 +652,7 @@ def print_pin_instructions(shitspotter_dvc_dpath, new_shit_dpath):
         echo "$NEW_ROOT_CID" >> "$HOME"/code/shitspotter/shitspotter/cid_revisions.txt
 
         echo "
-        Then on IPFS server run:
+        # Then on IPFS server run:
 
         ipfs pin add --name {new_dataset_name} --progress $NEW_ROOT_CID
         "
@@ -664,12 +664,24 @@ def print_pin_instructions(shitspotter_dvc_dpath, new_shit_dpath):
 
         We also want to update the IPNS address
 
-        NEW_ROOT_CID=bafybeia2uv3ea3aoz27ytiwbyudrjzblfuen47hm6tyfrjt6dgf6iadta4
-        crontab -l | sed "s/bafybe[^ ]* /$NEW_ROOT_CID /" | crontab -
+        NEW_ROOT_CID=$(tail -n 1 root_pin_job.log | cut -d ' ' -f 2)
+        echo "NEW_ROOT_CID=$NEW_ROOT_CID"
+
+        echo "
+        # On IPFS server run:
+        crontab -l | sed 's/bafybe[^ ]* /$NEW_ROOT_CID /' | crontab -
+
+        # Check if the change worked
+        crontab -l
 
         # Cron entry should look like this:
         IPFS_PATH=/flash/ipfs
-        0 0 * * * /home/joncrall/.local/bin/ipfs name publish --key=shitspotter-key /ipfs/bafybeia2uv3ea3aoz27ytiwbyudrjzblfuen47hm6tyfrjt6dgf6iadta4 >> ~/ipfs_cron.log 2>&1
+        0 0 * * * /home/joncrall/.local/bin/ipfs name publish --key=shitspotter-key /ipfs/$NEW_ROOT_CID >> ~/ipfs_cron.log 2>&1
+        "
+
+        # If there is trouble fetching the nodes try to connect to known hosts
+        ipfs swarm connect /p2p/12D3KooWPyQK2JEXnqK1QxiV9Y7bG3UsUQC5iQvDxn8bV1uqvsbi
+        ipfs swarm connect /p2p/12D3KooWCFcfiBevjQD42aRAELMUZXAGScRiN2NcAthokF4dMnVU
 
         '''
     )

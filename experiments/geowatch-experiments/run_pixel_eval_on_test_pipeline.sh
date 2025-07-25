@@ -3,6 +3,10 @@ __doc__="
 Setup:
 
 Ensure you have an sdvc registery for the test dataset and packaged your checkpoints.
+
+Notes:
+    Similar experiments run on larger test set here:
+    ~/code/shitspotter/papers/neurips-2025/scripts/run_models_on_test_set.sh
 "
 
 setup(){

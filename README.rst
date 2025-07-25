@@ -496,7 +496,7 @@ Despite the name, this is not yet a DVC repo.  Eventually I would like to host
 the data via DVC + IPFS, but fsspec needs a mature IPFS filesystem
 implementation first. I may also look into git-annex as an alternative to DVC.
 
-The licence for the software will be Apache 2. The license for the data will be
+The licence for the software will be Apache 2. The license for the data is
 "Creative Commons Attribution 4.0 International".
 
 In addition to these licenses please:

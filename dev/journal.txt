@@ -404,3 +404,33 @@ But maybe the end state is really:
 
 * There exists a good phone app that has a very high detection F1 to the point
   of being useful.
+
+# 2025-07-06
+
+Hadd meeting with Arshia, who is interseted in working on the project.
+
+Apparently I missed a bunch of related work.
+
+https://www.housebeautiful.com/lifestyle/kids-pets/a31289426/robot-picks-up-dog-poop/
+
+Several robos poop datasets
+
+https://universe.roboflow.com/search?q=class%3Apoop
+
+https://universe.roboflow.com/dog-poop/dog-poop-qdsbu - 3k images, but that seems to include augmentations. - /home/joncrall/Downloads/dog-poop-qdsbu.Dog Poop.v11i.coco.zip
+https://universe.roboflow.com/audrey-kim/object-dog-poo-health - 43 images
+https://universe.roboflow.com/ncue-uhqpj/dog-poop-mmvam - 408 images
+https://universe.roboflow.com/project-oftnd/dog-6eieq - 1k
+https://universe.roboflow.com/cj-capstone/dog-poop-13vwg/ - 1k - fake poop?
+https://universe.roboflow.com/pazini/dog-poop-detection-uip1h - 134 - indoor
+https://universe.roboflow.com/poo-detection/pet-poop-classifier - 4k pet poop classifier
+https://universe.roboflow.com/master-student-utm8q/horses-poop - 85 - hoarse poop
+https://universe.roboflow.com/test-iznis/dog-poo - 2k - dog poop health classification
+https://universe.roboflow.com/benito/dog-excrement - 1.6k - classification -
+https://universe.roboflow.com/zihao-deng-lriko/pet_poop - 1.6k - boxes, various pets
+
+https://universe.roboflow.com/sktflyai-mjy00/poop_no.2 - 39 - human poop in toilet
+https://universe.roboflow.com/sktflyai-mjy00/poop_no.4 - 287 - human poop in toilet
+
+https://universe.roboflow.com/test-a7qfj/pet-waste-detect - This is my dataset.
+https://universe.roboflow.com/poopdetector/messalert - 54 - indoor
