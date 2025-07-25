@@ -27,6 +27,8 @@ class PredictGroundingDinoCLI(scfg.DataConfig):
             >>> dpath = ub.Path.appdir('shitspotter/tests/grounding_dino').ensuredir()
             >>> kwargs['src'] = dset.fpath
             >>> kwargs['dst'] = dpath / 'pred.kwcoco.zip'
+            >>> kwargs['num_workers'] = 0
+            >>> kwargs['device'] = 'cpu'
             >>> kwargs['classes'] = ['star', 'superstar', 'eff']
             >>> cls = PredictGroundingDinoCLI
             >>> config = cls(**kwargs)
