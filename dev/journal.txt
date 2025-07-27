@@ -434,3 +434,13 @@ https://universe.roboflow.com/sktflyai-mjy00/poop_no.4 - 287 - human poop in toi
 
 https://universe.roboflow.com/test-a7qfj/pet-waste-detect - This is my dataset.
 https://universe.roboflow.com/poopdetector/messalert - 54 - indoor
+
+
+# 2025-07-25
+
+Got initial reviews back. Got 2 weak rejects, 1 weak accept, and 1 accept. Most
+critiques were valid. I may be able to bump one reviewer up with more
+experiments. Running a GroundingDINO experiment has been on my mind, so I'm
+working on that. Not sure if I'll get SWIN or segformer working in time.
+
+https://openreview.net/forum?id=aO24vWoPmK&referrer=%5BAuthor%20Console%5D(%2Fgroup%3Fid%3DNeurIPS.cc%2F2025%2FDatasets_and_Benchmarks_Track%2FAuthors%23your-submissions)#discussion

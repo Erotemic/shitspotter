@@ -9,4 +9,6 @@ plottool_ibeis>=2.3.0
 vtool_ibeis_ext>=0.1.1
 
 transformers>=4.53.3
-timm>=1.0.19
+
+# Fixme need to add this, but also need to losen geowatch restrictions
+#timm>=1.0.19

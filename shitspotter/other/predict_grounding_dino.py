@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""
+SeeAso:
+    ~/code/shitspotter/experiments/grounding-dino-experiments/run_grounding_dino_experiments_v1.sh
+"""
 import scriptconfig as scfg
 import ubelt as ub
 

@@ -9,9 +9,6 @@ ARG PYTHON_VERSION=3.13
 # Control the version of uv
 ARG UV_VERSION=0.7.19
 
-# Control the version of REPO (by default uses the current branch)
-ARG REPO_GIT_HASH=HEAD
-
 # ------------------------------------
 # Step 1: Install System Prerequisites
 # ------------------------------------
@@ -97,6 +94,9 @@ EOF
 
 RUN mkdir -p /root/code/shitspotter
 
+# Control the version of REPO (by default uses the current branch)
+ARG REPO_GIT_HASH=HEAD
+
 # ---------------------------------
 # Step 4: Checkout and install REPO
 # ---------------------------------
@@ -131,6 +131,22 @@ geowatch finish_install
 # Cleanup for smaller cache
 rm -rf /root/.cache/
 EOF
+
+
+RUN <<EOF
+mkdir -p /root/code/shitspotter/YOLO-v9
+mkdir -p /root/code/shitspotter/Open-GroundingDino
+EOF 
+
+COPY .staging/Open-GroundingDino /root/code/Open-GroundingDino 
+COPY .staging/YOLO-v9 /root/code/YOLO-v9 
+
+RUN <<EOF
+set -e
+cd  /root/code/YOLO-v9 
+uv pip install -e .
+EOF
+
 
 
 # -----------------------------------
@@ -182,6 +198,8 @@ cd ~/code/shitspotter/
 # Determine which shitspotter version to use
 REPO_GIT_HASH=$(git rev-parse --short=12 HEAD)
 
+python ./dockerfiles/setup_staging.py
+
 # Build REPO in a reproducible way.
 DOCKER_BUILDKIT=1 docker build --progress=plain \
     -t shitspotter:$REPO_GIT_HASH-uv0.7.29-python3.11 \
@@ -189,6 +207,7 @@ DOCKER_BUILDKIT=1 docker build --progress=plain \
     --build-arg UV_VERSION=0.7.19 \
     --build-arg REPO_GIT_HASH=$REPO_GIT_HASH \
     -f ./dockerfiles/shitspotter.dockerfile .
+
 
 # Add latest tags for convinience
 docker tag shitspotter:$REPO_GIT_HASH-uv0.7.29-python3.11 shitspotter:latest-uv0.7.29-python3.11

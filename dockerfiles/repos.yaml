@@ -1,0 +1,12 @@
+repos:
+  - name: shitspotter
+    local_path: ~/code/shitspotter
+    remote_url: https://gitlab.kitware.com/computer-vision/shitspotter
+
+  - name: YOLO-v9
+    local_path: ~/code/YOLO-v9
+    remote_url: git@github.com:Erotemic/YOLO.git@upgrades
+
+  - name: Open-GroundingDino
+    local_path: ~/code/Open-GroundingDino
+    remote_url: git@github.com:Erotemic/Open-GroundingDino.git@main
