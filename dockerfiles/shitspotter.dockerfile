@@ -108,6 +108,7 @@ ARG REPO_GIT_HASH=HEAD
 # credentials
 COPY .git /root/code/shitspotter/.git
 RUN <<EOF
+#!/bin/bash
 set -e
 
 cd  /root/code/shitspotter
@@ -132,16 +133,15 @@ geowatch finish_install
 rm -rf /root/.cache/
 EOF
 
+# ---------------------------------
+# Step NEW: add other repos
+# ---------------------------------
 
-RUN <<EOF
-mkdir -p /root/code/shitspotter/YOLO-v9
-mkdir -p /root/code/shitspotter/Open-GroundingDino
-EOF 
-
-COPY .staging/Open-GroundingDino /root/code/Open-GroundingDino 
+COPY .staging/Open-GroundingDino /root/code/Open-GroundingDino
 COPY .staging/YOLO-v9 /root/code/YOLO-v9 
 
 RUN <<EOF
+#!/bin/bash
 set -e
 cd  /root/code/YOLO-v9 
 uv pip install -e .

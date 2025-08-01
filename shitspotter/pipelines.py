@@ -259,6 +259,7 @@ class DetectionEvaluation(ProcessNode):
     out_paths = {
         'out_dpath': '.',
         'out_fpath': 'detect_metrics.json',
+        'confusion_fpath': 'confusion.kwcoco.zip',
     }
     primary_out_key = 'out_fpath'
 
@@ -326,16 +327,54 @@ class DetectionEvaluation(ProcessNode):
         flat_resolved = flat_resolved.insert_prefix(self.name, 1)
         return flat_resolved
 
-    def _default_metrics(self):
-        _display_metrics_suffixes = [
-            'ap',
-            'auc',
-            'max_f1_f1',
-            'max_f1_tpr',
-            'max_f1_ppv',
+    def default_metrics(self):
+        """
+        Returns:
+            List[Dict]: containing information on how to interpret and
+            prioritize the metrics returned here.
+        """
+        metric_infos = [
+            {
+                'metric': 'ap',
+                'objective': 'maximize',
+                'primary': True,
+            },
+            {
+                'metric': 'auc',
+                'objective': 'maximize',
+                'primary': True,
+            },
+            {
+                'metric': 'max_f1_f1',
+                'objective': 'maximize',
+                'display': True,
+                'primary': False,
+            },
+            {
+                'metric': 'max_f1_tpr',
+                'objective': 'maximize',
+                'display': True,
+                'primary': False,
+            },
+            {
+                'metric': 'max_f1_ppv',
+                'objective': 'maximize',
+                'display': True,
+                'primary': False,
+            },
         ]
-        _primary_metrics_suffixes = _display_metrics_suffixes[0:2]
-        return _primary_metrics_suffixes, _display_metrics_suffixes
+        return metric_infos
+
+    # def _default_metrics(self):
+    #     _display_metrics_suffixes = [
+    #         'ap',
+    #         'auc',
+    #         'max_f1_f1',
+    #         'max_f1_tpr',
+    #         'max_f1_ppv',
+    #     ]
+    #     _primary_metrics_suffixes = _display_metrics_suffixes[0:2]
+    #     return _primary_metrics_suffixes, _display_metrics_suffixes
 
     @property
     def default_vantage_points(self):
@@ -415,13 +454,51 @@ class HeatmapEvaluation(ProcessNode):
         flat_resolved = flat_resolved.insert_prefix(self.name, 1)
         return flat_resolved
 
-    def _default_metrics(self):
-        _primary_metrics_suffixes = _display_metrics_suffixes = [
-            'salient_AP',
-            # 'salient_APUC',
-            'salient_AUC',
+    def default_metrics(self):
+        """
+        Returns:
+            List[Dict]: containing information on how to interpret and
+            prioritize the metrics returned here.
+        """
+        metric_infos = [
+            {
+                'metric': 'salient_AP',
+                'objective': 'maximize',
+                'primary': True,
+            },
+            {
+                'metric': 'salient_AUC',
+                'objective': 'maximize',
+                'primary': True,
+            },
+            {
+                'metric': 'salient_maxF1_F1',
+                'objective': 'maximize',
+                'display': True,
+                'primary': False,
+            },
+            {
+                'metric': 'salient_maxF1_tpr',
+                'objective': 'maximize',
+                'display': True,
+                'primary': False,
+            },
+            {
+                'metric': 'salient_maxF1_thresh',
+                'objective': 'minimize',  # objective doesn't make sense here.
+                'display': True,
+                'primary': False,
+            }
         ]
-        return _primary_metrics_suffixes, _display_metrics_suffixes
+        return metric_infos
+
+    # def _default_metrics(self):
+    #     _primary_metrics_suffixes = _display_metrics_suffixes = [
+    #         'salient_AP',
+    #         # 'salient_APUC',
+    #         'salient_AUC',
+    #     ]
+    #     return _primary_metrics_suffixes, _display_metrics_suffixes
 
     @property
     def default_vantage_points(self):

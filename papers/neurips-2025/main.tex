@@ -549,61 +549,88 @@ Corresponding qualitative test results are illustrated in \Cref{fig:test_results
 }
 \label{tab:model_results}
 \centering
-\begin{tabular}{ll rrrr rrrr}
+%\begin{tabular}{ll rrrr rrrr}
+%\toprule
+%\multicolumn{2}{c}{Dataset split:} & \multicolumn{4}{c}{Test (n=121)} & \multicolumn{4}{c}{Validation (n=691)} \\
+%%\multicolumn{2}{c}{Evaluation type:} & \multicolumn{2}{c}{Box} & \multicolumn{2}{c}{Pixel} & \multicolumn{2}{c}{Box} & \multicolumn{2}{c}{Pixel} \\
+%\multicolumn{2}{c}{Evaluation type:} & Box & Box & Pixel & Pixel & Box & Box & Pixel & Pixel \\
+%%%%                      T-Box        T-Box        T-Pixel      T-Pixel    | V-Box        V-Box        V-Pixel      V-Pixel
+%Model type & \# Params & AP         & AUC        & AP         & AUC        & AP         & AUC        & AP         & AUC \\
+%\midrule
+%MaskRCNN-p & 43.9e6    & \tb{0.613} & \tb{0.697} & \tb{0.810} & 0.849      & \tb{0.612} & \tb{0.721} & \tb{0.858} & 0.905 \\
+%MaskRCNN-s & 43.9e6    & 0.253      & 0.464      & 0.384      & 0.798      & 0.255      & 0.576      & 0.434      & 0.891 \\
+%VIT-s      & 25.5e6    & 0.422      & 0.426      & 0.473      & \tb{0.902} & 0.476      & 0.532      & 0.780      & \tb{0.994} \\
+%GroundingDino-p & --    & --      & --       & --        & --    & --        & --       & --       & --    \\
+%GroundingDino-z & --    & --      & --       & --        & --    & --        & --       & --       & --    \\
+%YOLO-p          & --    & --      & --       & --        & --    & --        & --       & --       & --    \\
+%YOLO-s          & --    & --      & --       & --        & --    & --        & --       & --       & --    \\
+%\bottomrule
+%\end{tabular}
+
+\begin{tabular}{ll rrr rrr rrr rrr}
 \toprule
-\multicolumn{2}{c}{Dataset split:} & \multicolumn{4}{c}{Test (n=121)} & \multicolumn{4}{c}{Validation (n=691)} \\
-%\multicolumn{2}{c}{Evaluation type:} & \multicolumn{2}{c}{Box} & \multicolumn{2}{c}{Pixel} & \multicolumn{2}{c}{Box} & \multicolumn{2}{c}{Pixel} \\
-\multicolumn{2}{c}{Evaluation type:} & Box & Box & Pixel & Pixel & Box & Box & Pixel & Pixel \\
-%%%                      T-Box        T-Box        T-Pixel      T-Pixel    | V-Box        V-Box        V-Pixel      V-Pixel
-Model type & \# Params & AP         & AUC        & AP         & AUC        & AP         & AUC        & AP         & AUC \\
+\multicolumn{2}{c}{Dataset split:} & \multicolumn{6}{c}{Test (n=121)} & \multicolumn{6}{c}{Validation (n=691)} \\
+\multicolumn{2}{c}{Evaluation type:} & AP & AUC & F1 & AP & AUC & F1 & AP & AUC & F1 & AP & AUC & F1 \\
+ & & \multicolumn{3}{c}{Box} & \multicolumn{3}{c}{Pixel} & \multicolumn{3}{c}{Box} & \multicolumn{3}{c}{Pixel} \\
 \midrule
-MaskRCNN-p & 43.9e6    & \tb{0.613} & \tb{0.697} & \tb{0.810} & 0.849      & \tb{0.612} & \tb{0.721} & \tb{0.858} & 0.905 \\
-MaskRCNN-s & 43.9e6    & 0.253      & 0.464      & 0.384      & 0.798      & 0.255      & 0.576      & 0.434      & 0.891 \\
-VIT-s      & 25.5e6    & 0.422      & 0.426      & 0.473      & \tb{0.902} & 0.476      & 0.532      & 0.780      & \tb{0.994} \\
+MaskRCNN-p & 43.9e6 & 0.613 & \tb{0.698} & 0.650 & \tb{0.871} & 0.816 & \tb{0.885} & 0.612 & \tb{0.721} & 0.625 & \tb{0.858} & 0.883 & \tb{0.839} \\
+MaskRCNN-s & 43.9e6 & 0.254 & 0.465 & 0.345 & 0.385 & 0.798 & 0.408 & 0.255 & 0.576 & 0.349 & 0.434 & 0.891 & 0.482 \\
+VIT-s & 25.5e6 & 0.393 & 0.404 & 0.517 & 0.473 & \tb{0.902} & 0.520 & 0.476 & 0.532 & 0.596 & 0.780 & \tb{0.994} & 0.746 \\
+GroundingDino-p & 172.2e6 & \tb{0.700} & 0.666 & \tb{0.758} & -- & -- & -- & \tb{0.691} & 0.631 & \tb{0.743} & -- & -- & -- \\
+GroundingDino-z & 172.2e6 & 0.228 & 0.303 & 0.393 & -- & -- & -- & 0.078 & 0.210 & 0.197 & -- & -- & -- \\
+YOLO-p & 51.0e6 & 0.441 & 0.551 & 0.507 & -- & -- & -- & 0.411 & 0.595 & 0.496 & -- & -- & -- \\
+YOLO-s & 51.0e6 & 0.377 & 0.408 & 0.469 & -- & -- & -- & 0.264 & 0.427 & 0.381 & -- & -- & -- \\
 \bottomrule
 \end{tabular}
+
 \end{table}
 
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/test_imgs30_d8988f8c.kwcoco/results_detectron-pretrained.jpg}%
-\hfill
-(a) MaskRCNN-pretrained (test set results).
-\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/test_imgs30_d8988f8c.kwcoco/results_detectron-scratch.jpg}%
-\hfill
-(b) MaskRCNN-scratch (test set results).
-\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/test_imgs30_d8988f8c.kwcoco/results_geowatch-scratch.jpg}%
-\hfill
-(c) VIT-sseg-scratch (test set results).
-\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/test_imgs30_d8988f8c.kwcoco/results_input_images.jpg}%
-\hfill
-(d) Input images from the test set.
-\caption[]{
-    Qualitative results from the top model on the validation set, applied to test images.
-    The first three subfigures (a, b, c) display a binarized classification map (true positives in white, false
-      positives in red, false negatives in teal, true negatives in black) and the predicted heatmap (before
-      binarization).
-    Subfigure (d) shows the input image.
-    The heatmap binarization threshold was 0.5.
-    Failures occur with close-up or deteriorated objects, and camouflage.
-    %Qualitative results using the top-performing model on the validation set, applied to a selection of
-    %  images from the test set.
-    %Subfigure (d) shows the input image for the above predictions.
-    %In the first three subfigures (a, b, and c), the top row is a binarized classification map, where true
-    %  positive pixels are shown in white, false positives in red, false negatives in teal, and true negatives
-    %  in black.
-    %The second row in each subfigure is the predicted heatmap, illustrating the model's output before
-    %  binarization.
-    %The threshold for binarization was set to $0.5$ in all cases.
-    %All three methods show clear responses to objects of interest, but cases where objects are close-up 
-    %  and partially deteriorated do seem to be a common failure mode.
-    %Camouflage is likely a failure case, but this dataset does not contain
-    %  many examples.
+%\begin{figure*}[t]
+%\centering
+%\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/test_imgs30_d8988f8c.kwcoco/results_detectron-pretrained.jpg}%
+%\hfill
+%(a) MaskRCNN-pretrained (test set results).
+%\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/test_imgs30_d8988f8c.kwcoco/results_detectron-scratch.jpg}%
+%\hfill
+%(b) MaskRCNN-scratch (test set results).
+%\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/test_imgs30_d8988f8c.kwcoco/results_geowatch-scratch.jpg}%
+%\hfill
+%(c) VIT-sseg-scratch (test set results).
+%\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/test_imgs30_d8988f8c.kwcoco/results_input_images.jpg}%
+%\hfill
+%(d) Input images from the test set.
+%\caption[]{
+
+%    Qualitative results from the top model on the validation set, applied to test images.
+%    The first three subfigures (a, b, c) display a binarized classification map (true positives in green, false
+%      positives in red, false negatives in purple, true negatives in black) and the predicted heatmap (before
+%      binarization).
+
+%    %The first three subfigures (a, b, c) display a binarized classification map (true positives in white, false
+%    %  positives in red, false negatives in teal, true negatives in black) and the predicted heatmap (before
+%    %  binarization).
+%    Subfigure (d) shows the input image.
+%    The heatmap binarization threshold was 0.5.
+%    Failures occur with close-up or deteriorated objects, and camouflage.
+
+%    %Qualitative results using the top-performing model on the validation set, applied to a selection of
+%    %  images from the test set.
+%    %Subfigure (d) shows the input image for the above predictions.
+%    %In the first three subfigures (a, b, and c), the top row is a binarized classification map, where true
+%    %  positive pixels are shown in white, false positives in red, false negatives in teal, and true negatives
+%    %  in black.
+%    %The second row in each subfigure is the predicted heatmap, illustrating the model's output before
+%    %  binarization.
+%    %The threshold for binarization was set to $0.5$ in all cases.
+%    %All three methods show clear responses to objects of interest, but cases where objects are close-up 
+%    %  and partially deteriorated do seem to be a common failure mode.
+%    %Camouflage is likely a failure case, but this dataset does not contain
+%    %  many examples.
     
-}
-\label{fig:test_results_all_models}
-\end{figure*}
+%}
+%\label{fig:test_results_all_models}
+%\end{figure*}
 
 
 \begin{figure*}[t]
@@ -632,6 +659,75 @@ Qualitative results of the top model on unseen validation images (see \Cref{fig:
 \label{fig:vali_results_all_models}
 \end{figure*}
 
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/test_imgs121_6cb3b6ff.kwcoco/results_geowatch-scratch_heatmap_confusion_components.jpg}%
+\hfill
+(a) VIT-sseg-scratch (Test set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/test_imgs121_6cb3b6ff.kwcoco/results_detectron-pretrained_heatmap_confusion_components.jpg}%
+\hfill
+(b) MaskRCNN-pretrained (Test set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/test_imgs121_6cb3b6ff.kwcoco/results_detectron-scratch_heatmap_confusion_components.jpg}%
+\hfill
+(c) MaskRCNN-scratch (Test set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/test_imgs121_6cb3b6ff.kwcoco/results_yolo_v9-scratch_detection_confusion.jpg}%
+\hfill
+(d) YOLO-v9-scratch (Test set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/test_imgs121_6cb3b6ff.kwcoco/results_yolo_v9-pretrained_detection_confusion.jpg}%
+\hfill
+(e) YOLO-v9-pretrained (Test set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/test_imgs121_6cb3b6ff.kwcoco/results_grounding_dino-zero_detection_confusion.jpg}%
+\hfill
+(f) GroundingDino-zero (Test set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/test_imgs121_6cb3b6ff.kwcoco/results_grounding_dino-tuned_detection_confusion.jpg}%
+\hfill
+(g) GroundingDino-tuned (Test set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/test_imgs121_6cb3b6ff.kwcoco/results_input_images.jpg}%
+\hfill
+(h) Inputs from the Test set
+\caption[]{
+    Qualitative results using the top-performing models on the validation set.
+}
+\label{fig:Test_results_all_models2}
+\end{figure*}
+
+
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/vali_imgs691_99b22ad0.kwcoco/results_geowatch-scratch_heatmap_confusion_components.jpg}%
+\hfill
+(a) VIT-sseg-scratch (validation set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/vali_imgs691_99b22ad0.kwcoco/results_detectron-pretrained_heatmap_confusion_components.jpg}%
+\hfill
+(b) MaskRCNN-pretrained (validation set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/vali_imgs691_99b22ad0.kwcoco/results_detectron-scratch_heatmap_confusion_components.jpg}%
+\hfill
+(c) MaskRCNN-scratch (validation set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/vali_imgs691_99b22ad0.kwcoco/results_yolo_v9-scratch_detection_confusion.jpg}%
+\hfill
+(d) YOLO-v9-scratch (validation set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/vali_imgs691_99b22ad0.kwcoco/results_yolo_v9-pretrained_detection_confusion.jpg}%
+\hfill
+(e) YOLO-v9-pretrained (validation set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/vali_imgs691_99b22ad0.kwcoco/results_grounding_dino-zero_detection_confusion.jpg}%
+\hfill
+(f) GroundingDino-zero (validation set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/vali_imgs691_99b22ad0.kwcoco/results_grounding_dino-tuned_detection_confusion.jpg}%
+\hfill
+(g) GroundingDino-tuned (validation set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/vali_imgs691_99b22ad0.kwcoco/results_input_images.jpg}%
+\hfill
+(h) Inputs from the validation set
+\caption[]{
+    Qualitative results using the top-performing models on the validation set.
+}
+\label{fig:validation_results_all_models2}
+\end{figure*}
+
+
+
+
+
 
 All models were trained on a single machine with an Intel Core i9-11900K CPU and an NVIDIA GeForce RTX 3090
   GPU.
@@ -652,6 +748,13 @@ Based on file timestamps, we estimated that running 44 different training runs t
   respectively.
 For context, at $\frac{\$0.16}{\textrm{kWh}}$ and $\frac{\$25.00}{1000 \cotwo \textrm{kg}}$, the cost of training
   and evaluating was $\$229.06$.
+
+%\footnote{The total time spent on prediction and evaluation across all experiments was 15.6 days, with prediction consuming 109.63 kWh of energy and causing an estimated emissions of 23.0 \cotwo kg as measured by CodeCarbon \cite{lacoste2019codecarbon}. We estimated train-time resource usage using indirect methods, assuming a constant power draw of 345W from the RTX 3090 GPU. Energy consumption was approximated accordingly, and emissions were calculated using a conversion ratio of 0.21 $\frac{\textrm{kg}\cotwo{}}{\textrm{kWh}}$ derived from our prediction-time measurements. Based on file timestamps, we estimated that running 44 different training runs took approximately 159.66 days, resulting in an estimated energy usage and emissions of 1321.99 kWh and 277.612 $\cotwo$ kg, respectively. At $\frac{\$0.16}{\textrm{kWh}}$ and $\frac{\$25.00}{1000 \cotwo \textrm{kg}}$, the cost of training and evaluation was approximately \$229.06.}
+
+\footnote{Across all experiments, prediction and evaluation took 15.6 days, consuming 109.63 kWh and emitting 23.0~\cotwo~kg (CodeCarbon \cite{lacoste2019codecarbon}). Training was estimated at 159.66 days and 1321.99 kWh, yielding 277.61~\cotwo~kg, assuming a 345W GPU draw and a 0.21~$\frac{\textrm{kg}\cotwo{}}{\textrm{kWh}}$ emission factor. At $\$0.16$/kWh and $\$25$/tonne~\cotwo, total cost was \$229.06.}
+
+
+  
 
 \begin{comment}
 import pint
@@ -1011,6 +1114,9 @@ We would would like to thank all of the dogs that produced subject matter for th
 contributors for helping to construct a challenging test set, and \redact{Anthony Hoogs} for several suggestions including taking the 
   third negative picture.
 This work is dedicated to \redact{Bezoar}, a very weird and very good girl.
+
+
+\cite{wang2024yolov9,liu_grounding_2024,OpenGroundingDino}
 %\fi
 \fi
 
@@ -1071,3 +1177,5 @@ This work is dedicated to \redact{Bezoar}, a very weird and very good girl.
 \end{comment}
 
 \end{document}
+
+

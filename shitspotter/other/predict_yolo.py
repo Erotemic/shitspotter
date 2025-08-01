@@ -36,160 +36,187 @@ from yolo.utils.kwcoco_utils import tensor_to_kwimage
 from yolo.utils.bounding_box_utils import create_converter
 from yolo.utils.model_utils import PostProcess
 from yolo.tools.solver import InferenceModel
+import scriptconfig as scfg
 
 
-def main(argv=True, **kwargs):
+class PredictYoloCLI(scfg.DataConfig):
     """
-    Ignore:
-        argv = False
-        kwargs = {
-            'src': ub.Path('/home/joncrall/code/shitspotter/shitspotter_dvc/test_imgs30_d8988f8c.kwcoco.zip').expand(),
-            'dst': ub.Path('~/data/dvc-repos/shitspotter_expt_dvc/_yolov9_evals/test/pred.kwcoco.zip').expand(),
-            'checkpoint': ub.Path('~/code/shitspotter/shitspotter_dvc/models/yolo-v9/shitspotter-simple-v3-run-v06-epoch=0032-step=000132-trainlosstrain_loss=7.603.ckpt.ckpt').expand(),
-            'model_config': ub.Path('~/code/shitspotter/shitspotter_dvc/models/yolo-v9/shitspotter-simple-v3-run-v06-train_config.yaml').expand(),
-        }
+    YOLO prediction to KWCoco
     """
-    import argparse
+    src = scfg.Value(None, type=str, required=True, help='Input kwcoco file')
+    dst = scfg.Value(None, type=str, required=True, help='Output kwcoco file')
+    checkpoint = scfg.Value(None, type=str, required=True, help='Path to YOLO checkpoint')
+    model_config = scfg.Value(None, type=str, required=True, help='Path to training config')
+    device = scfg.Value('cuda', type=str, help='Torch device')
+    min_confidence = scfg.Value(0.01, type=float, help='Minimum confidence threshold')
+    min_iou = scfg.Value(0.5, type=float, help='NMS IoU threshold')
+    max_bbox = scfg.Value(300, type=int, help='Max number of boxes per image')
 
-    parser = argparse.ArgumentParser(description='YOLO prediction to KWCoco')
-    parser.add_argument('--src', type=str, required=True, help='Input kwcoco file')
-    parser.add_argument('--dst', type=str, required=True, help='Output kwcoco file')
-    parser.add_argument('--checkpoint', type=str, required=True, help='Path to YOLO checkpoint')
-    parser.add_argument('--model_config', type=str, required=True, help='Path to training config')
-    parser.add_argument('--device', type=str, default='cuda', help='Torch device')
-    parser.add_argument('--min_confidence', type=float, default=0.01, help='Minimum confidence threshold')
-    parser.add_argument('--min_iou', type=float, default=0.5, help='NMS IoU threshold')
-    parser.add_argument('--max_bbox', type=int, default=300, help='Max number of boxes per image')
+    @classmethod
+    def main(cls, argv=True, **kwargs):
+        """
+        Ignore:
+            >>> from shitspotter.other.predict_yolo import *  # NOQA
+            >>> argv = False
+            >>> kwargs = {
+            >>>     'src': ub.Path('/home/joncrall/code/shitspotter/shitspotter_dvc/test_imgs30_d8988f8c.kwcoco.zip').expand(),
+            >>>     'dst': ub.Path('~/data/dvc-repos/shitspotter_expt_dvc/_yolov9_evals/test/pred.kwcoco.zip').expand(),
+            >>>     'checkpoint': ub.Path('~/code/shitspotter/shitspotter_dvc/models/yolo-v9/shitspotter-simple-v3-run-v06-epoch=0032-step=000132-trainlosstrain_loss=7.603.ckpt.ckpt').expand(),
+            >>>     'model_config': ub.Path('~/code/shitspotter/shitspotter_dvc/models/yolo-v9/shitspotter-simple-v3-run-v06-train_config.yaml').expand(),
+            >>> }
+            >>> cls = PredictYoloCLI
+            >>> cls.main(argv, **kwargs)
+        """
+        # Scriptconfig is pretty easy to port to. Here is an example
+        # of how this script started:
+        # if 0:
+        #     import argparse
+        #     parser = argparse.ArgumentParser(description='YOLO prediction to KWCoco')
+        #     parser.add_argument('--src', type=str, required=True, help='Input kwcoco file')
+        #     parser.add_argument('--dst', type=str, required=True, help='Output kwcoco file')
+        #     parser.add_argument('--checkpoint', type=str, required=True, help='Path to YOLO checkpoint')
+        #     parser.add_argument('--model_config', type=str, required=True, help='Path to training config')
+        #     parser.add_argument('--device', type=str, default='cuda', help='Torch device')
+        #     parser.add_argument('--min_confidence', type=float, default=0.01, help='Minimum confidence threshold')
+        #     parser.add_argument('--min_iou', type=float, default=0.5, help='NMS IoU threshold')
+        #     parser.add_argument('--max_bbox', type=int, default=300, help='Max number of boxes per image')
+        #     import scriptconfig as scfg
+        #     print(scfg.DataConfig.port_from_argparse(parser))
+        #     PredictYoloCLI = scfg.DataConfig.cls_from_argparse(parser)
+        # args = PredictYoloCLI.cli(argv=argv, data=kwargs, verbose=True, special_options=False)
+        args = PredictYoloCLI.cli(argv=argv, data=kwargs, verbose=True, special_options=False)
 
-    import scriptconfig as scfg
-    PredictYoloCLI = scfg.DataConfig.cls_from_argparse(parser)
-    args = PredictYoloCLI.cli(argv=argv, data=kwargs, verbose=True, special_options=False)
+        device = torch.device(args.device)
 
-    device = torch.device(args.device)
+        rich.print('[green]YOLO Prediction with args:[/green]')
+        rich.print(vars(args))
 
-    rich.print('[green]YOLO Prediction with args:[/green]')
-    rich.print(vars(args))
+        output_fpath = ub.Path(args.dst)
+        output_fpath.parent.ensuredir()
 
-    output_fpath = ub.Path(args.dst)
-    output_fpath.parent.ensuredir()
+        input_dset = kwcoco.CocoDataset.coerce(args.src)
+        output_dset = input_dset.copy()
+        output_dset.clear_annotations()
+        output_dset.reroot(absolute=True)
+        output_dset.fpath = output_fpath
+        # output_dset._update_fpath(output_fpath) # broken
 
-    input_dset = kwcoco.CocoDataset.coerce(args.src)
-    output_dset = input_dset.copy()
-    output_dset.clear_annotations()
-    output_dset.reroot(absolute=True)
-    output_dset.fpath = output_fpath
-    # output_dset._update_fpath(output_fpath) # broken
+        proc_context = kwutil.ProcessContext(
+            name='shitspotter.other.coco_yolo_predict',
+            config=kwutil.Json.ensure_serializable(dict(args)),
+            track_emissions=True,
+        )
+        proc_context.start()
+        print(f'proc_context.obj = {ub.urepr(proc_context.obj, nl=3)}')
 
-    proc_context = kwutil.ProcessContext(
-        name='shitspotter.other.coco_yolo_predict',
-        config=kwutil.Json.ensure_serializable(dict(args)),
-        track_emissions=True,
-    )
-    proc_context.start()
-    print(f'proc_context.obj = {ub.urepr(proc_context.obj, nl=3)}')
+        model_config = kwutil.Yaml.coerce(args.model_config, backend='pyyaml')
+        checkpoint = args.checkpoint
 
-    model_config = kwutil.Yaml.coerce(args.model_config, backend='pyyaml')
-    checkpoint = args.checkpoint
+        if isinstance(model_config, dict) and len(model_config) == 2:
+            # hack to make coupling args easier with mlops
+            if 'config' in model_config and 'checkpoint' in model_config:
+                checkpoint = model_config['checkpoint']
+                model_config = kwutil.Yaml.coerce(model_config['config'], backend='pyyaml')
 
-    if isinstance(model_config, dict) and len(model_config) == 2:
-        # hack to make coupling args easier with mlops
-        if 'config' in model_config and 'checkpoint' in model_config:
-            checkpoint = model_config['checkpoint']
-            model_config = kwutil.Yaml.coerce(model_config['config'], backend='pyyaml')
+        cfg = DictConfig(model_config)
+        cfg.weight = checkpoint
 
-    cfg = DictConfig(model_config)
-    cfg.weight = checkpoint
+        model = InferenceModel(cfg)
+        model.to(device)
+        model.eval()
+        # dsize = tuple(cfg.image_size)
 
-    model = InferenceModel(cfg)
-    model.to(device)
-    model.eval()
-    # dsize = tuple(cfg.image_size)
+        if 0:
+            from geowatch.utils.util_netharn import number_of_parameters
+            num_params = number_of_parameters(model)
+            print(f'num_params={num_params}')
 
-    vec2box = create_converter(
-        cfg.model.name, model, cfg.model.anchor, cfg.image_size, device
-    )
+        vec2box = create_converter(
+            cfg.model.name, model, cfg.model.anchor, cfg.image_size, device
+        )
 
-    vec2box = create_converter(
-        cfg.model.name, model, cfg.model.anchor, cfg.image_size, device
-    )
+        vec2box = create_converter(
+            cfg.model.name, model, cfg.model.anchor, cfg.image_size, device
+        )
 
-    nms_cfg = DictConfig({
-        'min_confidence': args.min_confidence,
-        'min_iou': args.min_iou,
-        'max_bbox': args.max_bbox,
-    })
-    post_process = PostProcess(vec2box, nms_cfg)
+        nms_cfg = DictConfig({
+            'min_confidence': args.min_confidence,
+            'min_iou': args.min_iou,
+            'max_bbox': args.max_bbox,
+        })
+        post_process = PostProcess(vec2box, nms_cfg)
 
-    classes = cfg.dataset.class_list
-    classes = kwcoco.CategoryTree.coerce([str(c) for c in classes])
+        classes = cfg.dataset.class_list
+        classes = kwcoco.CategoryTree.coerce([str(c) for c in classes])
 
-    from yolo.tools.data_augmentation import PadAndResize
-    image_size = model.cfg.image_size
-    pad_resize = PadAndResize(image_size=image_size)
+        from yolo.tools.data_augmentation import PadAndResize
+        image_size = model.cfg.image_size
+        pad_resize = PadAndResize(image_size=image_size)
 
-    for image_id in ub.ProgIter(input_dset.images(), desc='Predicting'):
-        coco_img = output_dset.coco_image(image_id)
-        imdata = coco_img.imdelay().finalize()
+        for image_id in ub.ProgIter(input_dset.images(), desc='Predicting'):
+            coco_img = output_dset.coco_image(image_id)
+            imdata = coco_img.imdelay().finalize()
 
-        # Ensure we are using the exact same data processing pipeline as
-        # training
-        from PIL import Image
-        pil_img = Image.fromarray(imdata)
-        pil_img = pil_img.convert('RGB')
+            # Ensure we are using the exact same data processing pipeline as
+            # training
+            from PIL import Image
+            pil_img = Image.fromarray(imdata)
+            pil_img = pil_img.convert('RGB')
 
-        boxes = np.empty((0, 5))
-        padded_image, _, rev_tensor = pad_resize(pil_img, boxes)
+            boxes = np.empty((0, 5))
+            padded_image, _, rev_tensor = pad_resize(pil_img, boxes)
 
-        import kwarray
-        scale, pad_left, pad_top, pad_right, pad_bot = kwarray.ArrayAPI.numpy(rev_tensor)
+            import kwarray
+            scale, pad_left, pad_top, pad_right, pad_bot = kwarray.ArrayAPI.numpy(rev_tensor)
 
-        #input_hwc = dset.coco_image(2).imdelay().resize((640, 640)).finalize()
-        #input_tensor = input_hwc.transpose(2, 0, 1)[None, ...]
-        #input_tensor = input_tensor.astype(np.float32)
-        #torch_inputs = torch.Tensor(input_tensor)
+            #input_hwc = dset.coco_image(2).imdelay().resize((640, 640)).finalize()
+            #input_tensor = input_hwc.transpose(2, 0, 1)[None, ...]
+            #input_tensor = input_tensor.astype(np.float32)
+            #torch_inputs = torch.Tensor(input_tensor)
 
-        from torchvision.transforms import functional as TF
-        torch_inputs = TF.to_tensor(padded_image)[None, :]
-        resize_info = {
-            'scale': float(scale),
-            'offset': tuple([float(pad_left), float(pad_top)]),
-        }
+            from torchvision.transforms import functional as TF
+            torch_inputs = TF.to_tensor(padded_image)[None, :]
+            resize_info = {
+                'scale': float(scale),
+                'offset': tuple([float(pad_left), float(pad_top)]),
+            }
 
-        # resized, resize_info = kwimage.imresize(imdata, dsize=dsize, return_info=True)
-        # input_tensor = resized.transpose(2, 0, 1)[None, ...].astype(np.float32)
-        # input_tensor = torch.tensor(input_tensor, device=device)
+            # resized, resize_info = kwimage.imresize(imdata, dsize=dsize, return_info=True)
+            # input_tensor = resized.transpose(2, 0, 1)[None, ...].astype(np.float32)
+            # input_tensor = torch.tensor(input_tensor, device=device)
 
-        with torch.no_grad():
-            torch_inputs = torch_inputs.to(device)
-            raw_preds = model.forward(torch_inputs)
-            preds = post_process(raw_preds)
+            with torch.no_grad():
+                torch_inputs = torch_inputs.to(device)
+                raw_preds = model.forward(torch_inputs)
+                preds = post_process(raw_preds)
 
-        detections = [
-            tensor_to_kwimage(yolo_tensor, classes=classes).numpy()
-            for yolo_tensor in preds
-        ]
-        if len(detections) == 0:
-            continue
+            detections = [
+                tensor_to_kwimage(yolo_tensor, classes=classes).numpy()
+                for yolo_tensor in preds
+            ]
+            if len(detections) == 0:
+                continue
 
-        # Get the inverse transform to bring dets back to original size
-        det_rescaler = kwimage.Affine.coerce(ub.udict(resize_info) - {'dsize'}).inv()
-        detections = [dets.warp(det_rescaler) for dets in detections]
+            # Get the inverse transform to bring dets back to original size
+            det_rescaler = kwimage.Affine.coerce(ub.udict(resize_info) - {'dsize'}).inv()
+            detections = [dets.warp(det_rescaler) for dets in detections]
 
-        for dets in detections:
-            for ann in dets.to_coco(image_id=image_id):
-                cat_id = input_dset.ensure_category(ann['category_name'])
-                ann['category_id'] = cat_id
-                output_dset.add_annotation(**ann)
+            for dets in detections:
+                for ann in dets.to_coco(image_id=image_id):
+                    cat_id = input_dset.ensure_category(ann['category_name'])
+                    ann['category_id'] = cat_id
+                    output_dset.add_annotation(**ann)
 
-    output_dset.dataset.setdefault('info', [])
-    proc_context.stop()
-    print(f'proc_context.obj = {ub.urepr(proc_context.obj, nl=3)}')
-    output_dset.dataset['info'].append(proc_context.obj)
-    output_dset.dump()
-    bundle_dpath = ub.Path(output_dset.fpath).parent.ensuredir()
-    rich.print(f'Wrote in: [link={bundle_dpath}]{bundle_dpath}[/link]')
-    print(f'Wrote to: {output_dset.fpath}')
+        output_dset.dataset.setdefault('info', [])
+        proc_context.stop()
+        print(f'proc_context.obj = {ub.urepr(proc_context.obj, nl=3)}')
+        output_dset.dataset['info'].append(proc_context.obj)
+        output_dset.dump()
+        bundle_dpath = ub.Path(output_dset.fpath).parent.ensuredir()
+        rich.print(f'Wrote in: [link={bundle_dpath}]{bundle_dpath}[/link]')
+        print(f'Wrote to: {output_dset.fpath}')
 
+__cli__ = PredictYoloCLI
 
 if __name__ == '__main__':
-    main()
+    __cli__.main()

@@ -1,3 +1,9 @@
+__doc__='
+SeeAlso, for tuned version of grounding dino:
+    ~/code/shitspotter/dev/poc/tune_grounding_dino.sh
+'
+
+#
 #export CUDA_VISIBLE_DEVICES=0,1
 #DVC_DATA_DPATH=$HOME/data/dvc-repos/shitspotter_dvc
 #DVC_EXPT_DPATH=$HOME/data/dvc-repos/shitspotter_expt_dvc
@@ -35,6 +41,8 @@ python -m geowatch.mlops.schedule_evaluation \
     " \
     --root_dpath="$EVAL_PATH" \
     --devices="0,1," --tmux_workers=2 \
+    --skip_existing=0 \
+    --cache=0 \
     --backend=tmux --skip_existing=1 \
     --run=1
 
@@ -81,23 +89,26 @@ python -m geowatch.mlops.schedule_evaluation \
             grounding_dino_pred.src:
                 - '$KWCOCO_BUNDLE_DPATH/vali_imgs691_99b22ad0.kwcoco.zip'
             grounding_dino_pred.classes:
-                - '[poop]'
-                - '[dogpoop]'
-                - '[feces]'
-                - '[dogfeces]'
                 - '[excrement]'
-                - '[droppings]'
                 - '[turd]'
-                - '[stool]'
-                - '[caninefeces]'
                 - '[animalfeces]'
-                - '[petwaste]'
+                - '[poop]'
+
+                #- '[dogpoop]'
+                #- '[feces]'
+                #- '[dogfeces]'
+                #- '[droppings]'
+                #- '[stool]'
+                #- '[caninefeces]'
+                #- '[petwaste]'
             grounding_dino_pred.force_classname:
                 - poop
     " \
     --root_dpath="$EVAL_PATH" \
     --devices="0,1," --tmux_workers=2 \
-    --backend=tmux --skip_existing=1 \
+    --backend=tmux \
+    --skip_existing=0 \
+    --cache=0 \
     --run=1
 
 # Result aggregation and reporting
@@ -109,12 +120,13 @@ python -m geowatch.mlops.aggregate \
         - $EVAL_PATH
     " \
     --output_dpath="$EVAL_PATH/full_aggregate" \
-    --resource_report=0 \
+    --resource_report=1 \
     --rois=None \
     --io_workers=0 \
     --eval_nodes="
         - detection_evaluation
     " \
+    --cache_resolved_results=0 \
     --stdout_report="
         top_k: 10
         per_group: null

@@ -384,3 +384,48 @@ python -m geowatch.mlops.aggregate \
             print(subtable_display.to_latex(index=False))
     " --embed
 
+
+# Bigger test test
+
+# specified models
+DVC_DATA_DPATH=$(geowatch_dvc --tags="shitspotter_data")
+DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
+#WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER
+KWCOCO_BUNDLE_DPATH=$DVC_DATA_DPATH
+TEST_FPATH=$KWCOCO_BUNDLE_DPATH/test_imgs121_6cb3b6ff.kwcoco.zip
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_test_imgs121_6cb3b6ff_evals
+python -m geowatch.mlops.schedule_evaluation \
+    --params="
+        #pipeline: 'shitspotter.pipelines.heatmap_evaluation_pipeline()'
+        pipeline: 'shitspotter.pipelines.polygon_evaluation_pipeline()'
+        matrix:
+            heatmap_pred.package_fpath:
+                - '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v2/lightning_logs/version_0/checkpoints/last.pt'
+                - '/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/training/toothbrush/joncrall/ShitSpotter/runs/shitspotter_scratch_20240618_noboxes_v7/lightning_logs/version_1/checkpoints/epoch=0089-step=122940-val_loss=0.019.ckpt.pt'
+
+            heatmap_pred.test_dataset:
+                - $TEST_FPATH
+            heatmap_eval.workers: 1
+            heatmap_eval.draw_heatmaps: 0
+            heatmap_eval.draw_curves: True
+            heatmap_pred.__enabled__: 1
+            heatmap_eval.__enabled__: 1
+            extract_polygons.__enabled__: 1
+            extract_polygons.workers:
+                - 4
+            extract_polygons.thresh:
+                - 0.65
+                #- 0.6
+                #- 0.575
+                - 0.55
+                - 0.525
+                #- 0.5
+                #- 0.4
+                #- 0.35
+                #- 0.3
+                #- 0.25
+    " \
+    --root_dpath="$EVAL_PATH" \
+    --devices="0,1," --tmux_workers=2 \
+    --backend=tmux --skip_existing=1 \
+    --run=1

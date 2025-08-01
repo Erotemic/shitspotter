@@ -76,6 +76,11 @@ class PredictGroundingDinoCLI(scfg.DataConfig):
                 text_threshold=config.text_threshold,
                 num_workers=config.num_workers,
             )
+            if 0:
+                from geowatch.utils.util_netharn import number_of_parameters
+                num_params = number_of_parameters(predictor.model)
+                print(f'num_params={num_params}')
+
             predictor.predict_coco(dset)
 
             if config.force_classname is not None:
