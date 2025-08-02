@@ -51,10 +51,13 @@ This following is the high level status of the project.
 - ☑ Dataset has enough images to train models (2023-03-03)
 - ☑ Dataset has enough annotations to train models (2023-11-17)
 - ☑ Baseline models are trained (2024-07-27)
-- ☐ Scientific paper about dataset `published on arxiv <https://www.arxiv.org/abs/2412.16473>`_ (2024-12-21)
-- ☐ Scientific paper about dataset peer-reviewed
-- ☐ Efficient models for phones are trained
-- ☐ Phone application is developed
+- ☑ Scientific paper about dataset `published on arxiv <https://www.arxiv.org/abs/2412.16473>`_ (2024-12-21)
+- ☑ Scientific paper about dataset peer-reviewed (2025-07-30ish)
+- ☑ Efficient models for phones are trained (2025-07-30ish)
+- ☐ Phone application is developed (unreviewed external prototype: https://github.com/mkorzunowicz/poopdetector/releases/tag/v1.1.0)
+- ☐ Phone application is available for download and usage
+- ☐ Phone application is release on app stores for free
+- ☐ Phone application demonstrates value.
 
 
 Introduction
