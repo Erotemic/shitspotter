@@ -119,7 +119,7 @@ Kitware\\
 \begin{abstract}
 
 
-We introduce a new dataset containing phone images of dog feces, annotated with manually drawn or AI-assisted polygon labels.  Its over 9000 ``before/after/negative'' full resolution images contain 6000 polygon annotations.  The collection and annotation of images started in late 2020.  This paper focuses on two checkpoints from 2025-04-20 and 2024-07-03.  We train VIT and MaskRCNN baseline models to explore the difficulty of the dataset.  The best model achieves a pixelwise average precision of 0.858 on a 691-image validation set and 0.810 on a small independently captured 121-image contributor test set.  Dataset snapshots are available through four different distribution methods: two centralized (Girder and HuggingFace) and two decentralized (IPFS and BitTorrent).  We study of the trade-offs between distribution methods and discuss the feasibility of each with respect to reliably sharing open scientific data.  The code for experiments is hosted on GitHub.  The data license is CC-BY 4.0.  Model weights are available with the dataset.  Experiment hardware, time, energy, and emissions are quantified.
+We introduce a new dataset containing phone images of dog feces, annotated with manually drawn or AI-assisted polygon labels.  Its over 9000 ``before/after/negative'' full resolution images contain 6000 polygon annotations.  The collection and annotation of images started in late 2020.  This paper focuses on two checkpoints from 2025-04-20 and 2024-07-03.  We train VIT, MaskRCNN, YOLO-v9, and Grounding DINO baseline models to explore the difficulty of the dataset.  The best model achieves a box-level average precision of 0.69 on a 691-image validation set and 0.70 on a small independently captured 121-image contributor test set.  Dataset snapshots are available through four different distribution methods: two centralized (Girder and HuggingFace) and two decentralized (IPFS and BitTorrent).  We study of the trade-offs between distribution methods and discuss the feasibility of each with respect to reliably sharing open scientific data.  The code for experiments is hosted on GitHub.  The data license is CC-BY 4.0.  Model weights are available with the dataset.  Experiment hardware, time, energy, and emissions are quantified.
 
 % Keywords: poop, feces, dataset, dataset distribution, detection, segmentation, IPFS, BitTorrent, HuggingFace
 
@@ -484,14 +484,24 @@ These splits are provided in the COCO JSON format \cite{lin_microsoft_2014} as w
 \section{Baseline Models}
 \label{sec:models}
 
+TODO: introduce and discuss updated model results \cite{wang2024yolov9,liu_grounding_2024,OpenGroundingDino}.
+
 As our second contribution, we trained and evaluated models to establish a baseline for future comparisons.
-Specifically we train three model variants.
+Specifically we train 7 model variants.
+We trained a semantic segmentation vision transformer variant (VIT-sseg-s)
+  \cite{Greenwell_2024_WACV,crall_geowatch_2024}, which was only trained from scratch.
 We trained two MaskRCNN \cite{he2017mask} models (specifically the \texttt{R\_50\_FPN\_3x} configuration),
   one starting from pretrained ImageNet weights (MaskRCNN-p), and one starting from scratch
   (MaskRCNN-s).
-We also trained a semantic segmentation vision transformer variant (VIT-sseg-s)
-  \cite{Greenwell_2024_WACV,crall_geowatch_2024}, which was only trained from scratch.
+Similarly we trained YOLO-v9 \cite{wang2024yolov9} both from scratch and using pretrained ImageNet weights.
+Lastly, we investigated evaluated the foundational Grounding DINO \cite{liu_grounding_2024} model. 
+In the zero-shot setting we used \texttt{IDEA-Research/grounding-dino-tiny} using the prompt: "animalfeces".
+Finally, we tune the same Grounding DINO using \cite{OpenGroundingDino} and evaluated it in the tuned setting.
+
+
 Hyperparameters are given in supplemental materials.
+\Cref{sec:model_hyperparams}
+
 
 For these baseline models, the training data was limited to an older subset taken before 2024-07-03.
 Our training dataset consists of 5,747 images and is identified by a suffix of {\tt 1e73d54f}, which is the
@@ -499,7 +509,7 @@ Our training dataset consists of 5,747 images and is identified by a suffix of {
 The validation set contains 691 images and has a suffix of {\tt 99b22ad0}.
 The test set, consists of the 121 images, has a suffix of {\tt 6cb3b6ff}, and includes contributor images
   up to 2025-04-20.
-The evaluated models were selected based on their validation scores.
+The evaluated models were selected based on their Box-AP validation scores.
 
 We performed two types of evaluations on the models.
 ``Box'' evaluation computes standard COCO object detection metrics \cite{lin_microsoft_2014}.
@@ -516,6 +526,7 @@ The corresponding truth and predicted pixels were accumulated into a confusion m
   compute standard metrics \cite{powers_evaluation_2011} such as precision, recall, false positive rate, etc.
 For the VIT-sseg model, computing this score is straightforward, but for MaskRCNN we accumulate per-box
   heatmaps into a larger full image heatmap, which can then be scored.
+YOLO-v9 and Grounding DINO do not produce masks, thus we omit pixelwise for these.
 
 Quantitative results for each of these models on box and pixel metrics are shown in
   \Cref{tab:model_results}.
@@ -524,14 +535,17 @@ Because the independent test set is only 121 images, we also present results on 
 Corresponding qualitative test results are illustrated in \Cref{fig:test_results_all_models} and validation
   results in \Cref{fig:vali_results_all_models}.
 
+% Table generation
+% ~/code/shitspotter/papers/neurips-2025/scripts/build_v2_result_table.py
+
 \newcommand{\tb}[1]{\textbf{#1}}
 
 \begin{table}[t]
 \caption[]{
-    Results for MaskRCNN and VIT models (suffix -p: pretrained, -s: scratch) on test and validation sets.
-    Evaluated with box and pixel metrics --- AP (ppv-tpr area) \cite{powers_evaluation_2011} and AUC (tpr-fpr area) --- computed via scikit-learn \cite{scikit-learn}.
+    Results for MaskRCNN and VIT models (suffix -p: pretrained, -s: scratch on test and validation sets.
+    Evaluated with box and pixel metrics --- AP (ppv-tpr area) \cite{powers_evaluation_2011} and AUC (tpr-fpr area), F1, and TPR (recall) --- computed via scikit-learn \cite{scikit-learn}.
     Pretrained models outperform.
-    Note: VIT-sseg was tuned more; MaskRCNN may yield better results with similar effort.
+    Note: VIT-sseg was tuned more operated at full resolution; MaskRCNN, DINO, and YOLO used resized images and may yield better results with similar effort.
     %Results of MaskRCNN and VIT models. A suffix -p is pretrained, and -s is from scratch.
     %Quantitative results on the test and validation datasets.
     %Unsurprisingly, the model starting with pretrained weights scores best.
@@ -549,6 +563,43 @@ Corresponding qualitative test results are illustrated in \Cref{fig:test_results
 }
 \label{tab:model_results}
 \centering
+
+(a) Validation (n=691)
+
+\begin{tabular}{lllllllll}
+\hline
+ model           & \makecell{AP\\Box}   & \makecell{AUC\\Box}   & \makecell{F1\\Box}   & \makecell{TPR\\Box}   & \makecell{AP\\Pixel}   & \makecell{AUC\\Pixel}   & \makecell{F1\\Pixel}   & \makecell{TPR\\Pixel}   \\
+\hline
+ MaskRCNN-p      & 0.61                 & \textbf{0.72}         & 0.62                 & 0.57                  & 0.74                   & 0.91                    & \textbf{0.74}          & 0.68                    \\
+ MaskRCNN-s      & 0.26                 & 0.58                  & 0.35                 & 0.31                  & 0.43                   & 0.89                    & 0.48                   & 0.50                    \\
+ VIT-sseg-s      & 0.48                 & 0.53                  & 0.60                 & 0.51                  & \textbf{0.76}          & \textbf{0.97}           & 0.74                   & \textbf{0.69}           \\
+ GroundingDINO-t & \textbf{0.69}        & 0.63                  & \textbf{0.74}        & \textbf{0.68}         & --                     & --                      & --                     & --                      \\
+ GroundingDINO-z & 0.08                 & 0.21                  & 0.20                 & 0.25                  & --                     & --                      & --                     & --                      \\
+ YOLO-v9-p       & 0.41                 & 0.59                  & 0.50                 & 0.42                  & --                     & --                      & --                     & --                      \\
+ YOLO-v9-s       & 0.33                 & 0.41                  & 0.44                 & 0.37                  & --                     & --                      & --                     & --                      \\
+\hline
+\end{tabular}
+
+
+(b) Test (n=121)
+
+\begin{tabular}{lllllllll}
+\hline
+ model           & \makecell{AP\\Box}   & \makecell{AUC\\Box}   & \makecell{F1\\Box}   & \makecell{TPR\\Box}   & \makecell{AP\\Pixel}   & \makecell{AUC\\Pixel}   & \makecell{F1\\Pixel}   & \makecell{TPR\\Pixel}     \\
+\hline
+ MaskRCNN-p      & 0.61          & \textbf{0.70} & 0.65          & 0.60          & \textbf{0.81} & \textbf{0.85} & \textbf{0.78} & \textbf{0.73} \\
+ MaskRCNN-s      & 0.25          & 0.47          & 0.34          & 0.30          & 0.39          & 0.80          & 0.41          & 0.44          \\
+ VIT-sseg-s      & 0.39          & 0.40          & 0.52          & 0.41          & 0.41          & 0.82          & 0.48          & 0.37          \\
+ GroundingDINO-t & \textbf{0.70} & 0.67          & \textbf{0.76} & \textbf{0.68} & --            & --            & --            & --            \\
+ GroundingDINO-z & 0.23          & 0.30          & 0.39          & 0.38          & --            & --            & --            & --            \\
+ YOLO-v9-p       & 0.44          & 0.55          & 0.51          & 0.50          & --            & --            & --            & --            \\
+ YOLO-v9-s       & 0.36          & 0.36          & 0.48          & 0.37          & --            & --            & --            & --            \\
+\hline
+
+\end{tabular}
+
+
+
 %\begin{tabular}{ll rrrr rrrr}
 %\toprule
 %\multicolumn{2}{c}{Dataset split:} & \multicolumn{4}{c}{Test (n=121)} & \multicolumn{4}{c}{Validation (n=691)} \\
@@ -560,28 +611,28 @@ Corresponding qualitative test results are illustrated in \Cref{fig:test_results
 %MaskRCNN-p & 43.9e6    & \tb{0.613} & \tb{0.697} & \tb{0.810} & 0.849      & \tb{0.612} & \tb{0.721} & \tb{0.858} & 0.905 \\
 %MaskRCNN-s & 43.9e6    & 0.253      & 0.464      & 0.384      & 0.798      & 0.255      & 0.576      & 0.434      & 0.891 \\
 %VIT-s      & 25.5e6    & 0.422      & 0.426      & 0.473      & \tb{0.902} & 0.476      & 0.532      & 0.780      & \tb{0.994} \\
-%GroundingDino-p & --    & --      & --       & --        & --    & --        & --       & --       & --    \\
-%GroundingDino-z & --    & --      & --       & --        & --    & --        & --       & --       & --    \\
+%GroundingDINO-p & --    & --      & --       & --        & --    & --        & --       & --       & --    \\
+%GroundingDINO-z & --    & --      & --       & --        & --    & --        & --       & --       & --    \\
 %YOLO-p          & --    & --      & --       & --        & --    & --        & --       & --       & --    \\
 %YOLO-s          & --    & --      & --       & --        & --    & --        & --       & --       & --    \\
 %\bottomrule
 %\end{tabular}
 
-\begin{tabular}{ll rrr rrr rrr rrr}
-\toprule
-\multicolumn{2}{c}{Dataset split:} & \multicolumn{6}{c}{Test (n=121)} & \multicolumn{6}{c}{Validation (n=691)} \\
-\multicolumn{2}{c}{Evaluation type:} & AP & AUC & F1 & AP & AUC & F1 & AP & AUC & F1 & AP & AUC & F1 \\
- & & \multicolumn{3}{c}{Box} & \multicolumn{3}{c}{Pixel} & \multicolumn{3}{c}{Box} & \multicolumn{3}{c}{Pixel} \\
-\midrule
-MaskRCNN-p & 43.9e6 & 0.613 & \tb{0.698} & 0.650 & \tb{0.871} & 0.816 & \tb{0.885} & 0.612 & \tb{0.721} & 0.625 & \tb{0.858} & 0.883 & \tb{0.839} \\
-MaskRCNN-s & 43.9e6 & 0.254 & 0.465 & 0.345 & 0.385 & 0.798 & 0.408 & 0.255 & 0.576 & 0.349 & 0.434 & 0.891 & 0.482 \\
-VIT-s & 25.5e6 & 0.393 & 0.404 & 0.517 & 0.473 & \tb{0.902} & 0.520 & 0.476 & 0.532 & 0.596 & 0.780 & \tb{0.994} & 0.746 \\
-GroundingDino-p & 172.2e6 & \tb{0.700} & 0.666 & \tb{0.758} & -- & -- & -- & \tb{0.691} & 0.631 & \tb{0.743} & -- & -- & -- \\
-GroundingDino-z & 172.2e6 & 0.228 & 0.303 & 0.393 & -- & -- & -- & 0.078 & 0.210 & 0.197 & -- & -- & -- \\
-YOLO-p & 51.0e6 & 0.441 & 0.551 & 0.507 & -- & -- & -- & 0.411 & 0.595 & 0.496 & -- & -- & -- \\
-YOLO-s & 51.0e6 & 0.377 & 0.408 & 0.469 & -- & -- & -- & 0.264 & 0.427 & 0.381 & -- & -- & -- \\
-\bottomrule
-\end{tabular}
+%\begin{tabular}{ll rrr rrr rrr rrr}
+%\toprule
+%\multicolumn{2}{c}{Dataset split:} & \multicolumn{6}{c}{Test (n=121)} & \multicolumn{6}{c}{Validation (n=691)} \\
+%\multicolumn{2}{c}{Evaluation type:} & AP & AUC & F1 & AP & AUC & F1 & AP & AUC & F1 & AP & AUC & F1 \\
+% & & \multicolumn{3}{c}{Box} & \multicolumn{3}{c}{Pixel} & \multicolumn{3}{c}{Box} & \multicolumn{3}{c}{Pixel} \\
+%\midrule
+%MaskRCNN-p & 43.9e6 & 0.613 & \tb{0.698} & 0.650 & \tb{0.871} & 0.816 & \tb{0.885} & 0.612 & \tb{0.721} & 0.625 & \tb{0.858} & 0.883 & \tb{0.839} \\
+%MaskRCNN-s & 43.9e6 & 0.254 & 0.465 & 0.345 & 0.385 & 0.798 & 0.408 & 0.255 & 0.576 & 0.349 & 0.434 & 0.891 & 0.482 \\
+%VIT-s & 25.5e6 & 0.393 & 0.404 & 0.517 & 0.473 & \tb{0.902} & 0.520 & 0.476 & 0.532 & 0.596 & 0.780 & \tb{0.994} & 0.746 \\
+%GroundingDINO-p & 172.2e6 & \tb{0.700} & 0.666 & \tb{0.758} & -- & -- & -- & \tb{0.691} & 0.631 & \tb{0.743} & -- & -- & -- \\
+%GroundingDINO-z & 172.2e6 & 0.228 & 0.303 & 0.393 & -- & -- & -- & 0.078 & 0.210 & 0.197 & -- & -- & -- \\
+%YOLO-p & 51.0e6 & 0.441 & 0.551 & 0.507 & -- & -- & -- & 0.411 & 0.595 & 0.496 & -- & -- & -- \\
+%YOLO-s & 51.0e6 & 0.377 & 0.408 & 0.469 & -- & -- & -- & 0.264 & 0.427 & 0.381 & -- & -- & -- \\
+%\bottomrule
+%\end{tabular}
 
 \end{table}
 
@@ -633,31 +684,31 @@ YOLO-s & 51.0e6 & 0.377 & 0.408 & 0.469 & -- & -- & -- & 0.264 & 0.427 & 0.381 &
 %\end{figure*}
 
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/vali_imgs691_99b22ad0.kwcoco/results_detectron-pretrained.jpg}%
-\hfill
-(a) MaskRCNN-pretrained (validation set results).
-\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/vali_imgs691_99b22ad0.kwcoco/results_detectron-scratch.jpg}%
-\hfill
-(b) MaskRCNN-scratch (validation set results).
-\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/vali_imgs691_99b22ad0.kwcoco/results_geowatch-scratch.jpg}%
-\hfill
-(c) VIT-sseg-scratch (validation set results).
-\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/vali_imgs691_99b22ad0.kwcoco/results_input_images.jpg}%
-\hfill
-(d) Inputs from the validation set.
-\caption[]{
-    %Qualitative results using the top-performing model on the validation set, applied to a selection of
-    %  images from the validation set. See \Cref{fig:test_results_all_models} for an explanation of the visualizations.
-    %Each model was selected based on its performance on this dataset, which may
-    %  cause spurious cases that agree with the truth labels, but this dataset
-    %  was never used to compute a gradient, which still make these valuable
-    %  results for assessing generalizability. Notably the models were able to
-    %  pick out camouflaged cases on the left, but not all on the right.
-Qualitative results of the top model on unseen validation images (see \Cref{fig:test_results_all_models} for visualization details). Although never trained on these data, the model's was able to detect camouflaged cases on the left but missed some on the right, indicating generalizability but also room for improvement.}
-\label{fig:vali_results_all_models}
-\end{figure*}
+%\begin{figure*}[t]
+%\centering
+%\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/vali_imgs691_99b22ad0.kwcoco/results_detectron-pretrained.jpg}%
+%\hfill
+%(a) MaskRCNN-pretrained (validation set results).
+%\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/vali_imgs691_99b22ad0.kwcoco/results_detectron-scratch.jpg}%
+%\hfill
+%(b) MaskRCNN-scratch (validation set results).
+%\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/vali_imgs691_99b22ad0.kwcoco/results_geowatch-scratch.jpg}%
+%\hfill
+%(c) VIT-sseg-scratch (validation set results).
+%\includegraphics[width=1.0\textwidth]{figures/agg_viz_results/vali_imgs691_99b22ad0.kwcoco/results_input_images.jpg}%
+%\hfill
+%(d) Inputs from the validation set.
+%\caption[]{
+%    %Qualitative results using the top-performing model on the validation set, applied to a selection of
+%    %  images from the validation set. See \Cref{fig:test_results_all_models} for an explanation of the visualizations.
+%    %Each model was selected based on its performance on this dataset, which may
+%    %  cause spurious cases that agree with the truth labels, but this dataset
+%    %  was never used to compute a gradient, which still make these valuable
+%    %  results for assessing generalizability. Notably the models were able to
+%    %  pick out camouflaged cases on the left, but not all on the right.
+%Qualitative results of the top model on unseen validation images (see \Cref{fig:test_results_all_models} for visualization details). Although never trained on these data, the model's was able to detect camouflaged cases on the left but missed some on the right, indicating generalizability but also room for improvement.}
+%\label{fig:vali_results_all_models}
+%\end{figure*}
 
 \begin{figure*}[ht]
 \centering
@@ -678,17 +729,17 @@ Qualitative results of the top model on unseen validation images (see \Cref{fig:
 (e) YOLO-v9-pretrained (Test set results)
 \includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/test_imgs121_6cb3b6ff.kwcoco/results_grounding_dino-zero_detection_confusion.jpg}%
 \hfill
-(f) GroundingDino-zero (Test set results)
+(f) GroundingDINO-zero (Test set results)
 \includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/test_imgs121_6cb3b6ff.kwcoco/results_grounding_dino-tuned_detection_confusion.jpg}%
 \hfill
-(g) GroundingDino-tuned (Test set results)
+(g) GroundingDINO-tuned (Test set results)
 \includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/test_imgs121_6cb3b6ff.kwcoco/results_input_images.jpg}%
 \hfill
 (h) Inputs from the Test set
 \caption[]{
     Qualitative results using the top-performing models on the validation set.
 }
-\label{fig:Test_results_all_models2}
+\label{fig:test_results_all_models}
 \end{figure*}
 
 
@@ -711,221 +762,29 @@ Qualitative results of the top model on unseen validation images (see \Cref{fig:
 (e) YOLO-v9-pretrained (validation set results)
 \includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/vali_imgs691_99b22ad0.kwcoco/results_grounding_dino-zero_detection_confusion.jpg}%
 \hfill
-(f) GroundingDino-zero (validation set results)
+(f) GroundingDINO-zero (validation set results)
 \includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/vali_imgs691_99b22ad0.kwcoco/results_grounding_dino-tuned_detection_confusion.jpg}%
 \hfill
-(g) GroundingDino-tuned (validation set results)
+(g) GroundingDINO-tuned (validation set results)
 \includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/vali_imgs691_99b22ad0.kwcoco/results_input_images.jpg}%
 \hfill
 (h) Inputs from the validation set
 \caption[]{
     Qualitative results using the top-performing models on the validation set.
 }
-\label{fig:validation_results_all_models2}
+\label{fig:vali_results_all_models}
 \end{figure*}
 
 
-
-
-
-
 All models were trained on a single machine with an Intel Core i9-11900K CPU and an NVIDIA GeForce RTX 3090
-  GPU.
-A key limitation of these results is the imbalance between model types, with 42 out of 44 trained models
-  being VIT-ssegs and only two MaskRCNN models, each taking approximately 8 hours to train.
-Future work could further optimize MaskRCNN models to improve comparability.
-More details on the VIT-sseg experiments can be found in the supplemental materials.
-
-\paragraph{Environmental Impact} The total time spent on prediction and evaluation across all experiments was 15.6 days, with prediction
-  consuming 109.63 kWh of energy and causing an estimated emissions of 23.0 \cotwo kg as measured by
-  CodeCarbon \cite{lacoste2019codecarbon}.
-We estimated train-time resource usage during training using indirect methods, assuming a constant power
-  draw of 345W from the RTX 3090 GPU.
-Energy consumption was approximated accordingly, while emissions were calculated using a conversion
-  ratio of 0.21 $\frac{\textrm{kg}\cotwo{}}{\textrm{kWh}}$ derived from our prediction time measurements.
-Based on file timestamps, we estimated that running 44 different training runs took approximately 159.66
-  days, resulting in an estimated energy usage and emissions of 1321.99 kWh and 277.612 $\cotwo$ kg,
-  respectively.
-For context, at $\frac{\$0.16}{\textrm{kWh}}$ and $\frac{\$25.00}{1000 \cotwo \textrm{kg}}$, the cost of training
-  and evaluating was $\$229.06$.
+GPU. 
+Our environmental impact
+\footnote{For the most demanding experiments (VIT and MaskRCNN), prediction and evaluation took 15.6 days, consuming 109.63 kWh and emitting 23.0~\cotwo~kg (CodeCarbon \cite{lacoste2019codecarbon}). Training was estimated at 159.66 days and 1321.99 kWh, yielding 277.61~\cotwo~kg, assuming a 345W GPU draw and a 0.21~$\frac{\textrm{kg}\cotwo{}}{\textrm{kWh}}$ emission factor. At $\$0.16$/kWh and $\$25$/tonne~\cotwo, total cost was \$229.06. More details in in \Cref{environmental_impact}.}
+was minimal.
+See more on details in \Cref{sec:experiment_details}.
 
 %\footnote{The total time spent on prediction and evaluation across all experiments was 15.6 days, with prediction consuming 109.63 kWh of energy and causing an estimated emissions of 23.0 \cotwo kg as measured by CodeCarbon \cite{lacoste2019codecarbon}. We estimated train-time resource usage using indirect methods, assuming a constant power draw of 345W from the RTX 3090 GPU. Energy consumption was approximated accordingly, and emissions were calculated using a conversion ratio of 0.21 $\frac{\textrm{kg}\cotwo{}}{\textrm{kWh}}$ derived from our prediction-time measurements. Based on file timestamps, we estimated that running 44 different training runs took approximately 159.66 days, resulting in an estimated energy usage and emissions of 1321.99 kWh and 277.612 $\cotwo$ kg, respectively. At $\frac{\$0.16}{\textrm{kWh}}$ and $\frac{\$25.00}{1000 \cotwo \textrm{kg}}$, the cost of training and evaluation was approximately \$229.06.}
 
-\footnote{Across all experiments, prediction and evaluation took 15.6 days, consuming 109.63 kWh and emitting 23.0~\cotwo~kg (CodeCarbon \cite{lacoste2019codecarbon}). Training was estimated at 159.66 days and 1321.99 kWh, yielding 277.61~\cotwo~kg, assuming a 345W GPU draw and a 0.21~$\frac{\textrm{kg}\cotwo{}}{\textrm{kWh}}$ emission factor. At $\$0.16$/kWh and $\$25$/tonne~\cotwo, total cost was \$229.06.}
-
-
-  
-
-\begin{comment}
-import pint
-reg = pint.UnitRegistry()
-reg.define('CO2 = []')
-reg.define('dollar = []')
-kwh = reg.Unit('kilowatt/hour')
-energy_cost = 0.16 * reg.dollar / (kwh)
-emission_cost = 25 * reg.dollar / (1000 * reg.CO2 * reg.metric_ton)
-energy = 1321.99 * kwh
-emission = 277.612 * reg.CO2 * reg.kg
-train = (energy * energy_cost + emission * emission_cost)
-
-energy = 109.63 * kwh
-emission = 23 * reg.CO2 * reg.kg
-eval = (energy * energy_cost + emission * emission_cost)
-
-train + eval
-\end{comment}
-  
-
-%train$^{*}$ & time        & 158.95 days      &     3.78 days  &   42 \\
-%train$^{*}$ & energy      & 1,316.07 kWh     &     31.34 kWh  &   42 \\
-%train$^{*}$ & emissions   & 276.37 \cotwo kg & 6.58 \cotwo kg &   42 \\
-
-%todo: train time resource usage for maskrcnn and vit, reacnknowledge
-%limitation, break down results over each.
-
-%Report training time, energy usage, and carbon footprint with details in supplemental materials.
-
-\section{Open Data Distribution}
-\label{sec:distribution}
-
-%In our context we are mainly concerned with making the data available.
-%In other words, given a content identifier, how long does it take to programmatically access the data?
-  
-%For a comparison of IPFS and BitTorrent on the protocol level see \cite{zebedee_comparing_2023}.
-%Another candidate system is a newer similar tool called IPFS (InterPlanetary File System)
-%  \cite{benet_ipfs_2014, bieri_overview_2021}.
-%To quote the authors:
-%"IPFS could be seen as a single BitTorrent swarm, exchanging objects within one Git repository".
-%All data down to the block level is content addressable and stored in a Merkle DAG, which can simplify data
-%  versioning compared to using a torrent.
-
-
-%The challenge lies in the fact that designing and documenting an experiment
-%sufficiently for reproducibility requires substantial effort and is prone to
-%error. We suggest that reducing the friction in accessing the necessary data
-%could improve these success rates. Specifically, this involves codifying data
-%download and preparation processes. Datasets that are available via decentralized
-%and content-addressable are particularly advantageous, as they can guarantee
-%the integrity of the data prevent the issue of dead URLs.
-
-%Centralized data distribution has many advantages. It is fast and has low
-%traffic overhead. However, it is prone to failure.  
-%Cloud storage for a modest amount of data can be expensive.
-
-%In contrast, Decentralized methods can allow information to persist so long as
-%at least 1 person has the data.
-
-%However, there are certain drawbacks of decentralized dataset distribution to
-%consider. One significant limitation is the potentially substantial connection
-%time required to link with peers, particularly when the data lacks a sufficient
-%number of "seeders". Furthermore there needs to be a mechanism to connect to
-%peers that can share the data.
-
-
-%For our purposes we 
-
-%%IPFS vs BitTorrent:
-%For a comparison of IPFS and BitTorrent on the protocol level see
-%\cite{zebedee_comparing_2023}. In our context we are mainly concerned with
-%making the data available.
-
-%the main metric we care about is how easy 
-
-%Both IPFS and BitTorrent are both effectively
-%content addressable at the dataset level, which makes them both appropriate for our use case.
-
-%We
-%care about accessing the data quickly in order to use it.  Thus, our comparison
-%is going to focus on download-time measurements.
-%Both of which have the ability to use the Kademlia - distributed hash table (DHT) \cite{maymounkov_kademlia_2002}.
-%IPFS always uses its DHT, where as BitTorrent the Kademlia-based Mainline
-%Tracker can be disabled in favor of 3rd party trackers.
-% Overview and comparison of protocols via github gist:
-% https://gist.github.com/liamzebedee/224494052fb6037d07a4293ceca9d6e7
-% https://gist.github.com/liamzebedee/4be7d3a551c6cddb24a279c4621db74c
-%[Steiner, En-Najjary, Biersack 2022]
-% See Also:
-% Long Term Study of Peer Behavior in the KAD DHT
-% https://git.gnunet.org/bibliography.git/plain/docs/Long_Term_Study_of_Peer_Behavior_in_the_kad_DHT.pdf
-% We have been crawling the entire KAD network once a day for more than a year to track end-users with static
-% IP addresses, which allows us to estimate end-user lifetime and the fraction of end-users changing their KAD ID.
-
-%Both BitTorrent (starting with the v2 protocol introduced in 2017 \cite{cohen_bittorrent_2017}) and IPFS have the capability to recognize when two torrents or content identifiers (CIDs) contain the same file. This enables seeders to provide files to downloaders of either torrent or CID, enhancing the availability and redundancy of the data.
-%Both BitTorrent (as of 2017 in the v2 protocol \cite{cohen_bittorrent_2017})
-%and IPFS can recognize that two torrents/CID include the same file and seeders
-%can provide files to downloaders of the other.
-
-
-%Additionally, storing data in the cloud can become prohibitively expensive,
-%even for modest amounts of data. In contrast, decentralized methods allow
-%information to persist as long as at least one individual retains the data.
-
-%Discuss distributing the dataset via IPFS versus centralized distribution
-%systems.
-%Decentralized Method - IPFS and BitTorrent.
-%Centralized Method - Girder
-
-% BitTorrent can be vulnerable to MITM:
-% https://www.reddit.com/r/technology/comments/1dpinuw/south_korean_telecom_company_attacks_torrent/
-
-
-Empirical evidence suggests that a substantial proportion of scientific studies have low reproducibility
-  rates, which has raised concerns across various disciplines \cite{baker_reproducibility_2016}.
-Ideally, scientific research should be independently reproducible.
-Despite higher success rates in computer science (up to 60\%) compared to other fields, there is still room for improvement
-\cite{NEURIPS2019_c429429b, collberg2016repeatability, desai_what_2024}.
-Addressing this issue requires not just better experimental documentation but also more reliable and
-  accessible data distribution methods.
-Specifically, this involves robustly codifying data download and preparation processes.
-
-
-Centralized data distribution methods allow for codified data access by storing URLs that point to datasets
-  within the code, offering fast and direct access.
-However, this approach lacks robustness.
-It can fail if the provider goes offline, changes the URL, or stops hosting the data.
-Additionally, cloud storage can be expensive, and users must trust that the provider delivers the correct
-  data --- a risk that can be mitigated by using checksums to verify data integrity.
-  %though this adds an extra
-  %step for experiment designers.
-
-In contrast, decentralized methods allow users to access data in the same way, even if the organization
-  hosting the data changes.
-%offer greater data longevity, accessibility, and integrity.
-By leveraging content-addressable storage, where the dataset checksum acts as both the key to locate and
-  validate the data, these methods ensure data integrity and nearly eliminate the risk of dead URLs, provided
-  that at least one peer retains the data.
-While decentralized systems face challenges such as longer connection times, increased network overhead, and
-  the need for a robust peer network, their ability to ensure data access via a static address
-  motivates our investigation
-
-Specifically, we focus on two prominent candidates:
-BitTorrent and IPFS.
-BitTorrent \cite{cohen_incentives_2003, cohen_bittorrent_2017} is a well known sharing protocol that
-  originally relied on centralized trackers and databases of torrent files to connect peers.
-While trackers and torrent files are still prominent, torrents can be published to a distributed hash table
-  (DHT) using the Kademlia algorithm \cite{maymounkov_kademlia_2002}.
-This makes it an strong candidate for a decentralized distribution mechanism.
-On the other hand, IPFS (InterPlanetary File System) \cite{benet_ipfs_2014, bieri_overview_2021} is a newer
-  tool directly build directly on a DHT.
-IPFS has been likened to ``a single BitTorrent swarm, exchanging objects within one Git repository''.
-%All data down to the block level is content addressable and stored in a Merkle DAG, which can simplify data
-%  versioning compared to using a torrent.
-%However, both IPFS and BitTorrent are effectively content addressable at the dataset level, which makes them
-%  both appropriate for our use case where we seek a static address that can be used to robustly access data.
-Both IPFS and BitTorrent are content addressable at the dataset level, which makes them both appropriate for
-  our use case where we seek a static address that can be used to robustly access data.
-
-It is worth noting that git-based \cite{chacon2014progit} systems like
-  HuggingFace~\cite{huggingface_datasets} with large file storage do gain some decentralized
-  properties via multiple remotes, but not content identifiers.
-
-For practitioners, key concerns are how quickly and reliably data can be accessed.
-By comparing decentralized and centralized mechanisms access times for our dataset, we aim to make
-  explicit the tradeoffs between the methods and inform decisions on adopting an approach.
-
-%identify the most effective method for
-%  ensuring that scientific datasets remain accessible and reproducible over time, thereby contributing to
-%  improved reproducibility in scientific research
 
 
 \subsection{Dataset Transfer Experiment}
@@ -940,7 +799,7 @@ As a baseline, we also measure direct transfers using Rsync~\cite{rsyncprojectrs
 
 For data transfer experiments, we use the 2024-07-03 version of the dataset. 
 This is content-addressed with the IPFS CID (content identifier):
-\texttt{\seqsplit{bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y}}
+\texttt{\seqsplit{bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y}}.
 %{\tt bafybei edwp2zvmdyb2c 2axrcl455xfbv 2mgdbhgkc3dil e4dftiimwth2y}.
 %{\tt bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y}.
 %\begin{lstlisting}[basicstyle=\normalsize]
@@ -953,45 +812,7 @@ The torrent has a magnet URL of:
 and is tracked on Academic Torrents \cite{academic_torrents_Cohen2014}.
 %\begin{lstlisting}[basicstyle=\normalsize]
 %\end{lstlisting}
-
-To assess the effectiveness of each mechanism we programmatically download our 42GB dataset and measure the
-  time required to complete the transfer.
-Each experiment was run five times, machines we controlled were separated by $\sim\!30$ kilometers
-  with an average ping time of 48.48 ms.
-For each test, we log transfer start and end times along with notes and code (provided in supplemental
-  materials).
-
-While our measurements provide a reasonable estimate of for access time for each mechanism, there are
-  notable limitations in our methodology.
-First, different machines and networks have different upload and download speeds, and network congestion is
-  variable.
-For decentralized methods, we lack an automated mechanism separate peer-connection time and actual download
-  time.
-Additionally, Girder and HuggingFace required data to be packed into compressed archives, improving transfer
-  efficiency due to fewer file boundaries.
-In decentralized cases, we provide granular access to each file in the dataset, which avoids an extra
-  unpacking step and enables sharing of the same file between different versions of the datasets and simpler
-  updates, but decreases transfer efficiency.
-Due to this, we provide both a compressed and uncompressed rsync baseline.
-Another confounding factor is that with decentralized mechanisms the number of seeders is not controlled
-  for.
-Subsets of the data have been hosted on IPFS for years, and portions of the dataset may be provided by
-  unknown members of the network.
-For BitTorrent, our initial transfers only had one seeder, but during our tests other nodes accessed and
-  started to provide the data.
-
-Despite significant testing limitations, our measurements quantify the expected data-access time penalty to
-  gain the advantages of decentralized mechanisms.
-With these limitations acknowledged, we present the transfer times statistics in \Cref{tab:transfertime}.
-Alongside these measurements, several observations are worth noting.
-Transferring files using IPFS had significantly delayed peer discovery times, and we were only able to
-  connect two machines after manually informing them of each other's peer ID.
-For BitTorrent, were unable to use the mainline DHT and fell back to using trackers.
-We believe these peer discovery issues are because the dataset has a small number of seeders.
-To test this, we downloaded other established datasets via IPFS and BitTorrent and found that the peer
-  discovery time was almost immediate, suggesting that this becomes less of an issue as a dataset is shared.
-However, the inability to quickly find a nearby peer is a major issue for initial or private dataset
-  development.
+More details are in \Cref{sec:datset_discuss}.
 
 
 %%\begin{wraptable}{r}{0.5\textwidth}
@@ -1115,8 +936,6 @@ contributors for helping to construct a challenging test set, and \redact{Anthon
   third negative picture.
 This work is dedicated to \redact{Bezoar}, a very weird and very good girl.
 
-
-\cite{wang2024yolov9,liu_grounding_2024,OpenGroundingDino}
 %\fi
 \fi
 
@@ -1130,7 +949,7 @@ This work is dedicated to \redact{Bezoar}, a very weird and very good girl.
 \ifuseappendix
 % WARNING: do not forget to delete the supplementary pages from your submission 
 \include{appendix}
-\include{neurips_2025_checklist}
+%\include{neurips_2025_checklist}
 \fi
 
 

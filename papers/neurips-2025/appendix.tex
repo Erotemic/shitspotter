@@ -149,6 +149,77 @@ for other comparable dataset metrics.
 \end{figure*}
 
 
+\section{Models Hyperparameters}
+\label{sec:model_hyperparams}
+
+In this section we provide details about hyperparameters for each model.
+
+The VIT model ...
+
+For GroundingDINO
+
+In the zero shot case, we use the \texttt{IDEA-Research/grounding-dino-tiny} zero-shot model from hugging face.
+In the main text, we evaluated 10 prompts and selected the best "animalfeces"
+based on the maximum validation set box-AP. Ablation is given in tableTODO.
+
+In the zero shot case 
+
+Grounding DINO zero-shot prompt ablation:
+
+\begin{table}[t]
+\caption{Zero-shot detection results as a function of prompt. Prompt variation has a significant impact on scores, and the best prompt is different between datasets, but overall zero-shot results are all low scoring. Because this is a zero-shot setting, the validation set can be compared to the test set. Interestingly, the validation scores significantly lower than the test scores indicating a greater degree of difficulty. }
+\label{tab:prompt_variations}
+\centering
+\begin{subtable}[b]{\textwidth} % Adjust width as needed
+  \caption{Test (n=121)}
+  \centering
+    \begin{tabular}{lllll}
+    \toprule
+     Prompt      & AP            & AUC           & F1            & TPR           \\
+    \midrule
+     stool       & 0.05          & 0.08          & 0.18          & 0.13          \\
+     droppings   & 0.08          & 0.14          & 0.27          & 0.30          \\
+     feces       & 0.16          & 0.26          & 0.32          & 0.39          \\
+     caninefeces & 0.17          & 0.24          & 0.37          & 0.39          \\
+     poop        & 0.17          & 0.18          & 0.31          & 0.26          \\
+     petwaste    & 0.20          & 0.25          & 0.35          & 0.34          \\
+     animalfeces & 0.23          & 0.30          & 0.39          & 0.38          \\
+     dogfeces    & 0.23          & 0.29          & \textbf{0.40} & 0.38          \\
+     dogpoop     & 0.24          & 0.28          & 0.38          & 0.39          \\
+     excrement   & 0.25          & 0.31          & 0.39          & \textbf{0.42} \\
+     turd        & \textbf{0.27} & \textbf{0.32} & 0.39          & 0.35          \\
+    \bottomrule
+    \end{tabular}
+\end{subtable}
+
+\hfill % Add horizontal space between the subfigures
+
+\begin{subtable}[b]{\textwidth} % Adjust width as needed
+  \caption{Validation (n=691)}
+  \centering
+    \begin{tabular}{lllll}
+    \toprule
+     Prompt      & AP            & AUC           & F1            & TPR           \\
+    \midrule
+     stool       & 0.01          & 0.03          & 0.07          & 0.07          \\
+     droppings   & 0.02          & 0.10          & 0.14          & 0.23          \\
+     petwaste    & 0.04          & 0.14          & 0.15          & 0.25          \\
+     poop        & 0.04          & 0.10          & 0.17          & 0.16          \\
+     dogpoop     & 0.05          & 0.16          & 0.17          & 0.20          \\
+     caninefeces & 0.05          & 0.16          & 0.18          & 0.29          \\
+     turd        & 0.05          & 0.18          & 0.18          & 0.22          \\
+     feces       & 0.06          & 0.21          & 0.18          & 0.27          \\
+     excrement   & 0.07          & \textbf{0.22} & 0.20          & 0.28          \\
+     dogfeces    & 0.07          & 0.21          & \textbf{0.20} & \textbf{0.31} \\
+     animalfeces & \textbf{0.08} & 0.21          & 0.20          & 0.25          \\
+    \bottomrule
+    \end{tabular}
+\end{subtable}
+\end{table}
+
+
+
+
 \section{VIT-sseg Models}
 \label{sec:vit_models}
 
@@ -478,3 +549,247 @@ At the time of writing the HuggingFace URL is:
 \url{https://data.\redact{kitware}.com/?#user/598a19658d777f7d33e9c18b/folder/66b6bc7ef87a980650f41f98}.
 
 %&tr=https%3A%2F%2Facademictorrents.com%2Fannounce.php%3Fpasskey%3D9ffbb169f882f3be1330a48ea87416e7&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce
+
+
+
+\section{Open Data Distribution}
+%Report training time, energy usage, and carbon footprint with details in supplemental materials.
+\begin{comment}
+import pint
+reg = pint.UnitRegistry()
+reg.define('CO2 = []')
+reg.define('dollar = []')
+kwh = reg.Unit('kilowatt/hour')
+energy_cost = 0.16 * reg.dollar / (kwh)
+emission_cost = 25 * reg.dollar / (1000 * reg.CO2 * reg.metric_ton)
+energy = 1321.99 * kwh
+emission = 277.612 * reg.CO2 * reg.kg
+train = (energy * energy_cost + emission * emission_cost)
+
+energy = 109.63 * kwh
+emission = 23 * reg.CO2 * reg.kg
+eval = (energy * energy_cost + emission * emission_cost)
+
+train + eval
+\end{comment}
+  
+
+%train$^{*}$ & time        & 158.95 days      &     3.78 days  &   42 \\
+%train$^{*}$ & energy      & 1,316.07 kWh     &     31.34 kWh  &   42 \\
+%train$^{*}$ & emissions   & 276.37 \cotwo kg & 6.58 \cotwo kg &   42 \\
+
+%todo: train time resource usage for maskrcnn and vit, reacnknowledge
+%limitation, break down results over each.
+
+\label{sec:distribution}
+
+%In our context we are mainly concerned with making the data available.
+%In other words, given a content identifier, how long does it take to programmatically access the data?
+  
+%For a comparison of IPFS and BitTorrent on the protocol level see \cite{zebedee_comparing_2023}.
+%Another candidate system is a newer similar tool called IPFS (InterPlanetary File System)
+%  \cite{benet_ipfs_2014, bieri_overview_2021}.
+%To quote the authors:
+%"IPFS could be seen as a single BitTorrent swarm, exchanging objects within one Git repository".
+%All data down to the block level is content addressable and stored in a Merkle DAG, which can simplify data
+%  versioning compared to using a torrent.
+
+
+%The challenge lies in the fact that designing and documenting an experiment
+%sufficiently for reproducibility requires substantial effort and is prone to
+%error. We suggest that reducing the friction in accessing the necessary data
+%could improve these success rates. Specifically, this involves codifying data
+%download and preparation processes. Datasets that are available via decentralized
+%and content-addressable are particularly advantageous, as they can guarantee
+%the integrity of the data prevent the issue of dead URLs.
+
+%Centralized data distribution has many advantages. It is fast and has low
+%traffic overhead. However, it is prone to failure.  
+%Cloud storage for a modest amount of data can be expensive.
+
+%In contrast, Decentralized methods can allow information to persist so long as
+%at least 1 person has the data.
+
+%However, there are certain drawbacks of decentralized dataset distribution to
+%consider. One significant limitation is the potentially substantial connection
+%time required to link with peers, particularly when the data lacks a sufficient
+%number of "seeders". Furthermore there needs to be a mechanism to connect to
+%peers that can share the data.
+
+
+%For our purposes we 
+
+%%IPFS vs BitTorrent:
+%For a comparison of IPFS and BitTorrent on the protocol level see
+%\cite{zebedee_comparing_2023}. In our context we are mainly concerned with
+%making the data available.
+
+%the main metric we care about is how easy 
+
+%Both IPFS and BitTorrent are both effectively
+%content addressable at the dataset level, which makes them both appropriate for our use case.
+
+%We
+%care about accessing the data quickly in order to use it.  Thus, our comparison
+%is going to focus on download-time measurements.
+%Both of which have the ability to use the Kademlia - distributed hash table (DHT) \cite{maymounkov_kademlia_2002}.
+%IPFS always uses its DHT, where as BitTorrent the Kademlia-based Mainline
+%Tracker can be disabled in favor of 3rd party trackers.
+% Overview and comparison of protocols via github gist:
+% https://gist.github.com/liamzebedee/224494052fb6037d07a4293ceca9d6e7
+% https://gist.github.com/liamzebedee/4be7d3a551c6cddb24a279c4621db74c
+%[Steiner, En-Najjary, Biersack 2022]
+% See Also:
+% Long Term Study of Peer Behavior in the KAD DHT
+% https://git.gnunet.org/bibliography.git/plain/docs/Long_Term_Study_of_Peer_Behavior_in_the_kad_DHT.pdf
+% We have been crawling the entire KAD network once a day for more than a year to track end-users with static
+% IP addresses, which allows us to estimate end-user lifetime and the fraction of end-users changing their KAD ID.
+
+%Both BitTorrent (starting with the v2 protocol introduced in 2017 \cite{cohen_bittorrent_2017}) and IPFS have the capability to recognize when two torrents or content identifiers (CIDs) contain the same file. This enables seeders to provide files to downloaders of either torrent or CID, enhancing the availability and redundancy of the data.
+%Both BitTorrent (as of 2017 in the v2 protocol \cite{cohen_bittorrent_2017})
+%and IPFS can recognize that two torrents/CID include the same file and seeders
+%can provide files to downloaders of the other.
+
+
+%Additionally, storing data in the cloud can become prohibitively expensive,
+%even for modest amounts of data. In contrast, decentralized methods allow
+%information to persist as long as at least one individual retains the data.
+
+%Discuss distributing the dataset via IPFS versus centralized distribution
+%systems.
+%Decentralized Method - IPFS and BitTorrent.
+%Centralized Method - Girder
+
+% BitTorrent can be vulnerable to MITM:
+% https://www.reddit.com/r/technology/comments/1dpinuw/south_korean_telecom_company_attacks_torrent/
+
+
+Empirical evidence suggests that a substantial proportion of scientific studies have low reproducibility
+  rates, which has raised concerns across various disciplines \cite{baker_reproducibility_2016}.
+Ideally, scientific research should be independently reproducible.
+Despite higher success rates in computer science (up to 60\%) compared to other fields, there is still room for improvement
+\cite{NEURIPS2019_c429429b, collberg2016repeatability, desai_what_2024}.
+Addressing this issue requires not just better experimental documentation but also more reliable and
+  accessible data distribution methods.
+Specifically, this involves robustly codifying data download and preparation processes.
+
+
+Centralized data distribution methods allow for codified data access by storing URLs that point to datasets
+  within the code, offering fast and direct access.
+However, this approach lacks robustness.
+It can fail if the provider goes offline, changes the URL, or stops hosting the data.
+Additionally, cloud storage can be expensive, and users must trust that the provider delivers the correct
+  data --- a risk that can be mitigated by using checksums to verify data integrity.
+  %though this adds an extra
+  %step for experiment designers.
+
+In contrast, decentralized methods allow users to access data in the same way, even if the organization
+  hosting the data changes.
+%offer greater data longevity, accessibility, and integrity.
+By leveraging content-addressable storage, where the dataset checksum acts as both the key to locate and
+  validate the data, these methods ensure data integrity and nearly eliminate the risk of dead URLs, provided
+  that at least one peer retains the data.
+While decentralized systems face challenges such as longer connection times, increased network overhead, and
+  the need for a robust peer network, their ability to ensure data access via a static address
+  motivates our investigation
+
+Specifically, we focus on two prominent candidates:
+BitTorrent and IPFS.
+BitTorrent \cite{cohen_incentives_2003, cohen_bittorrent_2017} is a well known sharing protocol that
+  originally relied on centralized trackers and databases of torrent files to connect peers.
+While trackers and torrent files are still prominent, torrents can be published to a distributed hash table
+  (DHT) using the Kademlia algorithm \cite{maymounkov_kademlia_2002}.
+This makes it an strong candidate for a decentralized distribution mechanism.
+On the other hand, IPFS (InterPlanetary File System) \cite{benet_ipfs_2014, bieri_overview_2021} is a newer
+  tool directly build directly on a DHT.
+IPFS has been likened to ``a single BitTorrent swarm, exchanging objects within one Git repository''.
+%All data down to the block level is content addressable and stored in a Merkle DAG, which can simplify data
+%  versioning compared to using a torrent.
+%However, both IPFS and BitTorrent are effectively content addressable at the dataset level, which makes them
+%  both appropriate for our use case where we seek a static address that can be used to robustly access data.
+Both IPFS and BitTorrent are content addressable at the dataset level, which makes them both appropriate for
+  our use case where we seek a static address that can be used to robustly access data.
+
+It is worth noting that git-based \cite{chacon2014progit} systems like
+  HuggingFace~\cite{huggingface_datasets} with large file storage do gain some decentralized
+  properties via multiple remotes, but not content identifiers.
+
+For practitioners, key concerns are how quickly and reliably data can be accessed.
+By comparing decentralized and centralized mechanisms access times for our dataset, we aim to make
+  explicit the tradeoffs between the methods and inform decisions on adopting an approach.
+
+%identify the most effective method for
+%  ensuring that scientific datasets remain accessible and reproducible over time, thereby contributing to
+%  improved reproducibility in scientific research
+
+ 
+\section{Dataset Experiment Discussion}
+\label{sec:datset_discuss}
+
+To assess the effectiveness of each mechanism we programmatically download our 42GB dataset and measure the
+  time required to complete the transfer.
+Each experiment was run five times, machines we controlled were separated by $\sim\!30$ kilometers with an
+  average ping time of 48.48 ms.
+For each test, we log transfer start and end times along with notes and code (provided in supplemental
+  materials).
+
+While our measurements provide a reasonable estimate of for access time for each mechanism, there are
+  notable limitations in our methodology.
+First, different machines and networks have different upload and download speeds, and network congestion is
+  variable.
+For decentralized methods, we lack an automated mechanism separate peer-connection time and actual download
+  time.
+Additionally, Girder and HuggingFace required data to be packed into compressed archives, improving transfer
+  efficiency due to fewer file boundaries.
+In decentralized cases, we provide granular access to each file in the dataset, which avoids an extra
+  unpacking step and enables sharing of the same file between different versions of the datasets and simpler
+  updates, but decreases transfer efficiency.
+Due to this, we provide both a compressed and uncompressed rsync baseline.
+Another confounding factor is that with decentralized mechanisms the number of seeders is not controlled
+  for.
+Subsets of the data have been hosted on IPFS for years, and portions of the dataset may be provided by
+  unknown members of the network.
+For BitTorrent, our initial transfers only had one seeder, but during our tests other nodes accessed and
+  started to provide the data.
+
+Despite significant testing limitations, our measurements quantify the expected data-access time penalty to
+  gain the advantages of decentralized mechanisms.
+With these limitations acknowledged, we present the transfer times statistics in \Cref{tab:transfertime}.
+Alongside these measurements, several observations are worth noting.
+Transferring files using IPFS had significantly delayed peer discovery times, and we were only able to
+  connect two machines after manually informing them of each other's peer ID.
+For BitTorrent, were unable to use the mainline DHT and fell back to using trackers.
+We believe these peer discovery issues are because the dataset has a small number of seeders.
+To test this, we downloaded other established datasets via IPFS and BitTorrent and found that the peer
+  discovery time was almost immediate, suggesting that this becomes less of an issue as a dataset is shared.
+However, the inability to quickly find a nearby peer is a major issue for initial or private dataset
+  development.
+
+
+\section{Environmental Impact} 
+\label{sec:environmental_impact}
+
+The total time spent on prediction and evaluation across all experiments was 15.6 days, with prediction
+  consuming 109.63 kWh of energy and causing an estimated emissions of 23.0 \cotwo kg as measured by
+  CodeCarbon \cite{lacoste2019codecarbon}.
+We estimated train-time resource usage during training using indirect methods, assuming a constant power
+  draw of 345W from the RTX 3090 GPU.
+Energy consumption was approximated accordingly, while emissions were calculated using a conversion
+  ratio of 0.21 $\frac{\textrm{kg}\cotwo{}}{\textrm{kWh}}$ derived from our prediction time measurements.
+Based on file timestamps, we estimated that running 44 different training runs took approximately 159.66
+  days, resulting in an estimated energy usage and emissions of 1321.99 kWh and 277.612 $\cotwo$ kg,
+  respectively.
+For context, at $\frac{\$0.16}{\textrm{kWh}}$ and $\frac{\$25.00}{1000 \cotwo \textrm{kg}}$, the cost of training
+  and evaluating was $\$229.06$.
+
+TODO: Expand on DINO/YOLO. Generally minor impact. Should try to measure train time.
+
+
+\section{Experimental Details} 
+\label{sec:experiment_details}
+A key limitation of these results is the imbalance between model types, with 42 out of 44 trained models
+  being VIT-ssegs and only two MaskRCNN models, each taking approximately 8 hours to train.
+Future work could further optimize MaskRCNN models to improve comparability.
+More details on the VIT-sseg experiments can be found in the supplemental materials.
+
+TODO: Expand on YOLO / Grounding DINO. Do Ablation results here?

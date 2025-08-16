@@ -669,8 +669,8 @@ def build_latex_result_table(summary_df):
         'metrics.detection_evaluation.max_f1_tpr',
         'metrics.heatmap_eval.salient_maxF1_F1',
         'metrics.heatmap_eval.salient_maxF1_tpr',
-        'kwh',
-        'duration',
+        # 'kwh',
+        # 'duration',
     ]
     summary_df['duration'] = summary_df['duration'].apply(kwutil.timedelta.coerce)
 
@@ -715,13 +715,22 @@ def build_latex_result_table(summary_df):
         'vali_imgs691_99b22ad0.kwcoco': 'vali',
         'test_imgs121_6cb3b6ff.kwcoco': 'test',
         'train_imgs5747_1e73d54f.kwcoco': 'train',
-        'detectron-pretrained': 'MaskRCNN-pretrained',
-        'detectron-scratch': 'MaskRCNN-scratch',
-        'geowatch-scratch': 'VIT-sseg-scratch',
-        'grounding_dino-tuned': 'GroundingDino-tuned',
-        'grounding_dino-zero': 'GroundingDino-zero',
-        'yolo_v9-pretrained': 'YOLO-v9-pretrained',
-        'yolo_v9-scratch': 'YOLO-v9-scratch',
+
+        'detectron-pretrained': 'MaskRCNN-p',
+        'detectron-scratch': 'MaskRCNN-s',
+        'geowatch-scratch': 'VIT-sseg-s',
+        'grounding_dino-tuned': 'GroundingDino-t',
+        'grounding_dino-zero': 'GroundingDino-z',
+        'yolo_v9-pretrained': 'YOLO-v9-p',
+        'yolo_v9-scratch': 'YOLO-v9-s',
+
+        # 'detectron-pretrained': 'MaskRCNN-pretrained',
+        # 'detectron-scratch': 'MaskRCNN-scratch',
+        # 'geowatch-scratch': 'VIT-sseg-scratch',
+        # 'grounding_dino-tuned': 'GroundingDino-tuned',
+        # 'grounding_dino-zero': 'GroundingDino-zero',
+        # 'yolo_v9-pretrained': 'YOLO-v9-pretrained',
+        # 'yolo_v9-scratch': 'YOLO-v9-scratch',
 
         'metrics.heatmap_eval.salient_maxF1_F1': 'F1-pixel',
         'metrics.detection_evaluation.max_f1_f1': 'F1-box',
@@ -757,7 +766,10 @@ def build_latex_result_table(summary_df):
     piv = piv.rename_axis(columns={'dataset_name': 'split'})
     piv = piv.rename_axis(index={'model_type': 'model'})
 
-    piv[piv.columns.get_level_values(1) == 'Duration'].apply(lambda x: kwutil.timedelta.coerce(x).format())
+    try:
+        piv[piv.columns.get_level_values(1) == 'Duration'].apply(lambda x: kwutil.timedelta.coerce(x).format())
+    except Exception:
+        ...
 
     # import humanize
     # from kwplot.tables import humanize_dataframe
@@ -776,12 +788,86 @@ def build_latex_result_table(summary_df):
     vali_table = piv_human.loc[:, piv_human.columns.get_level_values(0) == 'vali']
 
     vali_text = vali_table.to_latex(index=True, escape=True)
-    print(ub.highlight_code(vali_text, 'latex'))
+    test_text = test_table.to_latex(index=True, escape=True)
 
-    print(test_table.to_string().replace('NaN', '---'))
-    print(vali_table.to_string().replace('NaN', '---'))
+    print(ub.highlight_code(vali_text, 'latex'))
+    print(ub.highlight_code(test_text, 'latex'))
+
+    renamed = {
+        'AP-box': 'AP\\\\Box',
+        'AUC-box': 'AUC\\\\Box',
+        'F1-box': 'F1\\\\Box',
+        'TPR-box': 'TPR\\\\Box',
+        'AP-pixel': 'AP\\\\Pixel',
+        'AUC-pixel': 'AUC\\\\Pixel',
+        'F1-pixel': 'F1\\\\Pixel',
+        'TPR-pixel': 'TPR\\\\Pixel',
+        'Duration': 'Duration',
+    }
+    # rename_map = {
+    #     'AP-box': r'\makecell{AP\\Box}',
+    #     'AUC-box': r'\makecell{AUC\\Box}',
+    #     'F1-box': r'\makecell{F1\\Box}',
+    #     'TPR-box': r'\makecell{TPR\\Box}',
+    #     'AP-pixel': r'\makecell{AP\\Pixel}',
+    #     'AUC-pixel': r'\makecell{AUC\\Pixel}',
+    #     'F1-pixel': r'\makecell{F1\\Pixel}',
+    #     'TPR-pixel': r'\makecell{TPR\\Pixel}',
+    #     'Duration': r'Duration',  # leave as is
+    # }
+
+    make_latex_table(vali_table.loc[:, 'vali'])
+    latex_friendly_df = vali_table.loc[:, 'vali'].rename(columns=renamed)
+    vali_text = make_latex_table(latex_friendly_df)
+
+    # # Example: use your original vali_table
+    # styled_vali = bold_max_vals(vali_table.loc[:, 'vali'])
+
+    # # Output to LaTeX using tabulate
+    # from tabulate import tabulate
+    # latex_str = tabulate(
+    #     styled_vali,
+    #     headers='keys',
+    #     missingval="--"
+    # )
+    # print(latex_str)
+
+    print('\n\n')
+    new_text = piv_human.to_latex(index=True, escape=True)
+    print(ub.highlight_code(new_text, 'latex'))
+
+    test_text = make_latex_table(test_table.loc[:, 'test'])
+
+    # vali_text = tabulate(
+    #     # bold_max_vals(vali_table.loc[:, 'vali']),
+    #     bold_max_vals(latex_friendly_df),
+    #     headers='keys',
+    #     # tablefmt='latex',
+    #     tablefmt='latex_raw',
+    #     floatfmt=".2f",
+    #     missingval="--"
+    # )
+    # test_text = tabulate(
+    #     bold_max_vals(test_table.loc[:, 'test']),
+    #     headers='keys',
+    #     # tablefmt='latex',
+    #     tablefmt='latex_raw',
+    #     floatfmt=".2f",
+    #     missingval="--"
+    # )
+    # print('Validation Table:')
     print('')
-    print(piv_human.loc[:, piv_human.columns.get_level_values(0) == 'vali'].to_string().replace('NaN', '---'))
+    print('(a) Validation (n=691)')
+    print('')
+    print(vali_text)
+    print('')
+    print('(b) Test (n=121)')
+    print('')
+    # print('Test Table:')
+    print(test_text)
+    # print('')
+
+    # print(piv_human.loc[:, piv_human.columns.get_level_values(0) == 'vali'].to_string().replace('NaN', '---'))
 
     print('\n\n')
     new_text = piv_human.to_latex(index=True, escape=True)
@@ -796,6 +882,57 @@ def build_latex_result_table(summary_df):
     # new_text = '\n'.join(new_lines).replace('#', r'\#')
     # print(new_text)
     return new_text
+
+
+def bold_max_vals(df):
+    """Return a copy of the DataFrame where the max in each column is bolded."""
+    import numpy as np
+    styled = df.copy().astype(str)
+
+    for col in df.columns:
+        # Only operate on numeric columns
+        if pd.api.types.is_numeric_dtype(df[col]):
+            max_val = df[col].max()
+            styled[col] = df[col].apply(
+                lambda x: f"\\textbf{{{x:.2f}}}" if np.isclose(x, max_val) else f"{x:.2f}"
+                if pd.notnull(x) else "--"
+            )
+        else:
+            styled[col] = df[col].fillna("--")
+
+    return styled
+
+
+def make_latex_table(table):
+    # Example: use your original vali_table
+    styled_table = bold_max_vals(table)
+    import tabulate as tabulate_mod
+    from functools import partial
+    from tabulate import TableFormat, _latex_line_begin_tabular, Line, _latex_row
+    tabulate_mod._table_formats['latex_booktabs_raw'] = TableFormat(
+        lineabove=partial(_latex_line_begin_tabular, booktabs=True),
+        linebelowheader=Line("\\midrule", "", "", ""),
+        linebetweenrows=None,
+        linebelow=Line("\\bottomrule\n\\end{tabular}", "", "", ""),
+        headerrow=partial(_latex_row, escrules={}),
+        datarow=partial(_latex_row, escrules={}),
+        padding=1,
+        with_header_hide=None,
+    )
+
+    # Output to LaTeX using tabulate
+    from tabulate import tabulate
+    latex_str = tabulate(
+        styled_table,
+        # tablefmt='latex_raw',  # <-- prevents escaping
+        tablefmt='latex_booktabs_raw',
+        headers='keys',
+        missingval="--",
+        floatfmt=".3f",
+        showindex=False,
+    )
+    return latex_str
+    # print(latex_str)
 
 
 def format_results_for_latex2(piv: pd.DataFrame):
@@ -1302,9 +1439,83 @@ def report_resources(aggregators_rows):
         print('  co2', group['co2_kg'].sum())
 
 
+def get_prompt_variation_results(aggregators_rows):
+    captions = {
+        'test_imgs121_6cb3b6ff.kwcoco': 'Test (n=121)',
+        'vali_imgs691_99b22ad0.kwcoco': 'Validation (n=691)',
+    }
+    header = ub.codeblock(
+        r'''
+        \begin{table*}[t]
+        \caption{Zero-shot detection results as a function of prompt. Prompt variation has a significant impact on scores, but overall zero-shot results are all low scoring. }
+        \label{tab:prompt_variations}
+        \centering
+        ''')
+
+    footer = ub.codeblock(
+         r'''
+         \end{table*}
+         ''')
+
+    parts = []
+
+    for _agg_row in aggregators_rows[::-1]:
+        _agg = _agg_row['agg']
+        if '_shitspotter_2025_rebutal_evals' in _agg.output_dpath.parts:
+            agg_row = _agg_row
+            dataset_name = agg_row['dataset_name']
+            agg = _agg
+            agg.table['resolved_params.grounding_dino_pred.src']
+            sub_columns = [
+                'params.grounding_dino_pred.classes',
+                'metrics.detection_evaluation.ap',
+                'metrics.detection_evaluation.auc',
+                'metrics.detection_evaluation.max_f1_f1',
+                'metrics.detection_evaluation.max_f1_tpr',
+            ]
+            subtable = agg.table[sub_columns].shorten_columns()
+            subtable = subtable.sort_values('ap')
+            subtable['classes'] = subtable['classes'].apply(lambda x: x.replace('[', '').replace(']', ''))
+            rich.print(f'Dataset Name: {dataset_name}')
+            # rich.print(rich.markup.escape(subtable.to_string()))
+            subtable_human = subtable.rename({
+                'classes': 'Prompt',
+                'ap': 'AP',
+                'auc': 'AUC',
+                'max_f1_tpr': 'TPR',
+                'max_f1_f1': 'F1',
+            }, axis=1)
+            # bolded = bold_max_vals(subtable_human)
+            # print(bolded.to_latex(index=False, escape=False))
+            # print(bolded.style.to_latex())
+            tabular_text = make_latex_table(subtable_human)
+
+            caption = captions[dataset_name]
+            subheader = ub.codeblock(
+                r'''
+                \begin{subtable}[b]{\textwidth} % Adjust width as needed
+                  \caption{''' + caption + r'''}
+                  \centering
+                ''')
+
+            subfooter = ub.codeblock(
+                r'''
+                \end{subtable}
+                ''')
+
+            subtable_parts = [subheader, ub.indent(tabular_text), subfooter]
+            subtable_text = '\n'.join(subtable_parts)
+            parts.append(subtable_text)
+    text = header + '\n' + '\n\n\\hfill\n\n'.join(parts) + '\n' + footer
+    print(text)
+
+
 def main():
     aggregators_rows = load_aggregators()
     summary_df = process_aggregators(aggregators_rows)
+
+    get_prompt_variation_results(aggregators_rows)
+
     new_text = build_latex_result_table(summary_df)
     print(new_text)
     report_resources(aggregators_rows)

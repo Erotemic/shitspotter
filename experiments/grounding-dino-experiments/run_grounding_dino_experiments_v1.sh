@@ -1,6 +1,6 @@
 __doc__='
 SeeAlso, for tuned version of grounding dino:
-    ~/code/shitspotter/dev/poc/tune_grounding_dino.sh
+    ~/code/shitspotter/experiments/grounding-dino-experiments/tune_grounding_dino.sh
 '
 
 #

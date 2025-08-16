@@ -92,6 +92,18 @@ illustrates an example of one of these "triples".
 The name "ShitSpotter" is an homage to my earlier work: `HotSpotter <https://github.com/Erotemic/hotspotter>`_, which later became `IBEIS <https://github.com/Erotemic/ibeis>`_ This is work on individual animal identification, particularly Zebras. After 2017, this work was continued in Wildbook by `WildMe <https://www.wildme.org/>`_, which merged with `Conservation X Labs <https://www.conservationxlabs.com/>`_ in 2024.
 
 
+Experiments
+===========
+
+We are working on polishing docker images to reproduce our existing experiments
+and serve as a foundation for new experiments.
+
+Initial images are available on dockerhub:
+https://hub.docker.com/repository/docker/erotemic/shitspotter/general
+
+Documentation "coming soon"™
+
+
 Downloading the Data
 ====================
 
@@ -153,6 +165,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2025-08-02 - Paper is under peer review with slightly positive reviews, grounding dino and YOLO models now trainable. Small test dataset is main limitation - working to rectify with roboflow data (note: a subset of our dataset is on there, but it has the incorrect license). Initial docker image to reproduce experiments is published.
 * 2025-07-04 - Releasing new data on IPFS. The growth seems to be increasing. Will take 7-9 more years to get 30k images.
 * 2025-04-20 - The number of images is now over 9000! The dataset is now `mirrored on hugging face <https://huggingface.co/datasets/erotemic/shitspotter>`__.
 * 2025-03-09 - Bunch of new images, with somewhat of a domain shift. The detectron model is good at annotating new images, but still not good enough. More work to be done.

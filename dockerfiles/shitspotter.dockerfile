@@ -1,26 +1,17 @@
 # syntax=docker/dockerfile:1.5
 FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
 
-ENV PIP_ROOT_USER_ACTION=ignore
-
-# Control which python version we are using
-ARG PYTHON_VERSION=3.13
-
-# Control the version of uv
-ARG UV_VERSION=0.7.19
 
 # ------------------------------------
 # Step 1: Install System Prerequisites
 # ------------------------------------
-RUN <<EOF
+
+RUN --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt/lists <<EOF
 #!/bin/bash
 set -e
 apt update -q
 DEBIAN_FRONTEND=noninteractive apt install -q -y --no-install-recommends \
-    bzip2 \
-    rsync \
-    tmux \
-    fd-find jq htop tree \
     curl \
     wget \
     git \
@@ -32,10 +23,10 @@ apt clean
 rm -rf /var/lib/apt/lists/*
 EOF
 
-# Set the shell to bash to auto-activate enviornments
+# Set the shell to bash to auto-activate environments
 SHELL ["/bin/bash", "-l", "-c"]
 
-# ------------------
+
 # Step 2: Install uv
 # ------------------
 # Here we take a few extra steps to pin to a verified version of the uv
@@ -43,12 +34,18 @@ SHELL ["/bin/bash", "-l", "-c"]
 # astral domain, but not against those linked in the main installer.
 # The "normal" way to install the latest uv is:
 # curl -LsSf https://astral.sh/uv/install.sh | bash
-RUN <<EOF
+
+# Control the version of uv
+ARG UV_VERSION=0.8.4
+
+RUN --mount=type=cache,target=/root/.cache <<EOF
 #!/bin/bash
 set -e
 mkdir /bootstrap
 cd /bootstrap
+# For new releases see: https://github.com/astral-sh/uv/releases
 declare -A UV_INSTALL_KNOWN_HASHES=(
+    ["0.8.4"]="601321180a10e0187c99d8a15baa5ccc11b03494c2ca1152fc06f5afeba0a460"
     ["0.7.20"]="3b7ca115ec2269966c22201b3a82a47227473bef2fe7066c62ea29603234f921"
     ["0.7.19"]="e636668977200d1733263a99d5ea66f39d4b463e324bb655522c8782d85a8861"
 )
@@ -59,11 +56,14 @@ if [[ -z "$EXPECTED_SHA256" ]]; then
     exit 1
 fi
 curl -LsSf https://astral.sh/uv/$UV_VERSION/install.sh > $DOWNLOAD_PATH
-echo "$EXPECTED_SHA256  $DOWNLOAD_PATH" | sha256sum --check
+report_bad_checksum(){
+    echo "Got unexpected checksum"
+    sha256sum "$DOWNLOAD_PATH"
+    exit 1
+}
+echo "$EXPECTED_SHA256  $DOWNLOAD_PATH" | sha256sum --check || report_bad_checksum
 # Run the install script
 bash /bootstrap/uv-install-v${UV_VERSION}.sh
-# Cleanup for smaller images
-rm -rf /root/.cache/
 EOF
 
 
@@ -73,7 +73,13 @@ EOF
 # This step mirrors a normal virtualenv development environment inside the
 # container, which can prevent subtle issues due when running as root inside
 # containers. 
-RUN <<EOF
+
+# Control which python version we are using
+ARG PYTHON_VERSION=3.10
+
+ENV PIP_ROOT_USER_ACTION=ignore
+
+RUN --mount=type=cache,target=/root/.cache <<EOF
 #!/bin/bash
 export PATH="$HOME/.local/bin:$PATH"
 # Use uv to install the requested python version and seed the venv
@@ -83,26 +89,68 @@ BASHRC_CONTENTS='
 export HOME="/root"
 export PATH="$HOME/.local/bin:$PATH"
 # Auto-activate the venv on login
-source /root/venv'$PYTHON_VERSION'/bin/activate
+source $HOME/venv'$PYTHON_VERSION'/bin/activate
 '
 # It is important to add the content to both so 
-# subsequent run commands use the the context we setup here.
+# subsequent run commands use the context we setup here.
 echo "$BASHRC_CONTENTS" >> $HOME/.bashrc
 echo "$BASHRC_CONTENTS" >> $HOME/.profile
+echo "$BASHRC_CONTENTS" >> $HOME/.bash_profile
 EOF
 
+
+# -----------------------------------
+# Step 4: Ensure venv auto-activation
+# -----------------------------------
+# This step creates an entrypoint script that ensures any command passed to
+# `docker run` is executed inside a login shell where the virtual environment
+# is auto-activated. It handles complex cases like multi-arg commands and
+# ensures quoting is preserved accurately.
+RUN <<EOF
+#!/bin/bash
+set -e
+
+# We use a quoted heredoc to write the entrypoint script literally, with no variable expansion.
+cat <<'__EOSCRIPT__' > /entrypoint.sh
+#!/bin/bash
+set -e
+
+# Reconstruct the full command line safely, quoting each argument
+args=()
+for arg in "$@"; do
+  args+=("$(printf "%q" "$arg")")
+done
+
+# Join arguments into a command string that can be executed by bash -c
+# This preserves exact argument semantics (including quotes, spaces, etc.)
+cmd="${args[*]}"
+
+# Execute the reconstructed command inside a login shell
+# This ensures virtualenv activation via .bash_profile
+exec bash -l -c "$cmd"
+__EOSCRIPT__
+
+# Print the script at build time for visibility/debugging
+cat /entrypoint.sh
+
+chmod +x /entrypoint.sh
+EOF
+
+# Set the entrypoint to our script that activates the virtual environment first
+ENTRYPOINT ["/entrypoint.sh"]
+
+
+# ---------------------------------
+# Step 5: Checkout and install REPO
+# ---------------------------------
+# Based on the state of the repo this copies the host .git data over and then
+# checks out the extact version of REPO requested by REPO_GIT_HASH. It then
+# performs a basic install of shitspotter into the virtual environment.
 
 RUN mkdir -p /root/code/shitspotter
 
 # Control the version of REPO (by default uses the current branch)
 ARG REPO_GIT_HASH=HEAD
-
-# ---------------------------------
-# Step 4: Checkout and install REPO
-# ---------------------------------
-# Based on the state of the repo this copies the host .git data over and then
-# checks out the extact version of REPO requested by REPO_GIT_HASH. It then
-# performs a basic install of shitspotter into the virtual environment.
 
 # NOTE: our .dockerignore file prevents us from copying in populated secrets /
 # credentials
@@ -147,35 +195,6 @@ cd  /root/code/YOLO-v9
 uv pip install -e .
 EOF
 
-
-
-# -----------------------------------
-# Step 5: Ensure venv auto-activation
-# -----------------------------------
-# This final steps ensures that commands the user provides to docker run
-# will always run in in the context of the virtual environment. 
-RUN  <<EOF
-#!/bin/bash
-set -e
-# write the entrypoint script
-echo '#!/bin/bash
-set -e
-# Build the escaped command string
-cmd=""
-for arg in "$@"; do
-  # Use printf %q to properly escape each argument for bash
-  cmd+=$(printf "%q " "$arg")
-done
-# Remove trailing space
-cmd=${cmd% }
-exec bash -lc "$cmd"
-' > entrypoint.sh
-chmod +x /entrypoint.sh
-EOF
-
-# Set the entrypoint to our script that activates the virtual enviornment first
-ENTRYPOINT ["/entrypoint.sh"]
-
 # Set the default workdir to the shitspotter code repo
 WORKDIR /root/code/shitspotter
 
@@ -200,18 +219,27 @@ REPO_GIT_HASH=$(git rev-parse --short=12 HEAD)
 
 python ./dockerfiles/setup_staging.py
 
-# Build REPO in a reproducible way.
+# Determine version of repo, uv, and python to use
+export REPO_GIT_HASH=$(git rev-parse --short=12 HEAD)
+export UV_VERSION=0.8.4
+export PYTHON_VERSION=3.11
+
+# Build the image with version-specific tags
 DOCKER_BUILDKIT=1 docker build --progress=plain \
-    -t shitspotter:$REPO_GIT_HASH-uv0.7.29-python3.11 \
-    --build-arg PYTHON_VERSION=3.11 \
-    --build-arg UV_VERSION=0.7.19 \
+    -t shitspotter:${REPO_GIT_HASH}-uv${UV_VERSION}-python${PYTHON_VERSION} \
+    --build-arg PYTHON_VERSION=$PYTHON_VERSION \
+    --build-arg UV_VERSION=$UV_VERSION \
     --build-arg REPO_GIT_HASH=$REPO_GIT_HASH \
     -f ./dockerfiles/shitspotter.dockerfile .
 
-
-# Add latest tags for convinience
-docker tag shitspotter:$REPO_GIT_HASH-uv0.7.29-python3.11 shitspotter:latest-uv0.7.29-python3.11
-docker tag shitspotter:$REPO_GIT_HASH-uv0.7.29-python3.11 shitspotter:latest
+# Add concise tags for easier reuse
+export IMAGE_QUALNAME=shitspotter:${REPO_GIT_HASH}-uv${UV_VERSION}-python${PYTHON_VERSION}
+export NAME1=shitspotter:latest-uv${UV_VERSION}-python${PYTHON_VERSION}
+export NAME2=shitspotter:latest-python${PYTHON_VERSION}
+export NAME3=shitspotter:latest
+docker tag $IMAGE_QUALNAME $NAME1
+docker tag $IMAGE_QUALNAME $NAME2
+docker tag $IMAGE_QUALNAME $NAME3
 
 # Verify that GPUs are visible and that each shitspotter command works
 docker run --gpus=all -it shitspotter:latest nvidia-smi
@@ -219,6 +247,31 @@ docker run --gpus=all -it shitspotter:latest nvidia-smi
 # Start a shell and run any custom tests
 # (TODO: show how to replicate experiments)
 docker run --gpus=all -it shitspotter:latest bash
+
+# 1) Authenticate (recommended: use a Docker Hub access token)
+#    Create a token in Docker Hub -> Account Settings -> Security
+#    Then run:
+# echo "<your-access-token>" | docker login --username "$DOCKERHUB_USER" --password-stdin
+#
+# If you must, you can use interactive login:
+docker login
+
+export DH_USER="erotemic"
+
+# 3) Create remote-qualified tags
+docker tag $IMAGE_QUALNAME $DH_USER/$IMAGE_QUALNAME
+docker tag $NAME1  $DH_USER/$NAME1
+docker tag $NAME2  $DH_USER/$NAME2
+docker tag $NAME3  $DH_USER/$NAME3
+
+# 4) Push the tags
+docker push $DH_USER/$IMAGE_QUALNAME
+docker push $DH_USER/$NAME1
+docker push $DH_USER/$NAME2
+docker push $DH_USER/$NAME3
+docker push $DH_USER:latest-uv0.7.29-python3.11
+docker push $DH_USER:latest
+
 
 ' > /dev/null
 

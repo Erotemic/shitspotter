@@ -7,7 +7,7 @@ TODO: link to scripts that actually performed these analysis.
 
 ~/code/shitspotter/experiments/grounding-dino-experiments/run_grounding_dino_experiments_v1.sh
 
-~/code/shitspotter/dev/poc/tune_grounding_dino.sh
+~/code/shitspotter/experiments/grounding-dino-experiments/tune_grounding_dino.sh
 
 ~/code/shitspotter/experiments/detectron2-experiments/train_baseline_maskrcnn_v3.sh
 
@@ -183,5 +183,59 @@ python -m geowatch.mlops.aggregate \
         print_models: True
         reference_region: null
         concise: 0
+        show_csv: 0
+    "
+
+
+# Prompt Variation results
+
+DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_2025_rebutal_evals/vali_imgs691_99b22ad0
+python -m geowatch.mlops.aggregate \
+    --pipeline='shitspotter.other.grounding_dino_pipeline.grounding_dino_evaluation_pipeline()' \
+    --target "
+        - $EVAL_PATH
+    " \
+    --output_dpath="$EVAL_PATH/full_aggregate" \
+    --resource_report=1 \
+    --rois=None \
+    --io_workers=0 \
+    --eval_nodes="
+        - detection_evaluation
+    " \
+    --cache_resolved_results=0 \
+    --stdout_report="
+        top_k: 10
+        per_group: null
+        macro_analysis: 0
+        analyze: 0
+        print_models: True
+        reference_region: null
+        concise: 1
+        show_csv: 0
+    "
+
+DVC_EXPT_DPATH=$(geowatch_dvc --tags="shitspotter_expt")
+EVAL_PATH=$DVC_EXPT_DPATH/_shitspotter_2025_rebutal_evals/test_imgs121_6cb3b6ff
+python -m geowatch.mlops.aggregate \
+    --pipeline='shitspotter.other.grounding_dino_pipeline.grounding_dino_evaluation_pipeline()' \
+    --target "
+        - $EVAL_PATH
+    " \
+    --output_dpath="$EVAL_PATH/full_aggregate" \
+    --resource_report=0 \
+    --rois=None \
+    --io_workers=0 \
+    --eval_nodes="
+        - detection_evaluation
+    " \
+    --stdout_report="
+        top_k: 10
+        per_group: null
+        macro_analysis: 0
+        analyze: 0
+        print_models: True
+        reference_region: null
+        concise: 1
         show_csv: 0
     "
