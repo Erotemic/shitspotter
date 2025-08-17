@@ -451,3 +451,10 @@ https://openreview.net/forum?id=aO24vWoPmK&referrer=%5BAuthor%20Console%5D(%2Fgr
 
 Noting that the roboflow datasets are difficult to analyze. They contain
 pre-augmented images, which makes it hard to count the actual number. 
+
+
+# 2025-08-16
+
+Whenever I log into my ipfs server after a long enough time, I always find that
+the service is dead. Maybe ChatGPT is good enough to help me fix this issue now.
+Put the code in my local dotfiles init/init_ipfs as a bash function

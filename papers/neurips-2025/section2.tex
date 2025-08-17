@@ -1,0 +1,39 @@
+% Note: Figures are in section1 for better late layout
+
+%-------------------------------------------------------------------------
+\section{Related Work}
+\label{sec:relatedwork}
+
+To the best of our knowledge, our dataset is currently the largest publicly available collection of
+  annotated dog poop images, but it is not the first.
+A dataset of 100 dog poop images was collected and used to train a FasterRCNN model
+  \cite{neeraj_madan_dog_2019} but this dataset and model are not publicly available.
+The company iRobot has a dataset of annotated indoor poop images used to train Roomba j7+ to avoid
+  collisions \cite{roomba_2021}, but as far as we are aware, this is not available.
+In terms of available poop detection datasets we are only aware of MSHIT~\cite{mshit_2020} which is much
+  smaller, only contains box annotations, and the objects of interest are plastic toy poops.
+
+Compared to benchmark object localization and segmentation datasets~\cite{ILSVRC15,
+  lin_microsoft_2014,cordts2015cityscapes} ours is much smaller and focused only on a single category.
+However, when compared to litter and trash datasets
+  \cite{bashkirova_zerowaste_2022,proenca_taco_2020,hong2020trashcansemanticallysegmenteddatasetvisual,mittal2016spotgarbage,rs13050965}
+  ours is among the largest in terms of number of images / annotations, image size, and total dataset size.
+ZeroWaste~\cite{bashkirova_zerowaste_2022} uses a ``before/after'' protocol similar to our BAN protocol.
+%% https://paperswithcode.com/dataset/tackknnno
+We provide an overview of these related datasets in \Cref{tab:related_datasets}.
+Among all of these, ours stands out for having the highest resolution images and the smallest objects
+  relative to that resolution.
+For a review of additional waste related datasets, refer to \cite{agnieszka_waste}.
+
+\Cref{sec:distribution} discusses the logistics and tradeoffs between dataset distribution mechanisms
+  with a focus on comparing centralized and decentralized methods.
+IPFS~\cite{benet_ipfs_2014} and BitTorrent~\cite{cohen_incentives_2003} are the decentralized 
+  mechanisms we evaluate, but others exist such as Secure Scuttlebut \cite{tarr_secure_2019} and Hypercore
+  \cite{frazee_dep-0002_nodate}, which we did not test.
+
+% Very good overview and comparison of the protocols
+% https://blog.mauve.moe/posts/protocol-comparisons
+% https://distributed.press/
+% hypercore - https://github.com/tradle/why-hypercore/blob/master/FAQ.md#how-is-hypercore-different-from-ipfs
+% git,
+% Secure Scuttlebut (SSB)

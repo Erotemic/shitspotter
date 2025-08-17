@@ -884,57 +884,6 @@ def build_latex_result_table(summary_df):
     return new_text
 
 
-def bold_max_vals(df):
-    """Return a copy of the DataFrame where the max in each column is bolded."""
-    import numpy as np
-    styled = df.copy().astype(str)
-
-    for col in df.columns:
-        # Only operate on numeric columns
-        if pd.api.types.is_numeric_dtype(df[col]):
-            max_val = df[col].max()
-            styled[col] = df[col].apply(
-                lambda x: f"\\textbf{{{x:.2f}}}" if np.isclose(x, max_val) else f"{x:.2f}"
-                if pd.notnull(x) else "--"
-            )
-        else:
-            styled[col] = df[col].fillna("--")
-
-    return styled
-
-
-def make_latex_table(table):
-    # Example: use your original vali_table
-    styled_table = bold_max_vals(table)
-    import tabulate as tabulate_mod
-    from functools import partial
-    from tabulate import TableFormat, _latex_line_begin_tabular, Line, _latex_row
-    tabulate_mod._table_formats['latex_booktabs_raw'] = TableFormat(
-        lineabove=partial(_latex_line_begin_tabular, booktabs=True),
-        linebelowheader=Line("\\midrule", "", "", ""),
-        linebetweenrows=None,
-        linebelow=Line("\\bottomrule\n\\end{tabular}", "", "", ""),
-        headerrow=partial(_latex_row, escrules={}),
-        datarow=partial(_latex_row, escrules={}),
-        padding=1,
-        with_header_hide=None,
-    )
-
-    # Output to LaTeX using tabulate
-    from tabulate import tabulate
-    latex_str = tabulate(
-        styled_table,
-        # tablefmt='latex_raw',  # <-- prevents escaping
-        tablefmt='latex_booktabs_raw',
-        headers='keys',
-        missingval="--",
-        floatfmt=".3f",
-        showindex=False,
-    )
-    return latex_str
-    # print(latex_str)
-
-
 def format_results_for_latex2(piv: pd.DataFrame):
     """
     Format a pivoted result DataFrame into a LaTeX tabular environment.
@@ -1369,6 +1318,42 @@ def gather_heatmap_figures(aggregators_rows):
     figure_dpath = ub.Path('$HOME/code/shitspotter/papers/neurips-2025/figures').expand()
 
 
+def fill_weighted_estimates(df, col, duration_col="total_hours"):
+    """
+    Fill NaN values in value_cols based on weighted averages using duration.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The dataframe containing the columns to fill.
+    value_cols : tuple of str
+        The columns with missing values to fill (default: ("co2_kg", "kwh"))
+    duration_col : str
+        The column representing duration (must be numeric, e.g., hours).
+    """
+    df = df.copy()
+
+    # Mask for known and unknown values
+    known = df[col].notna()
+    unknown = ~known
+
+    if known.sum() == 0:
+        raise Exception
+
+    # Weighted average rate (value per hour)
+    weighted_rate = (
+        (df.loc[known, col] / df.loc[known, duration_col])
+        .multiply(df.loc[known, duration_col])
+        .sum()
+        / df.loc[known, duration_col].sum()
+    )
+
+    # Fill missing with duration * weighted_rate
+    new_col = df.loc[unknown, duration_col] * weighted_rate
+    return new_col
+
+
+
 def report_resources(aggregators_rows):
     node_types = [
         'detectron_pred',
@@ -1434,9 +1419,162 @@ def report_resources(aggregators_rows):
 
     for key, group in list(deduped.groupby(['node_type', 'dname', 'dataset_name'])):
         print(key)
+        if pd.isna(group.kwh).any():
+            if key[0] in {'yolo_pred', 'open_grounding_dino_pred', 'grounding_dino_pred'}:
+                # Earlier runs for these did not record kwh / co2-kg correctly,
+                # but some did, so we can fill in blank data with reasonable
+                # estimates.
+                assert not pd.isna(group.kwh).all()
+                filled = fill_weighted_estimates(group, 'kwh')
+                group.loc[filled.index, 'kwh'] = filled
+                deduped.loc[filled.index, 'kwh'] = filled
+
+                filled = fill_weighted_estimates(group, 'co2_kg')
+                group.loc[filled.index, 'co2_kg'] = filled
+                deduped.loc[filled.index, 'kwh'] = filled
+
         print('  time', kwutil.timedelta.coerce(group['duration'].sum()).to('pint').to('days'))
         print('  kwh', group['kwh'].sum())
         print('  co2', group['co2_kg'].sum())
+
+    # Get data for rebuttal experiments
+    total_new_kwh = 0
+    total_new_time = 0
+    total_new_co2 = 0
+    for key, group in list(deduped.groupby(['node_type', 'dname', 'dataset_name'])):
+        if key[0] in {'yolo_pred', 'open_grounding_dino_pred', 'grounding_dino_pred'}:
+            total_new_time += kwutil.timedelta.coerce(group['duration'].sum()).to('pint').to('hours')
+            total_new_kwh += group['kwh'].sum()
+            total_new_co2 += group['co2_kg'].sum()
+    print(f'total_new_kwh={total_new_kwh}')
+    print(f'total_new_time={total_new_time}')
+    print(f'total_new_co2={total_new_co2}')
+
+
+def bold_max_vals(df):
+    """Return a copy of the DataFrame where the max in each column is bolded."""
+    import numpy as np
+    styled = df.copy().astype(str)
+
+    for col in df.columns:
+        # Only operate on numeric columns
+        if pd.api.types.is_numeric_dtype(df[col]):
+            max_val = df[col].max()
+            styled[col] = df[col].apply(
+                lambda x: f"\\textbf{{{x:.2f}}}" if np.isclose(x, max_val) else f"{x:.2f}"
+                if pd.notnull(x) else "--"
+            )
+        else:
+            styled[col] = df[col].fillna("--")
+
+    return styled
+
+
+def make_latex_table(table, index=False, bold_maxima=True):
+    # Example: use your original vali_table
+    import tabulate as tabulate_mod
+    from functools import partial
+    from tabulate import TableFormat, _latex_line_begin_tabular, Line, _latex_row
+    tabulate_mod._table_formats['latex_booktabs_raw'] = TableFormat(
+        lineabove=partial(_latex_line_begin_tabular, booktabs=True),
+        linebelowheader=Line("\\midrule", "", "", ""),
+        linebetweenrows=None,
+        linebelow=Line("\\bottomrule\n\\end{tabular}", "", "", ""),
+        headerrow=partial(_latex_row, escrules={}),
+        datarow=partial(_latex_row, escrules={}),
+        padding=1,
+        with_header_hide=None,
+    )
+
+    if bold_maxima:
+        styled_table = bold_max_vals(table)
+    else:
+        styled_table = table
+
+    is_multicol = (hasattr(table.columns, 'levels') and len(table.columns.levels) > 1)
+    if is_multicol:
+        # We are going to hack the multicolumns to make them nicer
+        assert len(table.columns.levels) == 2, 'only handle the 2 case right now'
+        styled_table = styled_table.droplevel(0, axis=1)
+
+    # Output to LaTeX using tabulate
+    from tabulate import tabulate
+    latex_str = tabulate(
+        styled_table,
+        # tablefmt='latex_raw',  # <-- prevents escaping
+        tablefmt='latex_booktabs_raw',
+        headers='keys',
+        missingval="--",
+        floatfmt=".3f",
+        showindex=index,
+    )
+
+    if is_multicol:
+        # We are going to hack the multicolumns to make them nicer
+        assert len(table.columns.levels) == 2, 'only handle the 2 case right now'
+        header = make_multicolumn_header(table, level=0, index=index, index_align='l', latex_str=latex_str)
+        latex_str = latex_str.replace(r"\toprule", f"\\toprule\n{header}", 1)
+    if 0:
+        print(latex_str)
+    return latex_str
+
+
+def make_multicolumn_header(table, level=0, index=True, index_align="l", latex_str=None):
+    """
+    Generate LaTeX multicolumn header row for a given MultiIndex DataFrame.
+
+    Parameters
+    ----------
+    table : pd.DataFrame
+        DataFrame with MultiIndex columns
+    level : int
+        Which column level to group on
+    index : bool
+        Whether to insert a blank multicolumn for the row index
+    index_align : str
+        Alignment of index blank column (default 'l')
+
+    Example:
+        >>> arrays = [
+        >>>     ["Validation (n=691)", "Validation (n=691)", "Test (n=30)", "Test (n=30)"],
+        >>>     ["Score", "Error", "Score", "Error"]
+        >>> ]
+        >>> cols = pd.MultiIndex.from_arrays(arrays)
+        >>> df = pd.DataFrame([[0.1, 0.2, 0.3, 0.4]], columns=cols, index=pd.Index([1], name="Prompt"))
+        >>> latex_header = make_multicolumn_header(df, level=0, index=True)
+        >>> print(latex_header)
+    """
+    from itertools import groupby
+    values = table.columns.get_level_values(level)
+
+    # Group consecutive items
+    groups = [(k, list(g)) for k, g in groupby(range(len(values)), key=lambda x: values[x])]
+
+    parts = []
+    if index:
+        # Insert blank multicolumn covering the number of index levels
+        parts.append(f"\\multicolumn{{{table.index.nlevels}}}{{{index_align}}}{{}}")
+
+    for k, idxs in groups:
+        span = len(idxs)
+        parts.append(f"\\multicolumn{{{span}}}{{c}}{{{k}}}")
+
+    # Join with " & " as LaTeX expects
+    if latex_str is None:
+        header = " & ".join(parts) + " \\\\"
+    else:
+        next_line = latex_str.split('\n')[2]
+        # --- Alignment phase ---
+        # Split next_line into cells (drop trailing '\\')
+        raw_cells = [c.strip() for c in next_line.strip().rstrip("\\").split("&")]
+        target_widths = [len(c) for c in raw_cells]
+
+        aligned_cells = []
+        for part, width in zip(parts, target_widths):
+            aligned_cells.append(part.ljust(width))
+    header = " & ".join(aligned_cells) + " \\\\"
+
+    return header
 
 
 def get_prompt_variation_results(aggregators_rows):
@@ -1444,21 +1582,12 @@ def get_prompt_variation_results(aggregators_rows):
         'test_imgs121_6cb3b6ff.kwcoco': 'Test (n=121)',
         'vali_imgs691_99b22ad0.kwcoco': 'Validation (n=691)',
     }
-    header = ub.codeblock(
-        r'''
-        \begin{table*}[t]
-        \caption{Zero-shot detection results as a function of prompt. Prompt variation has a significant impact on scores, but overall zero-shot results are all low scoring. }
-        \label{tab:prompt_variations}
-        \centering
-        ''')
-
-    footer = ub.codeblock(
-         r'''
-         \end{table*}
-         ''')
-
-    parts = []
-
+    split_lut = {
+        'test_imgs121_6cb3b6ff.kwcoco': 'test',
+        'vali_imgs691_99b22ad0.kwcoco': 'vali',
+    }
+    tabular_parts = []
+    splits_df = {}
     for _agg_row in aggregators_rows[::-1]:
         _agg = _agg_row['agg']
         if '_shitspotter_2025_rebutal_evals' in _agg.output_dpath.parts:
@@ -1489,25 +1618,78 @@ def get_prompt_variation_results(aggregators_rows):
             # print(bolded.to_latex(index=False, escape=False))
             # print(bolded.style.to_latex())
             tabular_text = make_latex_table(subtable_human)
-
             caption = captions[dataset_name]
-            subheader = ub.codeblock(
-                r'''
-                \begin{subtable}[b]{\textwidth} % Adjust width as needed
-                  \caption{''' + caption + r'''}
-                  \centering
-                ''')
+            tabular_parts.append({
+                'tabular': tabular_text,
+                'caption': caption,
+            })
+            split = split_lut[dataset_name]
+            splits_df[split] = subtable_human
 
-            subfooter = ub.codeblock(
-                r'''
-                \end{subtable}
-                ''')
+    # Variant 1
 
-            subtable_parts = [subheader, ub.indent(tabular_text), subfooter]
-            subtable_text = '\n'.join(subtable_parts)
-            parts.append(subtable_text)
-    text = header + '\n' + '\n\n\\hfill\n\n'.join(parts) + '\n' + footer
+    splits_df['vali']
+    text = wrap_latex_tables(tabular_parts)
     print(text)
+
+    # Variant 2
+    renamed = {
+        'AP-box': 'AP\\\\Box',
+        'AUC-box': 'AUC\\\\Box',
+        'F1-box': 'F1\\\\Box',
+        'TPR-box': 'TPR\\\\Box',
+    }
+    renamed = {
+        'AP': r'\makecell{AP\\Box}',
+        'AUC': r'\makecell{AUC\\Box}',
+        'F1': r'\makecell{F1\\Box}',
+        'TPR': r'\makecell{TPR\\Box}',
+    }
+    reverse_split_lut = ub.udict(split_lut).invert().map_values(captions)
+    combo = pd.concat({
+        reverse_split_lut['vali']: splits_df['vali'].set_index('Prompt').rename(renamed, axis=1),
+        reverse_split_lut['test']: splits_df['test'].set_index('Prompt').rename(renamed, axis=1),
+    }, axis=1)
+    text = make_latex_table(combo, index=True, bold_maxima=True)
+    print(text)
+
+
+def wrap_latex_tables(tabular_parts):
+    header = ub.codeblock(
+        r'''
+        \begin{table*}[t]
+        \caption{Zero-shot detection results as a function of prompt. Prompt variation has a significant impact on scores, but overall zero-shot results are all low scoring. }
+        \label{tab:prompt_variations}
+        \centering
+        ''')
+
+    footer = ub.codeblock(
+         r'''
+         \end{table*}
+         ''')
+
+    parts = []
+    for tabular_info in tabular_parts:
+        tabular_text = tabular_info['tabular']
+        caption = tabular_info['caption']
+        subheader = ub.codeblock(
+            r'''
+            \begin{subtable}[b]{\textwidth} % Adjust width as needed
+              \caption{''' + caption + r'''}
+              \centering
+            ''')
+
+        subfooter = ub.codeblock(
+            r'''
+            \end{subtable}
+            ''')
+
+        subtable_parts = [subheader, ub.indent(tabular_text), subfooter]
+        subtable_text = '\n'.join(subtable_parts)
+        parts.append(subtable_text)
+
+    text = header + '\n' + '\n\n\\hfill\n\n'.join(parts) + '\n' + footer
+    return text
 
 
 def main():

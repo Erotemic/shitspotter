@@ -167,54 +167,73 @@ In the zero shot case
 Grounding DINO zero-shot prompt ablation:
 
 \begin{table}[t]
-\caption{Zero-shot detection results as a function of prompt. Prompt variation has a significant impact on scores, and the best prompt is different between datasets, but overall zero-shot results are all low scoring. Because this is a zero-shot setting, the validation set can be compared to the test set. Interestingly, the validation scores significantly lower than the test scores indicating a greater degree of difficulty. }
+\caption{Zero-shot detection results with varied prompts. The chosen prompt has a significant impact on scores, and the best prompt is different between validation and test datasets, but overall zero-shot results are all low scoring. Because this is a zero-shot setting, the validation set can be compared to the test set. Interestingly, the validation scores significantly lower than the test scores indicating a greater degree of difficulty. }
 \label{tab:prompt_variations}
 \centering
-\begin{subtable}[b]{\textwidth} % Adjust width as needed
-  \caption{Test (n=121)}
-  \centering
-    \begin{tabular}{lllll}
-    \toprule
-     Prompt      & AP            & AUC           & F1            & TPR           \\
-    \midrule
-     stool       & 0.05          & 0.08          & 0.18          & 0.13          \\
-     droppings   & 0.08          & 0.14          & 0.27          & 0.30          \\
-     feces       & 0.16          & 0.26          & 0.32          & 0.39          \\
-     caninefeces & 0.17          & 0.24          & 0.37          & 0.39          \\
-     poop        & 0.17          & 0.18          & 0.31          & 0.26          \\
-     petwaste    & 0.20          & 0.25          & 0.35          & 0.34          \\
-     animalfeces & 0.23          & 0.30          & 0.39          & 0.38          \\
-     dogfeces    & 0.23          & 0.29          & \textbf{0.40} & 0.38          \\
-     dogpoop     & 0.24          & 0.28          & 0.38          & 0.39          \\
-     excrement   & 0.25          & 0.31          & 0.39          & \textbf{0.42} \\
-     turd        & \textbf{0.27} & \textbf{0.32} & 0.39          & 0.35          \\
-    \bottomrule
-    \end{tabular}
-\end{subtable}
+\begin{tabular}{lllllllll}
+\toprule
+\multicolumn{1}{l}{} & \multicolumn{4}{c}{Validation (n=691)} & \multicolumn{4}{c}{Test (n=121)} \\
+ Prompt      & \makecell{AP\\Box}   & \makecell{AUC\\Box}   & \makecell{F1\\Box}   & \makecell{TPR\\Box}   & \makecell{AP\\Box}   & \makecell{AUC\\Box}   & \makecell{F1\\Box}   & \makecell{TPR\\Box}   \\
+\midrule
+ stool       & 0.01                 & 0.03                  & 0.07                 & 0.07                  & 0.05                 & 0.08                  & 0.18                 & 0.13                  \\
+ droppings   & 0.02                 & 0.10                  & 0.14                 & 0.23                  & 0.08                 & 0.14                  & 0.27                 & 0.30                  \\
+ petwaste    & 0.04                 & 0.14                  & 0.15                 & 0.25                  & 0.20                 & 0.25                  & 0.35                 & 0.34                  \\
+ poop        & 0.04                 & 0.10                  & 0.17                 & 0.16                  & 0.17                 & 0.18                  & 0.31                 & 0.26                  \\
+ dogpoop     & 0.05                 & 0.16                  & 0.17                 & 0.20                  & 0.24                 & 0.28                  & 0.38                 & 0.39                  \\
+ caninefeces & 0.05                 & 0.16                  & 0.18                 & 0.29                  & 0.17                 & 0.24                  & 0.37                 & 0.39                  \\
+ turd        & 0.05                 & 0.18                  & 0.18                 & 0.22                  & \textbf{0.27}        & \textbf{0.32}         & 0.39                 & 0.35                  \\
+ feces       & 0.06                 & 0.21                  & 0.18                 & 0.27                  & 0.16                 & 0.26                  & 0.32                 & 0.39                  \\
+ excrement   & 0.07                 & \textbf{0.22}         & 0.20                 & 0.28                  & 0.25                 & 0.31                  & 0.39                 & \textbf{0.42}         \\
+ dogfeces    & 0.07                 & 0.21                  & \textbf{0.20}        & \textbf{0.31}         & 0.23                 & 0.29                  & \textbf{0.40}        & 0.38                  \\
+ animalfeces & \textbf{0.08}        & 0.21                  & 0.20                 & 0.25                  & 0.23                 & 0.30                  & 0.39                 & 0.38                  \\
+\bottomrule
+\end{tabular}
 
-\hfill % Add horizontal space between the subfigures
+%\begin{subtable}[b]{\textwidth} % Adjust width as needed
+%  \caption{Test (n=121)}
+%  \centering
+%    \begin{tabular}{lllll}
+%    \toprule
+%     Prompt      & AP            & AUC           & F1            & TPR           \\
+%    \midrule
+%     stool       & 0.05          & 0.08          & 0.18          & 0.13          \\
+%     droppings   & 0.08          & 0.14          & 0.27          & 0.30          \\
+%     feces       & 0.16          & 0.26          & 0.32          & 0.39          \\
+%     caninefeces & 0.17          & 0.24          & 0.37          & 0.39          \\
+%     poop        & 0.17          & 0.18          & 0.31          & 0.26          \\
+%     petwaste    & 0.20          & 0.25          & 0.35          & 0.34          \\
+%     animalfeces & 0.23          & 0.30          & 0.39          & 0.38          \\
+%     dogfeces    & 0.23          & 0.29          & \textbf{0.40} & 0.38          \\
+%     dogpoop     & 0.24          & 0.28          & 0.38          & 0.39          \\
+%     excrement   & 0.25          & 0.31          & 0.39          & \textbf{0.42} \\
+%     turd        & \textbf{0.27} & \textbf{0.32} & 0.39          & 0.35          \\
+%    \bottomrule
+%    \end{tabular}
+%\end{subtable}
 
-\begin{subtable}[b]{\textwidth} % Adjust width as needed
-  \caption{Validation (n=691)}
-  \centering
-    \begin{tabular}{lllll}
-    \toprule
-     Prompt      & AP            & AUC           & F1            & TPR           \\
-    \midrule
-     stool       & 0.01          & 0.03          & 0.07          & 0.07          \\
-     droppings   & 0.02          & 0.10          & 0.14          & 0.23          \\
-     petwaste    & 0.04          & 0.14          & 0.15          & 0.25          \\
-     poop        & 0.04          & 0.10          & 0.17          & 0.16          \\
-     dogpoop     & 0.05          & 0.16          & 0.17          & 0.20          \\
-     caninefeces & 0.05          & 0.16          & 0.18          & 0.29          \\
-     turd        & 0.05          & 0.18          & 0.18          & 0.22          \\
-     feces       & 0.06          & 0.21          & 0.18          & 0.27          \\
-     excrement   & 0.07          & \textbf{0.22} & 0.20          & 0.28          \\
-     dogfeces    & 0.07          & 0.21          & \textbf{0.20} & \textbf{0.31} \\
-     animalfeces & \textbf{0.08} & 0.21          & 0.20          & 0.25          \\
-    \bottomrule
-    \end{tabular}
-\end{subtable}
+%\hfill % Add horizontal space between the subfigures
+
+%\begin{subtable}[b]{\textwidth} % Adjust width as needed
+%  \caption{Validation (n=691)}
+%  \centering
+%    \begin{tabular}{lllll}
+%    \toprule
+%     Prompt      & AP            & AUC           & F1            & TPR           \\
+%    \midrule
+%     stool       & 0.01          & 0.03          & 0.07          & 0.07          \\
+%     droppings   & 0.02          & 0.10          & 0.14          & 0.23          \\
+%     petwaste    & 0.04          & 0.14          & 0.15          & 0.25          \\
+%     poop        & 0.04          & 0.10          & 0.17          & 0.16          \\
+%     dogpoop     & 0.05          & 0.16          & 0.17          & 0.20          \\
+%     caninefeces & 0.05          & 0.16          & 0.18          & 0.29          \\
+%     turd        & 0.05          & 0.18          & 0.18          & 0.22          \\
+%     feces       & 0.06          & 0.21          & 0.18          & 0.27          \\
+%     excrement   & 0.07          & \textbf{0.22} & 0.20          & 0.28          \\
+%     dogfeces    & 0.07          & 0.21          & \textbf{0.20} & \textbf{0.31} \\
+%     animalfeces & \textbf{0.08} & 0.21          & 0.20          & 0.25          \\
+%    \bottomrule
+%    \end{tabular}
+%\end{subtable}
 \end{table}
 
 
@@ -293,8 +312,8 @@ Qualitative examples illustrating the performance of the top-scoring validation 
 \centering
 \begin{tabular}{llllllll}
 \toprule
-            \multicolumn{4}{l}{} & \multicolumn{2}{c}{Validation (n=691)} & \multicolumn{2}{c}{Test (n=30)} \\
-config name &   lr & weight\_decay & perterb\_scale & AP & AUC & AP & AUC \\
+            \multicolumn{4}{l}{} & \multicolumn{2}{r}{Validation (n=691)} & \multicolumn{2}{r}{Test (n=30)} \\
+Config Name  &   LR & Weight Decay & Perterb Scale & \makecell{AP\\Pixel} & \makecell{AUC\\Pixel} &  \makecell{AP\\Pixel} &  \makecell{AUC\\Pixel} \\
 \midrule
         \textcolor[HTML]{623682}{D05} & 1e-4 &   1e-6 &  3e-6 & \textbf{0.7802} & \textbf{0.9943} &          0.5051 &          0.9125 \\
         \textcolor[HTML]{df8020}{D03} & 1e-4 &   1e-5 &  3e-7 &          0.7758 &          0.9707 &          0.4346 &          0.8576 \\

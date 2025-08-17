@@ -1,0 +1,167 @@
+\section{Introduction}
+\label{sec:intro}
+
+Applications for a computer vision system capable of detecting and localizing poop in images are numerous.
+These include automated waste disposal to keep parks and backyards clean, tools for monitoring wildlife
+  populations via droppings, and a warning system in smart-glasses to prevent people from stepping in poop.
+Our primary motivating use case is a phone application that assists dog owners in locating their dog's poop
+  in a leafy park for easier cleanup.
+Many of these applications can be realized with modern object detection and segmentation methods
+  \cite{sandler_mobilenetv2_2018, siam_rtseg_2018, yu_mobilenet_yolo_2023} combined with a large labeled
+  dataset. 
+%In this paper, we make a significant step towards building this dataset.
+
+
+\begin{figure}[t]
+\centering
+\begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/zoom_leaf.jpg}
+    \caption[]{
+        A zoomed in example of an annotated object in a challenging
+        condition: a scene cluttered with leaves. The similarity between the leaves
+        and the poop causes a camouflage effect that can make detecting it difficult.
+        The poop is highlighted in blue.
+    }
+    \label{fig:HardCase}
+\end{subfigure}
+\hfill
+\begin{subfigure}[t]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figures/viz_three_images.jpg}
+    \caption[]{
+        The ``before/after/negative'' protocol.
+        The orange box highlights the location of the poop 
+        in the ``before'' image.
+        In the ``after'' image, it is the same scene but the poop has been removed.
+        The ``negative'' image is a nearby similar scene, potentially with a distractor.
+        Note that the object is small relative to the image size.
+    }
+    \label{fig:ThreeImages}
+\end{subfigure}
+\caption{(a) A challenging annotation case due to camouflage. (b) The BAN protocol.}
+\label{fig:Combined}
+\end{figure}
+  
+
+\begin{table*}[t]
+\caption{Related datasets.
+%
+Columns list dataset name, number of categories, images, and annotations.
+Image W \times{} H gives median image dimensions;
+Ann Area$^{0.5}$ is the median square root of annotation area (pixels);
+Size is disk requirements in GB; 
+Annot Type is the labeling method.
+\Cref{fig:compare_allannots} shows the distribution of annotation shapes, sizes, and locations.
+%Citations: ImageNet \cite{ILSVRC15}
+%MSCOCO \cite{lin_microsoft_2014},
+%CityScapes \cite{cordts2015cityscapes},
+%ZeroWaste \cite{bashkirova_zerowaste_2022},
+%TrashCanV1 \cite{hong2020trashcansemanticallysegmenteddatasetvisual},
+%UAVVaste \cite{rs13050965},
+%SpotGarbage-GINI \cite{mittal2016spotgarbage},
+%TACO \cite{proenca_taco_2020},
+%MSHIT \cite{mshit_2020}.
+%Of the datasets in this table, ours has the highest image resolution.
+%and the smallest annotation size relative to that resolution.
+%Of the waste related datasets and in terms of number of images, ours is among the largest, and of the poop related datasets, it is the largest.
+}
+\label{tab:related_datasets}
+\begin{tabular}{lrrrcrrl}
+\toprule
+Name & \#Cats & \#Images & \#Annots & \makecell{Image\\W \times{} H} & \makecell{Annot\\Area$^{0.5}$} & \makecell{Disk\\Size} & \makecell{Annot\\Type} \\
+\midrule
+ImageNet\cite{ILSVRC15}    & 1,000 & 594,546 & 695,776 & 500 \times{} 374 & 239 & 166GB & box \\
+MSCOCO\cite{lin_microsoft_2014}      & 80 & 123,287 & 896,782 & 428 \times{} 640 & 57 & 50GB & polygon \\
+CityScapes\cite{cordts2015cityscapes}  & 40 & 5,000 & 287,465 & 2,048 \times{} 1,024 & 50 & 78GB & polygon \\
+ZeroWaste \cite{bashkirova_zerowaste_2022}   & 4 & 4,503 & 26,766 & 1,920 \times{} 1,080 & 200 & 10GB & polygon \\
+TrashCanV1\cite{hong2020trashcansemanticallysegmenteddatasetvisual}  & 22 & 7,212 & 12,128 & 480 \times{} 270 & 54 & 0.61GB & polygon \\
+UAVVaste\cite{rs13050965}    & 1 & 772 & 3,718 & 3,840 \times{} 2,160 & 55 & 2.9GB & polygon \\
+SpotGarbage\cite{mittal2016spotgarbage} & 1 & 2,512 & 337 & 754 \times{} 754 & 355 & 1.5GB & category \\
+TACO\cite{proenca_taco_2020}        & 60 & 1,500 & 4,784 & 2,448 \times{} 3,264 & 119 & 17GB & polygon \\
+MSHIT\cite{mshit_2020}       & 2 & 769 & 2,348 & 960 \times{} 540 & 99 & 4GB & box \\
+Ours        & 1 & 9,296 & 6,594 & 4,032 \times{} 3,024 & 87 & 60GB & polygon \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=1.0\textwidth]{plots/appendix/dataset_compare/combo_all_polygons.png.png}
+\caption[]{
+    A comparison of all of the annotations for different datasets including ours.
+    All polygon annotations drawn in a single plot with $0.8$ opacity to
+    demonstrate the distribution in annotation location, shape, and size with
+    respect to image coordinates.
+}
+\label{fig:compare_allannots}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=1\textwidth]{figures/umap-v3.jpg}%
+\caption[]{
+    %Example images from the dataset based on 2D UMAP \cite{mcinnes_umap_2020} clusters over the dataset.
+    %Each point in the top image is a 2D-projected image embedding. Each
+    %numbered orange dot corresponds to three nearby images, which are drawn in columns on the bottom.
+    %Annotation boxes are drawn in blue.
+    %An interesting observation is that there is a clear separation into two UMAP blobs represents snowy versus (columns 1 and 2)
+    %  non-snowy images (columns 3-13). We verified that this pattern holds beyond the examples explicitly shown here.
+    Example images from 2D UMAP clusters \cite{mcinnes_umap_2020}.
+    Each point in the top image represents a 2D-projected embedding, with numbered orange dots indicating nearby
+      images in the bottom columns.
+    Blue annotation boxes are shown.
+    A clear separation emerges between snowy (columns 1-2) and non-snowy images (columns 3-13).
+    %this pattern verified beyond these examples.
+    %a 200 image subset
+    %  of the dataset.
+    %Each row corresponds to a selection from a 2D UMAP projection shown on the left.
+    %The highlighted nodes circled in blue in the cluster visualization in each row correspond to the images
+    %  with annotations (drawn in green) shown on the right.
+}
+\label{fig:umap_dataset_viz}
+\end{figure*}
+
+
+In addition to enabling several applications, poop detection is an interesting benchmark problem.
+It is relatively simple, with a narrow focus on a single class, making it suitable for exploring the
+  capabilities of object detection models that target a single labeled class.
+However, the task includes non-trivial challenges such as resolution issues (e.g., camera quality,
+  distance), camouflaging distractors (e.g., leaves, pine cones, sticks, dirt, and mud), occlusion (e.g., bushes, overgrown
+  grass), and variation in appearance (e.g., old vs. new, healthy vs. sick).
+An example of a challenging case is shown in \Cref{fig:HardCase}.
+Investigation into cases where this problem is difficult may provide insight
+into how to better train object detection and segmentation networks.
+
+Towards these ends we introduce a new dataset which, 
+%for the purpose of this paper we call "ScatSpotter".
+%we formally call ``ScatSpotter''.
+in formal settings, we call ``ScatSpotter''.
+Poops are annotated with polygons making the dataset suitable for training detection and segmentation
+  models.
+In order to assist with annotation and add variation, we collect images using a ``before/after/negative'' (BAN)
+  protocol as shown in \Cref{fig:ThreeImages}.
+
+From this data, we train a segmentation model to classify which pixels in an image contain poop and which do
+  not.
+Our models show strong performance, but there are notable failure cases indicating this problem is difficult
+  even for modern computer vision algorithms. 
+
+To enable others to build on our results, it is essential that the dataset is accessible and hosted
+  reliably.
+Centralized methods are a typical choice, offering high speeds, but they can be costly for individuals,
+  often requiring institutional support or paid hosting services.
+They are also prone to outages and lack built-in data validation.
+In contrast, decentralized methods allow volunteers to host data and offers built-in validation of data
+  integrity.
+This motivates us to compare and contrast the decentralized BitTorrent \cite{cohen_incentives_2003}, and
+  IPFS \cite{benet_ipfs_2014} protocols as mechanisms for distributing datasets.
+
+% VGG2 face got removed.
+% https://github.com/ox-vgg/vgg_face2/issues/52
+
+Our contributions are:
+1) A challenging new \textbf{open dataset} of images with polygon annotations.
+2) A set of trained \textbf{baseline models}.
+3) A \textbf{comparison of dataset distribution} methods.
+%4) \textbf{Open code and models}.

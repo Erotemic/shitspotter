@@ -1,0 +1,232 @@
+\section{Baseline Models}
+\label{sec:models}
+
+
+
+As our second contribution, we trained and evaluated models to establish a baseline for future comparisons.
+Specifically we train 7 model variants.
+We trained a semantic segmentation vision transformer variant (VIT-sseg-s)
+  \cite{Greenwell_2024_WACV,crall_geowatch_2024}, which was only trained from scratch.
+We trained two MaskRCNN \cite{he2017mask} models (specifically the \texttt{R\_50\_FPN\_3x} configuration),
+  one starting from pretrained ImageNet weights (MaskRCNN-p), and one starting from scratch
+  (MaskRCNN-s).
+Similarly we trained YOLO-v9 \cite{wang2024yolov9} both from scratch and using pretrained ImageNet weights.
+Lastly, we investigated evaluated the foundational Grounding DINO \cite{liu_grounding_2024} model. 
+In the zero-shot setting we used \texttt{IDEA-Research/grounding-dino-tiny} using the prompt: "animalfeces".
+Finally, we tune the same Grounding DINO using \cite{OpenGroundingDino} and evaluated it in the tuned setting.
+
+The number of parameters for MaskRCNN, VIT, GroundingDINO, and YOLO are
+43.9M, 25.5M, 172.2M, and 51.0M, respectively.
+Hyperparameters are given in the supplemental material (\Cref{sec:model_hyperparams}).
+
+For these baseline models, the training data was limited to an older subset taken before 2024-07-03.
+Our training dataset consists of 5,747 images and is identified by a suffix of {\tt 1e73d54f}, which is the
+  prefix of its content hash.
+The validation set contains 691 images and has a suffix of {\tt 99b22ad0}.
+The test set, consists of the 121 images, has a suffix of {\tt 6cb3b6ff}, and includes contributor images
+  up to 2025-04-20.
+The evaluated models were selected based on their Box-AP validation scores.
+
+The primary detection ``Box'' evaluation computes standard COCO object detection metrics
+  \cite{lin_microsoft_2014}.
+MaskRCNN, GroundingDINO, and YOLO-v9 natively outputs scored bounding boxes, but for the VIT-sseg model, we convert heatmaps into boxes
+  by thresholding the probability maps and converting taking the extend of the resulting polygons as bounding
+  boxes.
+The score is taken as the average heatmap response under the polygon.
+Bounding box evaluation has the advantage that small and large annotations contribute equally to the score,
+  but it can also be misleading for datasets where the notion of an object instance can be ambiguous.
+
+To complement the box evaluation, we performed a pixelwise evaluation, which is more sensitive to the
+  details of the segmented masks, but also can be biased towards larger annotations with more pixels.
+The corresponding truth and predicted pixels were accumulated into a confusion matrix, allowing us to
+  compute standard metrics \cite{powers_evaluation_2011} such as precision, recall, false positive rate, etc.
+For the VIT-sseg model, computing this score is straightforward, but for MaskRCNN we accumulate per-box
+  heatmaps into a larger full image heatmap, which can then be scored.
+Because YOLO-v9 and GroundingDINO do not produce masks, they were excluded from pixelwise evaluation.
+
+Quantitative results for each of these models on box and pixel metrics are shown in
+  \Cref{tab:model_results}.
+Because the independent test set is only 121 images, we also present results on the larger validation
+  dataset.
+Corresponding qualitative validation results are illustrated in \Cref{fig:vali_results_all_models} and
+test results in \Cref{fig:test_results_all_models}.
+
+% Table generation
+% ~/code/shitspotter/papers/neurips-2025/scripts/build_v2_result_table.py
+
+\newcommand{\tb}[1]{\textbf{#1}}
+
+\begin{table}[t]
+\caption[]{
+    %Results for baseline models (suffix -p: pretrained, -s: scratch, -t: tuned, -z: zero-shot) on test and validation sets.
+    %Evaluated with box and pixel metrics --- AP (ppv-tpr area) \cite{powers_evaluation_2011} and AUC (tpr-fpr area), F1, and TPR (recall) --- computed via scikit-learn \cite{scikit-learn}.
+    %Pretrained models outperform.
+    %Note: VIT-sseg was tuned more and operated at full resolution; MaskRCNN, DINO, and YOLO used resized images and may yield better results with similar effort.
+    Baseline model performance on validation and test sets.
+    Suffixes indicate training conditions: -p (pretrained), -s (scratch), -t (tuned), -z (zero-shot).
+    Metrics include box- and pixel-level AP (area under precision-recall), AUC (area under ROC), F1, and TPR (recall),
+    computed using scikit-learn \cite{scikit-learn}.
+    Pretrained models outperform with the tuned foundational Grounding DINO model performing best.
+    Note: VIT-sseg was tuned more extensively and operated at full resolution, 
+    while MaskRCNN, DINO, and YOLO used resized images and may improve with additional tuning.
+}
+\label{tab:model_results}
+\centering
+
+    \begin{subtable}[b]{\textwidth} % Adjust width as needed
+    \caption{Validation (n=691)}
+    \centering
+        \begin{tabular}{lllllllll}
+        \toprule
+         Model           & \makecell{AP\\Box}   & \makecell{AUC\\Box}   & \makecell{F1\\Box}   & \makecell{TPR\\Box}   & \makecell{AP\\Pixel}   & \makecell{AUC\\Pixel}   & \makecell{F1\\Pixel}   & \makecell{TPR\\Pixel}   \\
+        \midrule
+         MaskRCNN-p      & 0.61                 & \textbf{0.72}         & 0.62                 & 0.57                  & 0.74                   & 0.91                    & \textbf{0.74}          & 0.68                    \\
+         MaskRCNN-s      & 0.26                 & 0.58                  & 0.35                 & 0.31                  & 0.43                   & 0.89                    & 0.48                   & 0.50                    \\
+         VIT-sseg-s      & 0.48                 & 0.53                  & 0.60                 & 0.51                  & \textbf{0.76}          & \textbf{0.97}           & 0.74                   & \textbf{0.69}           \\
+         GroundingDINO-t & \textbf{0.69}        & 0.63                  & \textbf{0.74}        & \textbf{0.68}         & --                     & --                      & --                     & --                      \\
+         GroundingDINO-z & 0.08                 & 0.21                  & 0.20                 & 0.25                  & --                     & --                      & --                     & --                      \\
+         YOLO-v9-p       & 0.41                 & 0.59                  & 0.50                 & 0.42                  & --                     & --                      & --                     & --                      \\
+         YOLO-v9-s       & 0.33                 & 0.41                  & 0.44                 & 0.37                  & --                     & --                      & --                     & --                      \\
+        \bottomrule
+        \end{tabular}
+    \end{subtable}
+
+  \hfill % Add horizontal space between the subfigures
+
+    \begin{subtable}[b]{\textwidth} % Adjust width as needed
+    \caption{Test (n=121)}
+    \centering
+        \begin{tabular}{lllllllll}
+        \toprule
+         Model      & \makecell{AP\\Box}   & \makecell{AUC\\Box}   & \makecell{F1\\Box}   & \makecell{TPR\\Box}   & \makecell{AP\\Pixel}   & \makecell{AUC\\Pixel}   & \makecell{F1\\Pixel}   & \makecell{TPR\\Pixel}     \\
+        \midrule
+         MaskRCNN-p      & 0.61          & \textbf{0.70} & 0.65          & 0.60          & \textbf{0.81} & \textbf{0.85} & \textbf{0.78} & \textbf{0.73} \\
+         MaskRCNN-s      & 0.25          & 0.47          & 0.34          & 0.30          & 0.39          & 0.80          & 0.41          & 0.44          \\
+         VIT-sseg-s      & 0.39          & 0.40          & 0.52          & 0.41          & 0.41          & 0.82          & 0.48          & 0.37          \\
+         GroundingDINO-t & \textbf{0.70} & 0.67          & \textbf{0.76} & \textbf{0.68} & --            & --            & --            & --            \\
+         GroundingDINO-z & 0.23          & 0.30          & 0.39          & 0.38          & --            & --            & --            & --            \\
+         YOLO-v9-p       & 0.44          & 0.55          & 0.51          & 0.50          & --            & --            & --            & --            \\
+         YOLO-v9-s       & 0.36          & 0.36          & 0.48          & 0.37          & --            & --            & --            & --            \\
+        \bottomrule
+        \end{tabular}
+    \end{subtable}
+
+\end{table}
+
+% Define confusion matrix colors
+\definecolor{fpred}{HTML}{F42836} % predicted false positive
+\definecolor{tppred}{HTML}{0068C7} % predicted true positive
+\definecolor{fntrue}{HTML}{800080} % true false negative
+\definecolor{tptrue}{HTML}{3EAE2B} % true true positive
+\definecolor{neutral}{HTML}{242A37} % background / true negative
+
+
+\newcommand{\FP}{\textcolor{fpred}{false positive}}
+\newcommand{\TPpred}{\textcolor{tppred}{true-positive prediction}}
+\newcommand{\FN}{\textcolor{fntrue}{false negative}}
+\newcommand{\TPtrue}{\textcolor{tptrue}{true positive (GT)}}
+\newcommand{\TN}{\textcolor{neutral}{true negative}}
+
+
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/vali_imgs691_99b22ad0.kwcoco/results_geowatch-scratch_heatmap_confusion_components.jpg}%
+\hfill
+(a) VIT-sseg-scratch (validation set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/vali_imgs691_99b22ad0.kwcoco/results_detectron-pretrained_heatmap_confusion_components.jpg}%
+\hfill
+(b) MaskRCNN-pretrained (validation set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/vali_imgs691_99b22ad0.kwcoco/results_detectron-scratch_heatmap_confusion_components.jpg}%
+\hfill
+(c) MaskRCNN-scratch (validation set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/vali_imgs691_99b22ad0.kwcoco/results_yolo_v9-scratch_detection_confusion.jpg}%
+\hfill
+(d) YOLO-v9-scratch (validation set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/vali_imgs691_99b22ad0.kwcoco/results_yolo_v9-pretrained_detection_confusion.jpg}%
+\hfill
+(e) YOLO-v9-pretrained (validation set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/vali_imgs691_99b22ad0.kwcoco/results_grounding_dino-zero_detection_confusion.jpg}%
+\hfill
+(f) GroundingDINO-zero-shot (validation set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/vali_imgs691_99b22ad0.kwcoco/results_grounding_dino-tuned_detection_confusion.jpg}%
+\hfill
+(g) GroundingDINO-tuned (validation set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/vali_imgs691_99b22ad0.kwcoco/results_input_images.jpg}%
+\hfill
+(h) Inputs from the validation set
+\caption[]{
+    Qualitative results from validation-selected models applied to the same validation images.
+    Subfigures (a-c) show results for VIT and MaskRCNN, including both the binarized classification map 
+    (\textcolor{tptrue}{true positives in green}, 
+     \textcolor{fpred}{false positives in red}, 
+     \textcolor{fntrue}{false negatives in purple}, 
+     \textcolor{neutral}{true negatives in black}) 
+    and the predicted heatmap before binarization.  
+    Subfigures (d-g) show bounding-box detections from YOLO-v9 and Grounding DINO, using the same color scheme 
+    (\textcolor{tppred}{blue = true-positive predicted boxes}; 
+     \textcolor{tptrue}{green = matched ground truth}).
+    Subfigure (h) shows the input image.
+}
+\label{fig:vali_results_all_models}
+\end{figure*}
+
+\begin{figure*}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/test_imgs121_6cb3b6ff.kwcoco/results_geowatch-scratch_heatmap_confusion_components.jpg}%
+\hfill
+(a) VIT-sseg-scratch (test set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/test_imgs121_6cb3b6ff.kwcoco/results_detectron-pretrained_heatmap_confusion_components.jpg}%
+\hfill
+(b) MaskRCNN-pretrained (test set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/test_imgs121_6cb3b6ff.kwcoco/results_detectron-scratch_heatmap_confusion_components.jpg}%
+\hfill
+(c) MaskRCNN-scratch (test set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/test_imgs121_6cb3b6ff.kwcoco/results_yolo_v9-scratch_detection_confusion.jpg}%
+\hfill
+(d) YOLO-v9-scratch (test set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/test_imgs121_6cb3b6ff.kwcoco/results_yolo_v9-pretrained_detection_confusion.jpg}%
+\hfill
+(e) YOLO-v9-pretrained (test set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/test_imgs121_6cb3b6ff.kwcoco/results_grounding_dino-zero_detection_confusion.jpg}%
+\hfill
+(f) GroundingDINO-zero-shot (test set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/test_imgs121_6cb3b6ff.kwcoco/results_grounding_dino-tuned_detection_confusion.jpg}%
+\hfill
+(g) GroundingDINO-tuned (test set results)
+\includegraphics[width=1.0\textwidth]{figures/agg_viz_results2/test_imgs121_6cb3b6ff.kwcoco/results_input_images.jpg}%
+\hfill
+(h) Inputs from the test set
+\caption[]{
+    %Qualitative results using the top-performing models on the validation set.
+    %Qualitative results from the top model on the validation set, applied to test images.
+    %The first three subfigures (a, b, c) are results for VIT and MaskRCNN, and display a binarized classification map (true positives in green, false
+    %positives in red, false negatives in purple, true negatives in black) and the predicted heatmap (before
+    %binarization). 
+    %The next four subfigures (d, e, f, g) are bounding box results from YOLO-v9
+    %and Grounding DINO (boxes are drawn in a similar color scheme, with blue
+    %boxes being the true positive predicted boxes, whereas green are the
+    %matched ground truth).
+    %The final subfigure (h) shows the input image.
+    %Failures occur with close-up or deteriorated objects, and camouflage.
+    Qualitative results from validation-selected models applied to test images.
+    Subfigures (a-c) show results for VIT and MaskRCNN, including both the binarized classification map
+    (\textcolor{tptrue}{true positives in green}, 
+     \textcolor{fpred}{false positives in red}, 
+     \textcolor{fntrue}{false negatives in purple}, 
+     \textcolor{neutral}{true negatives in black}) 
+    and the predicted heatmap before binarization.  
+    Subfigures (d-g) show bounding-box detections from YOLO-v9 and Grounding DINO, using the same color scheme 
+    (\textcolor{tppred}{blue = true-positive predicted boxes}; 
+     \textcolor{tptrue}{green = matched ground truth}).
+    Subfigure (h) shows the input image.
+}
+\label{fig:test_results_all_models}
+\end{figure*}
+
+
+All models were trained on a single machine with an Intel Core i9-11900K CPU and an NVIDIA GeForce RTX 3090 GPU. 
+Our environmental impact
+\footnote{For the most demanding experiments (VIT and MaskRCNN), prediction and evaluation took 15.6 days, consuming 109.63 kWh and emitting 23.0~\cotwo~kg (CodeCarbon \cite{lacoste2019codecarbon}). Training was estimated at 159.66 days and 1321.99 kWh, yielding 277.61~\cotwo~kg, assuming a 345W GPU draw and a 0.21~$\frac{\textrm{kg}\cotwo{}}{\textrm{kWh}}$ emission factor. At $\$0.16$/kWh and $\$25$/tonne~\cotwo, total cost was \$229.06. More details in in \Cref{environmental_impact}.}
+was minimal.
+
+%\footnote{The total time spent on prediction and evaluation across all experiments was 15.6 days, with prediction consuming 109.63 kWh of energy and causing an estimated emissions of 23.0 \cotwo kg as measured by CodeCarbon \cite{lacoste2019codecarbon}. We estimated train-time resource usage using indirect methods, assuming a constant power draw of 345W from the RTX 3090 GPU. Energy consumption was approximated accordingly, and emissions were calculated using a conversion ratio of 0.21 $\frac{\textrm{kg}\cotwo{}}{\textrm{kWh}}$ derived from our prediction-time measurements. Based on file timestamps, we estimated that running 44 different training runs took approximately 159.66 days, resulting in an estimated energy usage and emissions of 1321.99 kWh and 277.612 $\cotwo$ kg, respectively. At $\frac{\$0.16}{\textrm{kWh}}$ and $\frac{\$25.00}{1000 \cotwo \textrm{kg}}$, the cost of training and evaluation was approximately \$229.06.}

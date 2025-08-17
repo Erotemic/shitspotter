@@ -1,0 +1,98 @@
+\section{Dataset Transfer Experiment}
+
+Our third contribution is an experiment that studies transfer rates of decentralized and centralized data
+  distribution methods.
+For centralized distribution, we use a self-hosted instance of Girder~\cite{girder_2024} and the HuggingFace
+  datasets~\cite{huggingface_datasets} platform.
+For decentralized clients, we use Transmission~\cite{transmission_2024} (BitTorrent) and
+  Kubo~\cite{ipfskubo_2024} (IPFS).
+As a baseline, we also measure direct transfers using Rsync~\cite{rsyncprojectrsync_2024}.
+
+For data transfer experiments, we use the 2024-07-03 version of the dataset. 
+This is content-addressed with the IPFS CID (content identifier):
+\texttt{\seqsplit{bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y}}.
+%{\tt bafybei edwp2zvmdyb2c 2axrcl455xfbv 2mgdbhgkc3dil e4dftiimwth2y}.
+%{\tt bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y}.
+%\begin{lstlisting}[basicstyle=\normalsize]
+%bafybeiedwp2zvmdyb2c2axrcl455x
+%fbv2mgdbhgkc3dile4dftiimwth2y
+%\end{lstlisting}
+The torrent has a magnet URL of:
+\texttt{\seqsplit{magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49}},
+%{\tt magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49},
+and is tracked on Academic Torrents \cite{academic_torrents_Cohen2014}.
+%\begin{lstlisting}[basicstyle=\normalsize]
+%\end{lstlisting}
+More details are in \Cref{sec:datset_discuss}.
+
+\begin{table}[t]
+\caption{
+Transfer times (in hours) for our 42GB dataset: trials (n), mean ($\mu$), std ($\sigma$).
+Each experiment was run 5 times.
+Uncompressed transfers provide granular access to individual files, while compressed transfers are faster.
+}
+\label{tab:transfertime}
+\centering
+\setlength{\tabcolsep}{4.5pt} % Adjusted padding for new column
+\begin{tabular}{lcrrrr}
+\toprule
+Method       & Compressed & $\mu$     & $\sigma$ & Min    & Max     \\
+\midrule       
+BitTorrent   & No         & 8.36h     & 5.16h    & 2.21h  & 14.39h  \\
+IPFS         & No         & 10.68h    & 9.54h    & 1.80h  & 24.62h  \\
+Rsync        & No         & 4.84h     & 1.39h    & 3.10h  & 6.10h   \\
+Girder       & Yes        & 2.85h     & 2.31h    & 1.05h  & 6.24h   \\
+HuggingFace  & Yes        & \bf{0.14h}& 0.03h    & 0.11h  & 0.18h   \\
+Rsync        & Yes        & 1.10h     & 0.03h    & 1.07h  & 1.13h   \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+
+
+%%\begin{wraptable}{r}{0.5\textwidth}
+%%\small
+%\begin{table}[t]
+%%\vspace{-1.2em} % optional tweak
+%\caption[]{
+%Transfer times (in hours) for our 42GB dataset: trials (n), mean (\mu), std (\sigma).
+%Each experiment was run 5 times.
+%Suffix (-u) means uncompressed, (-c) means compressed.
+%Uncompressed transfers provide granular access to individual files, but compressed transfers are faster.
+%}
+%\label{tab:transfertime}
+%\centering
+%\setlength{\tabcolsep}{5.35pt} % Reduce horizontal padding
+%\begin{tabular}{lrrrr}
+%\toprule
+%{}           &        \mu &     \sigma &   Min &    Max \\
+%Method       &            &            &       &        \\
+%\midrule       
+%BitTorrent-u &      8.36h &      5.16h & 2.21h & 14.39h \\
+%IPFS-u       &     10.68h &      9.54h & 1.80h & 24.62h \\
+%Rsync-u      &      4.84h &      1.39h & 3.10h &  6.10h \\
+%Girder-c     &      2.85h &      2.31h & 1.05h &  6.24h \\
+%HuggingFace-c & \bf{0.14h} &      0.03h & 0.11h &  0.18h \\
+%Rsync-c      &      1.10h &      0.03h & 1.07h &  1.13h \\
+%\bottomrule
+%\end{tabular}
+%%\end{wraptable}
+%\end{table}
+
+% https://huggingface.co/papers/2307.12169
+% https://github.com/huggingface/hf_transfer
+% https://github.com/huggingface/datasets
+% https://arxiv.org/pdf/1804.07617
+
+
+The HuggingFace results stand out, as they are faster than rsync.
+We believe this is due to an optimized client and content delivery networks, utilizing CAKE
+  \cite{hoiland2018piece} to minimize buffer bloat \cite{gettys2012bufferbloat}.
+However, this speed relies on costly centralized infrastructure.
+The expected speed from a more modest centralized service is $\sim\!20\times$ slower.
+
+There is an additional $\sim\!4\times$  slowdown between compressed and uncompressed rsync baselines, which needs to be
+  considered when comparing decentralized results.
+The minimum time column shows that decentralized methods method can be competitive with rsync, but on
+  average decentralized mechanisms are significantly slower and can be stifled by long peer-discovery times.
