@@ -228,7 +228,7 @@ def process_image_rows(image_rows, coco_dset=None):
         gpath = row['gpath']
 
         file_name = ub.Path(gpath).relative_to(bundle_dpath)
-        if os.fspath(file_name) in coco_dset.index.file_name_to_img:
+        if os.fspath(file_name) in coco_dset.index.file_name_to_img or './' + os.fspath(file_name) in coco_dset.index.file_name_to_img:
             # Skip existing images
             continue
 

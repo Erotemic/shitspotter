@@ -123,7 +123,7 @@ The following `IPNS <https://docs.ipfs.tech/concepts/ipns/>`_ address should alw
 `/ipns/k51qzi5uqu5dje1ees96dtsoslauh124drt5ajrtr85j12ae7fwsfhxb07shit <https://ipfs.io/ipns/k51qzi5uqu5dje1ees96dtsoslauh124drt5ajrtr85j12ae7fwsfhxb07shit>`_.
 
 This should resolve to the most recent `IPFS CID <https://docs.ipfs.tech/concepts/content-addressing/>`_ (Content Identifier) of:
-`/ipfs/bafybeidfxayyacq4jbbhjcxbxumqlspmsmkj52nq2ns4vfew5udgysocoy <https://ipfs.io/ipfs/QmQonrckXZq37ZHDoRGN4xVBkqedvJRgYyzp2aBC5Ujpyp?redirectURL=bafybeidfxayyacq4jbbhjcxbxumqlspmsmkj52nq2ns4vfew5udgysocoy&autoadapt=0&requiresorigin=0&web3domain=0&immediatecontinue=1&magiclibraryconfirmation=0>`_.
+`/ipfs/bafybeigzy526fesd6hfgflorwymum66lixzzgob6rktiv7epvsyyt6e4me <https://ipfs.io/ipfs/QmQonrckXZq37ZHDoRGN4xVBkqedvJRgYyzp2aBC5Ujpyp?redirectURL=bafybeigzy526fesd6hfgflorwymum66lixzzgob6rktiv7epvsyyt6e4me&autoadapt=0&requiresorigin=0&web3domain=0&immediatecontinue=1&magiclibraryconfirmation=0>`_.
 
 This can be viewed in a webbrowser through an IPFS gateway:
 
@@ -394,6 +394,8 @@ registration via the SIFT+RANSAC algorithm.
 | 2025-04-20  | 9175     | ~3189               | 2316                  | 3198                  | bafybeia2uv3ea3aoz27ytiwbyudrjzblfuen47hm6tyfrjt6dgf6iadta4  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 | 2025-07-04  | 9790     | ~3394               | 2444                  | 3406                  | bafybeidfxayyacq4jbbhjcxbxumqlspmsmkj52nq2ns4vfew5udgysocoy  |
++-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
+| 2025-08-19  | 10143   |  ~3511               | 2517                  | 3523                  | bafybeigzy526fesd6hfgflorwymum66lixzzgob6rktiv7epvsyyt6e4me  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 
 

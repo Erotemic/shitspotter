@@ -59,10 +59,8 @@ class RemoteFromPhoneConfig(scfg.DataConfig):
 
         """
         # STEP 1:
-        config = RemoteFromPhoneConfig.cli(argv=argv, strict=True, data=kwargs)
-        import rich
-        if config.verbose:
-            rich.print('config = {}'.format(ub.urepr(config, nl=1)))
+        config = RemoteFromPhoneConfig.cli(argv=argv, strict=True, data=kwargs,
+                                           verbose='auto')
         # Import to make sure they are installed
         import shitspotter  # NOQA
         import xdev  # NOQA

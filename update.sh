@@ -33,3 +33,9 @@ python -m shitspotter.matching autofind_pair_hueristic
 
 # The plots script
 python -m shitspotter.plots update_analysis_plots
+
+        python -m shitspotter.gather_from_staging \
+            --staging_dpath '/home/joncrall/data/dvc-repos/shitspotter_staging' \
+            --shitspotter_dvc_dpath '/home/joncrall/data/dvc-repos/shitspotter_dvc' \
+            --staging_shit_dpath '/home/joncrall/data/dvc-repos/shitspotter_staging/assets/poop-2025-08-18-T130736'
+
