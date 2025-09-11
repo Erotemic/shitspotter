@@ -67,12 +67,23 @@ cd $HOME/code/shitspotter/shitspotter_dvc
 date
 kwcoco stats data.kwcoco.json 
 
-  n_anns  n_cats  n_imgs  n_tracks  n_videos
-    4386       3    6648         0         0
+  n_anns  n_imgs  n_videos  n_cats  n_tracks
+    7358   10143         0      36         0
 
+    ..
+    rock               11
+    helicopterseed     13
+    ignore             13
+    stick              13
+    unknown            14
+    pine-cone          16
+    leaf              151
+    poop             7058
+
+
+Wed Sep 10 06:28:25 PM EDT 2025
 ```
 
-1986 Poop Annotations. @ Sun Dec 10 07:20:05 PM EST 2023
 
 
 3. **Does the dataset contain all possible instances or is it a sample (not necessarily random) of instances from a larger set?** If the dataset is a sample, then what is the larger set? Is the sample representative of the larger set (e.g. geographic coverage)? If so, please describe how this representativeness was validated/verified. If it is not representative of the larger set, please describe why not (e.g. to cover a more diverse range of instances, because instances were withheld or unavailable).
@@ -85,7 +96,8 @@ kwcoco stats data.kwcoco.json
 
 5. **Is there a label or target associated with each instance?** If so, please provide a description.
 
-	Currently, polygons are only labeled as poop. This may change in the future.
+	Initial images only contain polygons labeled as poop. 
+    Later images label false positive detections as a non-poop class from seed models.
 
 6. **Is any information missing from individual instances?** If so, please provide a description, explaining why this information is missing (e.g. because it was unavailable). This does not include intentionally removed information, but might include, e.g. redacted text.
 
@@ -104,6 +116,8 @@ kwcoco stats data.kwcoco.json
     split between training and validation. On the nth day of the year, images
     are in the validation set if n % 3 == 0 else they are in the training set.
 
+    TODO: update this.
+
 9. **Are there any errors, sources of noise, or redundancies in the dataset?** If so, please provide a description.
 
 	Yes, some images were not taken according to the "before,after,negative" protocol.
@@ -114,11 +128,11 @@ kwcoco stats data.kwcoco.json
 
 11. **Does the dataset contain data that might be considered confidential (e.g. data that is protected by legal privilege or by doctor-patient confidentiality, data that includes the content of individuals' non-public communications)?** If so, please provide a description.
 
-	No, I don't think so.
+	Some EXIF data may be removed or privatized - i.e. encrypted.
 
 12. **Does the dataset contain data that, if viewed directly, might be offensive, insulting, threatening, or might otherwise cause anxiety?** If so, please describe why.
 
-	Yes. Some people might find poop offensive, and viewing it may cause anxiety.
+	Yes. Some people might find poop offensive, and viewing it may cause anxiety. I don't envision it escalating beyond that.
 
 13. **Does the dataset relate to people?** If not, you may skip the remaining questions in this section.
 
@@ -134,7 +148,7 @@ kwcoco stats data.kwcoco.json
 
 16. **Does the dataset contain data that might be considered sensitive in any way (e.g. data that reveals racial or ethnic origins, sexual orientations, religious beliefs, political opinions or union memberships, or locations; financial or health data; biometric or genetic data; forms of government identification, such as social security numbers; criminal history)?** If so, please provide a description.
 
-    No. I don't think that images of poop qualify as sensitive. 
+    No. I don't think that images of poop qualify as sensitive. The images themselves can contain GPS information in the EXIF data, which is removed or privatized if requested.
 
 17. **Any other comments?**
 
@@ -147,7 +161,7 @@ kwcoco stats data.kwcoco.json
 
 1. **How was the data associated with each instance acquired?** Was the data directly observable (e.g. raw text, movie ratings), reported by subjects (e.g. survey responses), or indirectly inferred/derived from other data (e.g. part-of-speech tags, model-based guesses for age or language)? If data was reported by subjects or indirectly inferred/derived from other data, was the data validated/verified? If so, please describe how.
 
-	Images were labeled with with both manual and AI-assited (SegmentAnythingModel) polygons.
+	Images were labeled with with both manual and AI-assited (SegmentAnythingModel) polygons. Additionally, annotations for recent cohorts (TODO: when?) are initialized with a model trained on earlier data and then manually reviewed / edited.
 
 2. **What mechanisms or procedures were used to collect the data (e.g. hardware apparatus or sensor, manual human curation, software program, software API)?** How were these mechanisms or procedures validated?
 
@@ -155,7 +169,7 @@ kwcoco stats data.kwcoco.json
 
 3. **If the dataset is a sample from a larger set, what was the sampling strategy (e.g. deterministic, probabilistic with specific sampling probabilities)?**
 
-	It is a subset of the set of all possible images of dog poop. It is not a subset or generated from some other dataset, these are all original phone images taken for the purpose of constructing this dataset.
+	No. These are original images taken for the purpose of building this dataset. However, in a mathematical sense it is a subset of the set of all possible images of dog poop. It is not a subset or generated from some other dataset, these are all original phone images taken for the purpose of constructing this dataset.
 
 4. **Who was involved in the data collection process (e.g. students, crowdworkers, contractors) and how were they compensated (e.g. how much were crowdworkers paid)?**
 
@@ -204,21 +218,26 @@ kwcoco stats data.kwcoco.json
 
 1. **Was any preprocessing/cleaning/labeling of the data done (e.g. discretization or bucketing, tokenization, part-of-speech tagging, SIFT feature extraction, removal of instances, processing of missing values)?** If so, please provide a description. If not, you may skip the remainder of the questions in this section.
 
-    All data is provided as recieved. 
+    All data is provided as recieved, except if the EXIF tags are removed / privatized. 
 
 2. **Was the "raw" data saved in addition to the preprocessed/cleaned/labeled data (e.g. to support unanticipated future uses)?** If so, please provide a link or other access point to the "raw" data.
 
-    Yes, the data is stored in its original form as given by the phone.
+    Yes, the data is stored in its original form as given by the phone. Except
+    in cases where data in the EXIF metadata is removed or privatized. These
+    are marked as "scrubbed". For privatized cases the data necessary to
+    "rehydrate" the raw data is locked behind strong encryption and stored with
+    the dataset.
 
 3. **Is the software used to preprocess/clean/label the instances available?** If so, please provide a link or other access point.
 
     Software on the phone may include post processing. I'm unaware of what these methods are.
+    EXIF metadata may be stripped out.
 
 4. **Any other comments?**
 
     Several attributes like precomputed homographies between the "before/after" images are
-    provided in the IPFS distribution as a lightweight cache, and the shitspotter codebase 
-    contains 
+    provided in the IPFS/torrent distribution as a lightweight cache.  Also
+    models and some artifacts are also included in the distributions.
 
 
 ## Uses
@@ -234,11 +253,22 @@ kwcoco stats data.kwcoco.json
     Currently there are none that I know of, but the main README will be
     updated with this information: https://github.com/Erotemic/shitspotter
 
+    A copy of relevant links is as follows:
+
+    https://www.arxiv.org/abs/2412.16473
+
+    https://huggingface.co/datasets/erotemic/shitspotter
+
+    https://academictorrents.com/details/27a2512ae93298f75544be6d2d629dfb186f86cf
+
 3. **What (other) tasks could the dataset be used for?**
 
     There is a potential to classify different types of poop from different
     species.  Images contain other content such as local park scenery, grass,
     leafs. Additional annotations could be placed on those objets for other tasks.
+
+    This could also be used to help pretrain more generic poop detection models
+    for other species.
 
 4. **Is there anything about the composition of the dataset or the way it was collected and preprocessed/cleaned/labeled that might impact future uses?** For example, is there anything that a future user might need to know to avoid uses that could result in unfair treatment of individuals or groups (e.g. stereotyping, quality of service issues) or other undesirable harms (e.g. financial harms, legal risks) If so, please provide a description. Is there anything a future user could do to mitigate these undesirable harms?
 
@@ -250,7 +280,10 @@ kwcoco stats data.kwcoco.json
 
 5. **Are there tasks for which the dataset should not be used?** If so, please provide a description.
 
-	Nothing comes to mind.
+    No serious answer comes to mind. I think it could be used for immature,
+    rude, or satirical purposes (i.e. related to poop related image
+    generation), but these uses are benign, unlikely to be solely enabled by
+    this dataset, and should be protected as free expression.
 
 6. **Any other comments?**
 
@@ -273,11 +306,11 @@ kwcoco stats data.kwcoco.json
 
 2. **How will the dataset will be distributed (e.g. tarball on website, API, GitHub)?** Does the dataset have a digital object identifier (DOI)?
 
-	No DOI yet. It is being made available via IPFS, BitTorrent, and centralized means.
+	No DOI yet. It is available via IPFS, BitTorrent, and centralized means.
 
 3. **When will the dataset be distributed?**
 
-	I update about once a month.
+	I update about once a month. At some point I will deem the dataset complete and stop, that likely will not happen until I have 10,000 images with poop in it. Based on this criterion, I estimate full completion by 2032-2035, but if it is determined that adding new data has no benefit to downstream models, then updates could stop earlier.
 
 4. **Will the dataset be distributed under a copyright or other intellectual property (IP) license, and/or under applicable terms of use (ToU)?** If so, please describe this license and/or ToU, and provide a link or other access point to, or otherwise reproduce, any relevant licensing terms or ToU, as well as any fees associated with these restrictions.
 
@@ -323,8 +356,9 @@ kwcoco stats data.kwcoco.json
 
 6. **Will older versions of the dataset continue to be supported/hosted/maintained?** If so, please describe how. If not, please describe how its obsolescence will be communicated to users.
 
-    Possibly, as long as the IPFS CIDs remain alive. At the time of writing all
-    versions of the dataset should still be available. 
+    Possibly, as long as the IPFS CIDs remain alive, torrents are seeded, or
+    centralized mechanisms keep a copy. At the time of writing all versions of
+    the dataset should still be available. 
 
 7. **If others want to extend/augment/build on/contribute to the dataset, is there a mechanism for them to do so?** If so, please provide a description. Will these contributions be validated/verified? If so, please describe how. If not, why not? Is there a process for communicating/distributing these contributions to other users? If so, please provide a description.
 

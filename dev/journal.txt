@@ -396,7 +396,7 @@ tag_hist = {
 
 I need to think about this project's end state.
 
-When is the dataset big enought? I'm thinking I want about 10,000 images with
+When is the dataset big enough? I'm thinking I want about 10,000 images with
 good poop annotations as an arbitrary number. That will take about 7-10 more
 years at current growth rates.
 
@@ -407,7 +407,7 @@ But maybe the end state is really:
 
 # 2025-07-06
 
-Hadd meeting with Arshia, who is interseted in working on the project.
+Had meeting with Arshia, who is interseted in working on the project.
 
 Apparently I missed a bunch of related work.
 
@@ -458,3 +458,16 @@ pre-augmented images, which makes it hard to count the actual number.
 Whenever I log into my ipfs server after a long enough time, I always find that
 the service is dead. Maybe ChatGPT is good enough to help me fix this issue now.
 Put the code in my local dotfiles init/init_ipfs as a bash function
+
+# 2025-09-05
+
+TODO: look into https://github.com/tue-mps/eomt as a way to get foundational dino based segmentation
+
+
+# 2025-09-11
+
+More releated information:
+
+https://icwdm.org/identification/feces/scat-id/
+
+https://www.whopooapp.com/
