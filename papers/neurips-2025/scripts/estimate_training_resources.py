@@ -210,6 +210,9 @@ def estimate_for_recent_dino_and_yolo():
     new_total_eval_kwh=110.12
     new_total_eval_co2=23.04
 
+    Note, I'm getting some inconsistencies when trying to double check
+    and recompute all of these numbers, but we are still in the same ballpark.
+    It will be enough as these are reported as approximations.
     """
 
     new_total_eval_time = ((15.6 * reg.days) + (5.154444444444444 * reg.hours)).to('days')

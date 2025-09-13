@@ -26,29 +26,6 @@ and is tracked on Academic Torrents \cite{academic_torrents_Cohen2014}.
 %\end{lstlisting}
 More details in \Cref{sec:datset_discuss}.
 
-\begin{table}[t]
-\caption{
-Transfer times (in hours) for our 42GB dataset: trials (n), mean ($\mu$), std ($\sigma$).
-Each experiment was run 5 times.
-Uncompressed transfers provide granular access to individual files, while compressed transfers are faster.
-}
-\label{tab:transfertime}
-\centering
-\setlength{\tabcolsep}{4.5pt} % Adjusted padding for new column
-\begin{tabular}{lcrrrr}
-\toprule
-Method       & Compressed & $\mu$     & $\sigma$ & Min    & Max     \\
-\midrule       
-BitTorrent   & No         & 8.36h     & 5.16h    & 2.21h  & 14.39h  \\
-IPFS         & No         & 10.68h    & 9.54h    & 1.80h  & 24.62h  \\
-Rsync        & No         & 4.84h     & 1.39h    & 3.10h  & 6.10h   \\
-Girder       & Yes        & 2.85h     & 2.31h    & 1.05h  & 6.24h   \\
-HuggingFace  & Yes        & \bf{0.14h}& 0.03h    & 0.11h  & 0.18h   \\
-Rsync        & Yes        & 1.10h     & 0.03h    & 1.07h  & 1.13h   \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 %\FloatBarrier
 
 
@@ -95,5 +72,29 @@ The expected speed from a more modest centralized service is $\sim\!20\times$ sl
 
 There is an additional $\sim\!4\times$  slowdown between compressed and uncompressed rsync baselines, which needs to be
   considered when comparing decentralized results.
-The minimum time column shows that decentralized methods method can be competitive with rsync, but on
+The minimum time column shows that decentralized methods can be competitive with rsync, but on
   average decentralized mechanisms are significantly slower and can be stifled by long peer-discovery times.
+
+
+\begin{table}[hb]
+\caption{
+Transfer times (in hours) for our 42GB dataset: trials (n), mean ($\mu$), std ($\sigma$).
+Each experiment was run 5 times.
+Uncompressed transfers provide granular access to individual files, while compressed transfers are faster.
+}
+\label{tab:transfertime}
+\centering
+\setlength{\tabcolsep}{4.5pt} % Adjusted padding for new column
+\begin{tabular}{lcrrrr}
+\toprule
+Method       & Compressed & $\mu$     & $\sigma$ & Min    & Max     \\
+\midrule       
+BitTorrent   & No         & 8.36h     & 5.16h    & 2.21h  & 14.39h  \\
+IPFS         & No         & 10.68h    & 9.54h    & 1.80h  & 24.62h  \\
+Rsync        & No         & 4.84h     & 1.39h    & 3.10h  & 6.10h   \\
+Girder       & Yes        & 2.85h     & 2.31h    & 1.05h  & 6.24h   \\
+HuggingFace  & Yes        & \bf{0.14h}& 0.03h    & 0.11h  & 0.18h   \\
+Rsync        & Yes        & 1.10h     & 0.03h    & 1.07h  & 1.13h   \\
+\bottomrule
+\end{tabular}
+\end{table}

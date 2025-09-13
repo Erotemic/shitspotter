@@ -1448,6 +1448,7 @@ def report_resources(aggregators_rows):
     print(f'total_new_kwh={total_new_kwh}')
     print(f'total_new_time={total_new_time}')
     print(f'total_new_co2={total_new_co2}')
+    return deduped
 
 
 def bold_max_vals(df):

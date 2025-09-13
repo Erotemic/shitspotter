@@ -1,7 +1,7 @@
 VIT GeoWATCH Experiments
 ========================
 
-These experiments use the Author's GeoWATCH system to explore high resolution
+These experiments use the author's GeoWATCH system to explore high resolution
 segmentation of the dataset.
 
 For our 2025 paper, the training script that produced the model in the main

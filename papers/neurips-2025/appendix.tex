@@ -739,7 +739,7 @@ Train rows marked with an asterisk (*) are based on indirect measurements.
 
   \centering
   \begin{subtable}[b]{\textwidth} % Adjust width as needed
-    \caption{Presented experiment resources.}
+    \caption{Presented VIT experiment resources.}
     \centering
     \begin{tabular}{llllr}
     \toprule
@@ -761,14 +761,14 @@ Train rows marked with an asterisk (*) are based on indirect measurements.
   \hfill % Add horizontal space between the subfigures
 
   \begin{subtable}[b]{\textwidth} % Adjust width as needed
-    \caption{All experiment resources.}
+    \caption{All VIT experiment resources.}
     \centering
     \begin{tabular}{llllr}
     \toprule
             Node & Resource &           Total &            \mu &  n \\
     \midrule
     % Note: for presentation simplicity, we are rewriting the following row
-    % so num agrees with other rows. The reason the original value had an
+    % so num agrees with other rGws. The reason the original value had an
     % additional number is because of rerun of one evaluation with different
     % parameters.
     % eval & time & 4 days 14:18:23 & 00:20:07 &  330 \\
@@ -823,38 +823,25 @@ While our models demonstrate the feasibility of training a strong detector from 
 To deploy our model on mobile devices, we will need to improve its efficiency or explore more efficient
   architectures.
 
-The total time spent on prediction and evaluation across all experiments was 15.6 days, with prediction
-  consuming 109.63 kWh of energy and causing an estimated emissions of 23.0 \cotwo kg as measured by
-  CodeCarbon \cite{lacoste2019codecarbon}.
-We estimated train-time resource usage during training using indirect methods, assuming a constant power
-  draw of 345W from the RTX 3090 GPU.
-Energy consumption was approximated accordingly, while emissions were calculated using a conversion
-  ratio of 0.21 $\frac{\textrm{kg}\cotwo{}}{\textrm{kWh}}$ derived from our prediction time measurements.
-Based on file timestamps, we estimated that running 44 different training runs took approximately 159.66
-  days, resulting in an estimated energy usage and emissions of 1321.99 kWh and 277.612 $\cotwo$ kg,
-  respectively.
-For context, at $\frac{\$0.16}{\textrm{kWh}}$ and $\frac{\$25.00}{1000 \cotwo \textrm{kg}}$, the cost of training
-  and evaluating was $\$229.06$.
-
 \section{Environmental Impact} 
 \label{sec:general_environmental_impact}
 
-A footnote in the main paper reports the experiment costs:
-179.94 days,
-1469.08 kWh, 
-308.4~\cotwo~kg, 
-and a total cost of \$242.76.
-Costs are estimated assuming \$0.16 per kWh, \$25 per 1000~kg CO$_2$, 
-and an emission factor of 0.21~kg CO$_2$/kWh, with GPU power draw 
-approximated at 345W.
+A footnote in the main paper reports the experiment costs, here we expand on the details.
+These costs are the total over all runs in the development of this paper over different datasets, with
+  different numbers of runs per model, so it cannot be used to infer running time of the models.
+Instead it reports a component of the cost of performing this research.
+All costs are estimated assuming \$0.16 per kWh, \$25 per 1000~kg CO$_2$.
+The breakdown of resources used is given in \Cref{tab:resources_breakdown}.
 
-Training accounted for the majority of resource usage 
-(\Cref{tab:resources_breakdown}), with VIT models being the most 
-expensive to run (\Cref{sec:vit_environmental_impact}). The main reason is 
-that VIT experiments operated on half-resolution images 
-(2,016~$\times$~1,512) using 416~$\times$~416 patches, whereas 
-GroundingDINO, YOLO, and MaskRCNN were trained on smaller resized inputs 
-(e.g., 640~$\times$~640, 1066~$\times$~800, depending on framework defaults) without windowing.
+Training accounted for the majority of resource usage with VIT models being the most expensive to run
+  (\Cref{sec:vit_environmental_impact}).
+The main reason is that VIT experiments operated on half-resolution images (2,016~$\times$~1,512) using
+  416~$\times$~416 patches, whereas GroundingDINO, YOLO, and MaskRCNN were trained on smaller resized inputs
+  (e.g., 640~$\times$~640, 1066~$\times$~800, depending on framework defaults) without windowing.
+A second reason is that we trained many more VIT variants in a hyperparameter search, which was done before
+  easy to use foundational models became available.
+For training we estimated energy usage by measuring time and estimating GPU power draw approximated at 345W.
+To estimate emissions we used a factor of 0.21~kg CO$_2$/kWh.
 
 For prediction resources estimates, there is an important limitation.
 The system running experiments was equipped with two RTX~3090 GPUs, although only a single one was used for
@@ -864,34 +851,36 @@ However, due to our use of CodeCarbon, which counts entire system resources, som
 Not all experiments were run in parallel, but some were.
 Still our estimates provide an upper bound for the resources utilization and we the lower bound will at best
   be half of our reported numbers.
-This limitation does not apply to our training estimations, and thus our total numbers should be fairly
-  accurate.
+This limitation does not apply to our training estimations, which is the bulk of our cost, and thus our
+  total numbers should only slightly inflated.
 
-\begin{table}[t]
+\begin{table}[hb]
 \centering
 \caption{Resource usage for training and prediction by model family.
 Time is wall-clock duration on a single RTX~3090.
 Energy is electricity consumed.
-Emissions use a 0.21~kgCO$_2$/kWh factor.
-Cost is estimated at \$0.16/kWh electricity and \$25 per 1000~kg CO$_2$.
-TODO: Double check numbers.
-}
+Emissions use a 0.21~\cotwo kg/kWh factor.
+Cost is estimated at \$0.16/kWh electricity and \$25 per 1000~\cotwo kg.}
 \label{tab:resources_breakdown}
 \begin{tabular}{llrrrr}
 \toprule
-Phase & Model family   & Time (days) & Energy (kWh) & Emissions (kg CO$_2$) & Cost (USD) \\
+Phase & Model family   & Time (days) & Energy (kWh) & Emissions (\cotwo kg) & Cost (USD) \\
 \midrule
-Training
- & VIT-sseg (42 runs)      & 158.95 & 1316.07 & 276.37 & 217.48 \\
- & MaskRCNN (2 runs)       & 0.71   & 5.92    & 1.24   & 0.98 \\
- & YOLO-v9 (2 runs)        & 4.14   & 34.00   & 7.20   & 5.56 \\
- & Grounding DINO (2 runs) & 0.32   & 3.00    & 0.60   & 0.56 \\
- & \textbf{Total (training)} & \textbf{164.13} & \textbf{1358.96} & \textbf{285.40} & \textbf{224.57} \\
+Train
+ & VIT-sseg      & 158.95 & 1316.07 & 276.37 & 217.48 \\
+ & MaskRCNN      & 0.71   & 5.92    & 1.24   & 0.98 \\
+ & YOLO-v9       & 4.14   & 34.30   & 7.20   & 5.67 \\
+ & Grounding DINO& 0.32   & 2.68    & 0.56   & 0.44 \\
+ & \textbf{Total (training)} & \textbf{164.12} & \textbf{1358.96} & \textbf{285.38} & \textbf{224.57} \\
 \midrule
-Prediction
- & \textbf{Total (prediction)}      & \textbf{15.81} & \textbf{110.12} & \textbf{23.04} & \textbf{18.20} \\
+Test
+ & VIT-sseg      & 13.13  & 102.83  & 21.60   & 16.99 \\
+ & MaskRCNN      & 0.57   & 4.41    & 0.93    & 0.73 \\
+ & YOLO-v9       & 0.08   & 0.19    & 0.02    & 0.03 \\
+ & Grounding DINO& 0.13   & 0.29    & 0.02    & 0.05 \\
+ & \textbf{Total (prediction)} & \textbf{13.91} & \textbf{107.72} & \textbf{22.57} & \textbf{17.80} \\
 \midrule
-\multicolumn{2}{l}{\textbf{Overall total}} & \textbf{179.94} & \textbf{1469.08} & \textbf{308.44} & \textbf{242.77} \\
+\multicolumn{2}{l}{\textbf{Overall total}} & \textbf{178.03} & \textbf{1466.69} & \textbf{307.95} & \textbf{242.37} \\
 \bottomrule
 \end{tabular}
 \end{table}
