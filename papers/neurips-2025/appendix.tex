@@ -1,88 +1,9 @@
 \appendix
 
-\section{Expanded Dataset Information}
+\section{Dataset}
 
-In \Cref{sec:dataset} we provided an overview of several dataset statistics.
-In this appendix we expand on that with additional plots.
-The distribution of image pixel intensities is illustrated in \Cref{fig:spectra}.
-The distribution of images collected over time is shown in \Cref{fig:images_over_time}.
-The distribution of annotation location is shown in \Cref{fig:centroid_location_distri} and sizes is shown
-  in \Cref{fig:annot_obox_size_dist} and \Cref{fig:annot_area_verts_distri}.
-
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=1.0\textwidth]{figures/spectra.png}
-\caption[]{
-    The ``spectra'' or histogram of the pixel intensities in the dataset. 
-    The dataset RGB mean/std is $[117, 124, 100], [61, 59, 63]$. 
-    This was run on the older 2024-07-03 snapshot.
-}
-\label{fig:spectra}
-\end{figure}
-
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=1.0\textwidth]{figures/appendix/images_over_time.png}
-\caption[]{
-    The number of images collected over time.
-}
-\label{fig:images_over_time}
-\end{figure}
-
-
-\begin{figure}[ht]
-\centering
-\begin{subfigure}[b]{0.4\textwidth}
- \includegraphics[width=\textwidth]{figures/appendix/polygon_centroid_absolute_distribution.png}
- \caption{Absolute pixel coordinates.}
- \label{fig:centroid_abs}
-\end{subfigure}
-\hfill
-\begin{subfigure}[b]{0.4\textwidth}
- \includegraphics[width=\textwidth]{figures/appendix/polygon_centroid_relative_distribution.png}
- \caption{Relative image coordinates.}
- \label{fig:centroid_rel}
-\end{subfigure}
-\caption{The distribution of annotation centroids in terms of (a) absolute image coordinates and (b) relative image coordinates. The absolute centroid distribution is bimodal because some images are taken in landscape mode and other in portrait mode.}
-\label{fig:centroid_location_distri}
-\end{figure}
-
-
-\begin{figure}[ht]
-\centering
-\begin{subfigure}[b]{0.4\textwidth}
-  \includegraphics[width=\textwidth]{figures/appendix/obox_size_distribution_jointplot.png}
-  \caption{Linear scale.}
-  \label{fig:annot_obox_size_dist_linear}
-\end{subfigure}
-\hfill
-\begin{subfigure}[b]{0.4\textwidth}
-  \includegraphics[width=\textwidth]{figures/appendix/obox_size_distribution_logscale.png}
-  \caption{Log10 scale.}
-  \label{fig:annot_obox_size_dist_log}
-\end{subfigure}
-\caption{The distribution of annotation sizes as measured by an oriented bounding box fit to each polygon. (a) shows this plot on a linear scale and (b) show this plot on a log scale.}
-\label{fig:annot_obox_size_dist}
-\end{figure}
-
-
-\begin{figure}[ht]
-\centering
-\includegraphics[width=1.0\textwidth]{figures/appendix/polygon_area_vs_num_verts_jointplot.png}
-\caption[]{
-    The distribution of polygon areas versus the number of vertices in the polygon boundary.
-    The SAM model tends to produce polygons with a higher number of vertices
-    than manually drawn ones.  For smaller polygons there are two peaks in the
-    number of vertices histograms likely corresponding to pure-manual versus
-    AI-assisted annotations.
-}
-\label{fig:annot_area_verts_distri}
-\end{figure}
-
-
-\section{Expanded Dataset Comparison}
+\subsection{Additional Comparisons}
+\label{sec:expanded_relatedwork}
 
 In \Cref{sec:relatedwork} we compared to related work. Here we expand on this
 by comparing our analysis plots. Every dataset is converted into the COCO
@@ -148,23 +69,401 @@ for other comparable dataset metrics.
 \label{fig:combo_polygon_centroid_relative_distribution}
 \end{figure*}
 
+\FloatBarrier
 
-\section{Models Hyperparameters}
-\label{sec:model_hyperparams}
 
-In this section we provide details about hyperparameters for each model.
+\subsection{Additional Information}
+\label{sec:expanded_dataset}
 
-The VIT model ...
+In \Cref{sec:dataset} we provided an overview of several dataset statistics.
+In this appendix we expand on that with additional plots.
+The distribution of image pixel intensities is illustrated in \Cref{fig:spectra}.
+The distribution of images collected over time is shown in \Cref{fig:images_over_time}.
+The distribution of annotation location is shown in \Cref{fig:centroid_location_distri} and sizes is shown
+  in \Cref{fig:annot_obox_size_dist} and \Cref{fig:annot_area_verts_distri}.
 
-For GroundingDINO
 
-In the zero shot case, we use the \texttt{IDEA-Research/grounding-dino-tiny} zero-shot model from hugging face.
-In the main text, we evaluated 10 prompts and selected the best "animalfeces"
-based on the maximum validation set box-AP. Ablation is given in tableTODO.
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/spectra.png}
+\caption[]{
+    The ``spectra'' or histogram of the pixel intensities in the dataset. 
+    The dataset RGB mean/std is $[117, 124, 100], [61, 59, 63]$. 
+    High and low saturated values occur, but are included in the stats.
+    This was run on the older 2024-07-03 snapshot.
+}
+\label{fig:spectra}
+\end{figure}
 
-In the zero shot case 
 
-Grounding DINO zero-shot prompt ablation:
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/appendix/images_over_time.png}
+\caption[]{
+    The number of images collected over time.
+}
+\label{fig:images_over_time}
+\end{figure}
+
+
+\begin{figure}[ht]
+\centering
+\begin{subfigure}[b]{0.4\textwidth}
+ \includegraphics[width=\textwidth]{figures/appendix/polygon_centroid_absolute_distribution.png}
+ \caption{Absolute pixel coordinates.}
+ \label{fig:centroid_abs}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.4\textwidth}
+ \includegraphics[width=\textwidth]{figures/appendix/polygon_centroid_relative_distribution.png}
+ \caption{Relative image coordinates.}
+ \label{fig:centroid_rel}
+\end{subfigure}
+\caption{The distribution of annotation centroids in terms of (a) absolute image coordinates and (b) relative image coordinates. The absolute centroid distribution is bimodal because some images are taken in landscape mode and other in portrait mode.}
+\label{fig:centroid_location_distri}
+\end{figure}
+
+
+\begin{figure}[ht]
+\centering
+\begin{subfigure}[b]{0.4\textwidth}
+  \includegraphics[width=\textwidth]{figures/appendix/obox_size_distribution_jointplot.png}
+  \caption{Linear scale.}
+  \label{fig:annot_obox_size_dist_linear}
+\end{subfigure}
+\hfill
+\begin{subfigure}[b]{0.4\textwidth}
+  \includegraphics[width=\textwidth]{figures/appendix/obox_size_distribution_logscale.png}
+  \caption{Log10 scale.}
+  \label{fig:annot_obox_size_dist_log}
+\end{subfigure}
+\caption{The distribution of annotation sizes as measured by an oriented bounding box fit to each polygon. (a) shows this plot on a linear scale and (b) show this plot on a log scale.}
+\label{fig:annot_obox_size_dist}
+\end{figure}
+
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=1.0\textwidth]{figures/appendix/polygon_area_vs_num_verts_jointplot.png}
+\caption[]{
+    The distribution of polygon areas versus the number of vertices in the polygon boundary.
+    The SAM model tends to produce polygons with a higher number of vertices
+    than manually drawn ones.  For smaller polygons there are two peaks in the
+    number of vertices histograms likely corresponding to pure-manual versus
+    AI-assisted annotations.
+}
+\label{fig:annot_area_verts_distri}
+\end{figure}
+
+\FloatBarrier
+
+
+\section{Data Distribution \& Transfer}
+\label{sec:distribution}
+
+%Report training time, energy usage, and carbon footprint with details in supplemental materials.
+\begin{comment}
+import pint
+reg = pint.UnitRegistry()
+reg.define('CO2 = []')
+reg.define('dollar = []')
+kwh = reg.Unit('kilowatt/hour')
+energy_cost = 0.16 * reg.dollar / (kwh)
+emission_cost = 25 * reg.dollar / (1000 * reg.CO2 * reg.metric_ton)
+energy = 1321.99 * kwh
+emission = 277.612 * reg.CO2 * reg.kg
+train = (energy * energy_cost + emission * emission_cost)
+
+energy = 109.63 * kwh
+emission = 23 * reg.CO2 * reg.kg
+eval = (energy * energy_cost + emission * emission_cost)
+
+train + eval
+\end{comment}
+  
+
+%train$^{*}$ & time        & 158.95 days      &     3.78 days  &   42 \\
+%train$^{*}$ & energy      & 1,316.07 kWh     &     31.34 kWh  &   42 \\
+%train$^{*}$ & emissions   & 276.37 \cotwo kg & 6.58 \cotwo kg &   42 \\
+
+%todo: train time resource usage for maskrcnn and vit, reacnknowledge
+%limitation, break down results over each.
+
+
+%In our context we are mainly concerned with making the data available.
+%In other words, given a content identifier, how long does it take to programmatically access the data?
+  
+%For a comparison of IPFS and BitTorrent on the protocol level see \cite{zebedee_comparing_2023}.
+%Another candidate system is a newer similar tool called IPFS (InterPlanetary File System)
+%  \cite{benet_ipfs_2014, bieri_overview_2021}.
+%To quote the authors:
+%"IPFS could be seen as a single BitTorrent swarm, exchanging objects within one Git repository".
+%All data down to the block level is content addressable and stored in a Merkle DAG, which can simplify data
+%  versioning compared to using a torrent.
+
+
+%The challenge lies in the fact that designing and documenting an experiment
+%sufficiently for reproducibility requires substantial effort and is prone to
+%error. We suggest that reducing the friction in accessing the necessary data
+%could improve these success rates. Specifically, this involves codifying data
+%download and preparation processes. Datasets that are available via decentralized
+%and content-addressable are particularly advantageous, as they can guarantee
+%the integrity of the data prevent the issue of dead URLs.
+
+%Centralized data distribution has many advantages. It is fast and has low
+%traffic overhead. However, it is prone to failure.  
+%Cloud storage for a modest amount of data can be expensive.
+
+%In contrast, Decentralized methods can allow information to persist so long as
+%at least 1 person has the data.
+
+%However, there are certain drawbacks of decentralized dataset distribution to
+%consider. One significant limitation is the potentially substantial connection
+%time required to link with peers, particularly when the data lacks a sufficient
+%number of "seeders". Furthermore there needs to be a mechanism to connect to
+%peers that can share the data.
+
+
+%For our purposes we 
+
+%%IPFS vs BitTorrent:
+%For a comparison of IPFS and BitTorrent on the protocol level see
+%\cite{zebedee_comparing_2023}. In our context we are mainly concerned with
+%making the data available.
+
+%the main metric we care about is how easy 
+
+%Both IPFS and BitTorrent are both effectively
+%content addressable at the dataset level, which makes them both appropriate for our use case.
+
+%We
+%care about accessing the data quickly in order to use it.  Thus, our comparison
+%is going to focus on download-time measurements.
+%Both of which have the ability to use the Kademlia - distributed hash table (DHT) \cite{maymounkov_kademlia_2002}.
+%IPFS always uses its DHT, where as BitTorrent the Kademlia-based Mainline
+%Tracker can be disabled in favor of 3rd party trackers.
+% Overview and comparison of protocols via github gist:
+% https://gist.github.com/liamzebedee/224494052fb6037d07a4293ceca9d6e7
+% https://gist.github.com/liamzebedee/4be7d3a551c6cddb24a279c4621db74c
+%[Steiner, En-Najjary, Biersack 2022]
+% See Also:
+% Long Term Study of Peer Behavior in the KAD DHT
+% https://git.gnunet.org/bibliography.git/plain/docs/Long_Term_Study_of_Peer_Behavior_in_the_kad_DHT.pdf
+% We have been crawling the entire KAD network once a day for more than a year to track end-users with static
+% IP addresses, which allows us to estimate end-user lifetime and the fraction of end-users changing their KAD ID.
+
+%Both BitTorrent (starting with the v2 protocol introduced in 2017 \cite{cohen_bittorrent_2017}) and IPFS have the capability to recognize when two torrents or content identifiers (CIDs) contain the same file. This enables seeders to provide files to downloaders of either torrent or CID, enhancing the availability and redundancy of the data.
+%Both BitTorrent (as of 2017 in the v2 protocol \cite{cohen_bittorrent_2017})
+%and IPFS can recognize that two torrents/CID include the same file and seeders
+%can provide files to downloaders of the other.
+
+
+%Additionally, storing data in the cloud can become prohibitively expensive,
+%even for modest amounts of data. In contrast, decentralized methods allow
+%information to persist as long as at least one individual retains the data.
+
+%Discuss distributing the dataset via IPFS versus centralized distribution
+%systems.
+%Decentralized Method - IPFS and BitTorrent.
+%Centralized Method - Girder
+
+% BitTorrent can be vulnerable to MITM:
+% https://www.reddit.com/r/technology/comments/1dpinuw/south_korean_telecom_company_attacks_torrent/
+
+In \Cref{sec:dataset_transfer} we briefly presented a brief set of data distribution experiments.
+Here, we provide more background detail, motivation, and discussion.
+
+Empirical evidence suggests that a substantial proportion of scientific studies have low reproducibility
+  rates, which has raised concerns across various disciplines \cite{baker_reproducibility_2016}.
+Ideally, scientific research should be independently reproducible.
+Despite higher success rates in computer science (up to 60\%) compared to other fields, there is still room for improvement
+\cite{NEURIPS2019_c429429b, collberg2016repeatability, desai_what_2024}.
+Addressing this issue requires not just better experimental documentation but also more reliable and
+  accessible data distribution methods.
+Specifically, this involves robustly codifying data download and preparation processes.
+
+
+Centralized data distribution methods allow for codified data access by storing URLs that point to datasets
+  within the code, offering fast and direct access.
+However, this approach lacks robustness.
+It can fail if the provider goes offline, changes the URL, or stops hosting the data.
+Additionally, cloud storage can be expensive, and users must trust that the provider delivers the correct
+  data --- a risk that can be mitigated by using checksums to verify data integrity.
+  %though this adds an extra
+  %step for experiment designers.
+
+In contrast, decentralized methods allow users to access data in the same way, even if the organization
+  hosting the data changes.
+%offer greater data longevity, accessibility, and integrity.
+By leveraging content-addressable storage, where the dataset checksum acts as both the key to locate and
+  validate the data, these methods ensure data integrity and nearly eliminate the risk of dead URLs, provided
+  that at least one peer retains the data.
+While decentralized systems face challenges such as longer connection times, increased network overhead, and
+  the need for a robust peer network, their ability to ensure data access via a static address
+  motivates our investigation
+
+Specifically, we focus on two prominent candidates:
+BitTorrent and IPFS.
+BitTorrent \cite{cohen_incentives_2003, cohen_bittorrent_2017} is a well known sharing protocol that
+  originally relied on centralized trackers and databases of torrent files to connect peers.
+While trackers and torrent files are still prominent, torrents can be published to a distributed hash table
+  (DHT) using the Kademlia algorithm \cite{maymounkov_kademlia_2002}.
+This makes it an strong candidate for a decentralized distribution mechanism.
+On the other hand, IPFS (InterPlanetary File System) \cite{benet_ipfs_2014, bieri_overview_2021} is a newer
+  tool directly build directly on a DHT.
+IPFS has been likened to ``a single BitTorrent swarm, exchanging objects within one Git repository''.
+%All data down to the block level is content addressable and stored in a Merkle DAG, which can simplify data
+%  versioning compared to using a torrent.
+%However, both IPFS and BitTorrent are effectively content addressable at the dataset level, which makes them
+%  both appropriate for our use case where we seek a static address that can be used to robustly access data.
+Both IPFS and BitTorrent are content addressable at the dataset level, which makes them both appropriate for
+  our use case where we seek a static address that can be used to robustly access data.
+
+It is worth noting that git-based \cite{chacon2014progit} systems like
+  HuggingFace~\cite{huggingface_datasets} with large file storage do gain some decentralized
+  properties via multiple remotes, but not content identifiers.
+
+For practitioners, key concerns are how quickly and reliably data can be accessed.
+By comparing decentralized and centralized mechanisms access times for our dataset, we aim to make
+  explicit the tradeoffs between the methods and inform decisions on adopting an approach.
+
+%identify the most effective method for
+%  ensuring that scientific datasets remain accessible and reproducible over time, thereby contributing to
+%  improved reproducibility in scientific research
+
+
+ 
+\FloatBarrier
+
+\subsection{Data Distribution Discussion}
+\label{sec:datset_discuss}
+
+To assess the effectiveness of each mechanism we programmatically download our 42GB dataset and measure the
+  time required to complete the transfer.
+Each experiment was run five times, machines we controlled were separated by $\sim\!30$ kilometers with an
+  average ping time of 48.48 ms.
+For each test, we log transfer start and end times along with notes and code (provided in code repo).
+
+While our measurements provide a reasonable estimate of for access time for each mechanism, there are
+  notable limitations in our methodology.
+First, different machines and networks have different upload and download speeds, and network congestion is
+  variable.
+For decentralized methods, we lack an automated mechanism separate peer-connection time and actual download
+  time.
+Additionally, Girder and HuggingFace required data to be packed into compressed archives, improving transfer
+  efficiency due to fewer file boundaries.
+In decentralized cases, we provide granular access to each file in the dataset, which avoids an extra
+  unpacking step and enables sharing of the same file between different versions of the datasets and simpler
+  updates, but decreases transfer efficiency.
+Due to this, we provide both a compressed and uncompressed rsync baseline.
+Another confounding factor is that with decentralized mechanisms the number of seeders is not controlled
+  for.
+Subsets of the data have been hosted on IPFS for years, and portions of the dataset may be provided by
+  unknown members of the network.
+For BitTorrent, our initial transfers only had one seeder, but during our tests other nodes accessed and
+  started to provide the data.
+
+Despite significant testing limitations, our measurements quantify the expected data-access time penalty to
+  gain the advantages of decentralized mechanisms.
+With these limitations acknowledged, we present the transfer times statistics in \Cref{tab:transfertime}.
+Alongside these measurements, several observations are worth noting.
+Transferring files using IPFS had significantly delayed peer discovery times, and we were only able to
+  connect two machines after manually informing them of each other's peer ID.
+For BitTorrent, were unable to use the mainline DHT and fell back to using trackers.
+We believe these peer discovery issues are because the dataset has a small number of seeders.
+To test this, we downloaded other established datasets via IPFS and BitTorrent and found that the peer
+  discovery time was almost immediate, suggesting that this becomes less of an issue as a dataset is shared.
+However, the inability to quickly find a nearby peer is a major issue for initial or private dataset
+  development.
+
+
+\subsection{Dataset Versions}
+
+An advantage of content identifiers is that they are resistant to link rot as long as at least one peer
+  hosts the data, and more importantly, they can never resolve to the wrong content.
+This makes them highly attractive for scientific reproducibility.
+In this work we relied on two main dataset versions, each specified by a stable content-based identifiers:
+
+\paragraph{Version from 2024-07-03}
+\begin{itemize}
+  \item IPFS CID: \ipfscid{bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y}
+  \item BitTorrent: \magnetlink{ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49}
+\end{itemize}
+
+\paragraph{Version from 2025-04-20}
+\begin{itemize}
+  \item IPFS CID: \ipfscid{bafybeia2uv3ea3aoz27ytiwbyudrjzblfuen47hm6tyfrjt6dgf6iadta4}
+  \item BitTorrent: \magnetlink{27a2512ae93298f75544be6d2d629dfb186f86cf}
+\end{itemize}
+Note: the hash suffix of the magnet URL can be searched on \url{academictorrents.com}.
+
+At the time of writing, the version of the dataset on HuggingFace is the latest, and we use git tags that
+  correspond with the date of release and the IPFS CID to help identify dataset versions.
+However, unlike the decentralized methods, these are not guaranteed to point to the expected version of the
+  dataset.
+At the time of writing the HuggingFace URL is:
+\url{https://huggingface.co/datasets/\redact{erotemic}/scatspotter} and the Girder URL is:
+\url{https://data.\redact{kitware}.com/?#user/598a19658d777f7d33e9c18b/folder/66b6bc7ef87a980650f41f98}.
+
+
+\section{Model \& Training Details}
+\label{sec:experiment_details}
+
+In \Cref{sec:models} we provided our main results.
+However, a key limitation of these results is the imbalance between model types, with 42 of 47 trained
+  models being VIT-ssegs, 2 MaskRCNN models, 2 YOLO models, and 1 tuned GroundingDino model.
+Future work could further optimize MaskRCNN, Grounding~DINO, YOLO, and other models to improve both
+  performance and comparability, but these results are enough to establish a useful baseline.
+
+For non-VIT models we adhered as closely as possible to the default parameters of their respective
+  frameworks, applying changes needed to support our generalized KWCoco format and to fit on a single GPU.
+For complete details, we provide links to the training and evaluation scripts for each model family (see
+  below).
+A docker image with dependencies pre-installed is also available:
+\dockerimage
+  {https://hub.docker.com/layers/\redact{erotemic}/shitspotter/latest/images/sha256-aec306e515a5c8bef162c872c96b6a82ff3f4798f4b796f1431ce8f1f6288747}
+  {\redact{erotemic}/shitspotter:latest}.
+
+\paragraph{Experiment scripts (by task).}
+
+\begin{itemize}
+  \item \textbf{Grounding~DINO:}
+    \repolink{experiments/grounding-dino-experiments}{./experiments/grounding-dino-experiments}
+
+  \item \textbf{YOLO-v9:}
+    \repolink{experiments/yolo-experiments}{./experiments/yolo-experiments}
+
+  \item \textbf{MaskRCNN:}
+    \repolink{experiments/detectron2-experiments}{./experiments/detectron2-experiments}
+
+  \item \textbf{VIT-sseg:}
+    \repolink{experiments/geowatch-experiments}{./experiments/geowatch-experiments}
+\end{itemize}
+
+
+\subsection{Grounding Dino}
+
+GroundingDINO was evaluated in two modes.
+The zero-shot setting used the \hflink{IDEA-Research/grounding-dino-tiny} model from HuggingFace, applied
+  directly to our validation and test splits with a fixed set of 10 prompts.
+The tuned variant used the community \ghlink{longzw1997/Open-GroundingDino} implementation, initialized from
+  \DINOPretrained{} with a BERT text encoder on a single GPU.
+Training data was converted to ODVG JSONL format, and the label set reduced to two classes (``poop'' and
+  ``unknown'').
+
+The preprocessing pipeline resized the shorter side of each image to 800 pixels while maintaining aspect
+  ratio, corresponding to a median scale factor of $\sim$0.26 for our dataset.
+
+In the zero-shot evaluation, we tested ten prompts and selected ``animalfeces'' based on the highest
+  validation Box-AP.
+\Cref{tab:prompt_variations} shows the full ablation, illustrating that prompt choice strongly affects
+  performance.
+Prompt choice has a large effect, and the best prompt differs between validation and test splits, but
+  overall zero-shot results remain low.
+
+
+%Grounding DINO zero-shot prompt ablation:
+%In \Cref{sec:models} we performed a zero-shot detection experiment with Grounding Dino. This required us to choose a prompt. We evaluated 10 possible choices on the validation set and chose the one with the highest Box AP. Results each variation is given in \Cref{tab:prompt_variations}.
 
 \begin{table}[t]
 \caption{Zero-shot detection results with varied prompts. The chosen prompt has a significant impact on scores, and the best prompt is different between validation and test datasets, but overall zero-shot results are all low scoring. Because this is a zero-shot setting, the validation set can be compared to the test set. Interestingly, the validation scores significantly lower than the test scores indicating a greater degree of difficulty. }
@@ -188,66 +487,43 @@ Grounding DINO zero-shot prompt ablation:
  animalfeces & \textbf{0.08}        & 0.21                  & 0.20                 & 0.25                  & 0.23                 & 0.30                  & 0.39                 & 0.38                  \\
 \bottomrule
 \end{tabular}
-
-%\begin{subtable}[b]{\textwidth} % Adjust width as needed
-%  \caption{Test (n=121)}
-%  \centering
-%    \begin{tabular}{lllll}
-%    \toprule
-%     Prompt      & AP            & AUC           & F1            & TPR           \\
-%    \midrule
-%     stool       & 0.05          & 0.08          & 0.18          & 0.13          \\
-%     droppings   & 0.08          & 0.14          & 0.27          & 0.30          \\
-%     feces       & 0.16          & 0.26          & 0.32          & 0.39          \\
-%     caninefeces & 0.17          & 0.24          & 0.37          & 0.39          \\
-%     poop        & 0.17          & 0.18          & 0.31          & 0.26          \\
-%     petwaste    & 0.20          & 0.25          & 0.35          & 0.34          \\
-%     animalfeces & 0.23          & 0.30          & 0.39          & 0.38          \\
-%     dogfeces    & 0.23          & 0.29          & \textbf{0.40} & 0.38          \\
-%     dogpoop     & 0.24          & 0.28          & 0.38          & 0.39          \\
-%     excrement   & 0.25          & 0.31          & 0.39          & \textbf{0.42} \\
-%     turd        & \textbf{0.27} & \textbf{0.32} & 0.39          & 0.35          \\
-%    \bottomrule
-%    \end{tabular}
-%\end{subtable}
-
-%\hfill % Add horizontal space between the subfigures
-
-%\begin{subtable}[b]{\textwidth} % Adjust width as needed
-%  \caption{Validation (n=691)}
-%  \centering
-%    \begin{tabular}{lllll}
-%    \toprule
-%     Prompt      & AP            & AUC           & F1            & TPR           \\
-%    \midrule
-%     stool       & 0.01          & 0.03          & 0.07          & 0.07          \\
-%     droppings   & 0.02          & 0.10          & 0.14          & 0.23          \\
-%     petwaste    & 0.04          & 0.14          & 0.15          & 0.25          \\
-%     poop        & 0.04          & 0.10          & 0.17          & 0.16          \\
-%     dogpoop     & 0.05          & 0.16          & 0.17          & 0.20          \\
-%     caninefeces & 0.05          & 0.16          & 0.18          & 0.29          \\
-%     turd        & 0.05          & 0.18          & 0.18          & 0.22          \\
-%     feces       & 0.06          & 0.21          & 0.18          & 0.27          \\
-%     excrement   & 0.07          & \textbf{0.22} & 0.20          & 0.28          \\
-%     dogfeces    & 0.07          & 0.21          & \textbf{0.20} & \textbf{0.31} \\
-%     animalfeces & \textbf{0.08} & 0.21          & 0.20          & 0.25          \\
-%    \bottomrule
-%    \end{tabular}
-%\end{subtable}
 \end{table}
 
 
+\subsection{YOLO-v9}
+
+YOLO-v9 experiments were based on the community \ghlink{WongKinYiu/yolov9} implementation.
+We trained both pretrained (ImageNet-initialized) and from-scratch variants, using our fork adapted for
+  KWCoco input.
+
+All images were resized to 640$\times$640, corresponding to a median scale factor of $\sim$0.16.
+Training used a batch size of 16 with batch accumulation set to 50, for an effective batch size of 800.
+Optimization used AdamW with learning rate $3\times10^{-4}$ and weight decay of 0.01.
+The pretrained runs started from \YOLOPretrained{}.
 
 
-\section{VIT-sseg Models}
+\subsection{MaskRCNN}
+
+MaskRCNN experiments were run using a Detectron2 fork with KWCoco support.
+Both pretrained and from-scratch models used the standard \texttt{R\_50\_FPN\_3x.yaml} configuration,
+  differing only in initialization:
+pretrained models used \MaskRCNNPretrained{}, while the from-scratch models started randomly.
+
+To fit training on a single GPU, we reduced the learning rate to $2.5\times10^{-4}$, set the batch size to
+  2, and trained for a maximum of 120{,}000 iterations.
+The maximum image dimension was capped at 1024, giving a median downsample factor of $\sim$0.25 for our
+  dataset.
+
+
+\subsection{VIT-sseg}
 \label{sec:vit_models}
 
-This section provides more details about the training of VIT-sseg models.
+This subsection provides additional details on VIT-sseg models, which were the first architecture we
+  explored for this problem and therefore have the most extensive analysis compared to other networks.
 
 To train VIT-sseg models we use the training, prediction, and evaluation system presented in
   \cite{Greenwell_2024_WACV, crall_geowatch_2024}, which utilizes polygon annotations to train a pixelwise
   binary segmentation model.
-
 
 In all experiments, we use half-resolution images, which means most images have an effective width $\times$
   height of 2,016 $\times$ 1,512.
@@ -278,7 +554,7 @@ We employ a OneCycle learning rate scheduler \cite{smith2019super} with a cosine
 Our effective batch size is 24 with a real batch size of 2 and 12 accumulate gradient steps.
 This setup consumes approximately 20 GB of GPU RAM during training.
 
-\subsection{VIT-sseg Model Experiments}
+\subsubsection{VIT-sseg Model Experiments}
 
 To establish a baseline, we evaluated 35 training runs where we varied input resolutions, window sizes,
   model depth, and other parameters.
@@ -513,7 +789,11 @@ Train rows marked with an asterisk (*) are based on indirect measurements.
 \end{table}
 
 
-\subsubsection{Resource Usage}
+\subsubsection{VIT Resource Usage}
+\label{sec:vit_environmental_impact}
+
+Note:
+we remind the reader that this section only applies to the VIT models.
 
 All models were trained on a single machine with an 11900k CPU and a 3090 GPU.
 At predict time, using one background worker, our models processed 416 $\times$ 416 patches at a rate of
@@ -543,251 +823,6 @@ While our models demonstrate the feasibility of training a strong detector from 
 To deploy our model on mobile devices, we will need to improve its efficiency or explore more efficient
   architectures.
 
-
-
-\subsubsection{Dataset Versions}
-
-There are two main versions of the dataset used in this paper. We can specify
-these using content-based identifiers. The version from 2024-07-03 has a IPFS CID of: 
-\texttt{\seqsplit{bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y}} 
-and a BitTorrent magnet of: 
-\texttt{\seqsplit{magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49}}.
-The version from 2025-04-20 has an IPFS CID of: 
-\texttt{\seqsplit{bafybeia2uv3ea3aoz27ytiwbyudrjzblfuen47hm6tyfrjt6dgf6iadta4}} 
-and a BitTorrent magnet of: 
-\texttt{\seqsplit{magnet:?xt=urn:btih:27a2512ae93298f75544be6d2d629dfb186f86cf}}.
-Note: the hash suffix of the magnet URL can be searched on \url{academictorrents.com}.
-
-
-At the time of writing, the version of the dataset on HuggingFace is the latest, and we use git tags that
-  correspond with the date of release and the IPFS CID to help identify dataset versions.
-However, unlike the decentralized methods, these are guaranteed to point to the expected version of the
-  dataset.
-At the time of writing the HuggingFace URL is:
-\url{https://huggingface.co/datasets/\redact{erotemic}/scatspotter} and the Girder URL is:
-\url{https://data.\redact{kitware}.com/?#user/598a19658d777f7d33e9c18b/folder/66b6bc7ef87a980650f41f98}.
-
-%&tr=https%3A%2F%2Facademictorrents.com%2Fannounce.php%3Fpasskey%3D9ffbb169f882f3be1330a48ea87416e7&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337%2Fannounce
-
-
-
-\section{Open Data Distribution}
-%Report training time, energy usage, and carbon footprint with details in supplemental materials.
-\begin{comment}
-import pint
-reg = pint.UnitRegistry()
-reg.define('CO2 = []')
-reg.define('dollar = []')
-kwh = reg.Unit('kilowatt/hour')
-energy_cost = 0.16 * reg.dollar / (kwh)
-emission_cost = 25 * reg.dollar / (1000 * reg.CO2 * reg.metric_ton)
-energy = 1321.99 * kwh
-emission = 277.612 * reg.CO2 * reg.kg
-train = (energy * energy_cost + emission * emission_cost)
-
-energy = 109.63 * kwh
-emission = 23 * reg.CO2 * reg.kg
-eval = (energy * energy_cost + emission * emission_cost)
-
-train + eval
-\end{comment}
-  
-
-%train$^{*}$ & time        & 158.95 days      &     3.78 days  &   42 \\
-%train$^{*}$ & energy      & 1,316.07 kWh     &     31.34 kWh  &   42 \\
-%train$^{*}$ & emissions   & 276.37 \cotwo kg & 6.58 \cotwo kg &   42 \\
-
-%todo: train time resource usage for maskrcnn and vit, reacnknowledge
-%limitation, break down results over each.
-
-\label{sec:distribution}
-
-%In our context we are mainly concerned with making the data available.
-%In other words, given a content identifier, how long does it take to programmatically access the data?
-  
-%For a comparison of IPFS and BitTorrent on the protocol level see \cite{zebedee_comparing_2023}.
-%Another candidate system is a newer similar tool called IPFS (InterPlanetary File System)
-%  \cite{benet_ipfs_2014, bieri_overview_2021}.
-%To quote the authors:
-%"IPFS could be seen as a single BitTorrent swarm, exchanging objects within one Git repository".
-%All data down to the block level is content addressable and stored in a Merkle DAG, which can simplify data
-%  versioning compared to using a torrent.
-
-
-%The challenge lies in the fact that designing and documenting an experiment
-%sufficiently for reproducibility requires substantial effort and is prone to
-%error. We suggest that reducing the friction in accessing the necessary data
-%could improve these success rates. Specifically, this involves codifying data
-%download and preparation processes. Datasets that are available via decentralized
-%and content-addressable are particularly advantageous, as they can guarantee
-%the integrity of the data prevent the issue of dead URLs.
-
-%Centralized data distribution has many advantages. It is fast and has low
-%traffic overhead. However, it is prone to failure.  
-%Cloud storage for a modest amount of data can be expensive.
-
-%In contrast, Decentralized methods can allow information to persist so long as
-%at least 1 person has the data.
-
-%However, there are certain drawbacks of decentralized dataset distribution to
-%consider. One significant limitation is the potentially substantial connection
-%time required to link with peers, particularly when the data lacks a sufficient
-%number of "seeders". Furthermore there needs to be a mechanism to connect to
-%peers that can share the data.
-
-
-%For our purposes we 
-
-%%IPFS vs BitTorrent:
-%For a comparison of IPFS and BitTorrent on the protocol level see
-%\cite{zebedee_comparing_2023}. In our context we are mainly concerned with
-%making the data available.
-
-%the main metric we care about is how easy 
-
-%Both IPFS and BitTorrent are both effectively
-%content addressable at the dataset level, which makes them both appropriate for our use case.
-
-%We
-%care about accessing the data quickly in order to use it.  Thus, our comparison
-%is going to focus on download-time measurements.
-%Both of which have the ability to use the Kademlia - distributed hash table (DHT) \cite{maymounkov_kademlia_2002}.
-%IPFS always uses its DHT, where as BitTorrent the Kademlia-based Mainline
-%Tracker can be disabled in favor of 3rd party trackers.
-% Overview and comparison of protocols via github gist:
-% https://gist.github.com/liamzebedee/224494052fb6037d07a4293ceca9d6e7
-% https://gist.github.com/liamzebedee/4be7d3a551c6cddb24a279c4621db74c
-%[Steiner, En-Najjary, Biersack 2022]
-% See Also:
-% Long Term Study of Peer Behavior in the KAD DHT
-% https://git.gnunet.org/bibliography.git/plain/docs/Long_Term_Study_of_Peer_Behavior_in_the_kad_DHT.pdf
-% We have been crawling the entire KAD network once a day for more than a year to track end-users with static
-% IP addresses, which allows us to estimate end-user lifetime and the fraction of end-users changing their KAD ID.
-
-%Both BitTorrent (starting with the v2 protocol introduced in 2017 \cite{cohen_bittorrent_2017}) and IPFS have the capability to recognize when two torrents or content identifiers (CIDs) contain the same file. This enables seeders to provide files to downloaders of either torrent or CID, enhancing the availability and redundancy of the data.
-%Both BitTorrent (as of 2017 in the v2 protocol \cite{cohen_bittorrent_2017})
-%and IPFS can recognize that two torrents/CID include the same file and seeders
-%can provide files to downloaders of the other.
-
-
-%Additionally, storing data in the cloud can become prohibitively expensive,
-%even for modest amounts of data. In contrast, decentralized methods allow
-%information to persist as long as at least one individual retains the data.
-
-%Discuss distributing the dataset via IPFS versus centralized distribution
-%systems.
-%Decentralized Method - IPFS and BitTorrent.
-%Centralized Method - Girder
-
-% BitTorrent can be vulnerable to MITM:
-% https://www.reddit.com/r/technology/comments/1dpinuw/south_korean_telecom_company_attacks_torrent/
-
-
-Empirical evidence suggests that a substantial proportion of scientific studies have low reproducibility
-  rates, which has raised concerns across various disciplines \cite{baker_reproducibility_2016}.
-Ideally, scientific research should be independently reproducible.
-Despite higher success rates in computer science (up to 60\%) compared to other fields, there is still room for improvement
-\cite{NEURIPS2019_c429429b, collberg2016repeatability, desai_what_2024}.
-Addressing this issue requires not just better experimental documentation but also more reliable and
-  accessible data distribution methods.
-Specifically, this involves robustly codifying data download and preparation processes.
-
-
-Centralized data distribution methods allow for codified data access by storing URLs that point to datasets
-  within the code, offering fast and direct access.
-However, this approach lacks robustness.
-It can fail if the provider goes offline, changes the URL, or stops hosting the data.
-Additionally, cloud storage can be expensive, and users must trust that the provider delivers the correct
-  data --- a risk that can be mitigated by using checksums to verify data integrity.
-  %though this adds an extra
-  %step for experiment designers.
-
-In contrast, decentralized methods allow users to access data in the same way, even if the organization
-  hosting the data changes.
-%offer greater data longevity, accessibility, and integrity.
-By leveraging content-addressable storage, where the dataset checksum acts as both the key to locate and
-  validate the data, these methods ensure data integrity and nearly eliminate the risk of dead URLs, provided
-  that at least one peer retains the data.
-While decentralized systems face challenges such as longer connection times, increased network overhead, and
-  the need for a robust peer network, their ability to ensure data access via a static address
-  motivates our investigation
-
-Specifically, we focus on two prominent candidates:
-BitTorrent and IPFS.
-BitTorrent \cite{cohen_incentives_2003, cohen_bittorrent_2017} is a well known sharing protocol that
-  originally relied on centralized trackers and databases of torrent files to connect peers.
-While trackers and torrent files are still prominent, torrents can be published to a distributed hash table
-  (DHT) using the Kademlia algorithm \cite{maymounkov_kademlia_2002}.
-This makes it an strong candidate for a decentralized distribution mechanism.
-On the other hand, IPFS (InterPlanetary File System) \cite{benet_ipfs_2014, bieri_overview_2021} is a newer
-  tool directly build directly on a DHT.
-IPFS has been likened to ``a single BitTorrent swarm, exchanging objects within one Git repository''.
-%All data down to the block level is content addressable and stored in a Merkle DAG, which can simplify data
-%  versioning compared to using a torrent.
-%However, both IPFS and BitTorrent are effectively content addressable at the dataset level, which makes them
-%  both appropriate for our use case where we seek a static address that can be used to robustly access data.
-Both IPFS and BitTorrent are content addressable at the dataset level, which makes them both appropriate for
-  our use case where we seek a static address that can be used to robustly access data.
-
-It is worth noting that git-based \cite{chacon2014progit} systems like
-  HuggingFace~\cite{huggingface_datasets} with large file storage do gain some decentralized
-  properties via multiple remotes, but not content identifiers.
-
-For practitioners, key concerns are how quickly and reliably data can be accessed.
-By comparing decentralized and centralized mechanisms access times for our dataset, we aim to make
-  explicit the tradeoffs between the methods and inform decisions on adopting an approach.
-
-%identify the most effective method for
-%  ensuring that scientific datasets remain accessible and reproducible over time, thereby contributing to
-%  improved reproducibility in scientific research
-
- 
-\section{Dataset Experiment Discussion}
-\label{sec:datset_discuss}
-
-To assess the effectiveness of each mechanism we programmatically download our 42GB dataset and measure the
-  time required to complete the transfer.
-Each experiment was run five times, machines we controlled were separated by $\sim\!30$ kilometers with an
-  average ping time of 48.48 ms.
-For each test, we log transfer start and end times along with notes and code (provided in supplemental
-  materials).
-
-While our measurements provide a reasonable estimate of for access time for each mechanism, there are
-  notable limitations in our methodology.
-First, different machines and networks have different upload and download speeds, and network congestion is
-  variable.
-For decentralized methods, we lack an automated mechanism separate peer-connection time and actual download
-  time.
-Additionally, Girder and HuggingFace required data to be packed into compressed archives, improving transfer
-  efficiency due to fewer file boundaries.
-In decentralized cases, we provide granular access to each file in the dataset, which avoids an extra
-  unpacking step and enables sharing of the same file between different versions of the datasets and simpler
-  updates, but decreases transfer efficiency.
-Due to this, we provide both a compressed and uncompressed rsync baseline.
-Another confounding factor is that with decentralized mechanisms the number of seeders is not controlled
-  for.
-Subsets of the data have been hosted on IPFS for years, and portions of the dataset may be provided by
-  unknown members of the network.
-For BitTorrent, our initial transfers only had one seeder, but during our tests other nodes accessed and
-  started to provide the data.
-
-Despite significant testing limitations, our measurements quantify the expected data-access time penalty to
-  gain the advantages of decentralized mechanisms.
-With these limitations acknowledged, we present the transfer times statistics in \Cref{tab:transfertime}.
-Alongside these measurements, several observations are worth noting.
-Transferring files using IPFS had significantly delayed peer discovery times, and we were only able to
-  connect two machines after manually informing them of each other's peer ID.
-For BitTorrent, were unable to use the mainline DHT and fell back to using trackers.
-We believe these peer discovery issues are because the dataset has a small number of seeders.
-To test this, we downloaded other established datasets via IPFS and BitTorrent and found that the peer
-  discovery time was almost immediate, suggesting that this becomes less of an issue as a dataset is shared.
-However, the inability to quickly find a nearby peer is a major issue for initial or private dataset
-  development.
-
-
-\section{Environmental Impact} 
-\label{sec:environmental_impact}
-
 The total time spent on prediction and evaluation across all experiments was 15.6 days, with prediction
   consuming 109.63 kWh of energy and causing an estimated emissions of 23.0 \cotwo kg as measured by
   CodeCarbon \cite{lacoste2019codecarbon}.
@@ -801,14 +836,131 @@ Based on file timestamps, we estimated that running 44 different training runs t
 For context, at $\frac{\$0.16}{\textrm{kWh}}$ and $\frac{\$25.00}{1000 \cotwo \textrm{kg}}$, the cost of training
   and evaluating was $\$229.06$.
 
-TODO: Expand on DINO/YOLO. Generally minor impact. Should try to measure train time.
+\section{Environmental Impact} 
+\label{sec:general_environmental_impact}
+
+A footnote in the main paper reports the experiment costs:
+179.94 days,
+1469.08 kWh, 
+308.4~\cotwo~kg, 
+and a total cost of \$242.76.
+Costs are estimated assuming \$0.16 per kWh, \$25 per 1000~kg CO$_2$, 
+and an emission factor of 0.21~kg CO$_2$/kWh, with GPU power draw 
+approximated at 345W.
+
+Training accounted for the majority of resource usage 
+(\Cref{tab:resources_breakdown}), with VIT models being the most 
+expensive to run (\Cref{sec:vit_environmental_impact}). The main reason is 
+that VIT experiments operated on half-resolution images 
+(2,016~$\times$~1,512) using 416~$\times$~416 patches, whereas 
+GroundingDINO, YOLO, and MaskRCNN were trained on smaller resized inputs 
+(e.g., 640~$\times$~640, 1066~$\times$~800, depending on framework defaults) without windowing.
+
+For prediction resources estimates, there is an important limitation.
+The system running experiments was equipped with two RTX~3090 GPUs, although only a single one was used for
+  any individual experiments.
+However, due to our use of CodeCarbon, which counts entire system resources, some double counting may have
+  occurred when we ran two experiments simultaneously.
+Not all experiments were run in parallel, but some were.
+Still our estimates provide an upper bound for the resources utilization and we the lower bound will at best
+  be half of our reported numbers.
+This limitation does not apply to our training estimations, and thus our total numbers should be fairly
+  accurate.
+
+\begin{table}[t]
+\centering
+\caption{Resource usage for training and prediction by model family.
+Time is wall-clock duration on a single RTX~3090.
+Energy is electricity consumed.
+Emissions use a 0.21~kgCO$_2$/kWh factor.
+Cost is estimated at \$0.16/kWh electricity and \$25 per 1000~kg CO$_2$.
+TODO: Double check numbers.
+}
+\label{tab:resources_breakdown}
+\begin{tabular}{llrrrr}
+\toprule
+Phase & Model family   & Time (days) & Energy (kWh) & Emissions (kg CO$_2$) & Cost (USD) \\
+\midrule
+Training
+ & VIT-sseg (42 runs)      & 158.95 & 1316.07 & 276.37 & 217.48 \\
+ & MaskRCNN (2 runs)       & 0.71   & 5.92    & 1.24   & 0.98 \\
+ & YOLO-v9 (2 runs)        & 4.14   & 34.00   & 7.20   & 5.56 \\
+ & Grounding DINO (2 runs) & 0.32   & 3.00    & 0.60   & 0.56 \\
+ & \textbf{Total (training)} & \textbf{164.13} & \textbf{1358.96} & \textbf{285.40} & \textbf{224.57} \\
+\midrule
+Prediction
+ & \textbf{Total (prediction)}      & \textbf{15.81} & \textbf{110.12} & \textbf{23.04} & \textbf{18.20} \\
+\midrule
+\multicolumn{2}{l}{\textbf{Overall total}} & \textbf{179.94} & \textbf{1469.08} & \textbf{308.44} & \textbf{242.77} \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 
-\section{Experimental Details} 
-\label{sec:experiment_details}
-A key limitation of these results is the imbalance between model types, with 42 out of 44 trained models
-  being VIT-ssegs and only two MaskRCNN models, each taking approximately 8 hours to train.
-Future work could further optimize MaskRCNN models to improve comparability.
-More details on the VIT-sseg experiments can be found in the supplemental materials.
 
-TODO: Expand on YOLO / Grounding DINO. Do Ablation results here?
+
+    %"""
+
+    %GeoWatch:
+
+    %train$^{*}$ & time        & 158.95 days
+    %train$^{*}$ & electricity & 1,316.07 kWh
+    %train$^{*}$ & emissions   & 276.37 \cotwo kg
+
+    %Detectron
+
+    %17.0 hours
+    %1.2426682788143752 CO2
+    %5.917467994354167 kWh
+
+    %total:
+    %159.66 days
+    %1321.99 kWh
+    %277.612 \cotwo kg
+
+    %---
+
+    %Previously noted maskrcnn+vit training was 159.66 days
+
+    %So with YOLO and DINO we add
+
+    %from kwutil import util_units
+    %ureg = util_units.unit_registry()
+
+    %((7.768055555555556 * ureg.hours) + (99.41305537722221 * ureg.hours) + (159.66 * ureg.days))
+
+    %Results in 3939.02111, hours
+    %Or 164.12588 days.
+
+    %----
+
+    %Gives us final total training numbers:
+
+    %emission_factor 0.21004566210045664
+    %energy_usage = 1358.9622829500001 kilowatt hour
+    %285.4 CO2 kg
+    %energy_cost=217.43396527200002
+    %co2_cost=7.1345519854875015
+    %total_train_cost=224.5685172574875
+
+    %total:
+    %164.13 days
+    %1358.96 kWh
+    %285.4 \\cotwo kg
+
+    %### add in evaluation as well.
+
+    %# Original evaluation numbers
+    %15.6 days, consuming 109.63 kWh and emitting 23.0 co2
+
+    %# These are the total costs for DINO(z+t) + YOLO(p+s)
+    %total_new_kwh=0.4856850869627147
+    %total_new_time=5.154444444444444 hour
+    %total_new_co2=0.038193579877197646
+    %---
+    %new_total_eval_time=15.81 day
+    %new_total_eval_kwh=110.12
+    %new_total_eval_co2=23.04
+
+    %"""
+

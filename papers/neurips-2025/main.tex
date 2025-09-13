@@ -44,7 +44,14 @@
 % (Or just hit 'q' on the first LaTeX run, let it finish, and you should be clear).
 %\definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
 %\usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
-\usepackage{hyperref}
+%\usepackage{hyperref}
+\usepackage[
+  colorlinks=true,      % no boxes; color the text instead
+  %linkcolor=black,      % section refs etc. remain black
+  %urlcolor=blue!55!black,
+  %citecolor=blue!55!black
+]{hyperref}
+
 
 
 % Include other packages here, before hyperref.
@@ -62,9 +69,13 @@
 \usepackage{wrapfig}
 \usepackage{subcaption}
 \usepackage{cclicenses}
+\usepackage{xspace}
+%\usepackage{enumitem}
+\usepackage{pdfcomment} % provides \pdftooltip
 
 
-\usepackage{url}            % simple URL typesetting
+
+%\usepackage{url}            % simple URL typesetting
 \usepackage{amsfonts}       % blackboard math symbols
 \usepackage{nicefrac}       % compact symbols for 1/2, etc.
 \usepackage{microtype}      % microtypography
@@ -77,7 +88,6 @@
 
 %% extra
 \usepackage{listings}
-\usepackage{amsmath} 
 \usepackage[table,xcdraw]{xcolor}
 \usepackage[toc]{appendix}
 
@@ -91,7 +101,77 @@
 \Crefname{table}{Table}{Tables}
 \crefname{table}{Tab.}{Tabs.}
 
+\newcommand{\eg}{e.g.\@\xspace}
+\newcommand{\ie}{i.e.\@\xspace}
+\newcommand{\etal}{et~al.\@\xspace}
+\newcommand{\etc}{etc.\@\xspace}
+\newcommand{\aka}{a.k.a.\@\xspace}
+\newcommand{\cf}{cf.\@\xspace}
+\newcommand{\vs}{vs.\@\xspace}
+\newcommand{\wrt}{w.r.t.\@\xspace}
+
+% Capitalized (use at sentence start)
+\newcommand{\Eg}{E.g.\@\xspace}
+\newcommand{\Ie}{I.e.\@\xspace}
+\newcommand{\Etal}{Et~al.\@\xspace}
+
+
 \newcommand{\cotwo}{\ensuremath{\mathrm{CO_2}}}
+
+%\newcommand{\ipfsgateway}{https://ipfs.io/ipfs/}
+\newcommand{\ipfsgateway}{https://ipfs.io/ipfs/QmQonrckXZq37ZHDoRGN4xVBkqedvJRgYyzp2aBC5Ujpyp?autoadapt=0&requiresorigin=0&web3domain=0&immediatecontinue=1&magiclibraryconfirmation=0&redirectURL=}
+
+% --- Helpers ---
+% Takes CID as argument, shows it in monospace, links to ipfs.io
+\newcommand{\ipfscid}[1]{\href{\ipfsgateway#1}{\texttt{\seqsplit{#1}}}}
+
+\newcommand{\magnetlink}[1]{\href{magnet:?xt=urn:btih:#1}{\texttt{\seqsplit{magnet:?xt=urn:btih:#1}}}}
+
+% Macro: \dockerimage{<url>}{<imagename>}
+\newcommand{\dockerimage}[2]{%
+  \href{#1}{\texttt{#2}}%
+}
+
+\ifnonanonymous
+\newcommand{\repoBase}{https://github.com/Erotemic/scatspotter/blob/09e1021d16126116ccc755afd74530b57fb1940d}
+\else
+% TODO: link to the anonymous version of the repo
+\newcommand{\repoBase}{https://anonymous.4open.science//shitspotter/blob/09e1021d16126116ccc755afd74530b57fb1940d}
+\fi
+\newcommand{\repolink}[2]{\href{\repoBase/#1}{\texttt{#2}}}
+
+\newcommand{\linkwithtip}[3]{%
+  \href{#1}{\pdftooltip{#3}{#2}}%
+}
+
+\newcommand{\ghlink}[1]{%
+  \href{https://github.com/#1}{#1}
+}
+
+\newcommand{\hflink}[1]{%
+  \href{https://huggingface.co/#1}{#1}
+}
+
+\newcommand{\YOLOPretrained}{
+  \linkwithtip
+  {https://github.com/WongKinYiu/yolov9/releases/download/v0.1/yolov9-c.pt}
+  {sha256 is b66df73be150f1025574b4399148815d5c510cf3d8f7fc7db216228e298132c6}
+  {\texttt{v9-c.pt}}
+}
+
+\newcommand{\DINOPretrained}{
+  \linkwithtip
+  {https://github.com/IDEA-Research/GroundingDINO/releases/download/v0.1.0-alpha/groundingdino_swint_ogc.pth}
+  {sha256 is 3b3ca2563c77c69f651d7bd133e97139c186df06231157a64c507099c52bc799}
+  {\texttt{groundingdino\_swint\_ogc.pth}}
+}
+
+\newcommand{\MaskRCNNPretrained}{
+  \linkwithtip
+  {https://dl.fbaipublicfiles.com/detectron2/ImageNetPretrained/MSRA/R-50.pkl}
+  {sha256 is 98f5aabca9d6bcc5d61d0517987356d710a8404e7ffe242caf1d8f343357b448}
+  {\texttt{detectron2://ImageNetPretrained/MSRA/R-50.pkl}}
+}
 
 
 \title{``ScatSpotter'' --- A Dog Poop Detection Dataset}
@@ -119,7 +199,7 @@ Kitware\\
 \begin{abstract}
 
 
-We introduce a new dataset containing phone images of dog feces, annotated with manually drawn or AI-assisted polygon labels.  Its over 9000 ``before/after/negative'' full resolution images contain 6000 polygon annotations.  The collection and annotation of images started in late 2020.  This paper focuses on two checkpoints from 2025-04-20 and 2024-07-03.  We train VIT, MaskRCNN, YOLO-v9, and Grounding DINO baseline models to explore the difficulty of the dataset.  The best model achieves a box-level average precision of 0.69 on a 691-image validation set and 0.70 on a small independently captured 121-image contributor test set.  Dataset snapshots are available through four different distribution methods: two centralized (Girder and HuggingFace) and two decentralized (IPFS and BitTorrent).  We study of the trade-offs between distribution methods and discuss the feasibility of each with respect to reliably sharing open scientific data.  The code for experiments is hosted on GitHub.  The data license is CC-BY 4.0.  Model weights are available with the dataset.  Experiment hardware, time, energy, and emissions are quantified.
+We introduce a new dataset containing phone images of dog feces, annotated with manually drawn or AI-assisted polygon labels.  Its over 9000 ``before/after/negative'' full resolution images contain 6000 polygon annotations.  The collection of images started in late 2020.  This paper focuses on two checkpoints from 2025-04-20 and 2024-07-03.  We train VIT, MaskRCNN, YOLO-v9, and Grounding DINO baseline models to explore the difficulty of the dataset.  The best model achieves a box-level average precision of 0.69 on a 691-image validation set and 0.70 on a small independently captured 121-image contributor test set.  Dataset snapshots are available through four different distribution methods: two centralized (Girder and HuggingFace) and two decentralized (IPFS and BitTorrent).  We study of the trade-offs between distribution methods and discuss the feasibility of each with respect to reliably sharing open scientific data.  The code for experiments is hosted on GitHub.  The data license is CC-BY 4.0.  Model weights are available with the dataset.  Experiment hardware, time, energy, and emissions are quantified.
 
 % Keywords: poop, feces, dataset, dataset distribution, detection, segmentation, IPFS, BitTorrent, HuggingFace
 
@@ -135,9 +215,8 @@ We introduce a new dataset containing phone images of dog feces, annotated with 
 \input{section4}
 \FloatBarrier
 \input{section5}
-\FloatBarrier
+%\FloatBarrier
 \input{section6}
-
 
 %%%%%%%%% REFERENCES
 {\small
@@ -148,7 +227,7 @@ We introduce a new dataset containing phone images of dog feces, annotated with 
 
 \ifuseappendix
 % WARNING: do not forget to delete the supplementary pages from your submission 
-%\include{appendix}
+\include{appendix}
 %\include{neurips_2025_checklist}
 \fi
 

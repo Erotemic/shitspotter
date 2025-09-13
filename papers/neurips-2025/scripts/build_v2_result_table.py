@@ -1353,7 +1353,6 @@ def fill_weighted_estimates(df, col, duration_col="total_hours"):
     return new_col
 
 
-
 def report_resources(aggregators_rows):
     node_types = [
         'detectron_pred',

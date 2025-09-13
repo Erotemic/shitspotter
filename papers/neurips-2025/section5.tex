@@ -1,4 +1,5 @@
 \section{Dataset Transfer Experiment}
+\label{sec:dataset_transfer}
 
 Our third contribution is an experiment that studies transfer rates of decentralized and centralized data
   distribution methods.
@@ -8,22 +9,22 @@ For decentralized clients, we use Transmission~\cite{transmission_2024} (BitTorr
   Kubo~\cite{ipfskubo_2024} (IPFS).
 As a baseline, we also measure direct transfers using Rsync~\cite{rsyncprojectrsync_2024}.
 
-For data transfer experiments, we use the 2024-07-03 version of the dataset. 
+For data transfer experiments, we use the 2024-07-03 version of the dataset.
 This is content-addressed with the IPFS CID (content identifier):
-\texttt{\seqsplit{bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y}}.
+\ipfscid{bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y}.
 %{\tt bafybei edwp2zvmdyb2c 2axrcl455xfbv 2mgdbhgkc3dil e4dftiimwth2y}.
 %{\tt bafybeiedwp2zvmdyb2c2axrcl455xfbv2mgdbhgkc3dile4dftiimwth2y}.
 %\begin{lstlisting}[basicstyle=\normalsize]
 %bafybeiedwp2zvmdyb2c2axrcl455x
 %fbv2mgdbhgkc3dile4dftiimwth2y
 %\end{lstlisting}
-The torrent has a magnet URL of:
-\texttt{\seqsplit{magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49}},
+The torrent magnet URL is:
+\magnetlink{ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49},
 %{\tt magnet:?xt=urn:btih:ee8d2c87a39ea9bfe48bef7eb4ca12eb68852c49},
 and is tracked on Academic Torrents \cite{academic_torrents_Cohen2014}.
 %\begin{lstlisting}[basicstyle=\normalsize]
 %\end{lstlisting}
-More details are in \Cref{sec:datset_discuss}.
+More details in \Cref{sec:datset_discuss}.
 
 \begin{table}[t]
 \caption{
@@ -48,7 +49,7 @@ Rsync        & Yes        & 1.10h     & 0.03h    & 1.07h  & 1.13h   \\
 \end{tabular}
 \end{table}
 
-\FloatBarrier
+%\FloatBarrier
 
 
 %%\begin{wraptable}{r}{0.5\textwidth}

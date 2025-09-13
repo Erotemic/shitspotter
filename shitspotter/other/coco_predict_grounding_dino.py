@@ -40,6 +40,19 @@ def collate_fn(batch):
 
 
 class HuggingFacePredictor:
+    """
+    Example:
+        >>> # xdoctest: +SKIP
+        >>> from shitspotter.other.coco_predict_grounding_dino import HuggingFacePredictor
+        >>> predictor = HuggingFacePredictor(
+        >>>     model_id='IDEA-Research/grounding-dino-tiny',
+        >>>     device='cuda:0',
+        >>>     classes=['foreground object'],
+        >>>     threshold=0.25,
+        >>>     text_threshold=0.25,
+        >>>     num_workers=0,
+        >>> )
+    """
     def __init__(self, model_id, device, classes, threshold=0.25, text_threshold=0.25, num_workers=4):
         self.device = torch.device(device)
         self.threshold = threshold
