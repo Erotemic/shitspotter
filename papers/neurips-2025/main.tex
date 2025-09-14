@@ -1,13 +1,8 @@
-\documentclass{article}
-%%%%%%%%% PAPER TYPE  - PLEASE UPDATE FOR FINAL VERSION
-%\usepackage[utf8]{inputenc} % allow utf-8 input
-\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
-
 % Define conditions
 \newif\ifnonanonymous
 \newif\ifuseappendix
 \newif\ifuseacknowledgement
-
+\newif\ifwacv
 
 % ====================
 % CONDITIONAL SETTINGS
@@ -15,25 +10,38 @@
 \nonanonymoustrue % comment out to be anonymous
 \useacknowledgementtrue % comment out to remove acknowledgements
 \useappendixtrue % comment out to remove appendix
+%\wacvtrue % comment out for neurips
 % ====================
 
-\ifnonanonymous
-\usepackage[nonatbib,final]{neurips_2025}
-% to compile a preprint version, e.g., for submission to arXiv, add add the
-% [preprint] option:
-%     \usepackage[preprint]{neurips_2025}
+
+\ifwacv
+\documentclass[10pt,twocolumn,letterpaper]{article}
 \else
-%\usepackage{neurips_2025}
-\usepackage[nonatbib,preprint]{neurips_2025}
+\documentclass{article}
 \fi
 
-\newcommand{\redact}[1]{%
-    \ifnonanonymous
-        #1% Show the original text if nonanonymous is true
+%%%%%%%%% PAPER TYPE  - PLEASE UPDATE FOR FINAL VERSION
+%\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+
+\ifnonanonymous
+    \ifwacv
+        \usepackage{wacv}              % To produce the CAMERA-READY version
+        %\usepackage[pagenumbers]{wacv} % To force page numbers, e.g. for an arXiv version
     \else
-        [redacted for peer review]% Redact if false
+        \usepackage[nonatbib,final]{neurips_2025}
+        %\usepackage[nonatbib,preprint]{neurips_2025} % to compile a preprint version, e.g., for submission to arXiv
     \fi
-}
+\else
+
+    \ifwacv
+        \usepackage[review,algorithms]{wacv}      % To produce the REVIEW version for the algorithms track
+        %\usepackage[review,applications]{wacv}      % To produce the REVIEW version for the algorithms track
+    \else
+        \usepackage[nonatbib]{neurips_2025}
+    \fi
+
+\fi
 
 % It is strongly recommended to use hyperref, especially for the review version.
 % hyperref with option pagebackref eases the reviewers' job.
@@ -45,12 +53,27 @@
 %\definecolor{cvprblue}{rgb}{0.21,0.49,0.74}
 %\usepackage[pagebackref,breaklinks,colorlinks,allcolors=cvprblue]{hyperref}
 %\usepackage{hyperref}
+
+\usepackage[table,xcdraw,dvipsnames]{xcolor}
+
+\ifwacv
+\definecolor{wacvblue}{rgb}{0.21,0.49,0.74}
+\usepackage[pagebackref,breaklinks,colorlinks,allcolors=wacvblue]{hyperref}
+%%%%%%%%% PAPER ID  - PLEASE UPDATE
+\def\wacvPaperID{2595} % *** Enter the WACV Paper ID here
+\def\confName{WACV}
+\def\confYear{2026}
+\else
+
 \usepackage[
+  breaklinks=true,
+  pagebackref=true,
   colorlinks=true,      % no boxes; color the text instead
   %linkcolor=black,      % section refs etc. remain black
   %urlcolor=blue!55!black,
   %citecolor=blue!55!black
 ]{hyperref}
+\fi
 
 
 
@@ -64,7 +87,6 @@
 \usepackage{framed}
 \usepackage{booktabs}
 \usepackage{comment}
-\usepackage{multicol}
 \usepackage{makecell}
 \usepackage{wrapfig}
 \usepackage{subcaption}
@@ -73,8 +95,26 @@
 %\usepackage{enumitem}
 \usepackage{pdfcomment} % provides \pdftooltip
 
-\usepackage{floatrow}
-\floatsetup[table]{capposition=top} % all tables: caption below
+\ifwacv
+
+\usepackage{caption}
+\captionsetup[table]{position=top, skip=4pt, font=small, labelfont=bf}
+
+%\usepackage{floatrow}
+%\floatsetup[figure]{style=plain, capposition=bottom}
+%\floatsetup[subfigure]{style=plain}
+
+%% keep figures default
+%\captionsetup[figure]{position=bottom}
+
+%\usepackage{floatrow}
+%\floatsetup[table]{capposition=bottom} % all tables: caption below
+%\floatsetup[figure]{style=plain} % basic figure style
+%\floatsetup[subfigure]{style=plain,}
+\else
+\usepackage{multicol}
+%\floatsetup[table]{capposition=top} % all tables: caption below
+\fi
 
 
 
@@ -91,7 +131,6 @@
 
 %% extra
 \usepackage{listings}
-\usepackage[table,xcdraw,dvipsnames]{xcolor}
 \usepackage[toc]{appendix}
 
 %\usepackage{fontspec}
@@ -104,6 +143,8 @@
 \Crefname{table}{Table}{Tables}
 \crefname{table}{Tab.}{Tabs.}
 
+\ifwacv
+\else
 \newcommand{\eg}{e.g.\@\xspace}
 \newcommand{\ie}{i.e.\@\xspace}
 \newcommand{\etal}{et~al.\@\xspace}
@@ -117,7 +158,16 @@
 \newcommand{\Eg}{E.g.\@\xspace}
 \newcommand{\Ie}{I.e.\@\xspace}
 \newcommand{\Etal}{Et~al.\@\xspace}
+\fi
 
+
+\newcommand{\redact}[1]{%
+    \ifnonanonymous
+        #1% Show the original text if nonanonymous is true
+    \else
+        [redacted for peer review]% Redact if false
+    \fi
+}
 
 \newcommand{\cotwo}{\ensuremath{\mathrm{CO_2}}}
 
@@ -136,11 +186,12 @@
 }
 
 \ifnonanonymous
-\newcommand{\repoBase}{https://github.com/Erotemic/scatspotter/blob/31f497e2586f0d1560b9bbd65415f9bd36a07585}
+    \newcommand{\repoBase}{https://github.com/Erotemic/scatspotter/blob/31f497e2586f0d1560b9bbd65415f9bd36a07585}
 \else
-% TODO: link to the anonymous version of the repo
-\newcommand{\repoBase}{https://anonymous.4open.science/r/scatspotter-DD67}
+    % TODO: link to the anonymous version of the repo
+    \newcommand{\repoBase}{https://anonymous.4open.science/r/scatspotter-DD67}
 \fi
+
 \newcommand{\repolink}[2]{\href{\repoBase/#1}{\texttt{#2}}}
 
 \newcommand{\linkwithtip}[3]{%
@@ -215,10 +266,18 @@ We introduce a new dataset containing phone images of dog feces, annotated with 
 \input{section2}
 \input{section3}
 \input{section4}
+\ifwacv
+\else
 \FloatBarrier
+\fi
 \input{section5}
 %\FloatBarrier
 \input{section6}
+
+\ifwacv
+\FloatBarrier
+\else
+\fi
 
 %%%%%%%%% REFERENCES
 {\small
