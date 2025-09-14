@@ -83,7 +83,7 @@ The distribution of annotation location is shown in \Cref{fig:centroid_location_
   in \Cref{fig:annot_obox_size_dist} and \Cref{fig:annot_area_verts_distri}.
 
 
-\begin{figure}[ht]
+\begin{figure*}[ht]
 \centering
 \includegraphics[width=0.9\textwidth]{figures/spectra.png}
 \caption[]{
@@ -93,20 +93,20 @@ The distribution of annotation location is shown in \Cref{fig:centroid_location_
     This was run on the older 2024-07-03 snapshot.
 }
 \label{fig:spectra}
-\end{figure}
+\end{figure*}
 
 
-\begin{figure}[ht]
+\begin{figure*}[ht]
 \centering
 \includegraphics[width=0.9\textwidth]{figures/appendix/images_over_time.png}
 \caption[]{
     The number of images collected over time.
 }
 \label{fig:images_over_time}
-\end{figure}
+\end{figure*}
 
 
-\begin{figure}[ht]
+\begin{figure*}[ht]
 \centering
 \begin{subfigure}[b]{0.4\textwidth}
  \includegraphics[width=\textwidth]{figures/appendix/polygon_centroid_absolute_distribution.png}
@@ -121,10 +121,10 @@ The distribution of annotation location is shown in \Cref{fig:centroid_location_
 \end{subfigure}
 \caption{The distribution of annotation centroids in terms of (a) absolute image coordinates and (b) relative image coordinates. The absolute centroid distribution is bimodal because some images are taken in landscape mode and other in portrait mode.}
 \label{fig:centroid_location_distri}
-\end{figure}
+\end{figure*}
 
 
-\begin{figure}[ht]
+\begin{figure*}[ht]
 \centering
 \begin{subfigure}[b]{0.4\textwidth}
   \includegraphics[width=\textwidth]{figures/appendix/obox_size_distribution_jointplot.png}
@@ -139,10 +139,10 @@ The distribution of annotation location is shown in \Cref{fig:centroid_location_
 \end{subfigure}
 \caption{The distribution of annotation sizes as measured by an oriented bounding box fit to each polygon. (a) shows this plot on a linear scale and (b) show this plot on a log scale.}
 \label{fig:annot_obox_size_dist}
-\end{figure}
+\end{figure*}
 
 
-\begin{figure}[ht]
+\begin{figure*}[ht]
 \centering
 \includegraphics[width=1.0\textwidth]{figures/appendix/polygon_area_vs_num_verts_jointplot.png}
 \caption[]{
@@ -153,7 +153,7 @@ The distribution of annotation location is shown in \Cref{fig:centroid_location_
     AI-assisted annotations.
 }
 \label{fig:annot_area_verts_distri}
-\end{figure}
+\end{figure*}
 
 \FloatBarrier
 
@@ -465,7 +465,7 @@ Prompt choice has a large effect, and the best prompt differs between validation
 %Grounding DINO zero-shot prompt ablation:
 %In \Cref{sec:models} we performed a zero-shot detection experiment with Grounding Dino. This required us to choose a prompt. We evaluated 10 possible choices on the validation set and chose the one with the highest Box AP. Results each variation is given in \Cref{tab:prompt_variations}.
 
-\begin{table}[t]
+\begin{table*}[t]
 \caption{Zero-shot detection results with varied prompts. The chosen prompt has a significant impact on scores, and the best prompt is different between validation and test datasets, but overall zero-shot results are all low scoring. Because this is a zero-shot setting, the validation set can be compared to the test set. Interestingly, the validation scores significantly lower than the test scores indicating a greater degree of difficulty. }
 \label{tab:prompt_variations}
 \centering
@@ -487,7 +487,7 @@ Prompt choice has a large effect, and the best prompt differs between validation
  animalfeces & \textbf{0.08}        & 0.21                  & 0.20                 & 0.25                  & 0.23                 & 0.30                  & 0.39                 & 0.38                  \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 
 \subsection{YOLO-v9}
@@ -725,7 +725,7 @@ These plots are shown in \Cref{fig:apauc_scatter}.
 \end{figure}
 
 
-\begin{table}[t]
+\begin{table*}[t]
 \caption[]{
 Resources used for training, prediction, and evaluation.
 The "node" column is the pipeline stage:
@@ -786,7 +786,7 @@ Train rows marked with an asterisk (*) are based on indirect measurements.
     \bottomrule
     \end{tabular}
   \end{subtable}
-\end{table}
+\end{table*}
 
 
 \subsubsection{VIT Resource Usage}
@@ -854,7 +854,7 @@ Still our estimates provide an upper bound for the resources utilization and we 
 This limitation does not apply to our training estimations, which is the bulk of our cost, and thus our
   total numbers should only slightly inflated.
 
-\begin{table}[hb]
+\begin{table*}[hb]
 \centering
 \caption{Resource usage for training and prediction by model family.
 Time is wall-clock duration on a single RTX~3090.
@@ -883,7 +883,7 @@ Test
 \multicolumn{2}{l}{\textbf{Overall total}} & \textbf{178.03} & \textbf{1466.69} & \textbf{307.95} & \textbf{242.37} \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 
 
