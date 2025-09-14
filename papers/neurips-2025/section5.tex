@@ -79,12 +79,6 @@ The minimum time column shows that decentralized methods can be competitive with
 
 \ifwacv
 \begin{table}[hb]
-\caption{
-Transfer times (in hours) for our 42GB dataset: trials (n), mean ($\mu$), std ($\sigma$).
-Each experiment was run 5 times.
-Uncompressed transfers provide granular access to individual files, while compressed transfers are faster.
-}
-\label{tab:transfertime}
 \centering
 \setlength{\tabcolsep}{4.5pt} % Adjusted padding for new column
 \begin{tabular}{lrrrr}
@@ -99,6 +93,12 @@ HuggingFace  & \bf{0.14h}& 0.03h    & 0.11h  & 0.18h   \\
 Rsync        & 1.10h     & 0.03h    & 1.07h  & 1.13h   \\
 \bottomrule
 \end{tabular}
+\caption{
+Transfer times (in hours) for our 42GB dataset: trials (n), mean ($\mu$), std ($\sigma$).
+Each experiment was run 5 times.
+Uncompressed transfers provide granular access to individual files, while compressed transfers are faster.
+}
+\label{tab:transfertime}
 \end{table}
 \else
 \begin{table}[hb]

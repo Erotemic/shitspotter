@@ -56,7 +56,7 @@ test results in \Cref{fig:test_results_all_models}.
 
 \newcommand{\tb}[1]{\textbf{#1}}
 
-\begin{table*}[t]
+\newcommand{\ResultCaption}{
 \caption[]{
     %Results for baseline models (suffix -p: pretrained, -s: scratch, -t: tuned, -z: zero-shot) on test and validation sets.
     %Evaluated with box and pixel metrics --- AP (ppv-tpr area) \cite{powers_evaluation_2011} and AUC (tpr-fpr area), F1, and TPR (recall) --- computed via scikit-learn \cite{scikit-learn}.
@@ -71,6 +71,10 @@ test results in \Cref{fig:test_results_all_models}.
     while MaskRCNN, DINO, and YOLO used resized images and may improve with additional tuning.
 }
 \label{tab:model_results}
+}
+
+\begin{table*}[t]
+\ifwacv \else \ResultCaption \fi
 \centering
 
     \begin{subtable}[b]{\textwidth} % Adjust width as needed
@@ -111,6 +115,7 @@ test results in \Cref{fig:test_results_all_models}.
         \end{tabular}
     \end{subtable}
 
+\ifwacv \ResultCaption \fi
 \end{table*}
 
 % Define confusion matrix colors

@@ -47,21 +47,24 @@ Many of these applications can be realized with modern object detection and segm
 \end{figure}
   
 
+\newcommand{\RelatedDatasetCaption}{
+    \caption{Related datasets.
+    %
+    Columns list dataset name, number of categories, images, and annotations.
+    Image W \times{} H gives median image dimensions;
+    Ann Area$^{0.5}$ is the median square root of annotation area (pixels);
+    Size is disk requirements in GB; 
+    Annot Type is the labeling method.
+    \Cref{fig:compare_allannots} shows the distribution of annotation shapes, sizes, and locations.
+    %Of the datasets in this table, ours has the highest image resolution.
+    %and the smallest annotation size relative to that resolution.
+    %Of the waste related datasets and in terms of number of images, ours is among the largest, and of the poop related datasets, it is the largest.
+    }
+    \label{tab:related_datasets}
+}
 \begin{table*}[t]
 \centering
-\caption{Related datasets.
-%
-Columns list dataset name, number of categories, images, and annotations.
-Image W \times{} H gives median image dimensions;
-Ann Area$^{0.5}$ is the median square root of annotation area (pixels);
-Size is disk requirements in GB; 
-Annot Type is the labeling method.
-\Cref{fig:compare_allannots} shows the distribution of annotation shapes, sizes, and locations.
-%Of the datasets in this table, ours has the highest image resolution.
-%and the smallest annotation size relative to that resolution.
-%Of the waste related datasets and in terms of number of images, ours is among the largest, and of the poop related datasets, it is the largest.
-}
-\label{tab:related_datasets}
+\ifwacv \else \RelatedDatasetCaption \fi
 \begin{tabular}{lrrrcrrl}
 \toprule
 Name & \#Cats & \#Images & \#Annots & \makecell{Image\\W \times{} H} & \makecell{Annot\\Area$^{0.5}$} & \makecell{Disk\\Size} & \makecell{Annot\\Type} \\
@@ -78,6 +81,7 @@ MSHIT\cite{mshit_2020}       & 2 & 769 & 2,348 & 960 \times{} 540 & 99 & 4GB & b
 Ours        & 1 & 9,296 & 6,594 & 4,032 \times{} 3,024 & 87 & 60GB & polygon \\
 \bottomrule
 \end{tabular}
+\ifwacv \RelatedDatasetCaption \fi
 \end{table*}
 
 \begin{figure*}[t]

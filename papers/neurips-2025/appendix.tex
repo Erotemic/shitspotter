@@ -461,9 +461,14 @@ Prompt choice has a large effect, and the best prompt differs between validation
 %Grounding DINO zero-shot prompt ablation:
 %In \Cref{sec:models} we performed a zero-shot detection experiment with Grounding Dino. This required us to choose a prompt. We evaluated 10 possible choices on the validation set and chose the one with the highest Box AP. Results each variation is given in \Cref{tab:prompt_variations}.
 
-\begin{table*}[t]
+\newcommand{\CaptionPrompt}{
 \caption{Zero-shot detection results with varied prompts. The chosen prompt has a significant impact on scores, and the best prompt is different between validation and test datasets, but overall zero-shot results are all low scoring. Because this is a zero-shot setting, the validation set can be compared to the test set. Interestingly, the validation scores significantly lower than the test scores indicating a greater degree of difficulty. }
 \label{tab:prompt_variations}
+}
+
+
+\begin{table*}[t]
+\ifwacv \else \CaptionPrompt \fi
 \centering
 \begin{tabular}{lllllllll}
 \toprule
@@ -483,6 +488,7 @@ Prompt choice has a large effect, and the best prompt differs between validation
  animalfeces & \textbf{0.08}        & 0.21                  & 0.20                 & 0.25                  & 0.23                 & 0.30                  & 0.39                 & 0.38                  \\
 \bottomrule
 \end{tabular}
+\ifwacv \CaptionPrompt \fi
 \end{table*}
 
 
@@ -569,7 +575,7 @@ the test dataset used in this appendix section is an older 30 image version with
   which is a subset of the more recent 121 image test set used in the main paper.
 
 
-\begin{table*}[t]
+\newcommand{\VitResultCaption}{
 \caption{
 Results for the best-performing models on the validation set across 7 hyperparameter configurations.
 The table provides detailed information about each configuration, including:
@@ -581,6 +587,11 @@ Note that the top AP score over all models on the test set was 0.65, but it did 
 Qualitative examples illustrating the performance of the top-scoring validation model listed here are provided in \cref{fig:test_heatmaps_with_best_vali_model}.
 }
 \label{tab:parameters_and_results}
+}
+
+
+\begin{table*}[t]
+\ifwacv \else \VitResultCaption \fi
 \centering
 \begin{tabular}{llllllll}
 \toprule
@@ -597,6 +608,7 @@ Config Name  &   LR & Weight Decay & Perterb Scale & \makecell{AP\\Pixel} & \mak
         
 \bottomrule
 \end{tabular}
+\ifwacv \VitResultCaption \fi
 \end{table*}
 
 \begin{comment}
@@ -721,7 +733,7 @@ These plots are shown in \Cref{fig:apauc_scatter}.
 \end{figure}
 
 
-\begin{table*}[ht]
+\newcommand{\VitResourceCaption}{
 \caption[]{
 Resources used for training, prediction, and evaluation.
 The "node" column is the pipeline stage:
@@ -732,7 +744,11 @@ The "total" and "\mu" columns show the total and average consumptions, and the "
 Train rows marked with an asterisk (*) are based on indirect measurements.
 }
 \label{tab:resources}
+}
 
+
+\begin{table*}[ht]
+\ifwacv \else \VitResourceCaption \fi
   \centering
   \begin{subtable}[b]{\textwidth} % Adjust width as needed
     \caption{Presented VIT experiment resources.}
@@ -782,6 +798,7 @@ Train rows marked with an asterisk (*) are based on indirect measurements.
     \bottomrule
     \end{tabular}
   \end{subtable}
+\ifwacv \VitResourceCaption \fi
 \end{table*}
 
 
@@ -850,14 +867,18 @@ Still our estimates provide an upper bound for the resources utilization and we 
 This limitation does not apply to our training estimations, which is the bulk of our cost, and thus our
   total numbers should only slightly inflated.
 
-\begin{table*}[hb]
-\centering
+\newcommand{\TotalResourceCaption}{
 \caption{Resource usage for training and prediction by model family.
 Time is wall-clock duration on a single RTX~3090.
 Energy is electricity consumed.
 Emissions use a 0.21~\cotwo kg/kWh factor.
 Cost is estimated at \$0.16/kWh electricity and \$25 per 1000~\cotwo kg.}
 \label{tab:resources_breakdown}
+}
+\begin{table*}[hb]
+\ifwacv \else \TotalResourceCaption \fi
+\centering
+
 \begin{tabular}{llrrrr}
 \toprule
 Phase & Model family   & Time (days) & Energy (kWh) & Emissions (\cotwo kg) & Cost (USD) \\
@@ -879,73 +900,5 @@ Test
 \multicolumn{2}{l}{\textbf{Overall total}} & \textbf{178.03} & \textbf{1466.69} & \textbf{307.95} & \textbf{242.37} \\
 \bottomrule
 \end{tabular}
+\ifwacv \TotalResourceCaption \fi
 \end{table*}
-
-
-
-
-    %"""
-
-    %GeoWatch:
-
-    %train$^{*}$ & time        & 158.95 days
-    %train$^{*}$ & electricity & 1,316.07 kWh
-    %train$^{*}$ & emissions   & 276.37 \cotwo kg
-
-    %Detectron
-
-    %17.0 hours
-    %1.2426682788143752 CO2
-    %5.917467994354167 kWh
-
-    %total:
-    %159.66 days
-    %1321.99 kWh
-    %277.612 \cotwo kg
-
-    %---
-
-    %Previously noted maskrcnn+vit training was 159.66 days
-
-    %So with YOLO and DINO we add
-
-    %from kwutil import util_units
-    %ureg = util_units.unit_registry()
-
-    %((7.768055555555556 * ureg.hours) + (99.41305537722221 * ureg.hours) + (159.66 * ureg.days))
-
-    %Results in 3939.02111, hours
-    %Or 164.12588 days.
-
-    %----
-
-    %Gives us final total training numbers:
-
-    %emission_factor 0.21004566210045664
-    %energy_usage = 1358.9622829500001 kilowatt hour
-    %285.4 CO2 kg
-    %energy_cost=217.43396527200002
-    %co2_cost=7.1345519854875015
-    %total_train_cost=224.5685172574875
-
-    %total:
-    %164.13 days
-    %1358.96 kWh
-    %285.4 \\cotwo kg
-
-    %### add in evaluation as well.
-
-    %# Original evaluation numbers
-    %15.6 days, consuming 109.63 kWh and emitting 23.0 co2
-
-    %# These are the total costs for DINO(z+t) + YOLO(p+s)
-    %total_new_kwh=0.4856850869627147
-    %total_new_time=5.154444444444444 hour
-    %total_new_co2=0.038193579877197646
-    %---
-    %new_total_eval_time=15.81 day
-    %new_total_eval_kwh=110.12
-    %new_total_eval_co2=23.04
-
-    %"""
-

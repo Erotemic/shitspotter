@@ -85,7 +85,7 @@ def compress_pdf(config):
 if __name__ == '__main__':
     """
     CommandLine:
-        python ~/code/shitspotter/papers/neurips-2025/scripts/compress_pdf.py main.pdf --quality=screen
+        python ~/code/shitspotter/papers/neurips-2025/scripts/compress_pdf.py main_part1.pdf --quality=screen
         python -m compress_pdf
     """
     __cli__.main()
