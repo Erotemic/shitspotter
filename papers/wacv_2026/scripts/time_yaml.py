@@ -13,7 +13,7 @@ References:
     https://chat.deepseek.com/a/chat/s/4993c78c-3f02-44ea-8b43-6fab9cb4753b
 
 Usage:
-    python ~/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py \
+    python ~/code/shitspotter/papers/wacv_2026/scripts/time_yaml.py \
         --before_script 'bash -c "
             ls -a
             ls

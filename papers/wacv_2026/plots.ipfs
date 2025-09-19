@@ -4,8 +4,8 @@ rel_path: plots
 size: 105.11 MiB
 num_items: 25
 add_config:
-  path: /home/joncrall/code/shitspotter/papers/neurips-2025/plots
-  name: shitspotter-plots-neurips-2025
+  path: /home/joncrall/code/shitspotter/papers/wacv_2026/plots
+  name: shitspotter-plots-wacv_2026
   recursive: true
   progress: true
   cid_version: 1

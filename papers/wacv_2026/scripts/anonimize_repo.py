@@ -252,6 +252,6 @@ def main():
 if __name__ == '__main__':
     """
     CommandLine:
-        python ~/code/shitspotter/papers/neurips-2025/scripts/anonimize_repo.py
+        python ~/code/shitspotter/papers/wacv_2026/scripts/anonimize_repo.py
     """
     main()

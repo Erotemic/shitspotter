@@ -1,7 +1,7 @@
 import kwimage
 import ubelt as ub
 
-figure_dpath = ub.Path('$HOME/code/shitspotter/papers/neurips-2025/figures').expand()
+figure_dpath = ub.Path('$HOME/code/shitspotter/papers/wacv_2026/figures').expand()
 
 # Test Images (with best test model)
 paths = '''

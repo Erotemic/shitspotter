@@ -1,14 +1,14 @@
 """
 SeeAlso:
-    python ~/code/shitspotter/papers/neurips-2025/scripts/estimate_training_resources.py
-    ~/code/shitspotter/papers/neurips-2025/scripts/build_v2_result_table.py
+    python ~/code/shitspotter/papers/wacv_2026/scripts/estimate_training_resources.py
+    ~/code/shitspotter/papers/wacv_2026/scripts/build_v2_result_table.py
 """
 
 
 def devcheck_main_stuff():
     import sys
     import ubelt as ub
-    sys.path.append(str(ub.Path('~/code/shitspotter/papers/neurips-2025/scripts').expand()))
+    sys.path.append(str(ub.Path('~/code/shitspotter/papers/wacv_2026/scripts').expand()))
     from build_v2_result_table import load_aggregators
     from build_v2_result_table import process_aggregators
     from build_v2_result_table import report_resources
@@ -128,7 +128,7 @@ def main():
     df = pd.DataFrame(human_table)
     import sys
     import ubelt as ub
-    sys.path.append(str(ub.Path('~/code/shitspotter/papers/neurips-2025/scripts').expand()))
+    sys.path.append(str(ub.Path('~/code/shitspotter/papers/wacv_2026/scripts').expand()))
     from build_v2_result_table import make_latex_table
     text = make_latex_table(df, index=False, bold_maxima=False)
     print(text)

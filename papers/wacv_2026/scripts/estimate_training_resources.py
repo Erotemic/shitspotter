@@ -1,5 +1,5 @@
 """
-python ~/code/shitspotter/papers/neurips-2025/scripts/estimate_training_resources.py
+python ~/code/shitspotter/papers/wacv_2026/scripts/estimate_training_resources.py
 python ~/code/shitspotter/dev/poc/estimate_train_resources.py
 """
 import kwutil.util_units

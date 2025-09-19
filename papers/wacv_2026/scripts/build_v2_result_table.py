@@ -13,7 +13,7 @@ def load_aggregators():
 
     Ignore:
         import sys, ubelt
-        sys.path.append(ubelt.expandpath('~/code/shitspotter/papers/neurips-2025/scripts'))
+        sys.path.append(ubelt.expandpath('~/code/shitspotter/papers/wacv_2026/scripts'))
         from build_v2_result_table import *  # NOQA
     """
     dvc_expt_dpath = ub.Path('/home/joncrall/data/dvc-repos/shitspotter_expt_dvc/')
@@ -1194,7 +1194,7 @@ def gather_heatmap_figures(aggregators_rows):
         hack_heat_subrows = None
 
         vert_parts = []
-        figure_dpath = ub.Path('$HOME/code/shitspotter/papers/neurips-2025/figures').expand()
+        figure_dpath = ub.Path('$HOME/code/shitspotter/papers/wacv_2026/figures').expand()
         split_dpath = (figure_dpath / 'agg_viz_results2/' / dataset_split).ensuredir()
         split_fpaths = {}
         model_type_to_rows = ub.group_items(component_rows, key=lambda x: x['model_type'])
@@ -1264,7 +1264,7 @@ def gather_heatmap_figures(aggregators_rows):
             'yolo_v9-scratch': 'YOLO-v9-scratch',
         }
 
-        rel_dpath = ub.Path('$HOME/code/shitspotter/papers/neurips-2025').expand()
+        rel_dpath = ub.Path('$HOME/code/shitspotter/papers/wacv_2026').expand()
         parts = []
         header = ub.codeblock(
             r'''
@@ -1315,7 +1315,7 @@ def gather_heatmap_figures(aggregators_rows):
     #     xdev.startfile(dpath)
 
     # /home/joncrall/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_detectron_evals_test/eval/flat/heatmap_eval/heatmap_eval_id_29ec800f/pxl_eval.json
-    figure_dpath = ub.Path('$HOME/code/shitspotter/papers/neurips-2025/figures').expand()
+    figure_dpath = ub.Path('$HOME/code/shitspotter/papers/wacv_2026/figures').expand()
 
 
 def fill_weighted_estimates(df, col, duration_col="total_hours"):
@@ -1707,7 +1707,7 @@ def main():
 if __name__ == '__main__':
     """
     CommandLine:
-        python ~/code/shitspotter/papers/neurips-2025/scripts/build_v2_result_table.py
+        python ~/code/shitspotter/papers/wacv_2026/scripts/build_v2_result_table.py
     """
     main()
 

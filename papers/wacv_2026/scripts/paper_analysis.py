@@ -14,7 +14,7 @@ import pylatexenc
 from pylatexenc.latex2text import LatexNodes2Text
 from pylatexenc.latexnodes.parsers import LatexGeneralNodesParser
 # from pylatexenc.latexwalker import LatexWalker
-document_fpath = ub.Path('~/code/shitspotter/papers/neurips-2025/main.tex').expanduser()
+document_fpath = ub.Path('~/code/shitspotter/papers/wacv_2026/main.tex').expanduser()
 
 latex_text = document_fpath.read_text()
 print(LatexNodes2Text().latex_to_text(latex_text))

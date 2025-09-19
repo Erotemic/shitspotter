@@ -74,7 +74,7 @@ def main():
     """
     Ignore:
         import sys, ubelt
-        sys.path.append(ubelt.expandpath('~/code/shitspotter/papers/neurips-2025/scripts'))
+        sys.path.append(ubelt.expandpath('~/code/shitspotter/papers/wacv_2026/scripts'))
         from umap_and_nrtk import *  # NOQA
     """
     dset = shitspotter.open_shit_coco()
@@ -411,7 +411,7 @@ def play_with_descriptors():
 
     canvas = kwimage.stack_images([umap_canvas, image_canvas], axis=0, pad=20, bg_value='white', resize='larger')
 
-    fpath = ub.Path('~/code/shitspotter/papers/neurips-2025/figures/umap-v3.jpg').expand()
+    fpath = ub.Path('~/code/shitspotter/papers/wacv_2026/figures/umap-v3.jpg').expand()
 
     kwimage.imwrite(fpath, canvas)
     ub.cmd(f'eog {fpath}')
@@ -422,6 +422,6 @@ def play_with_descriptors():
 if __name__ == '__main__':
     """
     CommandLine:
-        python ~/code/shitspotter/papers/neurips-2025/scripts/umap_and_nrtk.py
+        python ~/code/shitspotter/papers/wacv_2026/scripts/umap_and_nrtk.py
     """
     main()

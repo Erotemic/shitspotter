@@ -7,7 +7,7 @@
    The distance between home and work is about 30km.
 
    SeeAlso:
-       ~/code/shitspotter/papers/neurips-2025/scripts/gather_measurements.py
+       ~/code/shitspotter/papers/wacv_2026/scripts/gather_measurements.py
 
 
 machine_info:
@@ -1062,7 +1062,7 @@ network_measurements:
     time.sys: 1m1.140s
     time.end_date: Sat Apr 19 01:50:03 PM  2025
     script: |-
-        /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py \
+        /home/joncrall/code/shitspotter/papers/wacv_2026/scripts/time_yaml.py \
         --before_script 'rm -f shitspotter-snapshot-2024-08-09T185233-5' \
         --script 'time girder-client --api-url https://data.kitware.com/api/v1 download 66b6bc34f87a980650f41f90'
 
@@ -1080,7 +1080,7 @@ network_measurements:
     time.sys: 1m0.420s
     time.end_date: Sat Apr 19 02:07:38 PM  2025
     script: |-
-        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script 'rm -rf shitspotter-snapshot-2024-08-09T185233-5' --script 'girder-client --api-url https://data.kitware.com/api/v1 download 66b6bc34f87a980650f41f90' --meta '
+        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/wacv_2026/scripts/time_yaml.py --before_script 'rm -rf shitspotter-snapshot-2024-08-09T185233-5' --script 'girder-client --api-url https://data.kitware.com/api/v1 download 66b6bc34f87a980650f41f90' --meta '
                  action: transfer
                  method: girder
                  src_machine: girder
@@ -1101,12 +1101,12 @@ network_measurements:
     time.sys: 0m27.560s
     time.end_date: Sat Apr 19 02:45:59 PM  2025
     script: |-
-          /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script '
+          /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/wacv_2026/scripts/time_yaml.py --before_script '
                    bash -c '"'"'
                      rm -rf ~/flash1/shitspotter-snapshot-2024-08-09T185233-5
                    '"'"'
                  ' --script '
-                   rsync -avPR ~/code/shitspotter/papers/neurips-2025/./shitspotter-snapshot-2024-08-09T185233-5 ~/flash1
+                   rsync -avPR ~/code/shitspotter/papers/wacv_2026/./shitspotter-snapshot-2024-08-09T185233-5 ~/flash1
                  ' --meta '
                     src_machine: toothbrush
                     dst_machine: toothbrush
@@ -1147,7 +1147,7 @@ network_measurements:
     time.sys: 0m25.560s
     time.end_date: Sat Apr 19 07:41:08 PM  2025
     script: |-
-        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script '
+        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/wacv_2026/scripts/time_yaml.py --before_script '
                    rm -rf ~/download-tmp && mkdir -p  ~/download-tmp
                ' --script '
                rsync -avPR namek:upload-tmp/./shitspotter-snapshot-2024-08-09T185233-5 ~/download-tmp
@@ -1176,7 +1176,7 @@ network_measurements:
     time.sys: 1m14.480s
     end_date: Sat Apr 19 11:11:51 PM  2025
     script: |-
-        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script '
+        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/wacv_2026/scripts/time_yaml.py --before_script '
                            bash -c "rm -rf ~/download-tmp && mkdir -p  ~/download-tmp"
                        ' --script '
                        rsync -avPR namek:upload-tmp/./shitspotter-snapshot-2024-08-09T185233-5 ~/download-tmp
@@ -1206,7 +1206,7 @@ network_measurements:
     time.sys: 1m13.790s
     end_date: Sun Apr 20 12:21:49 AM  2025
     script: |-
-        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script '
+        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/wacv_2026/scripts/time_yaml.py --before_script '
                                    bash -c "rm -rf ~/download-tmp && mkdir -p  ~/download-tmp"
                                ' --script '
                                rsync -avPR namek:upload-tmp/./shitspotter-snapshot-2024-08-09T185233-5 ~/download-tmp
@@ -1235,7 +1235,7 @@ network_measurements:
     time.sys: 1m13.990s
     end_date: Sun Apr 20 10:49:34 AM  2025
     script: |-
-        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script '
+        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/wacv_2026/scripts/time_yaml.py --before_script '
                                            bash -c "rm -rf ~/download-tmp && mkdir -p  ~/download-tmp"
                                        ' --script '
                                        rsync -avPR namek:upload-tmp/./shitspotter-snapshot-2024-08-09T185233-5 ~/download-tmp
@@ -1264,7 +1264,7 @@ network_measurements:
     time.sys: 1m13.670s
     end_date: Sun Apr 20 05:13:56 PM  2025
     script: |-
-        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script '
+        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/wacv_2026/scripts/time_yaml.py --before_script '
                                                    bash -c "rm -rf ~/download-tmp && mkdir -p  ~/download-tmp"
                                                ' --script '
                                                rsync -avPR namek:upload-tmp/./shitspotter-snapshot-2024-08-09T185233-5 ~/download-tmp
@@ -1294,7 +1294,7 @@ network_measurements:
     time.sys: 0m29.340s
     end_date: Sun Apr 20 06:40:11 PM  2025
     script: |-
-        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script '
+        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/wacv_2026/scripts/time_yaml.py --before_script '
                    bash -c '"'"'rm -rf ~/download-tmp && mkdir -p  ~/download-tmp'"'"'
                ' --script '
                rsync -avPR namek:data/dvc-repos/./shitspotter_dvc ~/download-tmp
@@ -1323,7 +1323,7 @@ network_measurements:
     time.sys: 1m19.150s
     end_date: Sun Apr 20 08:26:18 PM  2025
     script: |-
-        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script '
+        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/wacv_2026/scripts/time_yaml.py --before_script '
                            bash -c '"'"'rm -rf ~/download-tmp && mkdir -p  ~/download-tmp'"'"'
                        ' --script '
                        rsync -avPR namek:data/dvc-repos/./shitspotter_dvc ~/download-tmp
@@ -1368,7 +1368,7 @@ network_measurements:
 
 
 .__taildoc__: |-
-     python ~/code/shitspotter/papers/neurips-2025/scripts/gather_measurements.py
+     python ~/code/shitspotter/papers/wacv_2026/scripts/gather_measurements.py
 
      Helper to start a new entry
 
@@ -1384,10 +1384,10 @@ network_measurements:
        print('    command: |-')
        print('        >')
      "
-     python ~/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py "sleep 5"
+     python ~/code/shitspotter/papers/wacv_2026/scripts/time_yaml.py "sleep 5"
 
      # New script to automate result formatting:
-     python ~/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py \
+     python ~/code/shitspotter/papers/wacv_2026/scripts/time_yaml.py \
        --before_script "rm -rf shitspotter-snapshot-2024-08-09T185233-5" \
        --script "girder-client --api-url https://data.kitware.com/api/v1 download 66b6bc34f87a980650f41f90" \
        --meta "
@@ -1397,7 +1397,7 @@ network_measurements:
          dst_machine: toothbrush
        "
 
-     python ~/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py \
+     python ~/code/shitspotter/papers/wacv_2026/scripts/time_yaml.py \
        --before_script "
          bash -c '
            rm -rf $HOME/.cache/huggingface/datasets
@@ -1416,14 +1416,14 @@ network_measurements:
           method: huggingface
        "
 
-     python ~/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py \
+     python ~/code/shitspotter/papers/wacv_2026/scripts/time_yaml.py \
        --before_script "
          bash -c '
            rm -rf ~/flash1/shitspotter-snapshot-2024-08-09T185233-5
          '
        " \
        --script '
-         rsync -avPR ~/code/shitspotter/papers/neurips-2025/./shitspotter-snapshot-2024-08-09T185233-5 ~/flash1
+         rsync -avPR ~/code/shitspotter/papers/wacv_2026/./shitspotter-snapshot-2024-08-09T185233-5 ~/flash1
        ' \
        --meta "
           src_machine: toothbrush
@@ -1433,12 +1433,12 @@ network_measurements:
           comment: get lower bound on transfer times by moving between two nvme disks on the same machine
        "
 
-     python ~/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py \
+     python ~/code/shitspotter/papers/wacv_2026/scripts/time_yaml.py \
        --before_script "
            ssh namek 'rm -rf upload-tmp && mkdir -p upload-tmp'
        " \
        --script '
-       rsync -avPR ~/code/shitspotter/papers/neurips-2025/./shitspotter-snapshot-2024-08-09T185233-5 namek:upload-tmp
+       rsync -avPR ~/code/shitspotter/papers/wacv_2026/./shitspotter-snapshot-2024-08-09T185233-5 namek:upload-tmp
        ' \
        --meta "
           src_machine: toothbrush
@@ -1448,7 +1448,7 @@ network_measurements:
           comment: upload zipped structure
        "
 
-     python ~/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py \
+     python ~/code/shitspotter/papers/wacv_2026/scripts/time_yaml.py \
        --before_script "
            bash -c 'rm -rf ~/download-tmp && mkdir -p  ~/download-tmp'
        " \
@@ -1464,7 +1464,7 @@ network_measurements:
           comment: download unzipped structure
        "
 
-        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/neurips-2025/scripts/time_yaml.py --before_script '
+        /home/joncrall/.pyenv/versions/3.13.2/envs/pyenv3.13.2/bin/python /home/joncrall/code/shitspotter/papers/wacv_2026/scripts/time_yaml.py --before_script '
                                                    bash -c "rm -rf ~/download-tmp && mkdir -p  ~/download-tmp"
                                                ' --script '
                                                rsync -avPR namek:upload-tmp/./shitspotter-snapshot-2024-08-09T185233-5 ~/download-tmp

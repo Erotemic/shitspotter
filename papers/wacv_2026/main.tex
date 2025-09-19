@@ -35,8 +35,8 @@
 \else
 
     \ifwacv
-        \usepackage[review,algorithms]{wacv}      % To produce the REVIEW version for the algorithms track
-        %\usepackage[review,applications]{wacv}      % To produce the REVIEW version for the algorithms track
+        %\usepackage[review,algorithms]{wacv}      % To produce the REVIEW version for the algorithms track
+        \usepackage[review,applications]{wacv}      % To produce the REVIEW version for the applications track
     \else
         \usepackage[nonatbib]{neurips_2025}
     \fi
@@ -328,9 +328,9 @@ We introduce a new dataset containing phone images of dog feces, annotated with 
 
     cd /home/joncrall/code/shitspotter/shitspotter_dvc
     geowatch spectra --src data.kwcoco.json --workers=16 --cache_dpath=_spectra_cache --dst spectra.png --bins 64 --valid_range=0:255
-    cp spectra.png ~/code/shitspotter/papers/neurips-2025/figures/spectra.png
+    cp spectra.png ~/code/shitspotter/papers/wacv_2026/figures/spectra.png
 
-    /home/joncrall/code/shitspotter/papers/neurips-2025
+    /home/joncrall/code/shitspotter/papers/wacv_2026
     python -m shitspotter.ipfs pull .
 
 \end{comment}

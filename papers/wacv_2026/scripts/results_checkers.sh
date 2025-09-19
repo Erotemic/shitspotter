@@ -19,7 +19,7 @@ TODO: link to scripts that actually performed these analysis.
 This script is just a quick reference to get the mlops aggregators for main experiments.
 The script that should aggregate everything for the paper is:
 
-~/code/shitspotter/papers/neurips-2025/scripts/build_v2_result_table.py
+~/code/shitspotter/papers/wacv_2026/scripts/build_v2_result_table.py
 
 
 "

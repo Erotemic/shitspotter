@@ -1,9 +1,9 @@
 """
 CommandLine:
-    python ~/code/shitspotter/papers/neurips-2025/scripts/gather_measurements.py
+    python ~/code/shitspotter/papers/wacv_2026/scripts/gather_measurements.py
 
 SeeAlso:
-    ~/code/shitspotter/papers/neurips-2025/transfer_measurements.yaml
+    ~/code/shitspotter/papers/wacv_2026/transfer_measurements.yaml
 """
 import kwutil
 import rich
@@ -12,7 +12,7 @@ import ubelt as ub
 
 
 def main():
-    fpath = ub.Path('~/code/shitspotter/papers/neurips-2025/transfer_measurements.yaml').expand()
+    fpath = ub.Path('~/code/shitspotter/papers/wacv_2026/transfer_measurements.yaml').expand()
     text = fpath.read_text()
     data = kwutil.Yaml.loads(text)
 
@@ -126,6 +126,6 @@ def main():
 if __name__ == '__main__':
     """
     CommandLine:
-        python ~/code/shitspotter/papers/neurips-2025/scripts/gather_measurements.py
+        python ~/code/shitspotter/papers/wacv_2026/scripts/gather_measurements.py
     """
     main()

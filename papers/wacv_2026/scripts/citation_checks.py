@@ -82,7 +82,7 @@ class CitationVisitor(LatexNodesVisitor):
 
 def main():
     # from pylatexenc.latexwalker import LatexWalker
-    document_fpath = ub.Path('~/code/shitspotter/papers/neurips-2025/main.tex').expanduser()
+    document_fpath = ub.Path('~/code/shitspotter/papers/wacv_2026/main.tex').expanduser()
 
     latex_text = document_fpath.read_text()
     print(LatexNodes2Text().latex_to_text(latex_text))
@@ -119,7 +119,7 @@ def main():
     print(doc.dumps())
     print('generate pdf')
 
-    pdf_fpath = ub.Path('~/code/shitspotter/papers/neurips-2025/citation_checks.pdf').expand()
+    pdf_fpath = ub.Path('~/code/shitspotter/papers/wacv_2026/citation_checks.pdf').expand()
     pdf_fpath.parent.ensuredir()
     doc.generate_pdf(pdf_fpath.augment(ext=''), clean_tex=True)
 
@@ -130,6 +130,6 @@ def main():
 if __name__ == '__main__':
     """
     CommandLine:
-        python ~/code/shitspotter/papers/neurips-2025/citation_checks.py
+        python ~/code/shitspotter/papers/wacv_2026/citation_checks.py
     """
     main()

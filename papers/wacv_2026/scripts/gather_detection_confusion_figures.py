@@ -1,6 +1,6 @@
 """
 This script corresponds to
-~/code/shitspotter/papers/neurips-2025/scripts/gather_heatmap_examples.py
+~/code/shitspotter/papers/wacv_2026/scripts/gather_heatmap_examples.py
 
 to get the confusion visualization for the GroundingDINO (zero-shot / tuned)
 and YOLO-v9 examples that correspond with the existing heatmap confusion

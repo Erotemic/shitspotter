@@ -144,7 +144,7 @@ def main():
             is_alpha = canvas[:, :, 3] == 0
             canvas[is_alpha] = (255, 255, 255, 255)
 
-            dpath = ub.Path('/home/joncrall/code/shitspotter/papers/neurips-2025/plots/appendix/dataset_compare')
+            dpath = ub.Path('/home/joncrall/code/shitspotter/papers/wacv_2026/plots/appendix/dataset_compare')
             canvas_fpath = (dpath / ('combo_' + name + '.png'))
             # import kwplot
             # kwplot.plt
@@ -162,6 +162,6 @@ def main():
 if __name__ == '__main__':
     """
     CommandLine:
-        python ~/code/shitspotter/papers/neurips-2025/scripts/related_dataset_comparison.py
+        python ~/code/shitspotter/papers/wacv_2026/scripts/related_dataset_comparison.py
     """
     main()

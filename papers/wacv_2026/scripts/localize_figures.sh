@@ -1,7 +1,7 @@
 #!/bin/bash
 # Localize figures
 
-FIGURE_DPATH=$HOME/code/shitspotter/papers/neurips-2025/figures
+FIGURE_DPATH=$HOME/code/shitspotter/papers/wacv_2026/figures
 cp $HOME/data/dvc-repos/shitspotter_dvc/analysis/viz_three_images.jpg "$FIGURE_DPATH"
 cp $HOME/code/shitspotter/coco_annot_stats/annot_stat_plots/all_polygons.png "$FIGURE_DPATH"
 cp $HOME/code/shitspotter/coco_annot_stats/annot_stat_plots/images_timeofday_distribution.png "$FIGURE_DPATH"
@@ -14,6 +14,6 @@ cp $HOME/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_test_evals/eval/flat/h
 cp $HOME/data/dvc-repos/shitspotter_expt_dvc/_shitspotter_evals/aggregate/plots/resources.png "$FIGURE_DPATH"
 
 
-rsync -avprPR toothbrush:code/shitspotter/papers/neurips-2025/./figures "$HOME"/code/shitspotter/papers/neurips-2025/
+rsync -avprPR toothbrush:code/shitspotter/papers/wacv_2026/./figures "$HOME"/code/shitspotter/papers/wacv_2026/
 
 # See new IPFS stuff in manage_data_resources

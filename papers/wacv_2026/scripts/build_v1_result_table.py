@@ -341,7 +341,7 @@ if 1:
     ub.cmd(f'eog {fpath2}')
     ub.cmd(f'eog {fpath3}')
 
-    target_dpath = ub.Path('/home/joncrall/code/shitspotter/papers/neurips-2025/figures')
+    target_dpath = ub.Path('/home/joncrall/code/shitspotter/papers/wacv_2026/figures')
     fpaths = [fpath1, fpath2, fpath3]
     import kwplot
     kwplot.close_figures()
