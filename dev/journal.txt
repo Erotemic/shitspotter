@@ -471,3 +471,23 @@ More releated information:
 https://icwdm.org/identification/feces/scat-id/
 
 https://www.whopooapp.com/
+
+# 2025-09-20
+
+I've gathered information on 33 roboflow dataset, and I've identified a subset that are usable out of the box.
+
+                              full_id  size_bytes           project_type  files      size  n_anns  n_imgs   use
+5   pazini/dog-poop-detection-uip1h/3     3678359  instance-segmentation    139   3.51 MB     150     134  True
+0                 han-bjamu/poppopo/2    37831009  semantic-segmentation    493  36.08 MB     947     490  True
+17     new-workspace-j42am/softpoop/1    24817300  semantic-segmentation    322  23.67 MB     435     319  True
+15     new-workspace-j42am/dp-4iarz/1     9136253  semantic-segmentation     77   8.71 MB     196      74  True
+size_bytes    75462921
+files             1031
+size          71.97 MB
+n_anns            1728
+n_imgs            1017
+use                  4
+full_id          total
+
+
+This gives us quite a nice extension to our test set.
