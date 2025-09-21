@@ -83,6 +83,27 @@ class ProjectRecord:
     _rf_project: Any = field(default=None, repr=False, compare=False)
     _rf_version: Any = field(default=None, repr=False, compare=False)
 
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> "ProjectRecord":
+        """Create a ProjectRecord from a dict. """
+        return cls(
+            workspace=d.get('workspace'),
+            project_id=d.get('project_id'),
+            version_id=_norm_version_id(d.get('version_id')),
+            name=d.get('name'),
+            project_type=d.get('project_type'),
+            orig_url=d.get('orig_url'),
+            my_fork_id=d.get('my_fork_id'),
+            full_id=d.get('full_id'),
+            dl_dpath=d.get('dl_dpath'),
+            url=d.get('url'),
+            splits=d.get('splits', {}) or {},
+            split_stats=d.get('split_stats', {}) or {},
+            num_versions=d.get('num_versions'),
+            use=d.get('use'),
+            # size_stats intentionally not loaded from cache in old code; keep default {}
+        )
+
     def to_dict(self) -> Dict[str, Any]:
         d = {
             'workspace': self.workspace,
@@ -104,6 +125,121 @@ class ProjectRecord:
         }
         # Remove None values for a cleaner YAML
         return {k: v for k, v in d.items() if v is not None and v != {}}
+
+    @staticmethod
+    def _key_from_dict(d: Dict[str, Any]) -> str:
+        ws = d.get('workspace')
+        pid = d.get('project_id')
+        vid = _norm_version_id(d.get('version_id'))
+        return f"{ws}/{pid}/{vid}"
+
+    @property
+    def key(self) -> str:
+        """Stable key for this record: <workspace>/<project_id>/<version_id>."""
+        return ProjectRecord._key_from_dict(self.to_dict())
+
+    def normalize(self, base_dpath: os.PathLike | str) -> None:
+        """Populate derived identifiers/paths/urls. """
+        self.version_id = _norm_version_id(self.version_id)
+        if self.version_id is not None:
+            self.full_id = f"{self.workspace}/{self.project_id}/{self.version_id}"
+        else:
+            self.full_id = f"{self.workspace}/{self.project_id}"
+        if self.dl_dpath is None and self.full_id:
+            self.dl_dpath = str((ub.Path(base_dpath) / self.full_id))
+        if self.url is None:
+            self.url = f"https://universe.roboflow.com/{self.workspace}/{self.project_id}/dataset/{self.version_id}"
+
+    def ensure_api_objects(self, rf: Roboflow, allow_api: bool = True) -> None:
+        """
+        Ensure _rf_project, project_type, and (if needed) _rf_version are set.
+        Mirrors _ensure_api_objects.
+        """
+        must_fetch_version = self._rf_version is None and self.version_id is None
+        must_fetch_project = self._rf_project is None and (must_fetch_version or self.project_type is None)
+
+        if must_fetch_project:
+            if not allow_api:
+                raise Exception('Assumed we would not need the API')
+            ws = rf.workspace(self.workspace)
+            self._rf_project = ws.project(self.project_id)
+
+        if self._rf_project and self.project_type is None:
+            self.project_type = getattr(self._rf_project, 'type', None)
+
+        if must_fetch_version and self._rf_project is not None:
+            if not allow_api:
+                raise Exception('Assumed we would not need the API')
+            self._rf_version = self._rf_project.version(self.version_id)
+            try:
+                self.num_versions = len(self._rf_project.versions())
+            except Exception:
+                pass
+
+    def ensure_download(self, rf: Roboflow) -> None:
+        """Download if the directory seems empty. Mirrors _ensure_download."""
+        dl = ub.Path(self.dl_dpath).ensuredir()
+        subdirs = [p for p in dl.ls() if p.is_dir()] if dl.exists() else []
+        if subdirs:
+            return
+
+        if self._rf_version is None:
+            ws = rf.workspace(self.workspace)
+            self._rf_project = ws.project(self.project_id)
+            self._rf_version = self._rf_project.version(self.version_id)
+            try:
+                self.num_versions = len(self._rf_project.versions())
+            except Exception:
+                pass
+
+        ptype = self.project_type or getattr(self._rf_project, 'type', None) or 'object-detection'
+        fmt = FMT_FOR_TYPE.get(ptype, 'coco')
+        rich.print(f"[magenta]Downloading {self.full_id} as {fmt}...[/magenta]")
+        with ub.ChDir(self.dl_dpath):
+            _ = self._rf_version.download(fmt)  # NOQA
+
+    def discover_splits(self) -> None:
+        """Populate self.splits."""
+        dl = ub.Path(self.dl_dpath)
+
+        if self.project_type == 'classification':
+            candidates = list(dl.glob('*/*/_annotations.coco.json'))
+            if not candidates:
+                print('process classification data')
+                paths = [p for p in dl.glob('*/*') if p.is_dir()]
+                for split_dpath in paths:
+                    dset = kwcoco.CocoDataset.from_class_image_paths(split_dpath)
+                    dset.reroot(absolute=True)
+                    dset.fpath = split_dpath / '_annotations.coco.json'
+                    dset.reroot(absolute=False)
+                    dset.dump()
+
+        candidates = list(dl.glob('*/*/_annotations.coco.json'))
+        splits = {}
+        for found in candidates:
+            split_name = found.parent.name
+            if split_name in {'train', 'test', 'valid'}:
+                splits[split_name] = str(found)
+        self.splits = splits
+
+    def compute_basic_stats(self) -> None:
+        """Populate self.split_stats."""
+        self.split_stats = self.split_stats or {}
+        for split, fpath in (self.splits or {}).items():
+            if split in self.split_stats and self.split_stats[split]:
+                continue
+            try:
+                basic = kwcoco.CocoDataset(fpath).basic_stats()
+            except Exception as ex:
+                basic = {"error": str(ex)}
+            self.split_stats[split] = basic
+
+        walker = xdev.DirectoryWalker(ub.Path(self.dl_dpath), show_progress=False)
+        walker.build()
+        size_stats = walker.stats(typed=False)
+        assert size_stats
+        self.size_stats = size_stats
+        # walker.write_report(max_depth=0)
 
 
 class RoboflowProjectCache:
@@ -138,7 +274,7 @@ class RoboflowProjectCache:
     def load_cache_if_exists(self):
         if self.cache_path.exists():
             data = kwutil.Yaml.load(self.cache_path)
-            self.records = [self._record_from_dict(d) for d in data]
+            self.records = [ProjectRecord.from_dict(d) for d in data]
             rich.print(f"[green]Loaded cached records from {self.cache_path}[/green]")
         else:
             rich.print(f"[yellow]No existing cache at {self.cache_path}[/yellow]")
@@ -174,10 +310,10 @@ class RoboflowProjectCache:
         seed = normalized_seed
 
         # Merge seed into records (add missing, update known)
-        by_key = {self._key_from_dict(r.to_dict()): r for r in self.records}
+        by_key = {r.key: r for r in self.records}
         row = seed[0]
         for row in seed:
-            key = self._key_from_dict(row)
+            key = ProjectRecord._key_from_dict(row)
             if key in by_key:
                 # Override the cache with the latest data.
                 rec = by_key[key]
@@ -185,10 +321,10 @@ class RoboflowProjectCache:
                     setattr(rec, k, v)
             else:
                 print(f'new uncached key={key}')
-                self.records.append(self._record_from_dict(row))
+                self.records.append(ProjectRecord.from_dict(row))
         # Normalize IDs / paths
         for rec in self.records:
-            self._normalize_record(rec)
+            rec.normalize(self.base_dpath)
 
     def print_updated_seed_yaml(self):
         seed_rows = DEFAULT_SEED_YAML
@@ -227,82 +363,18 @@ class RoboflowProjectCache:
                 raise
 
     def _process_one(self, rec, download_if_missing: bool = True, allow_api=True):
-        self._normalize_record(rec)
+        rec.normalize(self.base_dpath)
         self._ensure_api_objects(rec, allow_api=allow_api)
 
         if download_if_missing:
             self._ensure_download(rec)
 
-        self._discover_splits(rec)
-        self._compute_basic_stats(rec)
-
-        walker = xdev.DirectoryWalker(ub.Path(rec.dl_dpath), show_progress=False)
-        walker.build()
-        size_stats = walker.stats(typed=False)
-        assert size_stats
-        rec.size_stats = size_stats
-        # walker.write_report(max_depth=0)
-
-    # ----------------------------
-    # Public convenience
-    # ----------------------------
-    def stats_dataframe(self) -> pd.DataFrame:
-        rows = []
-        for rec in self.records:
-            for split, fpath in (rec.splits or {}).items():
-                try:
-                    basic = rec.split_stats.get(split)
-                    if basic is None:
-                        basic = kwcoco.CocoDataset(fpath).basic_stats()
-                except Exception as ex:
-                    basic = {"error": str(ex)}
-                rows.append({
-                    'full_id': rec.full_id,
-                    'split': split,
-                    **(basic or {}),
-                })
-        df = pd.DataFrame(rows)
-        return df
+        rec.discover_splits()
+        rec.compute_basic_stats()
 
     # ----------------------------
     # Internals
     # ----------------------------
-    def _key_from_dict(self, d: Dict[str, Any]) -> str:
-        ws = d.get('workspace')
-        pid = d.get('project_id')
-        vid = _norm_version_id(d.get('version_id'))
-        return f"{ws}/{pid}/{vid}"
-
-    def _record_from_dict(self, d: Dict[str, Any]) -> ProjectRecord:
-        rec = ProjectRecord(
-            workspace=d.get('workspace'),
-            project_id=d.get('project_id'),
-            version_id=_norm_version_id(d.get('version_id')),
-            name=d.get('name'),
-            project_type=d.get('project_type'),
-            orig_url=d.get('orig_url'),
-            my_fork_id=d.get('my_fork_id'),
-            full_id=d.get('full_id'),
-            dl_dpath=d.get('dl_dpath'),
-            url=d.get('url'),
-            splits=d.get('splits', {}) or {},
-            split_stats=d.get('split_stats', {}) or {},
-            num_versions=d.get('num_versions'),
-            use=d.get('use'),
-        )
-        return rec
-
-    def _normalize_record(self, rec: ProjectRecord):
-        rec.version_id = _norm_version_id(rec.version_id)
-        if rec.version_id is not None:
-            rec.full_id = f"{rec.workspace}/{rec.project_id}/{rec.version_id}"
-        else:
-            rec.full_id = f"{rec.workspace}/{rec.project_id}"
-        if rec.dl_dpath is None and rec.full_id:
-            rec.dl_dpath = str((self.base_dpath / rec.full_id))
-        if rec.url is None:
-            rec.url = f"https://universe.roboflow.com/{rec.workspace}/{rec.project_id}"
-
     def _ensure_api_objects(self, rec: ProjectRecord, allow_api=True):
         # Only hit API if we must (to infer type or download version)
 
@@ -348,41 +420,26 @@ class RoboflowProjectCache:
             with ub.ChDir(rec.dl_dpath):
                 dataset = rec._rf_version.download(fmt)  # NOQA
 
-    def _discover_splits(self, rec: ProjectRecord):
-        dl = ub.Path(rec.dl_dpath)
-
-        if rec.project_type == 'classification':
-            candidates = list(dl.glob('*/*/_annotations.coco.json'))
-            if not candidates:
-                print('process classification data')
-                paths = [p for p in dl.glob('*/*') if p.is_dir()]
-                for split_dpath in paths:
-                    # Turn the classification data into coco dataset
-                    dset = kwcoco.CocoDataset.from_class_image_paths(split_dpath)
-                    dset.reroot(absolute=True)
-                    dset.fpath = split_dpath / '_annotations.coco.json'
-                    dset.reroot(absolute=False)
-                    dset.dump()
-
-        # Look for COCO annotations in expected layout */*/_annotations.coco.json
-        candidates = list(dl.glob('*/*/_annotations.coco.json'))
-        splits = {}
-        for found in candidates:
-            split_name = found.parent.name
-            if split_name in {'train', 'test', 'valid'}:
-                splits[split_name] = str(found)
-        rec.splits = splits
-
-    def _compute_basic_stats(self, rec: ProjectRecord):
-        rec.split_stats = rec.split_stats or {}
-        for split, fpath in (rec.splits or {}).items():
-            if split in rec.split_stats and rec.split_stats[split]:
-                continue
-            try:
-                basic = kwcoco.CocoDataset(fpath).basic_stats()
-            except Exception as ex:
-                basic = {"error": str(ex)}
-            rec.split_stats[split] = basic
+    # ----------------------------
+    # Public convenience
+    # ----------------------------
+    def stats_dataframe(self) -> pd.DataFrame:
+        rows = []
+        for rec in self.records:
+            for split, fpath in (rec.splits or {}).items():
+                try:
+                    basic = rec.split_stats.get(split)
+                    if basic is None:
+                        basic = kwcoco.CocoDataset(fpath).basic_stats()
+                except Exception as ex:
+                    basic = {"error": str(ex)}
+                rows.append({
+                    'full_id': rec.full_id,
+                    'split': split,
+                    **(basic or {}),
+                })
+        df = pd.DataFrame(rows)
+        return df
 
     def build_summary_df(self):
         import pandas as pd
@@ -426,6 +483,34 @@ class RoboflowProjectCache:
         existing_tlds = set([p.name for p in mgr.base_dpath.ls() if p.is_dir()])
         unknown_tlds = (existing_tlds - known_top_level_dirs)
         print(f'unknown_tlds = {ub.urepr(unknown_tlds, nl=1)}')
+
+    def process_kwcoco_files(self):
+        usable = [rec for rec in self.records if rec.use]
+        test_datasets = []
+        for rec in usable:
+            dsets = []
+            for split, fpath in rec.splits.items():
+                dset = kwcoco.CocoDataset(fpath)
+                # TODO: custom per-dataset logic for handling categories
+                dset.rename_categories({
+                    name: 'poop' for name in dset.categories().name
+                }, merge_policy='update')
+                dset.reroot(absolute=True)
+                dsets.append(dset)
+            full_dset = kwcoco.CocoDataset.union(*dsets)
+            from shitspotter.gather import build_code
+            full_dset.fpath = ub.Path(rec.dl_dpath) / 'data.kwcoco.zip'
+            full_dset.reroot(absolute=False)
+            code = build_code(full_dset)
+            full_dset.fpath = ub.Path(rec.dl_dpath) / f'data_{code}.kwcoco.zip'
+            full_dset.dump(verbose=True)
+            full_dset.reroot(absolute=True)
+            test_datasets.append(full_dset)
+
+        combo_dset = kwcoco.CocoDataset.union(*test_datasets)
+        combo_dset.fpath = self.base_dpath  / 'data.kwcoco.zip'
+        code = build_code(combo_dset)
+        combo_dset.fpath = ub.Path(self.base_dpath) / f'data_{code}.kwcoco.zip'
 
 
 def _parse_universe_url(url: str) -> Dict[str, Any]:

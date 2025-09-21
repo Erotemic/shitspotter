@@ -177,4 +177,3 @@ kwcoco eval_detections \
     --pred_dataset "$EVAL_PATH/preds/grounding_dino/vali_imgs691_99b22ad0/prompt-poop/pred.kwcoco.zip" \
     --out_dpath "$EVAL_PATH/preds/grounding_dino/vali_imgs691_99b22ad0/prompt-poop/detection_evaluation"
 # ---
-

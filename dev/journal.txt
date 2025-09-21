@@ -491,3 +491,8 @@ full_id          total
 
 
 This gives us quite a nice extension to our test set.
+
+# 2025-09-21
+
+
+Testing on this data gives us an AP of 0.7731623658373592.
