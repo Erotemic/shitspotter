@@ -1,0 +1,6 @@
+[submodule "tpl/poopdetector"]
+	path = tpl/poopdetector
+	url = git@github.com:mkorzunowicz/poopdetector.git
+[submodule "tpl/YOLOX"]
+	path = tpl/YOLOX
+	url = https://github.com/Megvii-BaseDetection/YOLOX.git
