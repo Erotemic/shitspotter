@@ -369,3 +369,28 @@ python tools/export_onnx.py \
     --output-name "$HOME"/code/shitspotter/tpl/poop_models/shitspotter-custom-v5-epoch_115.onnx \
     --exp_file exps/custom/yolox_s_custom_v2.py \
     --ckpt YOLOX_outputs/shitspotter-custom-v5/epoch_115_ckpt.pth
+
+
+# TODO: look at the tensorflow lite convertor
+#~/code/shitspotter/dev/poc/onnx_to_tflite.py
+
+# This requires older versions of onnx and tensorflow
+we pyenv3.11.9
+uv pip install "onnx==1.15.0" "onnx-tf==1.10.0" "tensorflow==2.15.*" "tensorflow_probability==0.23.0"
+
+python ~/code/shitspotter/dev/poc/onnx_to_tflite.py \
+  --input "$HOME"/code/shitspotter/tpl/poop_models/shitspotter-custom-v5-epoch_115.onnx \
+  --output "$HOME"/code/shitspotter/tpl/poop_models/shitspotter-custom-v5-epoch_115-float16.tf \
+  --normalize False \
+  --dtype=float16
+
+KWCOCO_BUNDLE_DPATH=$HOME/data/dvc-repos/shitspotter_dvc
+TRAIN_FPATH=$KWCOCO_BUNDLE_DPATH/train_imgs9270_f2b4b17d-simple-poop-only.json
+
+python ~/code/shitspotter/dev/poc/onnx_to_tflite.py \
+  --input "$HOME"/code/shitspotter/tpl/poop_models/shitspotter-custom-v5-epoch_115.onnx \
+  --output "$HOME"/code/shitspotter/tpl/poop_models/shitspotter-custom-v5-epoch_115-full-int8.tf \
+  --normalize False \
+  --calibration_data "$TRAIN_FPATH" \
+  --dtype=full-int8 \
+  --input_shape="1,640,640,3"
