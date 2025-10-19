@@ -15,6 +15,9 @@ To add a new cohort of data use
 
 .. code::
 
+    # Do this in a tmux session for safety
+    tmux
+
     python -m shitspotter.phone_manager
 
 This will transfer data into a staging area.

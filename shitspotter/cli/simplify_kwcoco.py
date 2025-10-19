@@ -7,9 +7,16 @@ import ubelt as ub
 
 class SimplifyKwcocoCLI(scfg.DataConfig):
     """
+
+    * Remove rare categories.
+    * Combine overlapping boxes into one object.
+
+
     """
     src = scfg.Value(None, help='input kwcoco path')
     dst = scfg.Value(None, help='output kwcoco path')
+    inplace = scfg.Flag(False, help='overwrite input')
+
     minimum_instances = scfg.Value(100, help='only keep categories with at least this many instances')
 
     @classmethod
@@ -55,10 +62,9 @@ class SimplifyKwcocoCLI(scfg.DataConfig):
             >>> config = cls(**kwargs)
             >>> cls.main(argv=argv, **config)
         """
-        import rich
-        from rich.markup import escape
-        config = cls.cli(argv=argv, data=kwargs, strict=True)
-        rich.print('config = ' + escape(ub.urepr(config, nl=1)))
+        config = cls.cli(argv=argv, data=kwargs, strict=True, verbose='auto')
+        if config.inplace:
+            config.dst = config.src
         if config.dst is None:
             raise ValueError('Must specify output path')
 
@@ -98,6 +104,7 @@ class SimplifyKwcocoCLI(scfg.DataConfig):
             if len(dets) == 0:
                 continue
 
+            # Combine nearby objects into one box.
             from geowatch.utils.util_kwimage import find_low_overlap_covering_boxes
             from shapely.ops import unary_union
             min_dim = dets.boxes.to_xywh().data[..., 2:4].min()
@@ -298,7 +305,6 @@ def approximate_minimum_distance_seam(ring1, ring2):
     # pt2 = Point(best_pair[1])
 
     # return LineString([pt1, pt2])
-
 
 
 __cli__ = SimplifyKwcocoCLI

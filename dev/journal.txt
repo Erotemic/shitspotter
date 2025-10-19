@@ -496,3 +496,11 @@ This gives us quite a nice extension to our test set.
 
 
 Testing on this data gives us an AP of 0.7731623658373592.
+
+# 2025-10-17
+
+
+The mkorzunowicz/poopdetector MAUI app works with YOLOX onnx models but runs at around 3 frames per second. The app will detect poop close up, and false positives are less common than they used to be. But the small object detection has an AP of 0.18ish which is nowhere near good enough. But with more data, better training, better networks, we should be able to do a bit better. Not sure about if we can do better than onnx on the pixel5 hardware. 3 FPS is good enough, but it would be nice to improve.
+
+
+Training on my new bigger dataset gave me the best YOLOX results I've seen so far. I've got AP around 0.7 (previous best at maybe 0.6ish) and my AP for small objects got to over 0.3 (previous was around 0.15).

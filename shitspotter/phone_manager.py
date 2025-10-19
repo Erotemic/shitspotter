@@ -552,18 +552,6 @@ def finalize_transfer(new_dpath):
             # or fix the above script to do that.
             rm -rf {new_shit_dpath}-predict-output
 
-        e.g.
-
-            python -m shitspotter.cli.predict \
-                --src /home/joncrall/code/shitspotter/shitspotter_dvc/assets/_contributions/sam-2025-03-07 \
-                --package_fpath ~/code/shitspotter/shitspotter_dvc/models/maskrcnn/train_baseline_maskrcnn_v3_v_966e49df_model_0014999.pth \
-                --create_labelme True
-
-            python -m shitspotter.cli.predict \
-                --src /home/joncrall/code/shitspotter/shitspotter_dvc/assets/poop-2025-03-08-T224918 \
-                --package_fpath ~/code/shitspotter/shitspotter_dvc/models/maskrcnn/train_baseline_maskrcnn_v3_v_966e49df_model_0014999.pth \
-                --create_labelme True
-
         At this point, we can do any annotation we wish, but whenever
         annotations change we need to rerun gather and make splits.
 
@@ -621,12 +609,9 @@ def print_pin_instructions(shitspotter_dvc_dpath, new_shit_dpath):
     command = ub.codeblock(
         f'''
         # Pin the new folder directly.
-        ipfs add --pin -r {new_shit_dpath} --progress --cid-version=1 --raw-leaves=false | tee "new_pin_job.log"
+        ipfs add --pin --pin-name {new_assets_name} -r {new_shit_dpath} --progress --cid-version=1 --raw-leaves=false | tee "new_pin_job.log"
         NEW_ASSETS_CID=$(tail -n 1 new_pin_job.log | cut -d ' ' -f 2)
         echo "NEW_ASSETS_CID=$NEW_ASSETS_CID"
-
-        # Add a name to the new pin on the local machine.
-        ipfs pin add --name {new_assets_name} --progress -- "$NEW_ASSETS_CID"
 
         echo "
         On IPFS server run:
@@ -637,14 +622,10 @@ def print_pin_instructions(shitspotter_dvc_dpath, new_shit_dpath):
         # ---
 
         # Then re-add the root, which gives us the new CID
-        ipfs add --pin -r {shitspotter_dvc_dpath} --progress --cid-version=1 --raw-leaves=false | tee "root_pin_job.log"
+        ipfs add --pin --pin-name {new_dataset_name} -r {shitspotter_dvc_dpath} --progress --cid-version=1 --raw-leaves=false | tee "root_pin_job.log"
         # Programatically grab the new CID:
         NEW_ROOT_CID=$(tail -n 1 root_pin_job.log | cut -d ' ' -f 2)
         echo "NEW_ROOT_CID=$NEW_ROOT_CID"
-
-        # Add a name to the new pin on the local machine.
-
-        ipfs pin add --name {new_dataset_name} --progress -- "$NEW_ROOT_CID"
 
         # Add it to the CID revisions:
         echo "$NEW_ROOT_CID" >> "$HOME"/code/shitspotter/shitspotter/cid_revisions.txt

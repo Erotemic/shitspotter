@@ -395,7 +395,9 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 | 2025-07-04  | 9790     | ~3394               | 2444                  | 3406                  | bafybeidfxayyacq4jbbhjcxbxumqlspmsmkj52nq2ns4vfew5udgysocoy  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
-| 2025-08-19  | 10143   |  ~3511               | 2517                  | 3523                  | bafybeigzy526fesd6hfgflorwymum66lixzzgob6rktiv7epvsyyt6e4me  |
+| 2025-08-19  | 10143    | ~3511               | 2517                  | 3523                  | bafybeigzy526fesd6hfgflorwymum66lixzzgob6rktiv7epvsyyt6e4me  |
++-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
+| 2025-10-15  | 10650    | ~3680               | 2632                  | 3695                  | bafybeia2ccfh6qbk6nqk2sjty3zntg7gj6cayvdkej3ibvdaekq2zig3qa  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 
 
@@ -588,6 +590,7 @@ Current IPFS addresses for each top-level asset group are:
     bafybeidvaphwcib2qezdcey4cj3a2r7r7oxskl56yaccgdi75pdou4ggmm - shitspotter_dvc/assets/poop-2025-03-08-T224918
     bafybeieyl6yzi6cyz3minjyvmz53ydbpxmljxs5gytv6cwu6ci7tmwyvjq - shitspotter_dvc/assets/poop-2025-04-20-T172113
     bafybeicz7kxvmxojmu33pskfrkglosz3tndgsmpzz6cmmcxynaau5xzfeu - shitspotter_dvc/assets/poop-2025-07-03-T230656
+    bafybeiapgrjibq7ldtuyukiskn7fi6fedjy5cntjq5rouqnlqkb5dq6224 - shitspotter_dvc/assets/poop-2025-10-14-T222355
 
 
 
