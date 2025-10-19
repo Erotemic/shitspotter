@@ -1,6 +1,6 @@
 [submodule "tpl/poopdetector"]
 	path = tpl/poopdetector
-	url = https://github.com/mkorzunowicz/poopdetector.git
+	url = https://github.com/Erotemic/poopdetector.git
 [submodule "tpl/YOLOX"]
 	path = tpl/YOLOX
 	url = https://github.com/Megvii-BaseDetection/YOLOX.git
