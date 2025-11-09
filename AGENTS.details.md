@@ -6,8 +6,8 @@ links and filenames are fully qualified to simplify navigation.
 
 ## Project goals, data, and documentation
 
-* **Mission** – Build and deploy models that can locate pet waste in consumer
-  images so the experience can be shipped in a phone app. The repo stores code
+* **Mission** – Build and deploy models that can locate pet waste in camera
+  phone images images and package as a phone app. The repo stores code
   for data acquisition, dataset management, training, evaluation, and packaging.
 * **Read next** – `README.rst` covers project history, dataset distribution, and
   milestone tracking. `DATASHEET.md` summarizes collection ethics and usage
@@ -103,9 +103,9 @@ links and filenames are fully qualified to simplify navigation.
 * Several dockerfiles exist under `dockerfiles/` to approximate known-good
   environments. They help document setup steps but have not been validated end
   to end recently—expect to troubleshoot GPU drivers and private data mounts.
-* Secrets and credentials for publishing assets live under `secrets/`; never
-  commit modifications there. Scripts read environment variables documented in
-  their module docstrings.
+* Encrypted and rotatable secrets and credentials for publishing assets live
+  under `secrets/`; never commit modifications there. Scripts read environment
+  variables documented in their module docstrings.
 
 ## Operational tips
 
