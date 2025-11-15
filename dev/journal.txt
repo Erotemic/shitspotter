@@ -504,3 +504,21 @@ The mkorzunowicz/poopdetector MAUI app works with YOLOX onnx models but runs at 
 
 
 Training on my new bigger dataset gave me the best YOLOX results I've seen so far. I've got AP around 0.7 (previous best at maybe 0.6ish) and my AP for small objects got to over 0.3 (previous was around 0.15).
+
+
+# 2025-11-09
+
+Rejected from WACV. A reject, weak reject, and weak accept. 
+
+I lost the reviewer lottery for WACV. Perhaps I could have mitigated this by refocusing the introduction on the application, but it felt like they went out of their way to miss the point in some cases.
+
+Particularly frustrating was:
+ 
+> The primary motivation being a phone app to assist dog owners in cleaning up after their dogs seems of questionable utility -- presumably the owners can see it themselves?
+
+and 
+
+> The paper does not clarify whether multiple images were captured from different angles of the same scene (if not why?)
+
+Did they not see the nearly impossible to see annotation in the first image or any other example image? Or the second image where the negative is from the same angle. I probably should recolor it to make it clear that the annotation is only easy to see because I colored it blue, and explicitly state the second part. But again, different reviewers probably would want something else that I left implicit to be made explicit.... 
+

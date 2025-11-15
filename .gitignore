@@ -99,3 +99,7 @@ shitspotter_dvc
 shitspotter_data
 shitspotter_expt
 .staging
+
+git-of-theseus/
+emissions.csv*
+*.apk

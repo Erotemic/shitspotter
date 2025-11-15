@@ -122,7 +122,7 @@ class SimplifyKwcocoCLI(scfg.DataConfig):
                             new_ann = ub.udict(annots.objs[idxs[0]]) - {'id', 'segmentation', 'bbox'}
                             new_poly = kwimage.MultiPolygon.coerce(new_poly)
                             new_ann['bbox'] = new_poly.box().to_coco()
-                            new_ann['segmenation'] = new_poly.to_coco(style='new')
+                            new_ann['segmentation'] = new_poly.to_coco(style='new')
                             to_remove.extend(old_aids)
                             new_anns.append(new_ann)
 
