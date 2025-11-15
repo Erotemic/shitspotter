@@ -1,0 +1,555 @@
+Reviewer 1 (TVgg)
+----------
+Summary:
+This paper presents “ScatSpotter”, a high-resolution dataset of 9,000+ images with polygon annotations for dog feces detection, along with baseline results using MaskRCNN and Vision Transformer models.
+
+Strengths Contributions:
+
+Provides a high-resolution, well-annotated, and open dog feces detection dataset (ScatSpotter), filling a gap in this domain.
+Innovatively employs a “before/after/negative (BAN)” collection protocol to increase negative sample diversity and enhance model generalization.
+
+Limitations Weaknesses:
+The dataset has geographic bias (primarily from a single city and a few dogs), which may limit generalizability.
+The independent test set is small (only 121 images), reducing the robustness of model evaluation.
+Consider evaluating a broader range of object detection and segmentation models (e.g., YOLO variants, MobileNet-based detectors, and recent transformer-based approaches) to provide a more comprehensive benchmark.
+The proposed solution appears somewhat outdated in the era of rapidly advancing multimodal large models. I suggest the authors include experiments using open-ended detectors such as Grounding DINO, and provide a comparative analysis between open-ended object detection (with few-shot training) and closed-ended object detection. Such an investigation would make the conclusions more compelling and highlight new insights.
+The paper lacks methodological novelty and insights in the context of object detection. In my view, “dog feces detection” should not be treated as a standalone problem but rather as a subtask of general object detection, with the primary distinction being the data source and distribution. I recommend that the authors clarify how their approach provides unique contributions or innovations compared to existing general object detection methods.
+
+Rating: 3: Borderline reject: Technically solid paper where reasons to reject, e.g., limited evaluation, outweigh reasons to accept, e.g., good evaluation. Please use sparingly.
+
+Confidence: 4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+
+Reviewer 2 (Ux3F)
+----------
+
+Summary:
+The paper introduces a dataset of images of dog poop, which poses various challenges (small, low contrast to environment, highly variable in appearance) for image processing algorithms. The dataset contains over 9000 images with 6000 annotated instances, and for many scenes has three images that depict the same region before the dog went to work, after the dog went to work, and another close by region without any dog action (negative). Two standard detector models are trained on the dataset to validate its difficulty.
+
+Additionally, the paper explores technical ways of distributing the dataset, with a focus on availability and speed.
+
+Strengths Contributions:
+Novelty, potentially high impact: There is no public large-scale dataset regarding dog poop yet. That, in combination with uniquely challenging aspects regarding target size and visual aspects, can lead to a high impact of this paper, opening a path for both method development and additional datasets.
+
+Practical interest: The topic can be of practical interest, with the rise of robots that automatically clean public places from litter and - potentially - dog poop.
+
+Well though-off setup: The somewhat unusual before/after/negative setup is well thought off and allows for training protocols that would be unavailable otherwise.
+
+The paper is very well written, easy to follow, everything is well motivated. The dataset is analyzed in detail and fairly compared to other datasets, giving a very good intuition about its strengths, challenges and potential future improvements. The authors also propose a standard train/validation/test-split, which is appreciated.
+
+Limitations Weaknesses:
+Not really a weakness, and certainly up to discussion, but the discussion about dataset distribution (Chapter 5) is tangential to the main contribution of the paper. While reproducibility of methods is an issue, large datasets are routinely distributed robustly in the computer vision community. Having larger datasets disappear happens rarely. The paper would be just as strong without Chapter 5.
+
+The dataset is somewhat limited in scope; most images were taken at geographically similar locations, most are from the same three dogs, probably with a somewhat constant and similar diet, and taken by the same person which probably introduces a bias regarding camera placement and settings.
+
+Rating: 5: Accept: Technically solid paper, with high impact on at least one sub-area of AI or moderate-to-high impact on more than one area of AI, with good-to-excellent evaluation, resources, reproducibility, and no unaddressed ethical considerations.
+Confidence: 3: You are fairly confident in your assessment. It is possible that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+
+
+Reviewer 3 (NeGf)
+----------
+
+
+Summary:
+This paper introduces a novel dataset for dog waste detection, featuring high-quality annotations and a unique "before/after/negative" collection protocol. Its exploration of decentralized data distribution (IPFS, BitTorrent) is particularly forward-thinking. While the dataset is robust, its geographic bias and small test set could limit generalizability. Recommended for acceptance with minor revisions to expand test data and model benchmarks.
+
+Strengths Contributions:
+This paper introduces a novel and practical dataset for dog waste detection, with potential applications in urban cleanliness and smart devices. The "before/after/negative" (BAN) protocol enhances data diversity, while the inclusion of 9,000+ images with 6,000+ polygon annotations ensures robustness. The comparison of centralized (HuggingFace, Girder) and decentralized (IPFS, BitTorrent) distribution methods is particularly insightful, addressing long-term accessibility challenges. Baseline models (ViT, Mask R-CNN) provide a solid reference, and the analysis of computational costs aligns with sustainability concerns in AI research.
+
+Limitations Weaknesses:
+The primary limitation is the small independent test set (121 images), which may not fully capture model generalization. Geographic bias (data from a single city) could also affect real-world applicability. Future work could expand the dataset’s diversity and explore lightweight architectures (e.g., YOLO) for mobile deployment. The peer-discovery issues in decentralized distribution warrant further investigation under varied network conditions.
+
+Rating: 4: Borderline accept: Technically solid paper where reasons to accept outweigh reasons to reject, e.g., limited evaluation. Please use sparingly.
+Confidence: 3: You are fairly confident in your assessment. It is possible that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+
+
+Reviewer 4 (LGt7)
+----------
+
+
+Summary:
+This paper presents a dataset comprising annotations of 9,000 dog feces instances. The author details the data collection and annotation procedures and further validates the dataset by training a segmentation model based on Mask R-CNN with a ViT backbone. In addition, the paper includes analyses related to clustering and attribute characterization.
+
+Strengths Contributions:
+This work indeed fills a gap in the field of animal feces detection and segmentation. The dataset is sufficiently large, high-resolution, and the masks are manually annotated. From what I can tell, the task appears challenging and valuable enough, viewed from Hugging Face. The authors also mention potential applications such as developing autonomous cleaning robots or assisting animal owners in locating feces hidden in grass—both of which are reasonable use cases.
+
+Author also provide detailed analysis about how the dataset is collected.
+
+Limitations Weaknesses:
+However, this paper has several issues that should be addressed:
+
+The analysis of the dataset hosting platform's efficiency(section 5), along with the discussion on carbon emissions and power consumption(from line 157 to line 165), feels somewhat like filler content. These aspects are not essential for an academic conference paper like NeurIPS and would be more appropriate in the appendix or the GitHub README. The remaining space would be better used to strengthen the paper with more substantial analyses, such as the ones I suggest below.
+
+As a benchmark, the inclusion of only two models is somewhat limited. It would be beneficial to incorporate well-established segmentation backbones such as SegFormer, Swin Transformer, or ConvNeXt. The authors could also consider designing a model specifically tailored for feces detection—optimized for sparse, small-object detection—which could serve as a meaningful contribution in itself.
+
+Given that this is a small-object detection task, there is a significant imbalance between black and white pixels for the ground truth masks. Evaluating model performance using metrics like F1 score or IoU would provide more informative and meaningful insights.
+
+Additional Feedback:
+Indeed, I find this to be an interesting piece of work. If the authors can approach it with a more research-oriented mindset and treat it in the same rigorous manner as existing segmentation and detection benchmarks, I believe the paper still holds strong potential.
+
+However. Current experiments are somewhat insufficient to be fully released as a benchmark. While the information density and overall contribution are still some distance away from the standards typically seen in NeurIPS-accepted papers, I believe there is potential. If the authors can provide more comprehensive experiments in the rebuttal, I would be willing to raise my score.
+
+Rating: 3: Borderline reject: Technically solid paper where reasons to reject, e.g., limited evaluation, outweigh reasons to accept, e.g., good evaluation. Please use sparingly.
+Confidence: 5: You are absolutely certain about your assessment. You are very familiar with the related work and checked the math/other details carefully.
+
+----------
+
+
+Action Plan
+
+* Run grounding dino over multiple prompts, present the best prompt in the main table. It seems that these scores are quit a bit lower than 
+
+* Properly score our YOLO model and incldue that in the result.
+
+* Get IOU and F1 scores for masks where appropriate. I'm not sure if this is that important, given that we have AP and AUC, but it won't be hard to grab these. The trick will be making them fit in the paper.
+
+* Attempt to train and evaluate segformer / swin transformer.  I don't think I have time to train a segformer / swin transformer. 
+
+* Attempt to do few-shot tuning with grounding dino. We believe this is the
+  most interesting new experiment and will focus on this. We do not know 
+  if it will get done in time.
+
+
+To save space, we can reduce the energy consumption and dataset transfer discussion in the main text. We can add the carbon footprint as a footnote.
+
+
+YOLO models are getting:
+
+Top 7 / 7 for detection_evaluation, unknown
+region_id param_hashid       ap      auc  max_f1_f1  max_f1_tpr  max_f1_ppv
+  unknown gjcwztpmgmwb 0.063809 0.315697   0.200969    0.264753    0.161951
+  unknown hkyxcyhorvul 0.214972 0.462016   0.349262    0.320574    0.383588
+  unknown ntmahixlzxaw 0.396135 0.568068   0.507299    0.443381    0.592751
+  unknown srhgpxujtybh 0.397949 0.586071   0.506620    0.457735    0.567194
+  unknown farjfqobywdl 0.409990 0.582203   0.504780    0.421053    0.630072
+  unknown prgrkyitudvm 0.411072 0.595478   0.496269    0.424242    0.597753
+  unknown kzphpckhcrfx 0.441861 0.668006   0.505703    0.424242    0.625882
+
+
+
+Top 2 / 2 for detection_evaluation, unknown
+region_id param_hashid       ap      auc  max_f1_f1  max_f1_tpr  max_f1_ppv
+  unknown bhipvqbqfqus 0.235686 0.343527   0.304802    0.327354    0.285156
+  unknown oxluurjbrjgf 0.548491 0.695896   0.572748    0.556054    0.590476
+
+Grounding Dino Results:
+
+
+Varied Basis: = {
+    'params.grounding_dino_pred.classes': {
+        '[droppings]': 1,
+        '[feces]': 1,
+        '[caninefeces]': 1,
+        '[poop]': 1,
+        '[petwaste]': 1,
+        '[animalfeces]': 1,
+        '[dogfeces]': 1,
+        '[dogpoop]': 1,
+        '[excrement]': 1,
+        '[turd]': 1,
+    },
+}
+Constant Params: {
+    'params.grounding_dino_pred.src': '/home/joncrall/data/dvc-repos/shitspotter_dvc/test_imgs121_6cb3b6ff.kwcoco.zip',
+}
+Varied Parameter LUT: {
+    'mimgtpruaiyp': {
+        'params.grounding_dino_pred.classes': '[droppings]',
+    },
+    'fnedlbdnmeul': {
+        'params.grounding_dino_pred.classes': '[feces]',
+    },
+    'txjiagqiufub': {
+        'params.grounding_dino_pred.classes': '[caninefeces]',
+    },
+    'nwrxpdkpmxdb': {
+        'params.grounding_dino_pred.classes': '[poop]',
+    },
+    'daupcewfsqaj': {
+        'params.grounding_dino_pred.classes': '[petwaste]',
+    },
+    'hoycchcbyrpm': {
+        'params.grounding_dino_pred.classes': '[animalfeces]',
+    },
+    'oyzccfbitxsx': {
+        'params.grounding_dino_pred.classes': '[dogfeces]',
+    },
+    'gmdledblkugu': {
+        'params.grounding_dino_pred.classes': '[dogpoop]',
+    },
+    'iqefdjqidwif': {
+        'params.grounding_dino_pred.classes': '[excrement]',
+    },
+    'kzsziuprvszt': {
+        'params.grounding_dino_pred.classes': '[turd]',
+    },
+}
+---
+Top 10 / 11 for detection_evaluation, unknown
+region_id param_hashid       ap      auc  max_f1_f1  max_f1_tpr  max_f1_ppv
+  unknown mimgtpruaiyp 0.076434 0.142957   0.271805    0.300448    0.248148
+  unknown fnedlbdnmeul 0.162810 0.263108   0.322820    0.390135    0.275316
+  unknown txjiagqiufub 0.166419 0.242008   0.366667    0.394619    0.342412
+  unknown nwrxpdkpmxdb 0.172734 0.178465   0.312329    0.255605    0.401408
+  unknown daupcewfsqaj 0.197924 0.248485   0.351039    0.340807    0.361905
+
+  unknown hoycchcbyrpm 0.228014 0.303121   0.392523    0.376682    0.409756  <- chosen by validation
+
+  unknown oyzccfbitxsx 0.228467 0.292185   0.399061    0.381166    0.418719
+  unknown gmdledblkugu 0.241144 0.275718   0.379691    0.385650    0.373913
+  unknown iqefdjqidwif 0.252098 0.313838   0.390756    0.417040    0.367589
+  unknown kzsziuprvszt 0.271279 0.316953   0.394015    0.354260    0.443820
+
+No model columns are availble
+
+
+report_config = {
+    'top_k': 10,
+    'per_group': None,
+    'macro_analysis': 0,
+    'analyze': 0,
+    'print_models': True,
+    'reference_region': None,
+    'concise': 1,
+    'show_csv': 0,
+}
+Varied Basis: = {
+    'params.grounding_dino_pred.classes': {
+        '[droppings]': 1,
+        '[petwaste]': 1,
+        '[poop]': 1,
+        '[dogpoop]': 1,
+        '[caninefeces]': 1,
+        '[turd]': 1,
+        '[feces]': 1,
+        '[excrement]': 1,
+        '[dogfeces]': 1,
+        '[animalfeces]': 1,
+    },
+}
+Constant Params: {
+    'params.grounding_dino_pred.src': '/home/joncrall/data/dvc-repos/shitspotter_dvc/vali_imgs691_99b22ad0.kwcoco.zip',
+    'params.grounding_dino_pred.force_classname': 'poop',
+}
+Varied Parameter LUT: {
+    'tymkkasobuxu': {
+        'params.grounding_dino_pred.classes': '[droppings]',
+    },
+    'bbxjxlpqtich': {
+        'params.grounding_dino_pred.classes': '[petwaste]',
+    },
+    'hsjwsstjgfwa': {
+        'params.grounding_dino_pred.classes': '[poop]',
+    },
+    'bbzkhdtsaran': {
+        'params.grounding_dino_pred.classes': '[dogpoop]',
+    },
+    'lvwkpanzkfeg': {
+        'params.grounding_dino_pred.classes': '[caninefeces]',
+    },
+    'fdjllkfspiwb': {
+        'params.grounding_dino_pred.classes': '[turd]',
+    },
+    'nadkhtkmzqbo': {
+        'params.grounding_dino_pred.classes': '[feces]',
+    },
+    'jhevrpnlmfac': {
+        'params.grounding_dino_pred.classes': '[excrement]',
+    },
+    'cfmpfudqosiq': {
+        'params.grounding_dino_pred.classes': '[dogfeces]',
+    },
+    'zicuwnhumqxg': {
+        'params.grounding_dino_pred.classes': '[animalfeces]',
+    },
+}
+---
+Top 10 / 11 for detection_evaluation, unknown
+region_id param_hashid       ap      auc  max_f1_f1  max_f1_tpr  max_f1_ppv
+  unknown tymkkasobuxu 0.023350 0.095581   0.138672    0.226475    0.099930
+  unknown bbxjxlpqtich 0.035186 0.142949   0.152702    0.245614    0.110791
+  unknown hsjwsstjgfwa 0.038058 0.103527   0.165182    0.162679    0.167763
+  unknown bbzkhdtsaran 0.047091 0.164589   0.168865    0.204147    0.143982
+  unknown lvwkpanzkfeg 0.051131 0.163288   0.181728    0.291866    0.131939
+  unknown fdjllkfspiwb 0.053941 0.175471   0.178618    0.218501    0.151047
+  unknown nadkhtkmzqbo 0.064756 0.207600   0.179692    0.269537    0.134769
+  unknown jhevrpnlmfac 0.070901 0.216638   0.196944    0.277512    0.152632
+  unknown cfmpfudqosiq 0.074820 0.207122   0.197757    0.309410    0.145318
+  unknown zicuwnhumqxg 0.077900 0.210365   0.197377    0.251994    0.162218
+
+
+
+Rebuttle points.
+
+
+### In defense of use in the study of object detection 
+
+Yes, this is a subset of object detection. But it is a novel category that is
+approaching AI scale, and will allow future foundational models to build a
+better conceptual model of dog poop.
+
+
+This category is not well represented in online training sets.
+
+However, the author has been made aware of several more on https://universe.roboflow.com
+with a larger 2000 image cropped classification dataset. We intend on amending
+our related work section to mention these. It is still the case that this is
+the largest dog poop detection database by a wide margin.
+
+Unfortunately, it is unlikely we will be able to access and format all of these
+dataset within 6 days, which means it will be unlikely we could include these
+to enhance our test sets. But we do intend to do this to improve benchmarks,
+but we believe the improved experiments - while still limited - are above the
+bar for NeurIPS.
+
+
+### In defense of focus on data distribution section
+
+Peer to peer dataset distribution and content-based-addressing may become an
+essential part of training models on potentially ephemeral data, but allow the
+training process to generate metadata that allows verifying training lineages. 
+
+We believe this is of academic and practical interest. Part of our motivation
+in publishing this paper is to expose practitioners to these ideas, demonstrate
+how they can be used in experimental research.
+
+URLS are inherantly unstable, and they will rot or change. However, hashes make
+the user aware if the data is no longer available.
+
+The hashes I gave in my paper enable **codification** of instructions to
+reproduce my (admittedly limited) experiments.
+
+To improve on the reproducibility of the experiments, we are also publishing a
+docker image of the experimental environment, and working towards scripts that
+will perform the experiments reproducibly and verifiably. 
+
+
+### In defense of resource usage and environment impact reporting
+
+The authors acknowledge that this is not the most groundbreaking contribution,
+but it is a novel and sizable contribution.
+
+We will shorted sections about environmental impact, moving them to the
+appendix. While the impact of this work is small, the authors do believe that
+ethical use of AI is improved by awareness and transparency of energy usage and
+byproducts and will still keep some language in the main text.
+
+verifiable 
+
+
+### Addressing misconceptions 
+
+Remind the reviewer the dataset is >9000 images, but not all of them contain feces.
+
+It is true the majority of dogs are of 3 that lived in the same house. However,
+a significant number of images are from other unknown dogs. Images are
+frequently taken of abandoned poop. Unfortunately we don't have the metadata to
+count the exact number but we would guess 30-40% of the annotations are from
+random dogs that live in a city block, near a dog park, in a town that is on
+average fond of dogs.
+
+Relying on collecting the 60-70% of the data is a practical concession we had
+to make in order build a dataset large enough to train models. 
+
+We acknowledge that the 121 image test set is small. We wanted to ensure it was
+disjoint from the images taken by the authors. It is due to this limitation
+that we also publish validation results, while biased due to selection, are
+informative when combined with the small test test results. We can certainly
+conclude that there is a enough data here to train a reasonable detector of
+practical use, but there still challenges that remain (occlusion, distractors,
+etc...).
+
+
+### Self Assessment
+
+The author's self assessment of the strengths and weaknesses of this paper are as follows:
+
+#### Heighlight of Strengths
+
+* The dataset is large enough for inclusion in additional waste datasets as a
+  well-represented category.
+
+#### Acknowledgment of limitations
+
+* 
+
+Despite these limitations we believe our strengths outweight them.
+
+
+### New Experimental results
+
+(Formatted by chat GPT, have not checked the numbers are correct yet)
+
+Here's a **cleaned-up and concise version** of your table showing **YOLO** and **Grounding DINO** results with the class prompt (replacing hash IDs), grouped logically:
+
+---
+
+### 🟡 YOLO Results (Top 7 of 7)
+
+| Prompt Variant | AP        | AUC       | Max F1    | TPR       | PPV       |
+| -------------- | --------- | --------- | --------- | --------- | --------- |
+| (Unknown A)    | 0.064     | 0.316     | 0.201     | 0.265     | 0.162     |
+| (Unknown B)    | 0.215     | 0.462     | 0.349     | 0.321     | 0.384     |
+| (Unknown C)    | 0.396     | 0.568     | 0.507     | 0.443     | 0.593     |
+| (Unknown D)    | 0.398     | 0.586     | 0.507     | 0.458     | 0.567     |
+| (Unknown E)    | 0.410     | 0.582     | 0.505     | 0.421     | 0.630     |
+| (Unknown F)    | 0.411     | 0.595     | 0.496     | 0.424     | 0.598     |
+| (Unknown G)    | **0.442** | **0.668** | **0.506** | **0.424** | **0.626** |
+
+> 🥇 **Best YOLO config scored AP = 0.442, AUC = 0.668, F1 = 0.506**
+
+---
+
+### 🟡 YOLO Results (Alternate Set, Top 2 of 2)
+
+| Prompt Variant | AP        | AUC       | Max F1    | TPR       | PPV       |
+| -------------- | --------- | --------- | --------- | --------- | --------- |
+| (Unknown H)    | 0.236     | 0.344     | 0.305     | 0.327     | 0.285     |
+| (Unknown I)    | **0.548** | **0.696** | **0.573** | **0.556** | **0.590** |
+
+> 🥇 **Alternate YOLO config scored AP = 0.548, AUC = 0.696, F1 = 0.573**
+
+---
+
+### 🟢 Grounding DINO Results – Validation Set
+
+| Prompt      | AP        | AUC       | Max F1    | TPR       | PPV       |
+| ----------- | --------- | --------- | --------- | --------- | --------- |
+| droppings   | 0.076     | 0.143     | 0.272     | 0.300     | 0.248     |
+| feces       | 0.163     | 0.263     | 0.323     | 0.390     | 0.275     |
+| caninefeces | 0.166     | 0.242     | 0.367     | 0.395     | 0.342     |
+| poop        | 0.173     | 0.178     | 0.312     | 0.256     | 0.401     |
+| petwaste    | 0.198     | 0.248     | 0.351     | 0.341     | 0.362     |
+| animalfeces | 0.228     | 0.303     | 0.393     | 0.377     | 0.410     |
+| dogfeces    | 0.228     | 0.292     | 0.399     | 0.381     | 0.419     |
+| dogpoop     | 0.241     | 0.276     | 0.380     | 0.386     | 0.374     |
+| excrement   | 0.252     | 0.314     | 0.391     | 0.417     | 0.368     |
+| turd        | **0.271** | **0.317** | **0.394** | **0.354** | **0.444** |
+
+> 🥇 **Best G-DINO prompt: "turd" (AP = 0.271, AUC = 0.317, F1 = 0.394)**
+
+---
+
+### 🟢 Grounding DINO Results – Test Set
+
+| Prompt      | AP        | AUC       | Max F1    | TPR       | PPV       |
+| ----------- | --------- | --------- | --------- | --------- | --------- |
+| droppings   | 0.023     | 0.096     | 0.139     | 0.226     | 0.100     |
+| petwaste    | 0.035     | 0.143     | 0.153     | 0.246     | 0.111     |
+| poop        | 0.038     | 0.104     | 0.165     | 0.163     | 0.168     |
+| dogpoop     | 0.047     | 0.165     | 0.169     | 0.204     | 0.144     |
+| caninefeces | 0.051     | 0.163     | 0.182     | 0.292     | 0.132     |
+| turd        | 0.054     | 0.175     | 0.179     | 0.219     | 0.151     |
+| feces       | 0.065     | 0.208     | 0.180     | 0.270     | 0.135     |
+| excrement   | 0.071     | 0.217     | 0.197     | 0.278     | 0.153     |
+| dogfeces    | 0.075     | 0.207     | 0.198     | 0.309     | 0.145     |
+| animalfeces | **0.078** | **0.210** | **0.197** | **0.252** | **0.162** |
+
+> 🥇 **Best test-time G-DINO prompt: "animalfeces" (AP = 0.078)**
+
+
+
+New Results:
+
+split                            test                                              vali                                           
+                      # params AP-box AUC-box F1-box AP-pixel AUC-pixel F1-pixel AP-box AUC-box F1-box AP-pixel AUC-pixel F1-pixel
+model                                                                                                                             
+MaskRCNN-pretrained   43918038  0.613   0.698  0.650    0.871     0.816    0.885  0.612   0.721  0.625    0.858     0.883    0.839
+MaskRCNN-scratch      43918038  0.254   0.465  0.345    0.385     0.798    0.408  0.255   0.576  0.349    0.434     0.891    0.482
+VIT-sseg-scratch      25543369  0.393   0.404  0.517    0.473     0.902    0.520  0.476   0.532  0.596    0.780     0.994    0.746
+YOLO-v9-pretrained    50999558  0.441   0.551  0.507      ---       ---      ---  0.411   0.595  0.496      ---       ---      ---
+YOLO-v9-scratch       50999558  0.377   0.408  0.469      ---       ---      ---  0.264   0.427  0.381      ---       ---      ---
+GroundingDino-zero   172249090  0.228   0.303  0.393      ---       ---      ---  0.078   0.210  0.197      ---       ---      ---
+GroundingDino-tuned  172249090  0.700   0.666  0.758      ---       ---      ---  0.691   0.631  0.743      ---       ---      ---
+
+
+Need to note that the F1 score is the reported as the maximum over all thresholds. 
+
+Note that the IoU (Jaccard score) can be derived from F1 as follows: `IoU = F1 / (2 - F1)`.
+
+
+split                 Test (n=121)                                                             
+                    AP-box AUC-box F1-box TPR-box AP-pixel AUC-pixel F1-pixel TPR-pixel
+model                                                                                  
+MaskRCNN-pretrained  0.613   0.698  0.650   0.596    0.811     0.849    0.779     0.732
+MaskRCNN-scratch     0.254   0.465  0.345   0.300    0.385     0.798    0.408     0.439
+VIT-sseg-scratch     0.393   0.404  0.517   0.408    0.407     0.819    0.479     0.370
+GroundingDino-tuned  0.700   0.666  0.758   0.682      NaN       NaN      NaN       NaN
+GroundingDino-zero   0.228   0.303  0.393   0.377      NaN       NaN      NaN       NaN
+YOLO-v9-pretrained   0.441   0.551  0.507   0.498      NaN       NaN      NaN       NaN
+YOLO-v9-scratch      0.362   0.358  0.480   0.372      NaN       NaN      NaN       NaN
+
+
+split                 Validation (n=691)                                                             
+                    AP-box AUC-box F1-box TPR-box AP-pixel AUC-pixel F1-pixel TPR-pixel
+model                                                                                  
+MaskRCNN-pretrained  0.612   0.721  0.625   0.573    0.744     0.906    0.738     0.676
+MaskRCNN-scratch     0.255   0.576  0.349   0.311    0.434     0.891    0.482     0.501
+VIT-sseg-scratch     0.476   0.532  0.596   0.510    0.757     0.974    0.736     0.695
+GroundingDino-tuned  0.691   0.631  0.743   0.684      NaN       NaN      NaN       NaN
+GroundingDino-zero   0.078   0.210  0.197   0.252      NaN       NaN      NaN       NaN
+YOLO-v9-pretrained   0.411   0.595  0.496   0.424      NaN       NaN      NaN       NaN
+YOLO-v9-scratch      0.331   0.409  0.443   0.367      NaN       NaN      NaN       NaN
+
+---
+
+
+score changes
+
+Rating key:
+6 - strong accept
+5 - accept
+4 - weak accept
+3 - weak reject
+2 - reject
+1 - strong reject
+
+Confidence Key:
+5 - absolute
+4 - confident
+3 - fair
+2 - missed details
+1 - educated guess
+
+
+Read as: Reviewer {num}: {rating}:{confidence}
+
+Reviewer 1:TVgg: 3:4 -> 3:4
+Reviewer 2:Ux3F: 5:3 -> ?:3 (maybe 6:3 or 4:3)?
+Reviewer 3:NeGf: 4:3 -> 5:3
+Reviewer 4:LGt7: 3:5 -> 4:5
+
+Submittions: 205
+Initial Ratings 3,5,4,3
+Initial Confidence 4,3,3,5
+
+https://papercopilot.com/statistics/neurips-statistics/wacv_2026-statistics-datasets-benchmarks-track-2/
+
+
+
+Rebuttal Response (TVgg)
+------------------------
+<none>
+
+Score Changes: 3:4 -> 3:4
+
+Rebuttal Response (Ux3F)
+------------------------
+<none>
+
+Score Changes: 5:3 -> ?:3 (maybe 6:3 or 4:3)?
+
+Rebuttal Response (NeGf)
+------------------------
+
+Thank you for authors' response. Multiple models were used to validate the dataset, which addressed my concern, I have no further suggestions. I want to raise my original score to 5.
+
+Score Changes: 4:3 -> 5:3
+
+Rebuttal Response (LGt7)
+------------------------
+
+My main concern was addressed by the authors in the rebuttal. While I acknowledge the importance of eco-friendliness, an academic paper must ensure that the main text is sufficiently detailed and self-contained. This issue has been appropriately resolved by the additional experimental results provided by the authors. They included new models and more commonly used segmentation metrics.
+
+Overall, I believe the paper has reached the level of completeness required. I am willing to raise my score from 3 to 4. Furthermore, if there were a baseline model specifically designed for this task, it would meet the standard I expect for a score of 5.
+
+Score Changes: 3:5 -> 4:5

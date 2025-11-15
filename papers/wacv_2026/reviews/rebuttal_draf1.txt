@@ -1,0 +1,409 @@
+Reviewer 1
+----------
+Summary:
+This paper presents “ScatSpotter”, a high-resolution dataset of 9,000+ images with polygon annotations for dog feces detection, along with baseline results using MaskRCNN and Vision Transformer models.
+
+Strengths Contributions:
+
+Provides a high-resolution, well-annotated, and open dog feces detection dataset (ScatSpotter), filling a gap in this domain.
+Innovatively employs a “before/after/negative (BAN)” collection protocol to increase negative sample diversity and enhance model generalization.
+
+Limitations Weaknesses:
+The dataset has geographic bias (primarily from a single city and a few dogs), which may limit generalizability.
+The independent test set is small (only 121 images), reducing the robustness of model evaluation.
+Consider evaluating a broader range of object detection and segmentation models (e.g., YOLO variants, MobileNet-based detectors, and recent transformer-based approaches) to provide a more comprehensive benchmark.
+The proposed solution appears somewhat outdated in the era of rapidly advancing multimodal large models. I suggest the authors include experiments using open-ended detectors such as Grounding DINO, and provide a comparative analysis between open-ended object detection (with few-shot training) and closed-ended object detection. Such an investigation would make the conclusions more compelling and highlight new insights.
+The paper lacks methodological novelty and insights in the context of object detection. In my view, “dog feces detection” should not be treated as a standalone problem but rather as a subtask of general object detection, with the primary distinction being the data source and distribution. I recommend that the authors clarify how their approach provides unique contributions or innovations compared to existing general object detection methods.
+
+Rating: 3: Borderline reject: Technically solid paper where reasons to reject, e.g., limited evaluation, outweigh reasons to accept, e.g., good evaluation. Please use sparingly.
+
+Confidence: 4: You are confident in your assessment, but not absolutely certain. It is unlikely, but not impossible, that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work.
+
+
+Response to Reviewer 1
+----------------------
+
+
+> On Geographic Bias
+While the geographic (and several other) biases exists, the dataset contains
+rich variation in many other aspects due to the long time frame over which it
+was collected.
+
+> On Test Dataset Size 
+The size of the test dataset is due to a design decision set at the start of
+the project. We wanted to ensure that the test set contained no images captured
+by the authors. Thus we relied on external contributions. We take care to
+acknowledge this limitation, and report results on the larger validation set in
+an effort to compensate.
+
+
+> On lack of novelty in the dog feces detection problem.
+
+We agree that dog feces detection is a subset of generic object detection.
+However we believe dog feces is a novel category that is unstudied in the
+literature. Due to its amorphous nature, tendency to occur in "camouflaged
+scenes", and small size warrants both academic and practical interest. 
+
+As our new GroundingDino results will show, foundational models have not yet
+built a strong conceptual model of dog poop, and our large dataset with a
+creative commons license is a contribution that will help alleviate that
+weakness.
+
+Additionally, we believe that our focus on the distribution of open scientific
+datasets and the tradoffs between centralized and decentralized methods is a
+unique aspect of our paper that makes our paper unique.  We also found it very
+surprising that downloading data from hugging face was faster than direct
+rsync!  We believe using content addressable methods is an important step
+towards automating reproduction of experiments, and our paper takes a step
+towards exploring the landscape of the tooling for this. While huggingface 
+has stepped up as a defacto standard, centralization of data and models carries
+existential risk, and we believe our work makes a unique contribution with its
+experimental quantification of the gap between centralized and decentralized
+methods.
+
+
+> On a Broader Range of Models
+As other reviewers have noted, only including two - at this point dated -
+models in our evaluation is limiting. We agree with the reviewers and have
+taken steps to expand the scope of our experiments to include GroundingDINO [1]
+and YOLO-v9 [2]. For GroundingDINO, we will include an additional experiment in
+the appendix that measures the results over 10 different prompts. We found that
+"animalfeces" was the highest scoring prompt on the validation set and use that in our
+main results. Results were surprisingly low (validation AP of 0.07 and test AP
+of 0.22 with the same prompt).
+
+The results of the Grounding Dino prompt experiment are reported here.
+
+          Validation Grounding Dino Zero-Shot
+---------------------------------------------
+Prompt           AP    AUC       F1       TPR 
+droppings    0.0233 0.0955   0.1386    0.2264 
+petwaste     0.0351 0.1429   0.1527    0.2456 
+poop         0.0380 0.1035   0.1651    0.1626 
+dogpoop      0.0470 0.1645   0.1688    0.2041 
+caninefeces  0.0511 0.1632   0.1817    0.2918 
+turd         0.0539 0.1754   0.1786    0.2185 
+feces        0.0647 0.2076   0.1796    0.2695 
+excrement    0.0709 0.2166   0.1969    0.2775 
+dogfeces     0.0748 0.2071   0.1977    0.3094 
+animalfeces  0.0779 0.2103   0.1973    0.2519 
+
+
+                Test Grounding Dino Zero-Shot
+---------------------------------------------
+Prompt           AP    AUC       F1       TPR 
+droppings    0.0764 0.1429   0.2718    0.3004
+feces        0.1628 0.2631   0.3228    0.3901
+caninefeces  0.1664 0.2420   0.3666    0.3946
+poop         0.1727 0.1784   0.3123    0.2556
+petwaste     0.1979 0.2484   0.3510    0.3408
+animalfeces  0.2280 0.3031   0.3925    0.3766
+dogfeces     0.2284 0.2921   0.3990    0.3811
+dogpoop      0.2411 0.2757   0.3796    0.3856
+excrement    0.2520 0.3138   0.3907    0.4170
+turd         0.2712 0.3169   0.3940    0.3542
+
+
+The main GroundingDino paper does not contain code to tune models on a custom
+dataset, but we found a third party implementation [3] that - with effort - we
+were able to use to tune the pretrained GroundingDino model on our data. Tuning
+this model is our strongest result with an AP of 0.70 on the test set and 0.691
+on the validation set.
+
+
+One of our goals in this line of work is to release a mobile application to
+detect poop in real time without an internet connections. As such, we have been
+working on YOLO-v9 [3] models. To extend the main results we include YOLO
+models trained from the standard pretrained checkpoint as well as an additional
+result trained from scratch.
+
+
+Test Set Results (n=121)
+split                 test                                                             
+                    AP-box AUC-box F1-box TPR-box AP-pixel AUC-pixel F1-pixel TPR-pixel
+model                                                                                  
+MaskRCNN-pretrained  0.613   0.698  0.650   0.596    0.811     0.849    0.779     0.732
+MaskRCNN-scratch     0.254   0.465  0.345   0.300    0.385     0.798    0.408     0.439
+VIT-sseg-scratch     0.393   0.404  0.517   0.408    0.407     0.819    0.479     0.370
+GroundingDino-tuned  0.700   0.666  0.758   0.682      ---       ---      ---       ---
+GroundingDino-zero   0.228   0.303  0.393   0.377      ---       ---      ---       ---
+YOLO-v9-pretrained   0.441   0.551  0.507   0.498      ---       ---      ---       ---
+YOLO-v9-scratch      0.362   0.358  0.480   0.372      ---       ---      ---       ---
+
+
+Validation Set Results (n=691)
+                    AP-box AUC-box F1-box TPR-box AP-pixel AUC-pixel F1-pixel TPR-pixel
+model                                                                                  
+MaskRCNN-pretrained  0.612   0.721  0.625   0.573    0.744     0.906    0.738     0.676
+MaskRCNN-scratch     0.255   0.576  0.349   0.311    0.434     0.891    0.482     0.501
+VIT-sseg-scratch     0.476   0.532  0.596   0.510    0.757     0.974    0.736     0.695
+GroundingDino-tuned  0.691   0.631  0.743   0.684      ---       ---      ---       ---
+GroundingDino-zero   0.078   0.210  0.197   0.252      ---       ---      ---       ---
+YOLO-v9-pretrained   0.411   0.595  0.496   0.424      ---       ---      ---       ---
+YOLO-v9-scratch      0.331   0.409  0.443   0.367      ---       ---      ---       ---
+
+
+We also note that these results contain minor corrections to the results in the
+originally submitted work, which we found to be incorrectly evaluated on the
+even smaller and older 30 image test set. The results on the 121 image test set
+are on par with the originally reported metrics and do not change any
+conclusions.
+
+To make room for these new results, we will shorten the datasets distribution
+section and move cut parts into the appendix, while retaining the key
+contribution that our experimental datasets can be verified using the reported
+hash in the main paper (in other works it can be unclear what the exact dataset
+used for evaluation is, but that is not so in our work). 
+
+Given this expanded set of results we hope the reviewer will consider raising
+scores.
+
+
+[1] Chien-Yao Wang, I-Hau Yeh, and Hong-Yuan Mark Liao. Yolov9: Learning what you want to learn using programmable gradient information. In ECCV, pages 1–21. Springer, 2024.
+[2] Shilong Liu, Zhaoyang Zeng, Tianhe Ren, Feng Li, Hao Zhang, Jie Yang, Qing Jiang, Chunyuan Li, Jianwei Yang, Hang Su, Jun Zhu, and Lei Zhang. Grounding DINO: Marrying DINO with Grounded Pre-Training for Open-Set Object Detection, 2024. arXiv:2303.05499 [cs].
+[3] Wei Li Zuwei Long. Open grounding dino:the third party implementation of the paper grounding dino.  https://github.com/longzw1997/Open-GroundingDino, 2023.
+
+Reviewer 2
+----------
+
+Summary:
+The paper introduces a dataset of images of dog poop, which poses various challenges (small, low contrast to environment, highly variable in appearance) for image processing algorithms. The dataset contains over 9000 images with 6000 annotated instances, and for many scenes has three images that depict the same region before the dog went to work, after the dog went to work, and another close by region without any dog action (negative). Two standard detector models are trained on the dataset to validate its difficulty.
+
+Additionally, the paper explores technical ways of distributing the dataset, with a focus on availability and speed.
+
+Strengths Contributions:
+Novelty, potentially high impact: There is no public large-scale dataset regarding dog poop yet. That, in combination with uniquely challenging aspects regarding target size and visual aspects, can lead to a high impact of this paper, opening a path for both method development and additional datasets.
+
+Practical interest: The topic can be of practical interest, with the rise of robots that automatically clean public places from litter and - potentially - dog poop.
+
+Well though-off setup: The somewhat unusual before/after/negative setup is well thought off and allows for training protocols that would be unavailable otherwise.
+
+The paper is very well written, easy to follow, everything is well motivated. The dataset is analyzed in detail and fairly compared to other datasets, giving a very good intuition about its strengths, challenges and potential :future improvements. The authors also propose a standard train/validation/test-split, which is appreciated.
+
+Limitations Weaknesses:
+Not really a weakness, and certainly up to discussion, but the discussion about dataset distribution (Chapter 5) is tangential to the main contribution of the paper. While reproducibility of methods is an issue, large datasets are routinely distributed robustly in the computer vision community. Having larger datasets disappear happens rarely. The paper would be just as strong without Chapter 5.
+
+The dataset is somewhat limited in scope; most images were taken at geographically similar locations, most are from the same three dogs, probably with a somewhat constant and similar diet, and taken by the same person which probably introduces a bias regarding camera placement and settings.
+
+Rating: 5: Accept: Technically solid paper, with high impact on at least one sub-area of AI or moderate-to-high impact on more than one area of AI, with good-to-excellent evaluation, resources, reproducibility, and no unaddressed ethical considerations.
+Confidence: 3: You are fairly confident in your assessment. It is possible that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+
+Response to Reviewer 2
+----------------------
+
+We thank the reviewer for their support and appreciation of our work.
+
+> On dataset limitations
+
+The geographically similar location is something we have limited control over
+beyond being transparent about it.  The fact that the authors took all of the
+photos (with mostly the same camera) is another limitation. The authors did
+make an effort to vary the camera placement, but that likely changed the bias
+instead of eliminating it. .We we attempt to mitigate by ensuring the test
+split has no images taken by the authors. 
+
+The fact that most images are from the same dogs is the least of these
+limitations.  Unfortunately we don't have dog identities annotated to measure
+this precisely, but we estimate maybe 40% of the data are from dogs not owned
+by the authors.  Much of the data was collected on walks through the city, and
+our dogs would poop once or twice on these trips, but we would encounter many
+more errant feces from other unknown animals that we would photograph and
+remove. The confounding factor is that we did not go on walks every day, but we
+did photograph and pick up our own dogs' poop nearly every day.
+
+
+> On the strength of section 5
+
+We will note that while larger datasets have not yet disappeared, the risk
+remains. We do hope that our paper will inspire others to consider using a
+distributed hosting mechanism in addition to the more standard centralized
+methods, but we also would like to see a hybrid approach, where centralized
+content distributors provide data using content addressable methods that work
+independently of the primary organization. We believe this is an important step
+towards automated and verifiable reproduction of experiments.
+
+That being said, we also recognize that we are likely more interested in this
+than the general NeurIPS community, and we plan to reduce the length of section
+5 to make room for an expanded results.
+
+We hope that these clarifications increase the reviewer's confidence in their
+positive assessment of our work.
+
+
+Reviewer 3
+----------
+
+
+Summary:
+This paper introduces a novel dataset for dog waste detection, featuring high-quality annotations and a unique "before/after/negative" collection protocol. Its exploration of decentralized data distribution (IPFS, BitTorrent) is particularly forward-thinking. While the dataset is robust, its geographic bias and small test set could limit generalizability. Recommended for acceptance with minor revisions to expand test data and model benchmarks.
+
+Strengths Contributions:
+This paper introduces a novel and practical dataset for dog waste detection, with potential applications in urban cleanliness and smart devices. The "before/after/negative" (BAN) protocol enhances data diversity, while the inclusion of 9,000+ images with 6,000+ polygon annotations ensures robustness. The comparison of centralized (HuggingFace, Girder) and decentralized (IPFS, BitTorrent) distribution methods is particularly insightful, addressing long-term accessibility challenges. Baseline models (ViT, Mask R-CNN) provide a solid reference, and the analysis of computational costs aligns with sustainability concerns in AI research.
+
+Limitations Weaknesses:
+The primary limitation is the small independent test set (121 images), which may not fully capture model generalization. Geographic bias (data from a single city) could also affect real-world applicability. Future work could expand the dataset’s diversity and explore lightweight architectures (e.g., YOLO) for mobile deployment. The peer-discovery issues in decentralized distribution warrant further investigation under varied network conditions.
+
+Rating: 4: Borderline accept: Technically solid paper where reasons to accept outweigh reasons to reject, e.g., limited evaluation. Please use sparingly.
+Confidence: 3: You are fairly confident in your assessment. It is possible that you did not understand some parts of the submission or that you are unfamiliar with some pieces of related work. Math/other details were not carefully checked.
+
+Response to Reviewer 3
+----------------------
+
+We are grateful for the reviewer's positive impression of our work as well as
+their appreciation of our focus on dataset distribution, which we believe is a
+novel aspect of our work. While our environmental impact is small, we feel
+ethically compelled to quantify it and we thank the reviewer for the
+recognition of these efforts.
+
+
+> On limitations
+
+We agree that the small test set is a key limitation. This is due to a design
+decision early in the project to keep the test set images were captured in a
+way not biased by the authors might take image or with the cameras that they
+used. While imperfect, we attempt to mitigate this by this by reporting the
+results on the validation dataset. In fact it seems likely that the validation
+dataset is more difficult that than the test set.
+
+The exploration of decentralized dataset transfers was intentionally carried
+out in an uncontrolled setting as an "observational study". We maintained
+meticulous logs in a human and computer readable format (YAML) of each observed
+instance as well as instructions to create a new observation with the long-term
+intent being that these statistics could be expanded on with new observations
+(possibly providing the opportunity to demonstrate improvements of transfer
+times in real world settings).
+
+The exploration of other models is a point brought up by other reviewers, and
+we agree that this is the paper's biggest weakness. To remedy this we have
+trained YOLO-v9 models from a standard checkpoint and from scratch.
+Additionally we have measured the performance of the recent GroundingDino model
+in both the zero-shot and fine-tuned setting. We find fine tuning provides the
+strongest model.
+
+We plan on revising the paper to include these new results and moving part of
+the dataset distribution section to the appendix while retaining the main
+experiment in the main paper.
+
+
+Reviewer 4
+----------
+
+
+Summary:
+This paper presents a dataset comprising annotations of 9,000 dog feces instances. The author details the data collection and annotation procedures and further validates the dataset by training a segmentation model based on Mask R-CNN with a ViT backbone. In addition, the paper includes analyses related to clustering and attribute characterization.
+
+Strengths Contributions:
+This work indeed fills a gap in the field of animal feces detection and segmentation. The dataset is sufficiently large, high-resolution, and the masks are manually annotated. From what I can tell, the task appears challenging and valuable enough, viewed from Hugging Face. The authors also mention potential applications such as developing autonomous cleaning robots or assisting animal owners in locating feces hidden in grass—both of which are reasonable use cases.
+
+Author also provide detailed analysis about how the dataset is collected.
+
+Limitations Weaknesses:
+However, this paper has several issues that should be addressed:
+
+The analysis of the dataset hosting platform's efficiency(section 5), along with the discussion on carbon emissions and power consumption(from line 157 to line 165), feels somewhat like filler content. These aspects are not essential for an academic conference paper like NeurIPS and would be more appropriate in the appendix or the GitHub README. The remaining space would be better used to strengthen the paper with more substantial analyses, such as the ones I suggest below.
+
+As a benchmark, the inclusion of only two models is somewhat limited. It would be beneficial to incorporate well-established segmentation backbones such as SegFormer, Swin Transformer, or ConvNeXt. The authors could also consider designing a model specifically tailored for feces detection—optimized for sparse, small-object detection—which could serve as a meaningful contribution in itself.
+
+Given that this is a small-object detection task, there is a significant imbalance between black and white pixels for the ground truth masks. Evaluating model performance using metrics like F1 score or IoU would provide more informative and meaningful insights.
+
+Additional Feedback:
+Indeed, I find this to be an interesting piece of work. If the authors can approach it with a more research-oriented mindset and treat it in the same rigorous manner as existing segmentation and detection benchmarks, I believe the paper still holds strong potential.
+
+However. Current experiments are somewhat insufficient to be fully released as a benchmark. While the information density and overall contribution are still some distance away from the standards typically seen in NeurIPS-accepted papers, I believe there is potential. If the authors can provide more comprehensive experiments in the rebuttal, I would be willing to raise my score.
+
+Rating: 3: Borderline reject: Technically solid paper where reasons to reject, e.g., limited evaluation, outweigh reasons to accept, e.g., good evaluation. Please use sparingly.
+Confidence: 5: You are absolutely certain about your assessment. You are very familiar with the related work and checked the math/other details carefully.
+
+Response to Reviewer 3
+----------------------
+
+
+We thank the reviewer for their interest in our work. We hope our rebuttal
+serves to justify the approach we have taken in this work. We also take the
+reviewer's critiques seriously and have done work to expand the experiments. 
+
+> On characterization of dataset distribution and environmental impact as filler content
+
+We agree that these sections are less likely to be interesting to the general
+NeurIPS community as the main dataset and model experiments. However, we
+disagree with the characterization them as filler content.
+
+We believe that content addressable data is key for developing experiments that
+can be automatically and verifiably reproduced, and exploring the tradeoffs
+between the more standard centralized hosting services and decentralized
+alternatives on a large real world dataset is a unique and novel contribution
+towards that end.
+
+We also believe that AI practitioners have an ethical responsibility to be
+aware of the impact that their resource utilization has on the environment. 
+
+We believe both of these have a place in the main text. However, we agree that
+some of this content could be moved to the appendix in favor of bolstering
+model results.
+
+> On limitation of model results
+
+As other reviewers have pointed out this is the main weakness of our paper. We
+have made an effort to remedy this by running experiments to obtain 4
+additional main results from 2 additional models: GroundingDINO [1] (which uses
+a SwinTransformer backbone) and YOLO-v9[2].
+
+We evaluated GroundingDino in the zero shot setting (ablating over different
+prompts, details of which are in the response to reviewer 1)
+
+
+Test Set Results (n=121)
+split                 test                                                             
+                    AP-box AUC-box F1-box TPR-box AP-pixel AUC-pixel F1-pixel TPR-pixel
+model                                                                                  
+MaskRCNN-pretrained  0.613   0.698  0.650   0.596    0.811     0.849    0.779     0.732
+MaskRCNN-scratch     0.254   0.465  0.345   0.300    0.385     0.798    0.408     0.439
+VIT-sseg-scratch     0.393   0.404  0.517   0.408    0.407     0.819    0.479     0.370
+GroundingDino-tuned  0.700   0.666  0.758   0.682      ---       ---      ---       ---
+GroundingDino-zero   0.228   0.303  0.393   0.377      ---       ---      ---       ---
+YOLO-v9-pretrained   0.441   0.551  0.507   0.498      ---       ---      ---       ---
+YOLO-v9-scratch      0.362   0.358  0.480   0.372      ---       ---      ---       ---
+
+
+Validation Set Results (n=691)
+                    AP-box AUC-box F1-box TPR-box AP-pixel AUC-pixel F1-pixel TPR-pixel
+model                                                                                  
+MaskRCNN-pretrained  0.612   0.721  0.625   0.573    0.744     0.906    0.738     0.676
+MaskRCNN-scratch     0.255   0.576  0.349   0.311    0.434     0.891    0.482     0.501
+VIT-sseg-scratch     0.476   0.532  0.596   0.510    0.757     0.974    0.736     0.695
+GroundingDino-tuned  0.691   0.631  0.743   0.684      ---       ---      ---       ---
+GroundingDino-zero   0.078   0.210  0.197   0.252      ---       ---      ---       ---
+YOLO-v9-pretrained   0.411   0.595  0.496   0.424      ---       ---      ---       ---
+YOLO-v9-scratch      0.331   0.409  0.443   0.367      ---       ---      ---       ---
+
+At the reviewer's request we have included F1 scores for both bounding-box and
+pixelwise evaluations. Reporting the F1 score requires choosing an operating
+point (threshold) to accept/reject boxes or pixels. We chose the threshold that
+maximized F1. The corresponding TPR (true positive rate) for this threshold is
+also reported. Note that the IoU can be computed from this as `IoU = F1 / (2 - F1)`.
+
+We also note that these results contain minor corrections to the results in the
+originally submitted work, which we found to be incorrectly evaluated on the
+even smaller and older 30 image test set. The results on the 121 image test set
+are on par with the originally reported metrics and do not change any
+conclusions.
+
+To make room for these new results, we will shorten the datasets distribution
+section and move cut parts into the appendix, while retaining the key
+contribution that our experimental datasets can be verified using the reported
+hash in the main paper (in other works it can be unclear what the exact dataset
+used for evaluation is, but that is not so in our work). 
+
+While exploring a custom designed model would be interesting, that is beyond
+the scope of this work which has the primary goal of introducing a new dataset.
+We were not able to evaluate SegFormer or ConvNeXt, but will prioritize
+including them in our experimental suite as we continue to develop our dataset
+and methods.
+
+Given this expanded set of results we hope the reviewer will consider raising
+scores.
+
+
+[1] Chien-Yao Wang, I-Hau Yeh, and Hong-Yuan Mark Liao. Yolov9: Learning what you want to learn using programmable gradient information. In ECCV, pages 1–21. Springer, 2024.
+[2] Shilong Liu, Zhaoyang Zeng, Tianhe Ren, Feng Li, Hao Zhang, Jie Yang, Qing Jiang, Chunyuan Li, Jianwei Yang, Hang Su, Jun Zhu, and Lei Zhang. Grounding DINO: Marrying DINO with Grounded Pre-Training for Open-Set Object Detection, 2024. arXiv:2303.05499 [cs].
+[3] Wei Li Zuwei Long. Open grounding dino:the third party implementation of the paper grounding dino.  https://github.com/longzw1997/Open-GroundingDino, 2023.
