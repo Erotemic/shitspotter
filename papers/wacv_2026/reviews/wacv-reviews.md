@@ -11,6 +11,10 @@ The primary motivation being a phone app to assist dog owners in cleaning up aft
 The area chair panel recommends that this paper be rejected, but do want to recognize the efforts of the authors. There are parts already that could be integrated with more work into a solid paper. Moreover, WACV is a good venue for a dataset like this. However, the authors need to more effectively convince their audience of what compelling problems it addresses or is useful for and probably dramatically increase the variety of the data collected. Authors are encouraged to closely consider all the reviewers' feedback in revising their paper.
 
 Final Recommendation: Reject in round 2
+
+
+----
+
 Official review
 Official Review Round 2by Reviewer 1mTn21 Oct 2025, 20:26 (modified: 09 Nov 2025, 01:09)Program Chairs, Area Chairs, Reviewers Submitted, Authors, Reviewer 1mTnRevisions
 Paper Summary:
@@ -42,6 +46,11 @@ Round 2 Justification:
 Reject, for the reasons explained above.
 
 Confidence Level: 4 - High Confidence: The reviewer has strong expertise in the area. They are highly familiar with the relevant literature and can critically evaluate the paper.
+
+
+-----
+
+
 Review of ScatSpotter
 Official Review Round 2by Reviewer dK8b21 Oct 2025, 08:01 (modified: 09 Nov 2025, 01:09)Program Chairs, Area Chairs, Reviewers Submitted, Authors, Reviewer dK8bRevisions
 Paper Summary:
@@ -79,6 +88,10 @@ I think that while the paper appears technically sound and the dataset itself is
 If the authors wish to strengthen the work, they could reframe the dataset in a broader scientific context (e.g., bio-waste detection, outdoor contamination monitoring), add additional classes or tasks, and clarify the segmentation objectives. As it stands, I believe the paper’s novelty and significance fall below the acceptance threshold for WACV.
 
 Confidence Level: 4 - High Confidence: The reviewer has strong expertise in the area. They are highly familiar with the relevant literature and can critically evaluate the paper.
+
+
+----
+
 ``ScatSpotter'' --- A Dog Poop Detection Dataset
 Official Review Round 2by Reviewer MGwr19 Oct 2025, 15:52 (modified: 09 Nov 2025, 01:09)Program Chairs, Area Chairs, Reviewers Submitted, Authors, Reviewer MGwrRevisions
 Paper Summary:

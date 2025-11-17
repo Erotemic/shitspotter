@@ -1,16 +1,3 @@
-\section{Introduction}
-\label{sec:intro}
-
-Applications for a computer vision system capable of detecting and localizing poop in images are numerous.
-These include automated waste disposal to keep parks and backyards clean, tools for monitoring wildlife
-  populations via droppings, and a warning system in smart-glasses to prevent people from stepping in poop.
-Our primary motivating use case is a phone application that assists dog owners in locating their dog's poop
-  in a leafy park for easier cleanup.
-Many of these applications can be realized with modern object detection and segmentation methods
-  \cite{sandler_mobilenetv2_2018, siam_rtseg_2018, yu_mobilenet_yolo_2023} combined with a large labeled
-  dataset. 
-%In this paper, we make a significant step towards building this dataset.
-
 
 \begin{figure}[t]
 \centering
@@ -21,7 +8,8 @@ Many of these applications can be realized with modern object detection and segm
         A zoomed in example of an annotated object in a challenging
         condition: a scene cluttered with leaves. The similarity between the leaves
         and the poop causes a camouflage effect that can make detecting it difficult.
-        The poop is highlighted in blue.
+        The poop is highlighted in blue, but in the original image is difficult
+        to distinguish.
     }
     \label{fig:HardCase}
 \end{subfigure}
@@ -36,15 +24,19 @@ Many of these applications can be realized with modern object detection and segm
         The ``before/after/negative'' protocol.
         The orange box highlights the location of the poop 
         in the ``before'' image.
-        In the ``after'' image, it is the same scene but the poop has been removed.
+        In the ``after'' image, it is the same scene and viewpoint but the poop has been removed.
         The ``negative'' image is a nearby similar scene, potentially with a distractor.
         Note that the object is small relative to the image size.
     }
     \label{fig:ThreeImages}
 \end{subfigure}
-\caption{(a) A challenging annotation case due to camouflage. (b) The BAN protocol.}
+\caption{(a) A challenging annotation case due to clutter and camouflage. (b) An image triplet from the BAN protocol.}
 \label{fig:Combined}
 \end{figure}
+
+
+\section{Introduction}
+\label{sec:intro}
   
 
 \newcommand{\RelatedDatasetCaption}{
@@ -121,6 +113,16 @@ Ours        & 1 & 9,296 & 6,594 & 4,032 \times{} 3,024 & 87 & 60GB & polygon \\
 \label{fig:umap_dataset_viz}
 \end{figure*}
 
+\begin{comment}
+Applications for a computer vision system capable of detecting and localizing poop in images are numerous.
+These include automated waste disposal to keep parks and backyards clean, tools for monitoring wildlife
+  populations via droppings, and a warning system in smart-glasses to prevent people from stepping in poop.
+Our primary motivating use case is a phone application that assists dog owners in locating their dog's poop
+  in a leafy park for easier cleanup.
+Many of these applications can be realized with modern object detection and segmentation methods
+  \cite{sandler_mobilenetv2_2018, siam_rtseg_2018, yu_mobilenet_yolo_2023} combined with a large labeled
+  dataset. 
+%In this paper, we make a significant step towards building this dataset.
 
 In addition to enabling several applications, poop detection is an interesting benchmark problem.
 It is relatively simple, with a narrow focus on a single class, making it suitable for exploring the
@@ -164,3 +166,55 @@ Our contributions are:
 2) A set of trained \textbf{baseline models}.
 3) A \textbf{comparison of dataset distribution} methods.
 %4) \textbf{Open code and models}.
+\end{comment}
+
+
+Autonomous and AI-assisted waste monitoring is increasingly achievable with modern object detection and
+segmentation methods \cite{sandler_mobilenetv2_2018,
+  siam_rtseg_2018,yu_mobilenet_yolo_2023,liu_grounding_2024} combined with large annotated datasets.
+Substantial progress has been made in detecting large or conspicuous objects, especially those well represented in foundational training corpora. 
+However, small and irregular waste objects --- such as biological droppings or microtrash --- 
+are underrepresented in existing datasets and remain difficult to detect.
+These objects --- such as the example illustrated in  \Cref{fig:HardCase} ---
+are often low contrast, variable in appearance, and confusable with
+natural clutter, making them challenging for both humans and vision systems.
+
+To address this gap we introduce our primary contribution:
+a new dataset which, in formal settings, we call ``ScatSpotter''.
+Our dataset contains high-resolution images of dog poop in most of which are
+from urban, outdoor environments in a single city.
+The dataset exhibits substantial variation in appearance, season, lighting, and background clutter despite
+  biases toward the author's dogs and a single geographic region.
+Poops are annotated with polygons, making the dataset suitable for both detection and segmentation models.
+In order to assist with annotation and provide counterfactual examples we collect images using a
+  ``before/after/negative'' (BAN) protocol as shown in \Cref{fig:ThreeImages}.
+
+
+One motivating use case, which originally inspired this work, is a phone application that assists dog owners
+  in locating their dog's poop in a leafy park for easier cleanup.
+Other applications include automated waste disposal to keep sidewalks, parks, and backyards clean, tools for monitoring
+  wildlife populations via droppings, and warning systems in smart glasses to prevent people from stepping in
+  poop.
+Although we focus on a single class, dog poop provides an accessible prototypical example for the
+  broader problem of detecting small, amorphous, and often camouflaged waste in outdoor environments --- a
+  challenge in common with tasks such as litter detection, microtrash identification, and wildlife monitoring.
+The visual difficulty of the domain, rather than the specific species, is the scientific focus of this work.
+
+Beyond the dataset itself, we are also interested in how large datasets can be
+shared efficiently and robustly.  Centralized methods such as Girder
+\cite{girder_2024} and HuggingFace Datasets \cite{huggingface_datasets} are a
+typical choice, offering high speeds, but they can be costly for individuals,
+often requiring institutional support or paid hosting services.  They are also
+prone to outages and lack built-in data validation.  In contrast, decentralized
+methods allow volunteers to host data and offers built-in validation of data
+integrity.  This motivates us to compare and contrast BitTorrent
+\cite{cohen_incentives_2003}, and IPFS \cite{benet_ipfs_2014} as mechanisms for
+distributing datasets.
+
+Our contributions are:
+1) A challenging new \textbf{open dataset} of images with polygon annotations for small, camouflaged waste
+   objects (using dog poop as a case study).
+2) A set of trained \textbf{baseline models}.
+3) A \textbf{comparison of dataset distribution} methods.
+Together, these contributions are intended to support future work on small-object waste detection, smart
+waste monitoring, and environmentally focused computer vision applications.

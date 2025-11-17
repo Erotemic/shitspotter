@@ -1,6 +1,9 @@
 __doc__="
 bash ~/code/shitspotter/papers/wacv_2026/scripts/split_pdf.sh ~/code/shitspotter/papers/wacv_2026/main.pdf 10
 
+python ~/code/shitspotter/papers/wacv_2026/scripts/compress_pdf.py main_part1.pdf --quality=prepress
+python ~/code/shitspotter/papers/wacv_2026/scripts/compress_pdf.py main_part2.pdf --quality=prepress
+
 python ~/code/shitspotter/papers/wacv_2026/scripts/compress_pdf.py main.pdf --quality=screen
 "
 #!/usr/bin/env bash

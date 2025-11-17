@@ -13,10 +13,9 @@ We trained two MaskRCNN \cite{he2017mask} models (specifically the \texttt{R\_50
 Similarly we trained YOLO-v9 \cite{wang2024yolov9} both from scratch and using pretrained ImageNet weights.
 Lastly, we evaluated the foundational Grounding DINO \cite{liu_grounding_2024} model. 
 In the zero-shot setting we used \texttt{IDEA-Research/grounding-dino-tiny} using the prompt: "animalfeces".
-Finally, we tune the same Grounding DINO using \cite{OpenGroundingDino} and evaluated it in the tuned setting.
+Finally, we fine-tune evaluate the same DINO model using \cite{OpenGroundingDino}.
 
-The number of parameters for MaskRCNN, VIT, GroundingDINO, and YOLO are 43.9M, 25.5M, 172.2M, and 51.0M,
-  respectively.
+The number of parameters for MaskRCNN, VIT, GroundingDINO, and YOLO are 44M, 26M, 172M, and 51M.
 Hyperparameters are given in \Cref{sec:experiment_details}.
 
 For these baseline models, the training data was limited to an older subset taken before 2024-07-03.
@@ -48,7 +47,7 @@ Quantitative results for each of these models on box and pixel metrics are shown
   \Cref{tab:model_results}.
 Because the independent test set is only 121 images, we also present results on the larger validation
   dataset.
-Corresponding qualitative validation results are illustrated in \Cref{fig:vali_results_all_models} and
+Corresponding validation results are illustrated in \Cref{fig:vali_results_all_models} and
 test results in \Cref{fig:test_results_all_models}.
 
 % Table generation
@@ -67,8 +66,9 @@ test results in \Cref{fig:test_results_all_models}.
     Metrics include box- and pixel-level AP (area under precision-recall), AUC (area under ROC), F1, and TPR (recall),
     computed using scikit-learn \cite{scikit-learn}.
     Pretrained models outperform with the tuned foundational Grounding DINO model performing best.
-    Note: VIT-sseg was tuned more extensively and operated at full resolution, 
-    while MaskRCNN, DINO, and YOLO used resized images and may improve with additional tuning.
+    Note: VIT-sseg was tuned more extensively and operated at full resolution,
+    while MaskRCNN, DINO, and YOLO used off-the-shelf settings (that resized
+    images) and may improve with additional tuning.
 }
 \label{tab:model_results}
 }

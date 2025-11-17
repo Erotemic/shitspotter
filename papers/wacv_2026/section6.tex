@@ -1,9 +1,11 @@
 \section{Conclusion}
 
-We have introduced the largest open dataset of high resolution images with polygon
-  segmentations of dog poop.
-The dataset contains several challenges including amorphous objects, multi-season variation, difficult
-  distractors, daytime / nighttime variation.
+We have introduced the largest open dataset of high resolution images with polygon segmentations of dog
+  poop.
+While only focused on a single class, it is prototypical of challenges that arise in small-waste detection
+  relevant to waste monitoring, pollution tracking, and environmental surveillance.
+The dataset includes amorphous objects, occlusion, multi-season variation, difficult distractors, daytime /
+  nighttime variation.
 We have described the dataset collection and annotation process and reported statistics on the dataset.
 
 We provided a recommended train/validation/test split of the dataset, and trained baseline segmentation
@@ -13,37 +15,40 @@ In addition to providing quantitative and qualitative results of the models, we 
 
 We have published our data and models under a permissive license, and made them available through both
   centralized (Girder and HuggingFace) and decentralized (BitTorrent and IPFS) mechanisms.
-Decentralized methods have robustness properties, but suffer from significant network transfer overhead.
-HuggingFace has exceptionally fast transfer speeds, and due to its usage of git-lfs has some decentralized
+Decentralized methods are robust, but suffer from significant network transfer overhead.
+HuggingFace has exceptionally fast transfer speeds, has some decentralized
   properties, but lacks content identifiers.
-Combining IPFS with a content distribution network may be a path to a best-of-both-worlds system.
+%and due to its usage of git-lfs has some decentralized
+%Combining IPFS with a content distribution network may offer promising directions.
 %It may be possible to build a best of both worlds protocol and distribution network.
 
+%Limitations of our work include:
+%1) geographic concentration of the dataset,
+%2) the small size of the independent test set,
+%3) limited exploration of the better-performing model variant, and
+%4) uncontrolled network conditions during distribution experiments.
+%Future work could address these by expanding dataset diversity, training a
+%broader range of models, and improving decentralized hosting strategies.
 
-Limitations of our work include:
-1) geographic concentration of the dataset,
-2) the small size of the independent test set,
-3) limited exploration of the better-performing model variant, and
-4) uncontrolled network conditions during distribution experiments.
-Future work could address these by expanding dataset diversity, training a
-broader range of models, and improving decentralized hosting strategies.
+Our dataset enables applications such as mobile feces detection, urban cleanliness monitoring, and
+  augmented-reality collision warnings.
+Because it trains models to recognize small, irregular, low-contrast objects in cluttered scenes, we predict
+  that including ``ScatSpotter'' in foundational training corpora will improve robustness to camouflage and
+  small-object ambiguity in a broad range of ecological and waste-monitoring downstream tasks.
 
-Our dataset enables applications such as mobile apps for detecting feces, urban
-cleanliness monitoring, and augmented reality collision warnings. We believe
-negative impacts are limited and expect respectful use of the dataset.
-We envision exciting possibilities for the BAN protocol in computer vision research.
-We hope our work will inspire others to consider decentralized content addressable data sharing, fostering
-  open collaboration and reproducible experiments.
-Furthermore, we encourage the community to track experimental resource usage to better understand and offset
-  our experiments' small, but real environmental impact.
-Moreover, we aspire for our dataset to enable the creation of poop-aware applications.
-Ultimately, our goal is for this research to contribute meaningfully to the advancement of computer vision
-  and have a positive impact on society.
+
+%Our dataset enables applications such as mobile apps for detecting feces, urban
+%cleanliness monitoring, and augmented reality collision warnings. We believe
+%negative impacts are limited and expect respectful use of the dataset.
+%We envision exciting possibilities for the BAN protocol in computer vision research.
+%We hope our work will inspire others to consider decentralized content addressable data sharing, fostering
+%  open collaboration and reproducible experiments.
+%Furthermore, we encourage the community to track experimental resource usage to better understand and offset
+%  our experiments' small, but real environmental impact.
+%Moreover, we aspire for our dataset to enable the creation of poop-aware applications.
+%Ultimately, our goal is for this research to contribute meaningfully to the advancement of computer vision
+%  and have a positive impact on society.
   
-\ifwacv
-\else
-\FloatBarrier
-\fi
   
 %\ifnonanonymous
 \ifuseacknowledgement
@@ -55,3 +60,33 @@ This work is dedicated to \redact{Bezoar}, a very weird and very good girl.
 
 %\fi
 \fi
+
+
+\begin{comment}
+We have introduced the largest open dataset of high resolution images with polygon segmentations of dog poop.
+This dataset captures a challenging visual domain characterized by small amorphous objects, multi-season variation, and
+distracting background clutter.  We have described the dataset collection and
+annotation process, including the before/after/negative (BAN) protocol, and
+reported statistics on the dataset.
+
+We provided a recommended train/validation/test split and established baseline performance using several
+detection and segmentation models. These models perform reasonably well but leave meaningful
+room for improvement. We also quantified the computational resources required for training, prediction, and
+evaluation to support reproducibility and planning for future work.
+
+To facilitate open access, we released the dataset and models under permissive licenses and compared
+centralized (Girder, HuggingFace) and decentralized (BitTorrent, IPFS) distribution mechanisms. 
+Centralized systems offer convenience and high speed but rely on institutional hosting, while decentralized
+systems provide robustness and content integrity at the cost of higher transfer overhead. Hybrid approaches,
+such as integrating IPFS with content distribution networks, may offer promising directions.
+
+Limitations of our work include geographic concentration of the dataset, a small independent test set,
+limited exploration of top-performing model variants, and uncontrolled network conditions during distribution
+experiments. Future work could expand geographic and species diversity, evaluate additional architectures,
+and improve decentralized hosting strategies.
+
+ScatSpotter supports research applications ranging from mobile feces detection to urban cleanliness
+monitoring, augmented-reality warning systems, and broader small-object waste detection tasks. We hope this
+dataset, its BAN protocol, and our exploration of distribution methods will encourage reproducible,
+resource-aware experimentation and further progress in environmentally focused computer vision.
+\end{comment}

@@ -8,19 +8,19 @@ The majority of the images feature fresh poop from three specific medium sized d
   a significant number of images with poops of unknown age and from unknown dogs.
 
 Despite these biases, the dataset has significant image variations.
-To provide a gist, we computed UMAP \cite{mcinnes_umap_2020} image embeddings based on ResNet50
-  \cite{he2016deep} descriptors display images corresponding with clusters in this embedding in
+To provide a gist, we computed UMAP \cite{mcinnes_umap_2020} embeddings using ResNet50
+  \cite{he2016deep} descriptors, and display images corresponding with clusters in
   \Cref{fig:umap_dataset_viz}.
 
 More details about the dataset are available in a standardized datasheet
 \cite{gebru_datasheets_2021} that covers the motivation, composition,
-collection, preprocessing, uses, distribution, and maintenance. This will be
-distributed with the data itself, and is provided in supplemental material.
+collection, preprocessing, uses, distribution, and maintenance. This is
+distributed with the data itself.
 
 \subsection{Dataset Collection}
 
 A single researcher on dog walks photographed fresh dog poop, mostly their own
-dogs, but often others. Distance was sometimes varied for diversity. Most
+dogs, but often others. Distance was varied for diversity. Most
 images were taken following the ``before/after/negative'' (BAN) protocol.  
 A BAN triple comprises a ``before'' shot of the poop, an ``after'' shot
 post removal, and a ``negative'' shot of a nearby lookalike (e.g., pine cones,
@@ -33,8 +33,8 @@ We began collecting the third negative image after a colleague suggested it.
 In some cases, the researcher failed or was unable to take the second or third image.
 These exceptions are often programmatically identifiable.
   
-We also received 121 contributor images, mostly outside the BAN protocol.
-These images are held out and used as our test set.
+We also received 121 contributor images, mostly outside the BAN protocol, which we use as a test set.
+%These images are held out and used as our test set.
 %These are used only for testing and are \emph{excluded} from the analysis in \Cref{subsec:datastat}.
 Due to the small size, our main results also include validation scores.
 %The small size of this test set is the reason that our main results include
@@ -68,7 +68,7 @@ all analysis in this paper.
     \caption{
         The time-of-year vs time-of-day of each image show lighting and seasonal
         variation.  On the x-axis, 0 is January 1st. On the y-axis, 0 is
-        midnight.  Color estimates daylight based on location (if available).
+        midnight.  Color estimates daylight based on location (nan means not available).
         Most images are in the day, but many were taken at night with flash or
         long exposure.
     }
@@ -82,7 +82,7 @@ all analysis in this paper.
         The histogram of annotations per image shows object density variation.
         Only 35\% (3,314) of images contain annotations; 65\% (5,982) are known negatives.
         About half of the negatives were taken immediately after pickup; the
-        rest are from nearby locations with potential lookalikes.
+        rest are from nearby locations with potential lookalikes. Note the split y-axis.
     }
     \label{fig:AnnotsPerImage}
 \end{subfigure}
@@ -120,7 +120,7 @@ Due to the BAN protocol, about one-third of the images contain
 annotations, the rest were taken after the object(s) were removed.  Consequently, most
 images have no annotations. When present, annotations are usually singular, but
 multiple annotations are common and can be due to:
-1) fragmented dropping,
+1) fragmented droppings,
 2) dogs pooping together,
 3) repeated poops in the same area over time (sometimes hard to distinguish from dirt).
 The number of annotations per image is illustrated in \Cref{fig:AnnotsPerImage}.

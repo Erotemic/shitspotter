@@ -513,7 +513,7 @@ pretrained models used \MaskRCNNPretrained{}, while the from-scratch models star
 
 To fit training on a single GPU, we reduced the learning rate to $2.5\times10^{-4}$, set the batch size to
   2, and trained for a maximum of 120{,}000 iterations.
-The maximum image dimension was capped at 1024, giving a median downsample factor of $\sim$0.25 for our
+The maximum image dimension was capped at 1024, giving a median scale factor of $\sim$0.25 for our
   dataset.
 
 
@@ -652,7 +652,7 @@ This suggests a bias in the dataset towards ``fresh'' poops taken from some dist
 
 Notably, the much larger training set also contains errors, indicating more information can be extracted
   from this dataset using hard-negative mining.
-There are clear difficult cases caused by sticks, leafs, pine cones, and dark areas on snow.
+There are clear difficult cases caused by sticks, leaves, pine cones, and dark areas on snow.
 We note that while compiling these results, we checked over 1000 images and discovered 14 cases where an
   object failed to be annotated, and it is likely that more are missed, but we believe these cases are rare.
 
