@@ -35,10 +35,15 @@ def update_analysis_plots():
 
     fig = show_3_images(coco_dset, dump_dpath)
 
-    descriptions = [z for z in coco_dset.annots().lookup('description', None) if z is not None]
+    annots = coco_dset.annots()
+    # Only consider spatial annots
+    flags = [b is not None for b in annots.lookup('bbox', default=None)]
+    annots = annots.compress(flags)
+
+    descriptions = [z for z in annots.lookup('description', None) if z is not None]
     all_tags = ub.flatten([[t.strip() for t in d.strip().split(';')] for d in descriptions])
     tag_hist = ub.dict_hist(all_tags)
-    cat_hist = ub.dict_hist(coco_dset.annots().cnames)
+    cat_hist = ub.dict_hist(annots.category_names)
     tag_hist = ub.udict.sorted_values(tag_hist)
     cat_hist = ub.udict.sorted_values(cat_hist)
     print(f'cat_hist = {ub.urepr(cat_hist, nl=1)}')
@@ -187,7 +192,7 @@ def summarize_image_collection_rate(
         years_collecting_so_far = time_collecting_so_far.days / 365.25
         print(f'years_collecting_so_far={years_collecting_so_far}')
 
-        print(f"It will take approximately {years_needed:.1f} years to reach {target_images} images.")
+        print(f"It will take approximately {years_needed:.1f} more years to reach {target_images} images.")
 
     return summary_df
 

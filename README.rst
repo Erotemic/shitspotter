@@ -54,7 +54,7 @@ This following is the high level status of the project.
 - ☑ Scientific paper about dataset `published on arxiv <https://www.arxiv.org/abs/2412.16473>`_ (2024-12-21)
 - ☑ Scientific paper about dataset peer-reviewed (2025-07-30ish)
 - ☑ Efficient models for phones are trained (2025-07-30ish)
-- ☐ Phone application is developed (unreviewed external prototype: https://github.com/mkorzunowicz/poopdetector/releases/tag/v1.1.0)
+- ☐ Phone application is developed (external prototype: https://github.com/mkorzunowicz/poopdetector/releases/tag/v1.1.0)
 - ☐ Phone application is available for download and usage
 - ☐ Phone application is release on app stores for free
 - ☐ Phone application demonstrates value.
@@ -165,6 +165,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2025-11-26 - A pre-holidy update 🦃. Paper was rejected twice, resubmitting again. Started measuring performance on new data detection F1 is ~0.5. Lots of leafy hard cases in this batch. The IPFS transfer was remarkably easier this time around. No peer discovery issues.
 * 2025-08-02 - Paper is under peer review with slightly positive reviews, grounding dino and YOLO models now trainable. Small test dataset is main limitation - working to rectify with roboflow data (note: a subset of our dataset is on there, but it has the incorrect license). Initial docker image to reproduce experiments is published.
 * 2025-07-04 - Releasing new data on IPFS. The growth seems to be increasing. Will take 7-9 more years to get 30k images.
 * 2025-04-20 - The number of images is now over 9000! The dataset is now `mirrored on hugging face <https://huggingface.co/datasets/erotemic/shitspotter>`__.
@@ -399,6 +400,8 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 | 2025-10-15  | 10650    | ~3680               | 2632                  | 3695                  | bafybeia2ccfh6qbk6nqk2sjty3zntg7gj6cayvdkej3ibvdaekq2zig3qa  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
+| 2025-11-26  | 11089    | ~3827               | 2746                  | 3844                  | bafybeigbp5zpn7mauksdfghtogf3utvhibsfqtqdqbnxjzvqkbnljnx7nm                                                             |
++-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 
 
 
@@ -591,6 +594,7 @@ Current IPFS addresses for each top-level asset group are:
     bafybeieyl6yzi6cyz3minjyvmz53ydbpxmljxs5gytv6cwu6ci7tmwyvjq - shitspotter_dvc/assets/poop-2025-04-20-T172113
     bafybeicz7kxvmxojmu33pskfrkglosz3tndgsmpzz6cmmcxynaau5xzfeu - shitspotter_dvc/assets/poop-2025-07-03-T230656
     bafybeiapgrjibq7ldtuyukiskn7fi6fedjy5cntjq5rouqnlqkb5dq6224 - shitspotter_dvc/assets/poop-2025-10-14-T222355
+    bafybeicxmmh4jm5iteozjnirhexbi6w6oizxwz73lwbrkj463mqwyl6osy - shitspotter_dvc/assets/poop-2025-11-25-T191532
 
 
 

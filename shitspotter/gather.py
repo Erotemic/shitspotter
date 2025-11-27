@@ -85,11 +85,14 @@ def gather_learn_rows(dpath):
     walk_prog = ub.ProgIter(desc='walking')
     extensions = set()
     block_extensions = ('.mp4', '.json', '.pkl')
+    block_dir_suffixes = ('-predict-output',)
     with walk_prog:
         for r, ds, fs in os.walk(dpath, followlinks=True):
             walk_prog.step()
             dname = ub.Path(r).stem
-            if dname.startswith('poop-'):
+            if dname.endswith(block_dir_suffixes):
+                ...
+            elif dname.startswith('poop-'):
                 timestr = dname.split('poop-')[1]
                 datestamp = dateutil.parser.parse(timestr)
 
@@ -436,9 +439,10 @@ def read_ann_labelme_anns_into_coco(coco_dset):
     for img in coco_dset.dataset['images']:
         if img['has_labelme']:
             for ann in load_labelme_anns(bundle_dpath, img):
-                catname = ann.pop('category_name')
-                cid = coco_dset.ensure_category(catname)
-                ann['category_id'] = cid
+                catname = ann.pop('category_name', None)
+                if catname is not None:
+                    cid = coco_dset.ensure_category(catname)
+                    ann['category_id'] = cid
                 coco_dset.add_annotation(**ann)
 
             # if 0:
@@ -490,17 +494,19 @@ def load_labelme_anns(bundle_dpath, img):
 
     for ann in annsinfo:
         ann = ann.copy()
-        poly = kwimage.Polygon.from_coco(ann['segmentation'])
 
-        if not inv_exif.isclose_identity():
-            # if img['id'] not in {0}:
-            #     raise Exception(img['id'])
-            # LabelMe Polygons are annotated in EXIF space, but
-            # we need them in raw space for kwcoco.
-            poly = poly.warp(inv_exif)
+        if 'segmentation' in ann:
+            poly = kwimage.Polygon.from_coco(ann['segmentation'])
 
-        ann['segmentation'] = poly.to_coco(style='new')
-        ann['bbox'] = poly.box().quantize().to_coco()
+            if not inv_exif.isclose_identity():
+                # if img['id'] not in {0}:
+                #     raise Exception(img['id'])
+                # LabelMe Polygons are annotated in EXIF space, but
+                # we need them in raw space for kwcoco.
+                poly = poly.warp(inv_exif)
+
+            ann['segmentation'] = poly.to_coco(style='new')
+            ann['bbox'] = poly.box().quantize().to_coco()
 
         ann['image_id'] = img['id']
         yield ann

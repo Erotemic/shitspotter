@@ -45,10 +45,20 @@ def autofind_pair_hueristic(coco_dset=None):
 
     images = coco_dset.images(image_df['id'])
 
+    num_images_with_annots = 0
+    num_images_with_annots_of_interest = 0
+
     classes_of_interest = {'poop'}
     has_annots_of_interest = []
     for annots in images.annots:
+        # Filter out non-sptial annotations
+        is_spatial = [b is not None for b in annots.lookup('bbox', default=None)]
+        annots = annots.compress(is_spatial)
+        if len(annots):
+            num_images_with_annots += 1
         flag = len(set(annots.cnames) & set(classes_of_interest)) > 0
+        if flag:
+            num_images_with_annots_of_interest += 1
         has_annots_of_interest.append(flag)
 
     image_df['has_annots'] = has_annots_of_interest
@@ -278,12 +288,6 @@ def autofind_pair_hueristic(coco_dset=None):
 
     total_imgs = len(coco_dset.imgs)
     print(f'total_images = {total_imgs}')
-
-    num_images_with_annots = sum([bool(a) for a in coco_dset.images().annots])
-
-    num_images_with_annots_of_interest = sum([
-        bool(set(a.cnames) & classes_of_interest)
-        for a in coco_dset.images().annots])
 
     num_annots = coco_dset.n_annots
     print('num_images_with_annots = {}'.format(ub.urepr(num_images_with_annots, nl=1)))

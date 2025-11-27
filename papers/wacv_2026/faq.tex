@@ -1,0 +1,58 @@
+\section{Frequently Asked Questions (F.A.Q.)}
+\label{sec:faq}
+
+\begin{enumerate}
+
+\item \textbf{Why is the independent test set so small, and is it sufficient to evaluate generalization?}\\
+The independent test set contains 121 images that were captured by non-authors but annotated by the primary author. Its current size is primarily a consequence of how many suitable contributions we received so far; we would prefer a larger test set and are actively seeking to grow it. In parallel, we are experimenting with additional feces-related image collections hosted on public platforms (e.g., community datasets on sites such as Roboflow). These external datasets were not part of the original design of ScatSpotter, and they raise separate licensing, attribution, and quality-control questions, so they are not included in the core benchmark or main tables in this paper.\\
+The current contributor test set is strictly photographer-disjoint from the main author data and is meant to provide an initial, realistic check on \emph{cross-photographer} generalization, while the larger author-collected data drive training and validation. It should be viewed as an informative but limited indicator rather than the final word on generalization to all environments and users.
+
+\vspace{0.6em}
+\item \textbf{Why focus on a single class (dog feces)? Is this problem non-trivial?}\\
+The benchmark is intentionally single-class. We prioritize high-quality annotations for one difficult, under-served class instead of many shallow labels. Dog feces are extremely common in real-world settings (parks, sidewalks, trails) but often \emph{not} visually obvious, especially in cluttered foliage, snow, or low light. In practice, even attentive owners sometimes lose track of where their dog went, and visually locating poop is a genuine nuisance task.\\
+Although the topic is niche, the computer-vision problem is not trivial: the class is small, highly imbalanced, and strongly confounded by leaves, sticks, rocks, mud, stains, and other background clutter. Learning to solve this requires fine-grained texture and shape cues that are also relevant for broader bio-waste detection, environmental contamination, and aspects of animal behavior monitoring.
+
+\vspace{0.6em}
+\item \textbf{Given the narrow, single-class focus and limited geographic diversity, how far can results on ScatSpotter be generalized?}\\
+We do not claim ScatSpotter is globally representative. Training and validation data are dominated by a single photographer, a small set of dogs, and a specific geographic region. The contributor test set partially offsets this by introducing different users and capture styles, but the overall benchmark remains biased toward the author's environment and devices. We view ScatSpotter as a focused, well-annotated base domain that can be extended with additional classes (e.g., other waste types) and combined with other datasets for new cities, species, or devices. As with any dataset, careful evaluation on the target domain remains important. 
+
+\vspace{0.6em}
+\item \textbf{How were the splits made (train/validation/test), and how does this affect overfitting and generalization?}\\
+Initially, the validation set consisted of the earliest batch of collected images, with the remainder used for training. This introduced temporal and domain shift by design. As the dataset grew, we found the validation set too small, so we augmented it with images sampled periodically (e.g., every third day in a given year). This increased its size and eliminated the chance that images from the same walk appear in both train and validation, which could artificially inflate performance.\\
+The independent test set is composed of contributor images only and does not include negative-only or ``after'' frames. This setup encourages models to generalize across photographers and capture styles rather than overfit to the main author's habits and devices.
+
+\vspace{0.6em}
+\item \textbf{What exactly is the ``before/after/negative'' (BAN) protocol, and how are these triplets represented? Were multiple viewpoints of the same scene captured?}\\
+Many examples are captured as short sequences: a \emph{before} image (poop present), an \emph{after} image (poop removed, with a best-effort similar viewpoint), and sometimes a later \emph{negative} image of the same area. This began as a practical annotation aid: flipping between images helps the annotator spot small or camouflaged instances. It also naturally produces multiple viewpoints and time offsets of the same scene, which are valuable for studying hard negatives, change detection, and contrastive objectives.\\
+In our code, candidate BAN groups are identified using temporal proximity and image matching (e.g., SIFT-based alignment) and are tagged accordingly. In current releases, BAN roles are derived by the provided scripts rather than stored as static fields in the annotation file; future versions will expose these roles as explicit metadata so downstream work can more easily leverage them.
+
+\vspace{0.6em}
+\item \textbf{How were annotations produced and validated?}\\
+    Most polygon annotations were drawn and reviewed by a single annotator (the primary author). In some cases, detector outputs (e.g., from YOLO or MaskRCNN) provided initial proposals that were then edited, but we do not store explicit flags indicating which polygons were model-seeded. All annotations pass through the same human review process. When the annotator cannot confidently determine whether a region is poop (e.g., old stains, heavily decomposed material), it is labeled as ``unknown'' or ``ignore'' rather than forced into positive or background. The independent contributor test set is annotated by non-authors; systematic differences in their style give a realistic view of how models handle non-author imagery. 
+
+\vspace{0.6em}
+\item \textbf{What else is in the images?}\\
+
+Although the benchmark focuses on dog feces, the scenes contain a wide variety of natural clutter and small objects, including leaves, sticks, rocks, pine cones, helicopter seeds, tree bark, grass patches, dirt, occasional microtrash (e.g., bottle caps, cigarette butts), and other incidental elements (e.g., shadows, roots, mulch, acorns, mice). Some of these appear as sparse labels (often when they caused false positives or were otherwise interesting), but they are not exhaustively annotated across the dataset. Many poop instances also carry free-form description tags (e.g., \texttt{fresh}, \texttt{old}, \texttt{crumbly}, \texttt{diarrhea}, \texttt{messy}, \texttt{occluded}, \texttt{camoflauged}, \texttt{snowcovered}, \texttt{unknown}/\texttt{unsure}). For some interesting cases, additional text tags were added to annotations with the idea that in the future VLMs could use them as truth anchors and help propagate text labels to other similar cases (\eg{} ``old'', ``fresh'', ``sick''). These auxiliary tags are potentially useful signals, but they are not yet standardized enough to define separate benchmark tasks. These extra labels are excluded from stats reported in the main text.
+
+\vspace{0.6em}
+\item \textbf{What is the primary task in this benchmark (detection or segmentation), and how should I interpret the baseline models and metrics?}\\
+The primary task is \emph{object detection}: find and localize poop instances in an image. We annotate polygons for each instance and derive bounding boxes from these masks for use with commonly used detectors. The dense masks also support segmentation models and more detailed error analysis, but segmentation is secondary to detection in the current benchmark.\\
+The baseline suite is intentionally heterogeneous: it includes commonly used models in practice (e.g., YOLO-style one-stage detectors, MaskRCNN-style two-stage detectors), segmentation networks (e.g., ViT-based), and open-vocabulary/foundation detectors (e.g., GroundingDINO), each in a configuration that is standard and well supported for that architecture. Different models therefore run at different input resolutions and capacities. We do not claim these baselines are fully optimized or perfectly comparable on every axis; they should be treated as reasonable reference points, not a definitive ranking.\\
+We report detection metrics such as AP and AUC, and also F1, IoU, recall/TPR, and precision, which are important in this highly imbalanced regime. For thresholded metrics we select a single global threshold per model on the validation set and reuse it on the test set, unless otherwise noted. Pixel-level metrics are only reported for architectures that produce masks; detector-only models (e.g., some YOLO variants, GroundingDINO in its standard form) do not output per-pixel predictions.
+
+\vspace{0.6em}
+\item \textbf{Why include relatively few baseline architectures, and why not emphasize more lightweight or mobile models?}\\
+In an ideal world, we would run and maintain a large zoo of models at every evolution of the dataset. In practice, the current ecosystem for robust, large-scale benchmarking of object detection does not yet provide easy, off-the-shelf solutions for doing this in a maintainable way. Our effort in this work was focused primarily on building, curating, and documenting the dataset. As a result, we select a small, diverse set of baselines that cover key families (two-stage detectors, one-stage YOLO-style models, dense segmenters, foundation/open-vocabulary detectors). Some of these are reasonably lightweight and relevant for on-device or robotic deployment; others are heavier and are used both as strong baselines and as annotation assistants. We would like to expand the benchmark suite as better, less ad-hoc benchmarking frameworks become available, and we place relatively less weight on the specific baseline roster in this initial dataset paper.
+
+\vspace{0.6em}
+\item \textbf{What is the real benefit of content-addressable distribution and hash-verifiable data here?}\\
+Traditional dataset hosting often relies on a stable URL whose contents may change silently over time, requiring implicit trust in the host. In contrast, content-addressable storage (e.g., IPFS CIDs, torrent magnet hashes, hashed annotation files) ties each version of the dataset to a cryptographic digest of its exact contents. If the bits change, the identifier changes. This has two main benefits:
+\begin{enumerate}
+    \item It becomes easy to verify that your local copy matches the one used in a given paper, by checking the published hashes and simple dataset statistics.
+    \item It becomes hard to accidentally or silently modify the dataset without producing a new identifier, which helps keep future extensions and bug fixes honest and traceable.
+\end{enumerate}
+We still provide user-friendly access via platforms such as Hugging Face, but we encourage scripts and papers to reference the content hashes so that experiments remain reproducible even if hosting providers or URLs change.
+
+\end{enumerate}
+

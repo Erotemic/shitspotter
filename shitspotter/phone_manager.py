@@ -41,6 +41,12 @@ class RemoteFromPhoneConfig(scfg.DataConfig):
     pic_dpath = scfg.Value('/data/store/Pictures/', help=(
         'The location on the PC to transfer all new pictures to'))
 
+    backend = scfg.Value(
+        'sftp',
+        help='How to talk to the phone: "gvfs" (USB/MTP) or "sftp" (SSH)',
+        choices=['gvfs', 'sftp'],
+    )
+
     @classmethod
     def main(RemoteFromPhoneConfig, argv=True, **kwargs):
         """
@@ -92,7 +98,7 @@ class RemoteFromPhoneConfig(scfg.DataConfig):
 
             # STEP 4:
             # Move everything local
-            transfer_phone_pictures(new_dpath, needs_transfer_infos)
+            transfer_phone_pictures(new_dpath, needs_transfer_infos, config)
 
             # STEP 5:
             finalize_transfer(new_dpath)
@@ -231,9 +237,10 @@ class GVFSAndroidPath(ub.Path):
     Discover connected android devices using a filesystem interface.
 
     Example:
-        connections = GVFSAndroidPath.discover()
-        phone = self = connections[0]
-        phone_paths_infos = self.dcim_image_infos()
+        >>> # xdoctest: +SKIP
+        >>> connections = GVFSAndroidPath.discover()
+        >>> phone = self = connections[0]
+        >>> phone_paths_infos = self.dcim_image_infos()
     """
 
     @classmethod
@@ -281,7 +288,7 @@ class GVFSAndroidPath(ub.Path):
         return phone_image_infos
 
 
-class SFTPAndroidConnection:
+class SFTPAndroidConnection_old:
     """
     The SSH Server app can be used to start a sftp connection
     """
@@ -337,22 +344,137 @@ class SFTPAndroidConnection:
         return phone_image_infos
 
 
+class SFTPAndroidConnection:
+    """
+    The SSH Server app can be used to start a sftp connection.
+
+    Example:
+        >>> # xdoctest: +SKIP
+        >>> import sys, ubelt
+        >>> sys.path.append(ubelt.expandpath('~/code/shitspotter'))
+        >>> from shitspotter.phone_manager import *  # NOQA
+        >>> sftp_conn = SFTPAndroidConnection.from_hostname()
+        >>> phone_image_infos = sftp_conn.dcim_image_infos()
+        >>> len(phone_image_infos)
+
+    """
+
+    def __init__(self, sftp, dcim_camera_path):
+        self.sftp = sftp
+        self.dcim_camera_path = dcim_camera_path
+
+    @classmethod
+    def from_hostname(cls):
+        """
+        Build an SFTP connection from SSH config and env vars.
+
+        Env:
+            PIXEL5_HOST: name of the Host entry in ~/.ssh/config
+            PIXEL5_PASS: password to use for that host (until key auth works)
+            ANDROID_DCIM_CAMERA: optional override for DCIM/Camera root
+        """
+        host = os.environ.get('PIXEL5_HOST')
+        phone_pass = os.environ.get('PIXEL5_PASS')
+
+        if not host:
+            raise RuntimeError(
+                'PIXEL5_HOST env var is not set; set it to the Host alias '
+                'in your ~/.ssh/config (e.g. "pixel5").'
+            )
+
+        if not phone_pass:
+            raise RuntimeError(
+                'PIXEL5_PASS env var is not set; export your phone SSH '
+                'password as PIXEL5_PASS before running.'
+            )
+
+        import paramiko
+        from paramiko import Transport, SFTPClient
+
+        ssh_config = paramiko.SSHConfig()
+        ssh_config_path = ub.Path('~/.ssh/config').expand()
+
+        if not ssh_config_path.exists():
+            raise RuntimeError(f'No SSH config file at {ssh_config_path}')
+
+        with open(ssh_config_path) as ssh_config_file:
+            ssh_config.parse(ssh_config_file)
+
+        host_config = ssh_config.lookup(host)
+        hostname = host_config.get('hostname')
+        username = host_config.get('user')
+        port = int(host_config.get('port', 22))
+
+        if not hostname or not username:
+            raise RuntimeError(
+                f'SSH config for host {host!r} is missing HostName or User'
+            )
+
+        # Try to be robust: allow override for the DCIM path
+        # dcim_camera_path = os.environ.get(
+        #     'ANDROID_DCIM_CAMERA',
+        #     # Pick a sane default for most Android SSH servers
+        #     '/storage/emulated/0/DCIM/Camera',
+        # )
+        dcim_camera_path = os.environ.get(
+            'ANDROID_DCIM_CAMERA',
+            '/0/DCIM/Camera',   # <— this is YOUR server’s layout
+        )
+
+        transport = Transport((hostname, port))
+        transport.connect(username=username, password=phone_pass)
+        sftp = SFTPClient.from_transport(transport)
+        return cls(sftp, dcim_camera_path)
+
+    def dcim_image_infos(self, verbose=1):
+        if verbose:
+            print(f'SFTP: chdir({self.dcim_camera_path!r})')
+        self.sftp.chdir(self.dcim_camera_path)
+        file_names = self.sftp.listdir()
+
+        phone_image_infos = []
+        for fname in ub.ProgIter(file_names, desc='build image info'):
+            if not fname.startswith('.') and fname != 'thumbnails':
+                info = AndroidConventions.parse_image_filename(fname)
+                if info is None:
+                    print('Not an known image file: {}'.format(fname))
+                    continue
+                # IMPORTANT: this path is *remote*
+                remote_fpath = f'{self.dcim_camera_path}/{fname}'
+                info['fpath'] = remote_fpath
+                # parse_image_filename already sets datetime_captured,
+                # no real need to recompute, but keep it consistent:
+                info['datetime_captured'] = dateparser.parse(info['timestamp'])
+                phone_image_infos.append(info)
+        return phone_image_infos
+
+    def close(self):
+        try:
+            self.sftp.close()
+        except Exception:
+            pass
+
+
 def prepare_phone_transfer(config):
     """
     Gather information about the files that need to be transfered.
     """
 
-    USE_GVFS = True
-    if USE_GVFS:
+    backend = config.get('backend', 'sftp')
+    assert backend in {'gvfs', 'sftp'}
+
+    if backend == 'gvfs':
         # TODO: get this working over sftp as well
         found = GVFSAndroidPath.discover()
         assert len(found) == 1, 'should only have 1'
         phone = found[0]
         phone_image_infos = phone.dcim_image_infos()
         print(f'Found {len(phone_image_infos)=} phone pictures')
-    else:
+    elif backend == 'sftp':
         sftp_conn = SFTPAndroidConnection.from_hostname()
         phone_image_infos = sftp_conn.dcim_image_infos()
+    else:
+        raise AssertionError
 
     if not len(phone_image_infos):
         raise Exception(ub.paragraph(
@@ -422,7 +544,7 @@ def prepare_phone_transfer(config):
     return new_dpath, needs_transfer_infos
 
 
-def transfer_phone_pictures(new_dpath, needs_transfer_infos):
+def transfer_phone_pictures(new_dpath, needs_transfer_infos, config):
     """
     This step does the transfer of ALL pictures from my phone to my
     image archive. The shit needs to be sorted out manually.
@@ -439,8 +561,11 @@ def transfer_phone_pictures(new_dpath, needs_transfer_infos):
     tmp_dpath = new_dpath.augment(prefix='_tmp_').ensuredir()
     print(f'Start {len(needs_transfer_infos)} copy jobs to {tmp_dpath=}')
 
-    USE_GVFS = True
-    if USE_GVFS:
+    backend = config.get('backend', 'sftp')
+    assert backend in {'gvfs', 'sftp'}
+    # USE_GVFS = True
+    # USE_GVFS:
+    if backend == 'gvfs':
         copyman = kwutil.CopyManager(mode='thread', workers=8)
         for p in needs_transfer_infos:
             copyman.submit(
@@ -550,6 +675,14 @@ def finalize_transfer(new_dpath):
 
             # Also cleanup the intermediate directories...
             # or fix the above script to do that.
+
+            mkdir -p {new_shit_dpath}/_predictions
+            cp {new_shit_dpath}-predict-output/output.kwcoco.zip \
+                {new_shit_dpath}/_predictions
+
+            #
+            # OR Actually, we should be scoring the corrected annotations
+            # against these.
             rm -rf {new_shit_dpath}-predict-output
 
         At this point, we can do any annotation we wish, but whenever

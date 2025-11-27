@@ -522,3 +522,103 @@ and
 
 Did they not see the nearly impossible to see annotation in the first image or any other example image? Or the second image where the negative is from the same angle. I probably should recolor it to make it clear that the annotation is only easy to see because I colored it blue, and explicitly state the second part. But again, different reviewers probably would want something else that I left implicit to be made explicit.... 
 
+
+# 2025-11-26
+
+Working on annotating the latest cohort. I realized I never documented how I
+add metadata to images when annotating. I also realized I don't transfer that
+metadata to the kwcoco files. I'm going to have to update gather.py to fix
+that.
+
+To ensure there is at least one spot with documentation, I'll write it here.
+If I want to add notes to an image itself, I add a point annotation in the
+labelme file with the label "__metadata__". Then in the description I put my
+normal semicolon separated tags.
+
+I should likely transfer these to the COCO file. I should probably use the
+image caption format where the annotation only has "id", "image_id", and
+"caption" as the feilds. This agrees with the original coco spec, although it
+might make it difficult to use those raw files in coco pipelines that make
+assumptions all annotations are box / segmentation annotations.
+
+As I'm going through the annotations I'm thinking about how helpful the
+before-after part of the BAN protocol is. In some of the more difficult images,
+there are sticks and things that are really difficult to tell if they are poop
+or not, but using the knowledge that I made a best effort to pick up all poops
+before taking the after image, I can be reasonably sure that they are not poops
+and label them accordinly.
+
+Of course, there are cases where the after image does actually contain poop
+because I failed to see it when I was capturing the image, but this is rare,
+and I do often catch them when annotating. I'm sure I missed some, but as we
+train better models, I expect we can go back and polish / correct the
+annotations more. I would very much like to label all the microtrash in the
+images.
+
+I'm also noticing that when the MaskRCNN detector does a good job, it will
+often miss smaller nearby poops. In some cases this is likely due to non-max
+supression, but in other cases the smaller poop is far enough away, so it is a
+real false negative. It might be interesting to measure the detection metrics
+of each new cohort by remembering the original predictions and comparing them
+to the edited predictions.
+
+In fact, I have enough data to do this. I fixed some issues in coco evaluate
+detections to make it easier to score the predictions against the truth, and
+got this result for these detections with classes_of_interest "[poop]", so any
+non-poop truth annotation got a weight of zero.
+
+kwcoco evaluate_detections \
+    --true_dataset /home/joncrall/data/dvc-repos/shitspotter_dvc/data.kwcoco.json \
+    --pred_dataset /home/joncrall/data/dvc-repos/shitspotter_dvc/assets/poop-2025-11-25-T191532/_predictions/preds.kwcoco.json \
+    --classes_of_interest "[poop]" \
+    --compat=all \
+    --iou_thresh=0.5
+
+resulted in:
+
+'nocls_measures': <Measures({'ap': 0.384, 'auc': 0.399, 'max_f1': f1=0.51@0.89, 'nsupport': 822.000, 'realpos_total': 387.000, 'catname': None})>,
+'ovr_measures': <PerClass_Measures({
+    'poop': <Measures({'ap': 0.542, 'auc': 0.567, 'max_f1': f1=0.64@0.89, 'nsupport': 822.000, 'realpos_total': 272.000, 'catname': poop})>,
+
+This is notably lower than the measured values for vali / test sets, likely
+because this month was one of the difficult fall months with all the leaf
+distractors.
+
+It feels like the negative images are justified as well given that the MaskRCNN
+detector does often predict false positives in them. Some of them are trivially
+easy, but those are also easy to programatically identify because they have no
+annotations in them. I should look into creating a smaller variant of the
+dataset with on the most informative annotations in it to better allow more
+rapid research.
+
+I should start marking explicit BAN labels in the labelme data, but I need a
+schema. For the majority of the cases they should just be:
+
+BAN:before
+BAN:after
+BAN:negative
+
+But there are cases where the protocol is botched, so we should add labels for that.
+In the case where we have an after image where all the poop failed to be picked
+up or a negative image with incidental poop, lets use:
+
+BAN:error
+
+Let's setup the grammar to look something like this:
+
+```
+?start: expression
+IDEN: ("_"|"*"|LETTER) ("_"|" "|"-"|"*"|LETTER|DIGIT)*
+tag: IDEN
+protocol: "BAN"
+expression: protocol ":" tag ("," tag)*
+```
+
+Or maybe these labels should be applied as points outside of the __metadata__
+convention?.
+
+Ehh... this might not work given I codified labelme <-> kwcoco in kwcoco
+itself, we shouldn't special case too much. How do I get the BAN metadata in
+there?
+
+The IPFS transfer was remarkably easier this time around. No peer discovery issues.

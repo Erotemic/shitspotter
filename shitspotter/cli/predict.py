@@ -76,6 +76,8 @@ class PredictCLI(scfg.DataConfig):
             for img in dset.images().objs:
                 img['sensor_coarse'] = 'phone'
                 img['channels'] = 'red|green|blue'
+                img['name'] = ub.Path(img['file_name']).stem
+
             input_fpath = out_dpath / 'input.kwcoco.zip'
             dset._update_fpath(input_fpath)
             dset.dump()
