@@ -5,7 +5,8 @@
 
 \item \textbf{Why is the independent test set so small, and is it sufficient to evaluate generalization?}\\
 The independent test set contains 121 images that were captured by non-authors but annotated by the primary author. Its current size is primarily a consequence of how many suitable contributions we received so far; we would prefer a larger test set and are actively seeking to grow it. In parallel, we are experimenting with additional feces-related image collections hosted on public platforms (e.g., community datasets on sites such as Roboflow). These external datasets were not part of the original design of ScatSpotter, and they raise separate licensing, attribution, and quality-control questions, so they are not included in the core benchmark or main tables in this paper.\\
-The current contributor test set is strictly photographer-disjoint from the main author data and is meant to provide an initial, realistic check on \emph{cross-photographer} generalization, while the larger author-collected data drive training and validation. It should be viewed as an informative but limited indicator rather than the final word on generalization to all environments and users.
+The current contributor test set is strictly photographer-disjoint from the main author data and is meant to provide an initial, realistic check on \emph{cross-photographer} generalization, while the larger author-collected data drive training and validation. However, due to its limited size, it should be viewed as an informative but limited indicator of generalization across larger geographic distribution shifts (\eg{} the dataset does not contain many examples of sandy environments).
+
 
 \vspace{0.6em}
 \item \textbf{Why focus on a single class (dog feces)? Is this problem non-trivial?}\\
@@ -25,6 +26,9 @@ The independent test set is composed of contributor images only and does not inc
 \item \textbf{What exactly is the ``before/after/negative'' (BAN) protocol, and how are these triplets represented? Were multiple viewpoints of the same scene captured?}\\
 Many examples are captured as short sequences: a \emph{before} image (poop present), an \emph{after} image (poop removed, with a best-effort similar viewpoint), and sometimes a later \emph{negative} image of the same area. This began as a practical annotation aid: flipping between images helps the annotator spot small or camouflaged instances. It also naturally produces multiple viewpoints and time offsets of the same scene, which are valuable for studying hard negatives, change detection, and contrastive objectives.\\
 In our code, candidate BAN groups are identified using temporal proximity and image matching (e.g., SIFT-based alignment) and are tagged accordingly. In current releases, BAN roles are derived by the provided scripts rather than stored as static fields in the annotation file; future versions will expose these roles as explicit metadata so downstream work can more easily leverage them.
+
+In our code, candidate BAN groups are identified using temporal proximity and image matching (e.g., SIFT-based alignment) and are tagged accordingly. In current releases, BAN roles are derived by the provided scripts rather than stored as static fields in the annotation file; future versions will expose these roles as explicit metadata so downstream work can more easily leverage them. More generally, images with no polygons labeled ``poop'' are implicitly negative examples, but the current version does not make them explicit. 
+
 
 \vspace{0.6em}
 \item \textbf{How were annotations produced and validated?}\\
@@ -53,6 +57,13 @@ Traditional dataset hosting often relies on a stable URL whose contents may chan
     \item It becomes hard to accidentally or silently modify the dataset without producing a new identifier, which helps keep future extensions and bug fixes honest and traceable.
 \end{enumerate}
 We still provide user-friendly access via platforms such as Hugging Face, but we encourage scripts and papers to reference the content hashes so that experiments remain reproducible even if hosting providers or URLs change.
+
+\item \textbf{What privacy considerations apply to this dataset, including EXIF metadata?}\\
+Some images in the dataset include EXIF metadata (e.g., camera parameters and timestamps). A subset of images---primarily those captured by the author---include GPS location data in their original form. In cases with privacy concerns, we selectively remove sensitive EXIF fields prior to public release.\\
+When consent is obtained, encrypted artifacts are distributed. These allow for rehydration of the original metadata by trusted parties with access to the decryption key. \\
+Because dataset snapshots are distributed via content-addressed and peer-to-peer mechanisms (\eg{} IPFS and BitTorrent), users should treat published snapshots as immutable.
+
+
 
 \end{enumerate}
 

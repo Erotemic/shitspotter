@@ -12,6 +12,8 @@
 .. .. | Pypi             | https://pypi.org/project/shitspotter         |
 .. .. +------------------+----------------------------------------------+
 
+This might not be the most important project in the world, but its at least number two.
+
 
 This ``shitspotter`` repo is where I am building the "ShitSpotter" (or
 "ScatSpotter" in a formal setting) poop-detection algorithm and dataset.  The

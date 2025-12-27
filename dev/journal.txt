@@ -622,3 +622,33 @@ itself, we shouldn't special case too much. How do I get the BAN metadata in
 there?
 
 The IPFS transfer was remarkably easier this time around. No peer discovery issues.
+
+
+# 2025-12-26
+
+Well... we have some sad news. Honey was diagnosed with Lymphoma on the 15th.
+She is 12.5, but otherwise in good health. We have a few weeks left with her,
+and she is going to be deeply deeply missed. Like Beazoar, her contribution to
+this dataset will be a positive memory to reflect on.
+
+In better news the WACV WasteVision Workshop paper was accepted. To address
+reviewer concerns I'm adding a few more details to the FAQ. Many of the
+questions are answered in the text, but it will help to make some questions a
+bit more explicit.
+
+Now that the baseline paper is published that frees up so much mental energy to
+think about the next step. We can revise some of the experimental methodology
+and start asking new questions. I do need to keep up with the latest
+foundational models like DinoV3 and SAM3.
+
+I also want to revisit the IPFS experiments. Annecdotally, Kubo seems to be
+more stable recently, so reproducing that experiment would be a nice follow on.
+I think its times will improve. It doesn't seem to have a problem finding peers
+anymore.
+
+I may also want to produce alternative - even more ML ready versions of the
+dataset in the sense that it can fit into stock hugging face pipelines.
+
+A colleage made a suggestion for a tagline that is fantastic: 
+"This might not be the most important research in the world, but its at least number two."
+He gave me permission to use it and I will add to the README shortly.
