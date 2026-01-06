@@ -247,12 +247,24 @@ SnapCrap: An app to report poop on the streets of San Francisco
 https://medium.com/@miller.stowe/snapcrap-why-i-built-an-app-to-report-poop-on-the-streets-of-san-francisco-aac12382a7ce
 It is now defunct and no longer available.
 
-Other related links I haven't gone through well enough yet:
+There was also a Beetl robot, which was an early concept for an autonomous poop
+cleanup robot. However, the company never got off the ground:
+https://www.housebeautiful.com/lifestyle/kids-pets/a31289426/robot-picks-up-dog-poop/
+https://www.dogforum.com/threads/were-building-a-robot-to-pick-up-dog-poop.313674/
 
-* https://getdiglabs.com/blogs/the-dig-labs-dish/computer-vision-and-dog-poop
-* https://www.wired.co.uk/article/dog-poo-bin-cleanup
-* https://www.reddit.com/r/robotics/comments/6p0rf0/can_i_use_opencv_to_get_my_robot_to_detect_dog/
-* https://www.housebeautiful.com/lifestyle/kids-pets/a31289426/robot-picks-up-dog-poop/
+There are several dog poop datasets available on roboflow of various sizes and quality: https://universe.roboflow.com/search?q=dog+poop
+It should be noted that these datasets are all preprocessed and augmented
+images are included in the total image count. These datasets are much smaller
+than ours. I am working to organize these into a larger dataset. I plan to use
+this to increase the test set size and diversity for models trained with this
+dataset.
+
+The current best (as of 2026-01-06) of these roboflow datasets are:
+
+* https://universe.roboflow.com/han-bjamu/poppopo/dataset/2
+* https://universe.roboflow.com/pazini/dog-poop-detection-uip1h/dataset/3
+* https://universe.roboflow.com/new-workspace-j42am/softpoop/dataset/1
+* https://universe.roboflow.com/new-workspace-j42am/dp-4iarz/dataset/1
 
 
 
