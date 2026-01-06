@@ -84,7 +84,7 @@ def gather_learn_rows(dpath):
     protocol_change_point = dateutil.parser.parse('2021-05-11T120000')
     walk_prog = ub.ProgIter(desc='walking')
     extensions = set()
-    block_extensions = ('.mp4', '.json', '.pkl')
+    block_extensions = ('.mp4', '.json', '.pkl', '.log')
     block_dir_suffixes = ('-predict-output',)
     with walk_prog:
         for r, ds, fs in os.walk(dpath, followlinks=True):
@@ -179,7 +179,7 @@ def gather_learn_rows(dpath):
             remove_gpaths = set(dups) - {keep_gpath}
             image_dt = image_dts[0]
             print('image_dt = {!r}'.format(image_dt))
-            print('folder_dts = {}'.format(ub.repr2(folder_dts, nl=1)))
+            print('folder_dts = {}'.format(ub.urepr(folder_dts, nl=1)))
             print('deltas = {!r}'.format(deltas))
             print(f'dups = {ub.urepr(dups, nl=1)}')
             to_keep.append(keep_gpath)

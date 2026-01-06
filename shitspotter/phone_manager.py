@@ -510,7 +510,7 @@ def prepare_phone_transfer(config):
         })
     most_recent_dpath_info = max(transfer_infos, key=lambda x: x['datetime_transfer'])
     print('Most recent existing transfer info:')
-    print('most_recent_dpath_info = {}'.format(ub.repr2(most_recent_dpath_info, nl=1)))
+    print('most_recent_dpath_info = {}'.format(ub.urepr(most_recent_dpath_info, nl=1)))
 
     prev_fpaths = list(most_recent_dpath_info['dpath'].glob('*'))
     prev_infos = []

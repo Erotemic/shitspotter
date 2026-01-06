@@ -12,7 +12,7 @@
 .. .. | Pypi             | https://pypi.org/project/shitspotter         |
 .. .. +------------------+----------------------------------------------+
 
-This might not be the most important project in the world, but its at least number two.
+This might not be the most important project in the world, but it's at least number two.
 
 
 This ``shitspotter`` repo is where I am building the "ShitSpotter" (or
@@ -135,7 +135,7 @@ Sometimes IPFS can be slow, especially for the latest data. However, older CIDs 
 `/ipfs/QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG <https://ipfs.io/ipfs/QmQonrckXZq37ZHDoRGN4xVBkqedvJRgYyzp2aBC5Ujpyp?redirectURL=QmNj2MbeL183GtPoGkFv569vMY8nupUVGEVvvvqhjoAATG&autoadapt=0&requiresorigin=0&web3domain=0&immediatecontinue=1&magiclibraryconfirmation=0>`_.
 
 
-The the goal is to make IPFS the main distribution mechanism. However, it is
+The goal is to make IPFS the main distribution mechanism. However, it is
 still relatively new technology and until all of the kinks are worked out, the
 dataset will be mirrored on a centralized Girder server:
 https://data.kitware.com/#user/598a19658d777f7d33e9c18b/folder/66b6bc34f87a980650f41f90
@@ -167,7 +167,8 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
-* 2025-11-26 - A pre-holidy update 🦃. Paper was rejected twice, resubmitting again. Started measuring performance on new data detection F1 is ~0.5. Lots of leafy hard cases in this batch. The IPFS transfer was remarkably easier this time around. No peer discovery issues.
+* 2026-01-05 - Its the new year, and it is bittersweet. The revised dataset paper was peer reviewed and accepted to WasteVision 2026. But we've lost Honey to cancer.
+* 2025-11-26 - A pre-holiday update 🦃. Paper was rejected twice, resubmitting again. Started measuring performance on new data detection F1 is ~0.5. Lots of leafy hard cases in this batch. The IPFS transfer was remarkably easier this time around. No peer discovery issues.
 * 2025-08-02 - Paper is under peer review with slightly positive reviews, grounding dino and YOLO models now trainable. Small test dataset is main limitation - working to rectify with roboflow data (note: a subset of our dataset is on there, but it has the incorrect license). Initial docker image to reproduce experiments is published.
 * 2025-07-04 - Releasing new data on IPFS. The growth seems to be increasing. Will take 7-9 more years to get 30k images.
 * 2025-04-20 - The number of images is now over 9000! The dataset is now `mirrored on hugging face <https://huggingface.co/datasets/erotemic/shitspotter>`__.
@@ -217,7 +218,7 @@ I'll continue to refine this section.
 Apparently Roomba has an indoor poop dataset: https://www.engadget.com/irobot-roomba-j-7-object-poop-detection-040152887.html It would be interesting to combine the indoor / outdoor datasets, but we are more concerned about outdoor detection. Maybe Boston Dynamics and Roomba can take this dataset and do something interesting.
 
 The MSHIT fake dog poop dataset: https://www.kaggle.com/mikian/dog-poop is similar to this domain, but not the real-deal.
-THe dataset consists of 3.89GB of real images with fake poop (e.g. plastic
+The dataset consists of 3.89GB of real images with fake poop (e.g. plastic
 poop) in controlled environments.
 
 There is Human Poop Classification: https://seed.com/poop/ and https://www.theverge.com/2019/10/29/20937108/poop-database-ai-training-photo-upload-first-mit but this is not our domain.
@@ -402,8 +403,11 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 | 2025-10-15  | 10650    | ~3680               | 2632                  | 3695                  | bafybeia2ccfh6qbk6nqk2sjty3zntg7gj6cayvdkej3ibvdaekq2zig3qa  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
-| 2025-11-26  | 11089    | ~3827               | 2746                  | 3844                  | bafybeigbp5zpn7mauksdfghtogf3utvhibsfqtqdqbnxjzvqkbnljnx7nm                                                             |
+| 2025-11-26  | 11089    | ~3827               | 2746                  | 3844                  | bafybeigbp5zpn7mauksdfghtogf3utvhibsfqtqdqbnxjzvqkbnljnx7nm  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
+| 2026-01-05  | 11460    | ~3950               | 2829                  | 3967                  | bafybeib7solf3oxxmyfc4c37pnz7v5sefbj3z45b6ulxmxjotjy3om3yhi  |
++-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
+
 
 
 
@@ -419,7 +423,7 @@ As you can see, it's not so easy to spot the shit, especially when there are lea
 
 .. image:: https://i.imgur.com/lZ8J0vD.png
 
-But with a little patience and image processing, it's not to hard to narrow down the search.
+But with a little patience and image processing, it's not too hard to narrow down the search.
 
 .. image:: https://i.imgur.com/A6qlcNk.jpg
 
@@ -493,7 +497,7 @@ training. Contributor data is also currently held out and can serve as a test
 set once annotations are placed.
 
 
-Update 2024-03-31: Recent results from model ``shitspotter_from_v027_halfres_v028-epoch=0179-step=000720-val_loss=0.005.ckpt.pt`` have been quite good. These have quantiatively been measured against the ``vali_imgs228_20928c8c.kwcoco.zip`` variant of the validation dataset. The precision recall and ROC curves for pixelwise binary poop/no-poop classification are:
+Update 2024-03-31: Recent results from model ``shitspotter_from_v027_halfres_v028-epoch=0179-step=000720-val_loss=0.005.ckpt.pt`` have been quite good. These have quantitatively been measured against the ``vali_imgs228_20928c8c.kwcoco.zip`` variant of the validation dataset. The precision recall and ROC curves for pixelwise binary poop/no-poop classification are:
 
 
 .. image:: https://i.imgur.com/rgGjAda.png
@@ -597,7 +601,7 @@ Current IPFS addresses for each top-level asset group are:
     bafybeicz7kxvmxojmu33pskfrkglosz3tndgsmpzz6cmmcxynaau5xzfeu - shitspotter_dvc/assets/poop-2025-07-03-T230656
     bafybeiapgrjibq7ldtuyukiskn7fi6fedjy5cntjq5rouqnlqkb5dq6224 - shitspotter_dvc/assets/poop-2025-10-14-T222355
     bafybeicxmmh4jm5iteozjnirhexbi6w6oizxwz73lwbrkj463mqwyl6osy - shitspotter_dvc/assets/poop-2025-11-25-T191532
-
+    bafybeiglm2tmnysrnzl4plb622grgkq4lmkabhr5avdughk6jkxwm2bd5y - shitspotter_dvc/assets/poop-2026-01-05-T214314
 
 
 Acknowledgements
@@ -624,8 +628,8 @@ I want to give special thanks to my first two poop machines - Honey and Bezoar
 .. image:: https://i.imgur.com/YUJjWoh.jpg
 
 
-Honey - (~2013 - ) - Adopted in June 2015, Honey is often called out for her
-resemblance to a fox and is notable for her eagerness for attention and
+Honey - (~2013 - 2026-01-05) - Adopted in June 2015, Honey is often called out
+for her resemblance to a fox and is notable for her eagerness for attention and
 outgoing personality.  DNA analysis indicates that she is part Boxer, Beagle,
 German Shepherd, and Golden Retriever.  Honey's likes include: breakfast,
 sniffing stinky things, digging holes, sleeping on soft things, viciously

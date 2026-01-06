@@ -641,7 +641,7 @@ think about the next step. We can revise some of the experimental methodology
 and start asking new questions. I do need to keep up with the latest
 foundational models like DinoV3 and SAM3.
 
-I also want to revisit the IPFS experiments. Annecdotally, Kubo seems to be
+I also want to revisit the IPFS experiments. Anecdotally, Kubo seems to be
 more stable recently, so reproducing that experiment would be a nice follow on.
 I think its times will improve. It doesn't seem to have a problem finding peers
 anymore.
@@ -649,6 +649,31 @@ anymore.
 I may also want to produce alternative - even more ML ready versions of the
 dataset in the sense that it can fit into stock hugging face pipelines.
 
-A colleage made a suggestion for a tagline that is fantastic: 
+A colleague made a suggestion for a tagline that is fantastic: 
 "This might not be the most important research in the world, but its at least number two."
 He gave me permission to use it and I will add to the README shortly.
+
+# 2025-01-05
+
+We lost Honey today. It was getting hard for her to breathe, but she had a good
+last day. She made some extra long poops due to the additional rich food she's
+been getting. Lots of steak, eggs, peanut butter, cheese. She gained 2 pounds
+since the diagnosis. When she was alive she constantly engaged in coprophagia,
+which makes me wonder how the number of poop pictures I take will change. I
+defiantly took pictures of half-eaten poop though, so those are in the dataset,
+and it probably will still go down. God, I'm going to miss her. She was there
+at the start of this project. There is one thing that will be reduced. Her
+little nose was so good at sniffing out old smashed poops at the dog park, the
+frequency of those will surely go down.
+
+Its interesting how many false positives and negatives there still are even in
+snow images. Some of them seem like they should be easy. E.g.
+20251211_211506870. Leafs continue to be a problem. Even in images where the
+current detector (train_baseline_maskrcnn_v3_v_966e49df_model_0014999.pth) gets
+it, there are often secondary poops it misses. Some of that is NMS, but I think
+a lot of it isn't. There are false negatives that are pretty far from the true
+positives. I really need to fine-tune a new foundational segmentation model.
+
+I did not continue the BAN labeling this time. I know there was one BAN error
+in this batch where I forgot the negative. I will likely go back and make
+explicit BAN labels for the entire dataset at some point, but not today.
