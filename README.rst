@@ -125,7 +125,7 @@ The following `IPNS <https://docs.ipfs.tech/concepts/ipns/>`_ address should alw
 `/ipns/k51qzi5uqu5dje1ees96dtsoslauh124drt5ajrtr85j12ae7fwsfhxb07shit <https://ipfs.io/ipns/k51qzi5uqu5dje1ees96dtsoslauh124drt5ajrtr85j12ae7fwsfhxb07shit>`_.
 
 This should resolve to the most recent `IPFS CID <https://docs.ipfs.tech/concepts/content-addressing/>`_ (Content Identifier) of:
-`/ipfs/bafybeigzy526fesd6hfgflorwymum66lixzzgob6rktiv7epvsyyt6e4me <https://ipfs.io/ipfs/QmQonrckXZq37ZHDoRGN4xVBkqedvJRgYyzp2aBC5Ujpyp?redirectURL=bafybeigzy526fesd6hfgflorwymum66lixzzgob6rktiv7epvsyyt6e4me&autoadapt=0&requiresorigin=0&web3domain=0&immediatecontinue=1&magiclibraryconfirmation=0>`_.
+`/ipfs/bafybeib7solf3oxxmyfc4c37pnz7v5sefbj3z45b6ulxmxjotjy3om3yhi <https://ipfs.io/ipfs/QmQonrckXZq37ZHDoRGN4xVBkqedvJRgYyzp2aBC5Ujpyp?redirectURL=bafybeib7solf3oxxmyfc4c37pnz7v5sefbj3z45b6ulxmxjotjy3om3yhi&autoadapt=0&requiresorigin=0&web3domain=0&immediatecontinue=1&magiclibraryconfirmation=0>`_.
 
 This can be viewed in a webbrowser through an IPFS gateway:
 
