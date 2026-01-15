@@ -1,8 +1,19 @@
 __doc__="
 bash ~/code/shitspotter/papers/wacv_2026/scripts/split_pdf.sh ~/code/shitspotter/papers/wacv_2026/main.pdf 10
 
-python ~/code/shitspotter/papers/wacv_2026/scripts/compress_pdf.py main_part1.pdf --quality=prepress
-python ~/code/shitspotter/papers/wacv_2026/scripts/compress_pdf.py main_part2.pdf --quality=prepress
+python ~/code/shitspotter/papers/wacv_2026/scripts/compress_pdf.py main_part1.pdf --quality=default
+python ~/code/shitspotter/papers/wacv_2026/scripts/compress_pdf.py main_part2.pdf --quality=default
+
+python ~/code/shitspotter/papers/wacv_2026/scripts/compress_pdf.py main_part1.pdf --quality=default
+python ~/code/shitspotter/papers/wacv_2026/scripts/compress_pdf.py main_part2.pdf --quality=default
+
+Paper name convention:
+
+WORKSHOP CODE-FOUR-DIGIT PAPER ID_supp
+WORKSHOP CODE-FOUR-DIGIT PAPER ID_supp
+
+mv main_part1_2026-01-12T101658-5_compressed.pdf 'WasteVision-0003.pdf'
+mv main_part2_2026-01-12T101700-5_compressed.pdf 'WasteVision-0003_supp.pdf'
 
 python ~/code/shitspotter/papers/wacv_2026/scripts/compress_pdf.py main.pdf --quality=screen
 "

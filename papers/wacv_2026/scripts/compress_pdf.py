@@ -7,6 +7,10 @@
 #   "rich",
 # ]
 # ///
+"""
+SeeAlso:
+    ./split_pdf.sh
+"""
 import scriptconfig as scfg
 import ubelt as ub
 
@@ -85,7 +89,10 @@ def compress_pdf(config):
 if __name__ == '__main__':
     """
     CommandLine:
+        bash ~/code/shitspotter/papers/wacv_2026/scripts/split_pdf.sh ~/code/shitspotter/papers/wacv_2026/main.pdf 10
+
         python ~/code/shitspotter/papers/wacv_2026/scripts/compress_pdf.py main_part1.pdf --quality=printer
-        python -m compress_pdf
+        python ~/code/shitspotter/papers/wacv_2026/scripts/compress_pdf.py main_part2.pdf --quality=printer
+
     """
     __cli__.main()

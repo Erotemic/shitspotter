@@ -179,14 +179,13 @@ These objects --- such as the example illustrated in  \Cref{fig:HardCase} ---
 are often low contrast, variable in appearance, and confusable with
 natural clutter, making them challenging for both humans and vision systems.
 
-To address this gap we introduce our primary contribution:
-a new dataset which, in formal settings, we call ``ScatSpotter''.
+To address this gap we introduce a new dataset which, in formal settings, we call ``ScatSpotter''.
 Our dataset contains high-resolution images of dog poop in most of which are
 from urban, outdoor environments in a single city.
-The dataset exhibits substantial variation in appearance, season, lighting, and background clutter despite
-  biases toward the author's dogs and a single geographic region.
+The dataset exhibits variation in appearance, season, lighting, and background clutter despite
+  biases toward the author's dogs and geographic region.
 Poops are annotated with polygons, making the dataset suitable for both detection and segmentation models.
-In order to assist with annotation and provide counterfactual examples we collect images using a
+To assist with annotation and provide counterfactual examples we collect images using a
   ``before/after/negative'' (BAN) protocol as shown in \Cref{fig:ThreeImages}.
 
 
@@ -198,7 +197,7 @@ Other applications include automated waste disposal to keep sidewalks, parks, an
 Although we focus on a single class, dog poop provides an accessible prototypical example for the
   broader problem of detecting small, amorphous, and often camouflaged waste in outdoor environments --- a
   challenge in common with tasks such as litter detection, microtrash identification, and wildlife monitoring.
-The visual difficulty of the domain, rather than the specific species, is the scientific focus of this work.
+The visual difficulty of the domain, rather than the specific species, is the focus of this work.
 
 Beyond the dataset itself, we are also interested in how large datasets can be
 shared efficiently and robustly.  Centralized methods such as Girder

@@ -69,8 +69,7 @@ all analysis in this paper.
         The time-of-year vs time-of-day of each image show lighting and seasonal
         variation.  On the x-axis, 0 is January 1st. On the y-axis, 0 is
         midnight.  Color estimates daylight based on location (nan means not available).
-        Most images are in the day, but many were taken at night with flash or
-        long exposure.
+        Most images are in the day, but many are at night with flash or long exposure.
     }
     \label{fig:TimeOfDayDistribution}
 \end{subfigure}
@@ -79,7 +78,7 @@ all analysis in this paper.
     \centering
     \includegraphics[width=\textwidth]{figures/anns_per_image_histogram_splity.png}
     \caption{
-        The histogram of annotations per image shows object density variation.
+        The histogram show variation in annotations per image.
         Only 35\% (3,314) of images contain annotations; 65\% (5,982) are known negatives.
         About half of the negatives were taken immediately after pickup; the
         rest are from nearby locations with potential lookalikes. Note the split y-axis.
@@ -107,9 +106,9 @@ Weather conditions varied across snowy, sunny, rainy, and foggy.
 A visual representation of the distribution of seasons, time-of-day, daylight, and capture rate is provided
   in \Cref{fig:TimeOfDayDistribution}.
 
-The dataset images are available in full resolution.
-Almost all images were taken using the same phone-camera, with a consistent width/height of 4,032
-  $\times$ 3,024 (although some may be rotated based on EXIF data).
+The dataset is available in full resolution.
+Almost all images were taken using the same phone-camera, with a consistent size of 4,032
+  $\times$ 3,024 (up to EXIF rotation).
 The images are stored as 8-bit JPEGs with RGB channels, and most include overviews (i.e., image pyramids),
   allowing for fast loading of downscaled versions.
 %Six images have a slightly different resolution of 4,008 $\times$ 5,344, and one has a resolution of 7,680
@@ -118,12 +117,12 @@ The images are stored as 8-bit JPEGs with RGB channels, and most include overvie
 
 Due to the BAN protocol, about one-third of the images contain
 annotations, the rest were taken after the object(s) were removed.  Consequently, most
-images have no annotations. When present, annotations are usually singular, but
-multiple annotations are common and can be due to:
+images have no annotations. When present, annotations are typically singular, but
+multiple are common due to:
 1) fragmented droppings,
 2) dogs pooping together,
 3) repeated poops in the same area over time (sometimes hard to distinguish from dirt).
-The number of annotations per image is illustrated in \Cref{fig:AnnotsPerImage}.
+The number of annotations per image is given in \Cref{fig:AnnotsPerImage}.
 
 
 \subsection{Dataset Splits}
