@@ -905,3 +905,32 @@ Test
 \end{tabular}
 \ifwacv \TotalResourceCaption \fi
 \end{table*}
+
+
+\section{Changes Since arXiv v1 (2412.16473v1)}
+\label{sec:changes-since-v1}
+
+This appendix summarizes changes relative to the original preprint
+\redact{(\url{https://arxiv.org/abs/2412.16473v1})}.
+
+\begin{itemize}
+    \setlength{\itemsep}{0pt}
+    \setlength{\parskip}{0pt}
+    \setlength{\parsep}{0pt}
+
+    \item \textbf{Dataset size:} We expanded the dataset from 42GB of \textasciitilde6k full-resolution images with \textasciitilde4k polygon annotations (v1) to 60GB of $>$9k images with \textasciitilde6k polygon annotations (this version).
+
+    \item \textbf{Evaluation:} We expand the independently collected, community-contributed test set from 30 images (v1) to 121 images (this version).
+
+    \item \textbf{Baselines and experiments:} In addition to ViT and Mask R-CNN baselines in v1, we include YOLO-v9 and DINO-v2 baselines in this version, and we also report zero-shot results with GroundingDINO. We additionally distinguish scratch vs.\ pretrained training for the trainable baseline families where applicable.
+
+    \item \textbf{Distribution experiment:} The distribution experiment in this version still corresponds to the v1 dataset (i.e., the distribution study was not re-run on the expanded dataset).
+
+    \item \textbf{Paper revisions:} We clarify parts of the methodology (e.g., BAN) and update figures, tables, and text for the expanded dataset and experiments.
+
+\end{itemize}
+
+This work went through three rounds of peer review; we thank the reviewers for
+their time and comments, which informed several of the updates above.  This
+version corresponds to our accepted paper at the \emph{International Workshop
+on Smart Waste Monitoring (WasteVision)} at WACV.

@@ -4,6 +4,11 @@ Gather raw data into a kwcoco file.
 
 This also handles anonymization if secrets are mounted.
 
+TODO / FIXME:
+
+    - [ ] The image ids are not in a consistent order, we should fix that so
+          the BAN protocol is easier to use.
+
 Usage:
     python -m shitspotter.gather
 """
