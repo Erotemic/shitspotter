@@ -677,3 +677,12 @@ positives. I really need to fine-tune a new foundational segmentation model.
 I did not continue the BAN labeling this time. I know there was one BAN error
 in this batch where I forgot the negative. I will likely go back and make
 explicit BAN labels for the entire dataset at some point, but not today.
+
+# 2025-02-27
+
+Gave a practice presentation at the Kitware research roundup today.  A
+co-worker pointed me to: AnimalClue to recognize animals by their traces
+https://dahlian00.github.io/AnimalCluePage/ It has 18k feces boxes from 6k
+images covering 101 species. A perfect complement this dataset. The images do
+tend to be more close up, but you probably need that for the problem they are
+solving.

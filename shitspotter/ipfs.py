@@ -82,6 +82,117 @@ class IPFSPin(scfg.ModalCLI):
                 info.check_returncode()
 
 
+@IPFS.register
+class export(scfg.DataConfig):
+    """
+    Scan for *.ipfs sidecars, extract CIDs (+ optional names), and print
+    kubo commands you can run elsewhere.
+
+    Examples:
+        python -m shitspotter.ipfs pin export
+        python -m shitspotter.ipfs pin export .
+        python -m shitspotter.ipfs pin export data runs/**/assets
+        python -m shitspotter.ipfs pin export "data/**/*.ipfs" --progress
+        python -m shitspotter.ipfs pin export . --emit_bash > pin_all.sh
+    """
+    paths = scfg.Value([], position=1, nargs='*',
+                       help='0+ paths (dirs / globs / .ipfs files). Default: "."')
+
+    recurse = scfg.Flag(True, help='Recurse into directories when scanning')
+    dedupe = scfg.Flag(True, help='Deduplicate by CID (keeps first encountered name)')
+    sort = scfg.Flag(True, help='Sort output for stable scripts')
+
+    # pin command knobs (kubo)
+    name = scfg.Value(None, help='Override name for all pins (else use sidecar add_config.name if available)')
+    prefer_sidecar_name = scfg.Flag(True, help='Use sidecar add_config.name when present')
+    progress = scfg.Flag(False, short_alias=['p'], help='Include --progress in emitted pin commands')
+    recursive = scfg.Flag(True, help='Include --recursive in emitted pin commands')
+
+    emit_bash = scfg.Flag(False, help='Emit a small bash header')
+
+    @classmethod
+    def main(cls, argv=1, **kwargs):
+        argv = kwargs.pop('cmdline', argv)
+        config = cls.cli(argv=argv, data=kwargs, strict=True)
+        rich.print('config = ' + ub.urepr(config, nl=1))
+
+        import glob
+
+        paths = list(config.paths) if config.paths else ['.']
+
+        # 1) collect sidecar files
+        sidecar_fpaths = []
+        for p in paths:
+            p = ub.Path(p)
+            p_str = os.fspath(p)
+
+            is_glob = any(ch in p_str for ch in ['*', '?', '['])
+            if is_glob:
+                matches = [ub.Path(m) for m in glob.glob(p_str, recursive=True)]
+                for m in matches:
+                    if m.is_dir():
+                        it = m.rglob('*.ipfs') if config.recurse else m.glob('*.ipfs')
+                        sidecar_fpaths.extend(list(it))
+                    elif m.is_file() and m.suffix == '.ipfs':
+                        sidecar_fpaths.append(m)
+            else:
+                if p.is_dir():
+                    it = p.rglob('*.ipfs') if config.recurse else p.glob('*.ipfs')
+                    sidecar_fpaths.extend(list(it))
+                elif p.is_file() and p.suffix == '.ipfs':
+                    sidecar_fpaths.append(p)
+
+        # normalize / filter
+        sidecar_fpaths = [ub.Path(s) for s in sidecar_fpaths]
+        sidecar_fpaths = [s for s in sidecar_fpaths if s.is_file() and s.suffix == '.ipfs']
+
+        # 2) extract (cid, name)
+        items = []
+        for fpath in sidecar_fpaths:
+            meta = kwutil.Yaml.load(fpath)
+            cid = meta.get('cid', None)
+            if not cid:
+                continue
+
+            pin_name = None
+            if config.name is not None:
+                pin_name = config.name
+            elif config.prefer_sidecar_name:
+                pin_name = meta.get('add_config', {}).get('name', None)
+
+            items.append((str(cid), pin_name, fpath))
+
+        # 3) dedupe by CID
+        if config.dedupe:
+            seen = {}
+            for cid, name, fpath in items:
+                if cid not in seen:
+                    seen[cid] = (cid, name, fpath)
+            items = list(seen.values())
+
+        # 4) stable order
+        if config.sort:
+            items = sorted(items, key=lambda t: (t[0], str(t[1] or ''), os.fspath(t[2])))
+
+        # 5) emit header
+        if config.emit_bash:
+            print('#!/usr/bin/env bash')
+            print('set -euo pipefail')
+            print('')
+
+        # 6) print kubo commands
+        for cid, name, _fpath in items:
+            pin_argv = ['ipfs', 'pin', 'add']
+            if config.progress:
+                pin_argv += ['--progress']
+            if config.recursive:
+                pin_argv += ['--recursive']
+            pin_argv += [cid]
+            if name:
+                pin_argv += [f'--name={name}']
+            print(argv_to_str(pin_argv))
+
+
 def argv_to_str(argv):
     import shlex
     command_parts = []
@@ -186,6 +297,8 @@ class IPFSAdd(scfg.DataConfig):
         >>> IPFSAdd.main(**config)
     """
     __command__ = 'add'
+    __alias__ = 'snapshot'  # TODO: choose a better name than add
+
     path = scfg.Value(None, help='file or directory to add to IPFS', position=1)
     name = scfg.Value(None, help='An optional name for created pin(s).')
     recursive = scfg.Flag(True, help='Add directory paths recursively.')
@@ -323,6 +436,247 @@ class IPFSAdd(scfg.DataConfig):
             if sidecar_fpath is not None:
                 print(sidecar_text)
                 print(f'Wrote to: sidecar_fpath={sidecar_fpath}')
+
+
+@IPFS.register
+class IPFSStatus(scfg.DataConfig):
+    """
+    Check whether the local content tracked by .ipfs sidecars appears changed.
+
+    Default: quick heuristic (size + mtime).
+    Optional: full verification (recompute CID via `ipfs add --only-hash`).
+
+    Examples:
+        python -m shitspotter.ipfs status .
+        python -m shitspotter.ipfs status "data/**/*.ipfs"
+        python -m shitspotter.ipfs status path/to/file.ipfs --full
+        python -m shitspotter.ipfs status . --write_baseline
+    """
+    __command__ = 'status'
+
+    path = scfg.Value('.', help='Path / glob / directory containing .ipfs sidecars', position=1)
+
+    # scanning
+    recursive = scfg.Flag(True, help='If path is a directory, recurse to find *.ipfs')
+    strict = scfg.Flag(False, help='If True, error on missing tracked paths; else mark missing')
+
+    # checking mode
+    full = scfg.Flag(False, help='If True, recompute CID using `ipfs add --only-hash` and compare to sidecar CID')
+
+    # heuristic baseline handling
+    write_baseline = scfg.Flag(False, help='If True, write/update quick baseline stats into sidecar files')
+    baseline_key = scfg.Value('local_quickstat', help='Sidecar key to store baseline quick stats under')
+
+    @classmethod
+    def main(cls, argv=1, **kwargs):
+        argv = kwargs.pop('cmdline', argv)
+        config = cls.cli(argv=argv, data=kwargs, strict=True)
+        rich.print('config = ' + ub.urepr(config, nl=1))
+
+        ipfs_sidecar_fpath = ub.Path(config.path)
+        sidecar_fpaths = _find_sidecars(ipfs_sidecar_fpath, recursive=config.recursive)
+
+        rows = []
+        for sidecar_fpath in sidecar_fpaths:
+            meta = kwutil.Yaml.load(sidecar_fpath)
+            if meta.get('type', None) != 'ipfs-sidecar':
+                # ignore unknown YAMLs
+                continue
+
+            root_cid = meta.get('cid', None)
+            rel_path = meta.get('rel_path', None)
+            if root_cid is None or rel_path is None:
+                continue
+
+            tracked_path = (sidecar_fpath.parent / rel_path)
+
+            # quick stat (current)
+            cur_quick = _compute_quickstat(tracked_path)
+
+            # baseline quick stat (from sidecar, if present)
+            base_quick = meta.get(config.baseline_key, None)
+
+            # heuristic change detection
+            if cur_quick is None:
+                status = 'MISSING'
+                changed_quick = None
+            else:
+                if base_quick is None:
+                    status = 'NO_BASELINE'
+                    changed_quick = None
+                else:
+                    changed_quick = (
+                        (cur_quick.get('bytes') != base_quick.get('bytes')) or
+                        (cur_quick.get('mtime') != base_quick.get('mtime'))
+                    )
+                    status = 'CHANGED' if changed_quick else 'OK'
+
+            # optional full check by recomputing CID
+            full_ok = None
+            new_cid = None
+            if config.full and cur_quick is not None:
+                try:
+                    new_cid = _ipfs_only_hash_cid(tracked_path, add_config=meta.get('add_config', {}))
+                    full_ok = (new_cid == root_cid)
+                    # full check overrides the main status if we can compute it
+                    status = 'OK' if full_ok else 'CHANGED'
+                except Exception as ex:
+                    status = 'FULL_CHECK_ERROR'
+                    full_ok = False
+
+            # optionally write baseline
+            if config.write_baseline and cur_quick is not None:
+                meta2 = dict(meta)
+                meta2[config.baseline_key] = cur_quick
+                sidecar_fpath.write_text(kwutil.Yaml.dumps(meta2))
+
+            rows.append({
+                'sidecar': os.fspath(sidecar_fpath),
+                'tracked': os.fspath(tracked_path),
+                'status': status,
+                'cid': root_cid,
+                'cid_recomputed': new_cid,
+                'bytes': None if cur_quick is None else cur_quick.get('bytes'),
+                'mtime': None if cur_quick is None else cur_quick.get('mtime'),
+                'baseline_bytes': None if base_quick is None else base_quick.get('bytes'),
+                'baseline_mtime': None if base_quick is None else base_quick.get('mtime'),
+            })
+
+            if config.strict and status == 'MISSING':
+                raise FileNotFoundError(f'Missing tracked path for sidecar={sidecar_fpath} tracked={tracked_path}')
+
+        _print_status_table(rows)
+
+
+def _find_sidecars(path: ub.Path, recursive: bool = True):
+    """
+    Resolve to a list of .ipfs sidecar file paths.
+    Supports:
+        - a single .ipfs file
+        - a directory (recursive search for *.ipfs)
+        - a glob / patterned path via kwutil util_path helper
+    """
+    # If the user gives a single file, keep it.
+    if path.exists() and path.is_file() and path.suffix == '.ipfs':
+        return [path]
+
+    # If they gave a directory, find all *.ipfs.
+    if path.exists() and path.is_dir():
+        return list(path.rglob('*.ipfs') if recursive else path.glob('*.ipfs'))
+
+    # Otherwise treat as a patterned path (glob)
+    # (this matches what you do in pull)
+    candidates = list(kwutil.util_path.coerce_patterned_paths(path, expected_extension='.ipfs'))
+    return [ub.Path(p) for p in candidates]
+
+
+def _compute_quickstat(tracked_path: ub.Path):
+    """
+    Quick heuristic:
+        - files: size + mtime
+        - dirs: total bytes + max mtime (walk)
+    Returns a JSON-serializable dict, or None if missing.
+    """
+    tracked_path = ub.Path(tracked_path)
+    if not tracked_path.exists():
+        return None
+
+    if tracked_path.is_file():
+        st = tracked_path.stat()
+        return {
+            'kind': 'file',
+            'bytes': int(st.st_size),
+            'mtime': float(st.st_mtime),
+        }
+
+    # directory
+    total = 0
+    max_mtime = 0.0
+    nfiles = 0
+    for f in tracked_path.rglob('*'):
+        if f.is_file():
+            st = f.stat()
+            nfiles += 1
+            total += int(st.st_size)
+            if st.st_mtime > max_mtime:
+                max_mtime = float(st.st_mtime)
+
+    return {
+        'kind': 'dir',
+        'bytes': int(total),
+        'mtime': float(max_mtime),
+        'nfiles': int(nfiles),
+    }
+
+
+def _ipfs_only_hash_cid(tracked_path: ub.Path, add_config=None):
+    """
+    Full check: recompute the CID using kubo's `ipfs add --only-hash`.
+
+    We try to honor relevant options from the original add_config if present.
+    """
+    add_config = add_config or {}
+    tracked_path = ub.Path(tracked_path)
+
+    argv = ['ipfs', 'add', '--only-hash']
+
+    # directory recursion
+    if tracked_path.is_dir():
+        argv += ['--recursive']
+
+    # mirror a few knobs if they exist in stored add_config
+    # (ignore unknown keys; be conservative)
+    if 'cid_version' in add_config:
+        argv += [f'--cid-version={kwutil.Json.dumps(add_config["cid_version"])}']
+    if 'raw_leaves' in add_config:
+        # kubo expects flag presence; scriptconfig stored bool
+        if add_config['raw_leaves']:
+            argv += ['--raw-leaves=true']
+        else:
+            argv += ['--raw-leaves=false']
+
+    argv += [os.fspath(tracked_path)]
+
+    info = ub.cmd(argv, verbose=0)
+    info.check_returncode()
+
+    # parse last line: "<added> <cid> <path>"
+    lines = [ln for ln in info.stdout.strip().split('\n') if ln.strip()]
+    last = lines[-1]
+    parts = last.split()
+    if len(parts) < 2:
+        raise RuntimeError(f'Unexpected ipfs output: {last}')
+    cid = parts[1]
+    return cid
+
+
+def _print_status_table(rows):
+    from rich.table import Table
+    from rich.console import Console
+
+    console = Console()
+    table = Table(title='IPFS Sidecar Status', show_lines=False)
+
+    table.add_column('status', no_wrap=True)
+    table.add_column('sidecar', overflow='fold')
+    table.add_column('tracked', overflow='fold')
+    table.add_column('bytes', justify='right')
+    table.add_column('mtime', justify='right')
+    table.add_column('cid', overflow='fold')
+    table.add_column('cid_recomputed', overflow='fold')
+
+    for r in rows:
+        table.add_row(
+            str(r['status']),
+            str(r['sidecar']),
+            str(r['tracked']),
+            '' if r['bytes'] is None else str(r['bytes']),
+            '' if r['mtime'] is None else f"{r['mtime']:.3f}",
+            str(r['cid'] or ''),
+            str(r['cid_recomputed'] or ''),
+        )
+
+    console.print(table)
 
 
 def sync_ipfs_pull(root_cid, dpath, rel_path):

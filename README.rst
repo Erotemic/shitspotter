@@ -53,9 +53,10 @@ This following is the high level status of the project.
 - ☑ Dataset has enough images to train models (2023-03-03)
 - ☑ Dataset has enough annotations to train models (2023-11-17)
 - ☑ Baseline models are trained (2024-07-27)
-- ☑ Scientific paper about dataset `published on arxiv <https://www.arxiv.org/abs/2412.16473>`_ (2024-12-21)
-- ☑ Scientific paper about dataset peer-reviewed (2025-07-30ish)
+- ☑ Scientific paper about dataset `published on arxiv <https://arxiv.org/abs/2412.16473v1>`_ (2024-12-21)
+- ☑ Scientific paper about dataset `peer-reviewed <https://openreview.net/forum?id=aO24vWoPmK&referrer=%5Bthe%20profile%20of%20Jon%20Crall%5D(%2Fprofile%3Fid%3D~Jon_Crall1)>_` (2025-07-30ish)
 - ☑ Efficient models for phones are trained (2025-07-30ish)
+- ☑ Scientific paper about dataset peer-reviewed & `published <https://arxiv.org/abs/2412.16473>`_ (2026-03-06)
 - ☐ Phone application is developed (external prototype: https://github.com/mkorzunowicz/poopdetector/releases/tag/v1.1.0)
 - ☐ Phone application is available for download and usage
 - ☐ Phone application is release on app stores for free
@@ -167,6 +168,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2026-03-01 - Getting ready for presentation at WasteVision 2026 - International Workshop on Smart Waste Monitoring at WACV. `Slides are online <https://docs.google.com/presentation/d/14Yb6qc_5wQK0PzYqiqiIFVECuq1JTsr5N3EIBKKcGL8/edit?slide=id.g39399de817a_1_34#slide=id.g39399de817a_1_34>`_.
 * 2026-01-05 - Its the new year, and it is bittersweet. The revised dataset paper was peer reviewed and accepted to WasteVision 2026. But we've lost Honey to cancer.
 * 2025-11-26 - A pre-holiday update 🦃. Paper was rejected twice, resubmitting again. Started measuring performance on new data detection F1 is ~0.5. Lots of leafy hard cases in this batch. The IPFS transfer was remarkably easier this time around. No peer discovery issues.
 * 2025-08-02 - Paper is under peer review with slightly positive reviews, grounding dino and YOLO models now trainable. Small test dataset is main limitation - working to rectify with roboflow data (note: a subset of our dataset is on there, but it has the incorrect license). Initial docker image to reproduce experiments is published.

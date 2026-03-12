@@ -742,7 +742,7 @@ Resources used for training, prediction, and evaluation.
 The "node" column is the pipeline stage:
 "train" for training, "pred" for heatmap prediction, and "eval" for pixelwise heatmap evaluation.
 The "resource" column lists the resource type: time, energy, or emissions.
-The "total" and "\mu" columns show the total and average consumptions, and the "n" column indicates the
+The "total" and "$\mu$" columns show the total and average consumptions, and the "n" column indicates the
   frequency of each stage (e.g., across different hyperparameters).
 Train rows marked with an asterisk (*) are based on indirect measurements.
 }
@@ -758,7 +758,7 @@ Train rows marked with an asterisk (*) are based on indirect measurements.
     \centering
     \begin{tabular}{llllr}
     \toprule
-            Node & Resource    &           Total  &           \mu &  n \\
+            Node & Resource    &           Total  &          $\mu$ &  n \\
     \midrule
     eval        &        time  & 14.24 hours      & 0.41 hours     &   35 \\
     \rule{0pt}{2ex}%
@@ -780,7 +780,7 @@ Train rows marked with an asterisk (*) are based on indirect measurements.
     \centering
     \begin{tabular}{llllr}
     \toprule
-            Node & Resource &           Total &            \mu &  n \\
+            Node & Resource &           Total &           $\mu$ &  n \\
     \midrule
     % Note: for presentation simplicity, we are rewriting the following row
     % so num agrees with other rGws. The reason the original value had an
