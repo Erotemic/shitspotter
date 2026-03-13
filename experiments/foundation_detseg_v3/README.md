@@ -189,6 +189,9 @@ That script defaults to:
 - `VALI_FPATH=$FOUNDATION_V3_VALI_KWCOCO_FPATH`
 - `VARIANT=deimv2_m`
 - `WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/deimv2_m`
+- `ENABLE_RESIZE_PREPROCESS=True`
+- `RESIZE_MAX_DIM=640`
+- `RESIZE_OUTPUT_EXT=.jpg`
 - `TRAIN_BATCH_SIZE=4`
 - `VAL_BATCH_SIZE=8`
 - `USE_AMP=True`
@@ -198,6 +201,18 @@ If you unset `DEIMV2_INIT_CKPT`, the upstream S/M config will still use the
 downloaded distilled backbone init file from `tpl/DEIMv2/ckpts/`. That is still
 pretrained initialization, just not a full detector checkpoint resume/tune.
 
+With resize preprocessing enabled, the script keeps your input env vars pointed
+at the original hashed kwcoco bundles, but it first materializes temporary
+resized training and validation bundles under:
+
+```bash
+ls "$WORKDIR/preprocessed_kwcoco/"
+```
+
+The detector then trains against those preprocessed bundles instead of the
+full-resolution phone images. This is meant to reduce the decode+resize
+bottleneck without forcing you to manually manage a second set of dataset paths.
+
 These memory-oriented defaults are intentional for a single 24 GB GPU. The
 upstream COCO configs assume much larger total batch sizes. If you need a
 smaller or larger run, override them directly before calling the script:
@@ -206,6 +221,19 @@ smaller or larger run, override them directly before calling the script:
 export TRAIN_BATCH_SIZE=2
 export VAL_BATCH_SIZE=4
 export USE_AMP=True
+bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/train_deimv2_detector.sh"
+```
+
+If you want to skip or rebuild the preprocessing step:
+
+```bash
+export ENABLE_RESIZE_PREPROCESS=False
+bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/train_deimv2_detector.sh"
+```
+
+```bash
+export FORCE_RESIZE_PREPROCESS=True
+export RESIZE_MAX_DIM=512
 bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/train_deimv2_detector.sh"
 ```
 

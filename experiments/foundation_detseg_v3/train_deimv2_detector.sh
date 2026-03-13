@@ -24,7 +24,50 @@ VAL_BATCH_SIZE="${VAL_BATCH_SIZE:-8}"
 TRAIN_NUM_WORKERS="${TRAIN_NUM_WORKERS:-4}"
 VAL_NUM_WORKERS="${VAL_NUM_WORKERS:-2}"
 DEIMV2_CONFIG_OVERRIDES="${DEIMV2_CONFIG_OVERRIDES:-}"
+ENABLE_RESIZE_PREPROCESS="${ENABLE_RESIZE_PREPROCESS:-True}"
+FORCE_RESIZE_PREPROCESS="${FORCE_RESIZE_PREPROCESS:-False}"
+RESIZE_MAX_DIM="${RESIZE_MAX_DIM:-640}"
+RESIZE_OUTPUT_EXT="${RESIZE_OUTPUT_EXT:-.jpg}"
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
+
+_foundation_v3_truthy() {
+    case "${1:-}" in
+        1|true|True|TRUE|yes|Yes|YES|on|On|ON)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+if _foundation_v3_truthy "$ENABLE_RESIZE_PREPROCESS"; then
+    PREPROC_DPATH="$WORKDIR/preprocessed_kwcoco"
+    mkdir -p "$PREPROC_DPATH"
+    PREPROC_TRAIN_FPATH="$PREPROC_DPATH/train_maxdim${RESIZE_MAX_DIM}.kwcoco.zip"
+    PREPROC_VALI_FPATH="$PREPROC_DPATH/vali_maxdim${RESIZE_MAX_DIM}.kwcoco.zip"
+
+    if _foundation_v3_truthy "$FORCE_RESIZE_PREPROCESS" || [ ! -f "$PREPROC_TRAIN_FPATH" ]; then
+        python -m shitspotter.cli.resize_kwcoco \
+            --src "$TRAIN_FPATH" \
+            --dst "$PREPROC_TRAIN_FPATH" \
+            --max_dim "$RESIZE_MAX_DIM" \
+            --asset_dname "train_assets_maxdim${RESIZE_MAX_DIM}" \
+            --output_ext "$RESIZE_OUTPUT_EXT"
+    fi
+
+    if _foundation_v3_truthy "$FORCE_RESIZE_PREPROCESS" || [ ! -f "$PREPROC_VALI_FPATH" ]; then
+        python -m shitspotter.cli.resize_kwcoco \
+            --src "$VALI_FPATH" \
+            --dst "$PREPROC_VALI_FPATH" \
+            --max_dim "$RESIZE_MAX_DIM" \
+            --asset_dname "vali_assets_maxdim${RESIZE_MAX_DIM}" \
+            --output_ext "$RESIZE_OUTPUT_EXT"
+    fi
+
+    TRAIN_FPATH="$PREPROC_TRAIN_FPATH"
+    VALI_FPATH="$PREPROC_VALI_FPATH"
+fi
 
 if [ -z "$DEIMV2_CONFIG_OVERRIDES" ]; then
     read -r BACKBONE_LR MAIN_LR <<EOF
