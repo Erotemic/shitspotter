@@ -1,6 +1,4 @@
 #!/bin/bash
-set -euo pipefail
-
 export SHITSPOTTER_DPATH="${SHITSPOTTER_DPATH:-$HOME/code/shitspotter}"
 export FOUNDATION_V3_DEV_DPATH="${FOUNDATION_V3_DEV_DPATH:-$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3}"
 
