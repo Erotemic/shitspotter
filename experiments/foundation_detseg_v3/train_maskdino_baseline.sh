@@ -1,12 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-DVC_DATA_DPATH="${DVC_DATA_DPATH:-$(geowatch_dvc --tags="shitspotter_data")}"
-DVC_EXPT_DPATH="${DVC_EXPT_DPATH:-$(geowatch_dvc --tags="shitspotter_expt")}"
+# shellcheck source=experiments/foundation_detseg_v3/common.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 
-TRAIN_FPATH="${TRAIN_FPATH:-$DVC_DATA_DPATH/train.kwcoco.zip}"
-VALI_FPATH="${VALI_FPATH:-$DVC_DATA_DPATH/vali.kwcoco.zip}"
-WORKDIR="${WORKDIR:-$DVC_EXPT_DPATH/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/maskdino_r50}"
+TRAIN_FPATH="${TRAIN_FPATH:-${DVC_DATA_DPATH:?Set DVC_DATA_DPATH or install geowatch_dvc}/train.kwcoco.zip}"
+VALI_FPATH="${VALI_FPATH:-${DVC_DATA_DPATH:?Set DVC_DATA_DPATH or install geowatch_dvc}/vali.kwcoco.zip}"
+WORKDIR="${WORKDIR:-${DVC_EXPT_DPATH:?Set DVC_EXPT_DPATH or install geowatch_dvc}/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/maskdino_r50}"
 MASKDINO_INIT_CKPT="${MASKDINO_INIT_CKPT:-}"
 
 ARGS=(

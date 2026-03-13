@@ -1,8 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-DVC_EXPT_DPATH="${DVC_EXPT_DPATH:-$(geowatch_dvc --tags="shitspotter_expt")}"
-TARGET_DPATH="${TARGET_DPATH:-$DVC_EXPT_DPATH/_foundation_detseg_v3}"
+# shellcheck source=experiments/foundation_detseg_v3/common.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+
+TARGET_DPATH="${TARGET_DPATH:-${DVC_EXPT_DPATH:?Set DVC_EXPT_DPATH or install geowatch_dvc}/_foundation_detseg_v3}"
 OUTPUT_DPATH="${OUTPUT_DPATH:-$TARGET_DPATH/full_aggregate}"
 
 python -m geowatch.mlops.aggregate \

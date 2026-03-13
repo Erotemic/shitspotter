@@ -1,12 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DVC_DATA_DPATH="${DVC_DATA_DPATH:-$(geowatch_dvc --tags="shitspotter_data")}"
-DVC_EXPT_DPATH="${DVC_EXPT_DPATH:-$(geowatch_dvc --tags="shitspotter_expt")}"
-TEST_FPATH="${TEST_FPATH:-$DVC_DATA_DPATH/test.kwcoco.zip}"
-EVAL_PATH="${EVAL_PATH:-$DVC_EXPT_DPATH/_foundation_detseg_v3/test}"
-PACKAGE_FPATH="${PACKAGE_FPATH:-$HERE/packages/deimv2_sam2_default.yaml}"
+# shellcheck source=experiments/foundation_detseg_v3/common.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+
+TEST_FPATH="${TEST_FPATH:-${DVC_DATA_DPATH:?Set DVC_DATA_DPATH or install geowatch_dvc}/test.kwcoco.zip}"
+EVAL_PATH="${EVAL_PATH:-${DVC_EXPT_DPATH:?Set DVC_EXPT_DPATH or install geowatch_dvc}/_foundation_detseg_v3/test}"
+PACKAGE_FPATH="${PACKAGE_FPATH:-$FOUNDATION_V3_PACKAGE_DPATH/deimv2_sam2_default.yaml}"
 
 python -m geowatch.mlops.schedule_evaluation \
     --params="

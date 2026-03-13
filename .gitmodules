@@ -7,3 +7,12 @@
 [submodule "tpl/poop_models"]
 	path = tpl/poop_models
 	url = https://github.com/Erotemic/poop_models.git
+[submodule "tpl/DEIMv2"]
+	path = tpl/DEIMv2
+	url = https://github.com/Intellindust-AI-Lab/DEIMv2.git
+[submodule "tpl/segment-anything-2"]
+	path = tpl/segment-anything-2
+	url = https://github.com/fal-ai/segment-anything-2.git
+[submodule "tpl/MaskDINO"]
+	path = tpl/MaskDINO
+	url = https://github.com/IDEA-Research/MaskDINO.git
