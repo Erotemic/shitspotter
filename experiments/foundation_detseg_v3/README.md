@@ -12,7 +12,10 @@ Baseline backend:
 - `maskdino` = MaskDINO-R50 direct instance segmentation
 
 All scripts in this directory are cwd-independent. They resolve the repo root
-relative to the script location, so you can run them from anywhere.
+relative to the script location, so you can run them from anywhere. They also
+fall back to `$HOME/code/shitspotter/experiments/foundation_detseg_v3` when
+their contents are pasted directly into an interactive bash shell and
+`BASH_SOURCE` does not point at a real file.
 
 ## Copy / paste environment
 

@@ -1,9 +1,18 @@
 #!/bin/bash
 set -euo pipefail
 
-FOUNDATION_V3_SCRIPT_DPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export SHITSPOTTER_DPATH="${SHITSPOTTER_DPATH:-$HOME/code/shitspotter}"
+export FOUNDATION_V3_DEV_DPATH="${FOUNDATION_V3_DEV_DPATH:-$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3}"
+
+_foundation_v3_source="${BASH_SOURCE[0]-}"
+if [ -n "$_foundation_v3_source" ] && [ "$_foundation_v3_source" != "bash" ] && [ "$_foundation_v3_source" != "-bash" ]; then
+    FOUNDATION_V3_SCRIPT_DPATH="$(cd "$(dirname "$_foundation_v3_source")" && pwd)"
+else
+    FOUNDATION_V3_SCRIPT_DPATH="$FOUNDATION_V3_DEV_DPATH"
+fi
 FOUNDATION_V3_ROOT_DIR="$(cd "$FOUNDATION_V3_SCRIPT_DPATH/../.." && pwd)"
 FOUNDATION_V3_PACKAGE_DPATH="$FOUNDATION_V3_SCRIPT_DPATH/packages"
+unset _foundation_v3_source
 
 export FOUNDATION_V3_SCRIPT_DPATH
 export FOUNDATION_V3_ROOT_DIR
