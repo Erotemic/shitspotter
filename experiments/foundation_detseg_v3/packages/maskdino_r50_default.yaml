@@ -1,0 +1,19 @@
+format_version: 1
+backend: maskdino
+baseline:
+  preset: maskdino_r50
+  checkpoint_fpath: REPLACE_ME_MASKDINO_CHECKPOINT
+postprocess:
+  score_thresh: 0.2
+  nms_thresh: 0.5
+  crop_padding: 32
+  polygon_simplify: 2.0
+  min_component_area: 32
+  keep_largest_component: true
+label_mapping:
+  "0": poop
+  "1": poop
+  poop: poop
+metadata:
+  name: maskdino_r50_default
+  family: foundation_detseg_v3

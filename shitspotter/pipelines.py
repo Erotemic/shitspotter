@@ -23,12 +23,26 @@ If the assumption of arguments as key/value pairs is broken, nodes can specify
 a "command" method, where the user can define exactly what shell command to
 run.
 """
-from geowatch.mlops.pipeline_nodes import ProcessNode
-from geowatch.mlops.pipeline_nodes import PipelineDAG
+try:
+    from geowatch.mlops.pipeline_nodes import ProcessNode
+    from geowatch.mlops.pipeline_nodes import PipelineDAG
+    _GEOWATCH_PIPELINE_IMPORT_ERROR = None
+except Exception as ex:  # pragma: no cover
+    ProcessNode = object
+    PipelineDAG = None
+    _GEOWATCH_PIPELINE_IMPORT_ERROR = ex
 import ubelt as ub  # NOQA
 
 PREDICT_NAME = 'pred'
 EVALUATE_NAME = 'eval'
+
+
+def _require_pipeline_nodes():
+    if _GEOWATCH_PIPELINE_IMPORT_ERROR is not None:
+        raise ImportError(
+            'geowatch pipeline nodes are unavailable. '
+            'Install geowatch and its dependencies to use shitspotter.pipelines.'
+        ) from _GEOWATCH_PIPELINE_IMPORT_ERROR
 
 
 class DetectronPrediction(ProcessNode):
@@ -531,6 +545,7 @@ def heatmap_evaluation_pipeline():
         >>> queue = dag.make_queue()['queue']
         >>> queue.print_commands(with_locks=0)
     """
+    _require_pipeline_nodes()
     nodes = {}
     heatmap_pred = nodes['heatmap_pred'] = HeatmapPrediction()
     heatmap_eval = nodes['heatmap_eval'] = HeatmapEvaluation()
@@ -562,6 +577,7 @@ def polygon_evaluation_pipeline():
         >>> queue = dag.make_queue()['queue']
         >>> queue.print_commands(with_locks=0)
     """
+    _require_pipeline_nodes()
     nodes = {}
     heatmap_pred = nodes['heatmap_pred'] = HeatmapPrediction()
     heatmap_eval = nodes['heatmap_eval'] = HeatmapEvaluation()
@@ -588,6 +604,7 @@ def polygon_evaluation_pipeline():
 
 
 def detectron_evaluation_pipeline():
+    _require_pipeline_nodes()
     nodes = {}
     detectron_pred = nodes['detectron_pred'] = DetectronPrediction()
     detection_evaluation = nodes['detection_evaluation'] = DetectionEvaluation()
@@ -602,3 +619,9 @@ def detectron_evaluation_pipeline():
     dag = PipelineDAG(nodes)
     dag.build_nx_graphs()
     return dag
+
+
+def foundation_v3_evaluation_pipeline():
+    _require_pipeline_nodes()
+    from shitspotter.algo_foundation_v3.mlops import build_foundation_prediction_dag
+    return build_foundation_prediction_dag(DetectionEvaluation)
