@@ -107,6 +107,37 @@ def test_image_dir_to_kwcoco_and_coco_export(tmp_path):
     assert train_data['categories'][0]['name'] == 'poop'
 
 
+def test_coco_export_skips_null_and_non_target_categories(tmp_path):
+    dset_fpath, _ = _demo_dataset(tmp_path)
+    dset = kwcoco.CocoDataset(dset_fpath)
+    dset.add_category(name='unknown', id=2)
+    gid = next(iter(dset.imgs))
+    dset.add_annotation(
+        image_id=gid,
+        category_id=2,
+        bbox=[1, 1, 4, 4],
+        area=16,
+    )
+    dset.dataset['annotations'].append({
+        'id': max(dset.anns) + 1,
+        'image_id': gid,
+        'category_id': None,
+        'bbox': [2, 2, 5, 5],
+        'area': 25,
+    })
+    dset.dump(dset_fpath)
+
+    exports = coco_adapter.export_training_splits(
+        train_kwcoco=dset_fpath,
+        vali_kwcoco=dset_fpath,
+        output_dpath=tmp_path / 'mscoco_invalid',
+        include_segmentations=True,
+    )
+    train_data = kwcoco.CocoDataset(exports['train']).dataset
+    assert len(train_data['annotations']) == 1
+    assert train_data['annotations'][0]['category_id'] == 1
+
+
 def test_predict_write_and_labelme_export_with_fake_backend(tmp_path, monkeypatch):
     dset_fpath, img_fpath = _demo_dataset(tmp_path)
 

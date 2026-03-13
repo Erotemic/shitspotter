@@ -26,6 +26,10 @@ experiment scripts:
 - experiment outputs go under `$(geowatch_dvc --tags="shitspotter_expt")`
 - training runs land under `.../training/$HOSTNAME/$USER/ShitSpotter/runs/...`
 - reusable downloaded model assets live under `$DVC_DATA_DPATH/models/...`
+- the default comparison splits are the hashed files
+  `train_imgs5747_1e73d54f.kwcoco.zip`,
+  `vali_imgs691_99b22ad0.kwcoco.zip`, and
+  `test_imgs121_6cb3b6ff.kwcoco.zip`
 
 ### 1. Set up your shell environment
 
@@ -41,6 +45,9 @@ export SHITSPOTTER_DEIMV2_REPO_DPATH="${SHITSPOTTER_DEIMV2_REPO_DPATH:-$SHITSPOT
 export SHITSPOTTER_SAM2_REPO_DPATH="${SHITSPOTTER_SAM2_REPO_DPATH:-$SHITSPOTTER_DPATH/tpl/segment-anything-2}"
 export SHITSPOTTER_MASKDINO_REPO_DPATH="${SHITSPOTTER_MASKDINO_REPO_DPATH:-$SHITSPOTTER_DPATH/tpl/MaskDINO}"
 export FOUNDATION_V3_MODEL_DPATH="${FOUNDATION_V3_MODEL_DPATH:-$DVC_DATA_DPATH/models/foundation_detseg_v3}"
+export FOUNDATION_V3_TRAIN_KWCOCO_FPATH="${FOUNDATION_V3_TRAIN_KWCOCO_FPATH:-$DVC_DATA_DPATH/train_imgs5747_1e73d54f.kwcoco.zip}"
+export FOUNDATION_V3_VALI_KWCOCO_FPATH="${FOUNDATION_V3_VALI_KWCOCO_FPATH:-$DVC_DATA_DPATH/vali_imgs691_99b22ad0.kwcoco.zip}"
+export FOUNDATION_V3_TEST_KWCOCO_FPATH="${FOUNDATION_V3_TEST_KWCOCO_FPATH:-$DVC_DATA_DPATH/test_imgs121_6cb3b6ff.kwcoco.zip}"
 ```
 
 ### 2. Initialize external repos and install Python deps
@@ -178,8 +185,8 @@ bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/train_deimv2_detector.
 
 That script defaults to:
 
-- `TRAIN_FPATH=$DVC_DATA_DPATH/train.kwcoco.zip`
-- `VALI_FPATH=$DVC_DATA_DPATH/vali.kwcoco.zip`
+- `TRAIN_FPATH=$FOUNDATION_V3_TRAIN_KWCOCO_FPATH`
+- `VALI_FPATH=$FOUNDATION_V3_VALI_KWCOCO_FPATH`
 - `VARIANT=deimv2_m`
 - `WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/deimv2_m`
 

@@ -23,8 +23,12 @@ def _build_coco_export(src, dst, category_name='poop', include_segmentations=Tru
     kept_gids = set()
     for img in src_dset.images().objs:
         img = img.copy()
-        file_name = Path(src_dset.bundle_dpath) / img['file_name']
-        img['file_name'] = str(file_name.resolve())
+        try:
+            file_name = src_dset.get_image_fpath(img['id'])
+        except Exception:
+            bundle_dpath = src_dset.bundle_dpath or '.'
+            file_name = Path(bundle_dpath) / img['file_name']
+        img['file_name'] = str(Path(file_name).resolve())
         export['images'].append({
             'id': img['id'],
             'file_name': img['file_name'],
@@ -38,7 +42,13 @@ def _build_coco_export(src, dst, category_name='poop', include_segmentations=Tru
         gid = ann['image_id']
         if gid not in kept_gids:
             continue
-        catname = src_dset.cats[ann['category_id']]['name']
+        category_id = ann.get('category_id', None)
+        if category_id is None:
+            continue
+        cat = src_dset.cats.get(category_id, None)
+        if cat is None:
+            continue
+        catname = cat['name']
         if catname != category_name:
             continue
         new_ann = {

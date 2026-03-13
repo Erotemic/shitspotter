@@ -13,8 +13,8 @@ source "$_foundation_v3_script_dpath/common.sh"
 unset _foundation_v3_source
 unset _foundation_v3_script_dpath
 
-TRAIN_FPATH="${TRAIN_FPATH:-${DVC_DATA_DPATH:?Set DVC_DATA_DPATH or install geowatch_dvc}/train.kwcoco.zip}"
-VALI_FPATH="${VALI_FPATH:-${DVC_DATA_DPATH:?Set DVC_DATA_DPATH or install geowatch_dvc}/vali.kwcoco.zip}"
+TRAIN_FPATH="${TRAIN_FPATH:-${FOUNDATION_V3_TRAIN_KWCOCO_FPATH:?Set FOUNDATION_V3_TRAIN_KWCOCO_FPATH or install geowatch_dvc}}"
+VALI_FPATH="${VALI_FPATH:-${FOUNDATION_V3_VALI_KWCOCO_FPATH:?Set FOUNDATION_V3_VALI_KWCOCO_FPATH or install geowatch_dvc}}"
 WORKDIR="${WORKDIR:-${DVC_EXPT_DPATH:?Set DVC_EXPT_DPATH or install geowatch_dvc}/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/deimv2_m}"
 VARIANT="${VARIANT:-deimv2_m}"
 DEIMV2_INIT_CKPT="${DEIMV2_INIT_CKPT:-}"

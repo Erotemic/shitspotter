@@ -13,7 +13,7 @@ source "$_foundation_v3_script_dpath/common.sh"
 unset _foundation_v3_source
 unset _foundation_v3_script_dpath
 
-TEST_FPATH="${TEST_FPATH:-${DVC_DATA_DPATH:?Set DVC_DATA_DPATH or install geowatch_dvc}/test.kwcoco.zip}"
+TEST_FPATH="${TEST_FPATH:-${FOUNDATION_V3_TEST_KWCOCO_FPATH:?Set FOUNDATION_V3_TEST_KWCOCO_FPATH or install geowatch_dvc}}"
 EVAL_PATH="${EVAL_PATH:-${DVC_EXPT_DPATH:?Set DVC_EXPT_DPATH or install geowatch_dvc}/_foundation_detseg_v3/maskdino_test}"
 PACKAGE_FPATH="${PACKAGE_FPATH:-$FOUNDATION_V3_PACKAGE_DPATH/maskdino_r50_default.yaml}"
 
