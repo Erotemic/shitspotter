@@ -22,6 +22,19 @@ local developer environment stays coherent.
 - Risk:
   newer Torch/Torchvision combinations are not formally upstream-tested, so do a
   quick GPU sanity run before launching a long training job
+- Additional local patch:
+  [tpl/DEIMv2/engine/data/transforms/_transforms.py](/home/agent/code/shitspotter/tpl/DEIMv2/engine/data/transforms/_transforms.py)
+  was patched to implement `transform(...)` instead of the older `_transform(...)`
+  hook for three custom torchvision-v2 transforms (`PadToSize`,
+  `ConvertBoxes`, and `ConvertPILImage`)
+- Why:
+  `torchvision 0.25.0` dispatches custom `T.Transform` subclasses through
+  `transform(...)`, and the upstream DEIMv2 code was still targeting the older
+  hook, which caused a bare `NotImplementedError` during the first training
+  batch
+- Risk:
+  this is a local compatibility patch against upstream DEIMv2 and may need to
+  be revisited if the submodule is updated or if upstream merges their own fix
 
 ### MaskDINO
 
