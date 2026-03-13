@@ -33,13 +33,39 @@ ensure_checkout "$SHITSPOTTER_DEIMV2_REPO_DPATH" "tpl/DEIMv2" "https://github.co
 ensure_checkout "$SHITSPOTTER_SAM2_REPO_DPATH" "tpl/segment-anything-2" "https://github.com/fal-ai/segment-anything-2.git"
 ensure_checkout "$SHITSPOTTER_MASKDINO_REPO_DPATH" "tpl/MaskDINO" "https://github.com/IDEA-Research/MaskDINO.git"
 
+install_deimv2_requirements_without_torch_pins() {
+    local req_fpath="$1"
+    local filtered_req_fpath
+    filtered_req_fpath="$(mktemp)"
+    grep -vE '^(torch|torchvision)([[:space:]]*[<>=!~].*)?$' "$req_fpath" > "$filtered_req_fpath"
+    python -m pip install -r "$filtered_req_fpath"
+    rm -f "$filtered_req_fpath"
+}
+
+install_maskdino_requirements_preserve_opencv_stack() {
+    local req_fpath="$1"
+    local filtered_req_fpath
+    filtered_req_fpath="$(mktemp)"
+    grep -vE '^opencv-python([[:space:]]*[<>=!~].*)?$' "$req_fpath" > "$filtered_req_fpath"
+    python -m pip install -r "$filtered_req_fpath"
+    rm -f "$filtered_req_fpath"
+    if ! python - <<'PY'
+import importlib.util
+import sys
+sys.exit(0 if importlib.util.find_spec("cv2") is not None else 1)
+PY
+    then
+        python -m pip install opencv-python-headless
+    fi
+}
+
 python -m pip install -r "$FOUNDATION_V3_ROOT_DIR/requirements/runtime.txt" -r "$FOUNDATION_V3_ROOT_DIR/requirements/tests.txt"
 python -m pip install -e "$FOUNDATION_V3_ROOT_DIR"
-python -m pip install kwcoco kwimage kwutil
+python -m pip install kwcoco kwimage kwutil huggingface_hub gdown
 
-python -m pip install -r "$SHITSPOTTER_DEIMV2_REPO_DPATH/requirements.txt"
+install_deimv2_requirements_without_torch_pins "$SHITSPOTTER_DEIMV2_REPO_DPATH/requirements.txt"
 python -m pip install -e "$SHITSPOTTER_SAM2_REPO_DPATH"
-python -m pip install -r "$SHITSPOTTER_MASKDINO_REPO_DPATH/requirements.txt"
+install_maskdino_requirements_preserve_opencv_stack "$SHITSPOTTER_MASKDINO_REPO_DPATH/requirements.txt"
 
 cat <<EOF
 Environment setup complete.
@@ -51,7 +77,10 @@ Repo paths:
 
 Notes:
   - Default external repos now live under $FOUNDATION_V3_ROOT_DIR/tpl as git submodules.
+  - DEIMv2 upstream pins torch==2.5.1 and torchvision==0.20.1, but this setup script intentionally preserves your existing torch stack and only installs the other DEIMv2 deps.
+  - MaskDINO upstream lists opencv-python, but this setup script preserves your existing cv2 provider and only installs opencv-python-headless if cv2 is missing entirely.
   - MaskDINO still requires a compatible Detectron2 install and its CUDA ops.
   - SAM2 may require a recent torch build and optional CUDA extension support.
+  - Run experiments/foundation_detseg_v3/download_foundation_assets.sh next if you want the default DEIMv2 and SAM2 weights placed in the expected locations.
   - geowatch aggregation may require extra GDAL/OSGeo system packages.
 EOF

@@ -32,3 +32,9 @@ if command -v geowatch_dvc >/dev/null 2>&1; then
         export DVC_EXPT_DPATH="$_dvc_expt"
     fi
 fi
+
+if [ -n "${DVC_DATA_DPATH:-}" ]; then
+    export FOUNDATION_V3_MODEL_DPATH="${FOUNDATION_V3_MODEL_DPATH:-$DVC_DATA_DPATH/models/foundation_detseg_v3}"
+else
+    export FOUNDATION_V3_MODEL_DPATH="${FOUNDATION_V3_MODEL_DPATH:-$FOUNDATION_V3_ROOT_DIR/.cache/foundation_detseg_v3}"
+fi
