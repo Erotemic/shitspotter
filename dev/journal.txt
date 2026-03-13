@@ -686,3 +686,20 @@ https://dahlian00.github.io/AnimalCluePage/ It has 18k feces boxes from 6k
 images covering 101 species. A perfect complement this dataset. The images do
 tend to be more close up, but you probably need that for the problem they are
 solving.
+
+
+# 2025-03-13
+
+Back from WACV. I found a new related dataset: 
+
+Poultry fecal imagery dataset for health status prediction: A case of South-West Nigeria
+
+https://data.mendeley.com/datasets/8pnbzpt2k9/1
+
+https://pubmed.ncbi.nlm.nih.gov/37674505/
+19,155 100x100 images. Labeled as healthy and unhealthy. It is 65.5MB.
+
+
+We also have: Pig-Feces on Pig Skin Dataset
+https://data.mendeley.com/datasets/g97dmjymk5/3
+It is 221 MB. 
