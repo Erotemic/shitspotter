@@ -234,6 +234,117 @@ and `run_bootstrap_new_cohort.sh` by setting:
 export PACKAGE_FPATH="$DEIMV2_SAM2_TRAINED_PACKAGE"
 ```
 
+## Fine-tune SAM2 on ShitSpotter masks
+
+The repo now has a real SAM2 fine-tuning path. It exports the kwcoco masks into
+the static-image SA1B-style format that the upstream SAM2 trainer already
+supports, generates a SAM2 Hydra config under the local SAM2 repo, and launches
+the official trainer. The default path uses `sam2.1_hiera_base_plus` because
+that is the upstream SAM2.1 training template currently available in the local
+repo.
+
+Like detector training, SAM2 fine-tuning does not require a package file to
+start training. The package is only for inference after you have a tuned
+checkpoint you want to deploy.
+
+### 11. Fine-tune SAM2.1 Base+ from the downloaded checkpoint
+
+```bash
+export SAM2_INIT_CKPT="$SHITSPOTTER_SAM2_REPO_DPATH/checkpoints/sam2.1_hiera_base_plus.pt"
+export WORKDIR="${WORKDIR:-$DVC_EXPT_DPATH/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/sam2.1_hiera_base_plus}"
+
+bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/train_sam2_segmenter.sh"
+```
+
+That script defaults to:
+
+- `TRAIN_FPATH=$FOUNDATION_V3_TRAIN_KWCOCO_FPATH`
+- `VALI_FPATH=$FOUNDATION_V3_VALI_KWCOCO_FPATH`
+- `VARIANT=sam2.1_hiera_base_plus`
+- `SAM2_INIT_CKPT=$SHITSPOTTER_SAM2_REPO_DPATH/checkpoints/sam2.1_hiera_base_plus.pt`
+- `WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/sam2.1_hiera_base_plus`
+- `RESOLUTION=1024`
+- `TRAIN_BATCH_SIZE=1`
+- `NUM_TRAIN_WORKERS=8`
+- `NUM_EPOCHS=20`
+- `NUM_GPUS=1`
+- `BASE_LR=5e-6`
+- `VISION_LR=3e-6`
+
+The generated SAM2 bundle lives under:
+
+```bash
+ls "$WORKDIR/prepared_data/sam2/train/images"
+ls "$WORKDIR/prepared_data/sam2/train/annotations"
+ls "$WORKDIR/prepared_data/sam2/train/train.txt"
+ls "$WORKDIR/generated_configs/train_sam2.yaml"
+```
+
+The expected tuned checkpoint lands here:
+
+```bash
+ls "$WORKDIR/checkpoints/checkpoint.pt"
+```
+
+If you already know which detector checkpoint you want to pair with this tuned
+segmenter, you can have the training script emit a runnable combined package at
+the end of fine-tuning:
+
+```bash
+export DEIMV2_TRAINED_CKPT="$DVC_EXPT_DPATH/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/deimv2_m/best_stg2.pth"
+export PACKAGE_OUT="$WORKDIR/tuned_segmenter_package.yaml"
+
+bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/train_sam2_segmenter.sh"
+```
+
+Otherwise, just build the package later once you know the detector checkpoint.
+
+If you want to keep only the target category when exporting masks into the SAM2
+training bundle, make that explicit:
+
+```bash
+export CATEGORY_NAMES='["poop"]'
+bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/train_sam2_segmenter.sh"
+```
+
+### 12. Compare zero-shot SAM2 against tuned SAM2 with the same detector
+
+Zero-shot comparison package:
+
+```bash
+export PACKAGE_FPATH="$DEIMV2_SAM2_TRAINED_PACKAGE"
+bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/run_deimv2_sam2_on_vali.sh"
+```
+
+Tuned-SAM package:
+
+```bash
+export WORKDIR_DETECTOR="${WORKDIR_DETECTOR:-$DVC_EXPT_DPATH/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/deimv2_m}"
+export DEIMV2_TRAINED_CKPT="$WORKDIR_DETECTOR/best_stg2.pth"
+export SAM2_TUNED_CKPT="$WORKDIR/checkpoints/checkpoint.pt"
+export DEIMV2_SAM2_TUNED_SEG_PACKAGE="$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/packages/deimv2_sam2_tuned_segmenter.yaml"
+
+python -m shitspotter.algo_foundation_v3.cli_package build \
+    "$DEIMV2_SAM2_TUNED_SEG_PACKAGE" \
+    --backend deimv2_sam2 \
+    --detector_preset deimv2_m \
+    --segmenter_preset sam2.1_hiera_base_plus \
+    --detector_checkpoint_fpath "$DEIMV2_TRAINED_CKPT" \
+    --segmenter_checkpoint_fpath "$SAM2_TUNED_CKPT" \
+    --metadata_name deimv2_sam2_tuned_segmenter
+
+export PACKAGE_FPATH="$DEIMV2_SAM2_TUNED_SEG_PACKAGE"
+bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/run_deimv2_sam2_on_vali.sh"
+bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/run_deimv2_sam2_on_test.sh"
+```
+
+Then aggregate both result families with the usual repo tooling:
+
+```bash
+TARGET_DPATH="$DVC_EXPT_DPATH/_foundation_detseg_v3" \
+bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/aggregate_foundation_results.sh"
+```
+
 ## Train and evaluate the MaskDINO baseline
 
 The baseline path is intentionally parallel to the detector+segmenter path, but
@@ -241,7 +352,7 @@ it does not have a good off-the-shelf ShitSpotter-ready checkpoint in this repo.
 The normal flow is train first, then package the trained checkpoint for
 prediction/evaluation.
 
-### 11. Train MaskDINO-R50
+### 13. Train MaskDINO-R50
 
 ```bash
 export WORKDIR="${WORKDIR:-$DVC_EXPT_DPATH/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/maskdino_r50}"
@@ -249,7 +360,7 @@ export WORKDIR="${WORKDIR:-$DVC_EXPT_DPATH/training/$HOSTNAME/$USER/ShitSpotter/
 bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/train_maskdino_baseline.sh"
 ```
 
-### 12. Build a package for the trained MaskDINO checkpoint
+### 14. Build a package for the trained MaskDINO checkpoint
 
 ```bash
 export MASKDINO_CKPT="$WORKDIR/model_final.pth"
@@ -263,7 +374,7 @@ python -m shitspotter.algo_foundation_v3.cli_package build \
     --metadata_name maskdino_r50_local
 ```
 
-### 13. Run MaskDINO on validation and test
+### 15. Run MaskDINO on validation and test
 
 ```bash
 export PACKAGE_FPATH="$MASKDINO_PACKAGE"
@@ -273,7 +384,7 @@ export PACKAGE_FPATH="$MASKDINO_PACKAGE"
 bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/run_maskdino_on_test.sh"
 ```
 
-### 14. Aggregate results again
+### 16. Aggregate results again
 
 ```bash
 TARGET_DPATH="$DVC_EXPT_DPATH/_foundation_detseg_v3" \
@@ -289,8 +400,9 @@ The package file is a small YAML manifest for inference. It records:
 - which preset/config variant to use
 - default postprocess settings such as score threshold, NMS, crop padding, and polygon simplify
 
-The package step is not required to fine-tune the DEIMv2 detector. Training uses
-the kwcoco inputs plus the training CLI flags, not the package file.
+The package step is not required to fine-tune the DEIMv2 detector or the SAM2
+segmenter. Training uses the kwcoco inputs plus the training CLI flags, not the
+package file.
 
 ## Notes on external weights
 

@@ -3,6 +3,7 @@ import json
 import subprocess
 import sys
 import types
+from pathlib import Path
 
 import kwcoco
 import kwimage
@@ -13,6 +14,9 @@ from shitspotter.algo_foundation_v3 import coco_adapter
 from shitspotter.algo_foundation_v3 import kwcoco_adapter
 from shitspotter.algo_foundation_v3 import packaging
 from shitspotter.algo_foundation_v3 import cli_predict
+from shitspotter.algo_foundation_v3 import model_registry
+from shitspotter.algo_foundation_v3 import segmenter_sam2
+from shitspotter.algo_foundation_v3.datasets import prepare_segmenter_training_data
 
 
 def _demo_dataset(tmp_path):
@@ -195,6 +199,47 @@ def test_predict_write_and_labelme_export_with_fake_backend(tmp_path, monkeypatc
     assert labelme_fpath in written
     written_again = kwcoco_adapter.export_predictions_to_labelme(pred_fpath, only_missing=True)
     assert written_again == []
+
+
+def test_sam2_training_bundle_and_config_generation(tmp_path):
+    dset_fpath, _ = _demo_dataset(tmp_path)
+    prepared = prepare_segmenter_training_data(
+        train_kwcoco=dset_fpath,
+        vali_kwcoco=dset_fpath,
+        output_dpath=tmp_path / 'sam2_bundle',
+    )
+    train_meta = json.loads(prepared.train_metadata_fpath.read_text())
+    assert train_meta['num_images'] == 1
+    assert train_meta['category_names'] == ['poop']
+    train_stem = train_meta['records'][0]['stem']
+    train_ann = json.loads((prepared.train_gt_dpath / f'{train_stem}.json').read_text())
+    assert len(train_ann['annotations']) == 1
+    assert 'segmentation' in train_ann['annotations'][0]
+    assert 'counts' in train_ann['annotations'][0]['segmentation']
+
+    fake_ckpt = tmp_path / 'sam2_init.pt'
+    fake_ckpt.write_bytes(b'fake')
+    segmenter_cfg = model_registry.resolve_segmenter_preset('sam2.1_hiera_base_plus')
+    repo_root = Path(__file__).resolve().parents[3]
+    segmenter_cfg['repo_dpath'] = str((repo_root / 'tpl/segment-anything-2').resolve())
+    meta = segmenter_sam2.build_sam2_training_config(
+        segmenter_cfg=segmenter_cfg,
+        prepared=prepared,
+        workdir=tmp_path / 'sam2_workdir',
+        init_checkpoint_fpath=fake_ckpt,
+        train_kwargs={
+            'resolution': 512,
+            'train_batch_size': 1,
+            'num_train_workers': 2,
+            'num_epochs': 3,
+            'num_gpus': 1,
+            'category_names': ['poop'],
+        },
+    )
+    cfg_text = Path(meta['workdir_config_fpath']).read_text()
+    assert 'training.dataset.vos_raw_dataset.SA1BRawDataset' in cfg_text
+    assert str(prepared.train_image_dpath) in cfg_text
+    assert str(fake_ckpt) in cfg_text
 
 
 def test_foundation_pipeline_with_fake_geowatch(monkeypatch):

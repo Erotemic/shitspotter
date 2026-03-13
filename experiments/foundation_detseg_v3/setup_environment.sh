@@ -61,7 +61,7 @@ PY
 
 python -m pip install -r "$FOUNDATION_V3_ROOT_DIR/requirements/runtime.txt" -r "$FOUNDATION_V3_ROOT_DIR/requirements/tests.txt"
 python -m pip install -e "$FOUNDATION_V3_ROOT_DIR"
-python -m pip install kwcoco kwimage kwutil huggingface_hub gdown
+python -m pip install kwcoco kwimage kwutil huggingface_hub gdown pycocotools
 
 install_deimv2_requirements_without_torch_pins "$SHITSPOTTER_DEIMV2_REPO_DPATH/requirements.txt"
 python -m pip install -e "$SHITSPOTTER_SAM2_REPO_DPATH"

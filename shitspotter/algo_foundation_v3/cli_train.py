@@ -12,7 +12,10 @@ from shitspotter.algo_foundation_v3 import model_registry
 from shitspotter.algo_foundation_v3.baseline_maskdino import train_maskdino
 from shitspotter.algo_foundation_v3.detector_deimv2 import train_detector
 from shitspotter.algo_foundation_v3.packaging import build_package, dump_package
-from shitspotter.algo_foundation_v3.segmenter_sam2 import validate_segmenter_assets
+from shitspotter.algo_foundation_v3.segmenter_sam2 import (
+    train_segmenter,
+    validate_segmenter_assets,
+)
 
 
 def _coerce_yaml_overrides(text):
@@ -21,6 +24,12 @@ def _coerce_yaml_overrides(text):
     if isinstance(text, dict):
         return text
     return yaml.safe_load(text) or {}
+
+
+def _coerce_yaml_value(text):
+    if text in [None, '']:
+        return None
+    return yaml.safe_load(text)
 
 
 class AlgoTrainCLI(scfg.ModalCLI):
@@ -61,11 +70,27 @@ class detector(scfg.DataConfig):
 
 @AlgoTrainCLI.register
 class segmenter(scfg.DataConfig):
+    train_kwcoco = scfg.Value(None, help='optional training kwcoco path; if set, launch SAM2 fine-tuning')
+    vali_kwcoco = scfg.Value(None, help='optional validation kwcoco path used for bundle export metadata')
+    workdir = scfg.Value('./runs/foundation_detseg_v3/sam2', help='segmenter work directory')
     variant = scfg.Value('sam2.1_hiera_base_plus', help='segmenter preset')
-    checkpoint_fpath = scfg.Value(None, help='optional SAM2 checkpoint path')
+    checkpoint_fpath = scfg.Value(None, help='SAM2 checkpoint path; required for fine-tuning, optional for asset validation')
     config_fpath = scfg.Value(None, help='optional SAM2 config path')
     package_out = scfg.Value(None, help='optional output package yaml')
     metadata_name = scfg.Value(None, help='optional package name')
+    detector_checkpoint_fpath = scfg.Value(None, help='optional detector checkpoint path used to build a runnable deimv2_sam2 package after SAM2 fine-tuning')
+    resolution = scfg.Value(1024, help='training resolution for SAM2 fine-tuning')
+    train_batch_size = scfg.Value(1, help='training batch size for SAM2 fine-tuning')
+    num_train_workers = scfg.Value(8, help='training dataloader workers for SAM2 fine-tuning')
+    num_epochs = scfg.Value(20, help='number of epochs for SAM2 fine-tuning')
+    num_gpus = scfg.Value(1, help='gpus-per-node passed to the SAM2 trainer')
+    base_lr = scfg.Value(5e-6, help='base learning rate for SAM2 fine-tuning')
+    vision_lr = scfg.Value(3e-6, help='image encoder learning rate for SAM2 fine-tuning')
+    max_num_objects = scfg.Value(8, help='maximum number of objects sampled per image for SAM2 fine-tuning')
+    multiplier = scfg.Value(1, help='repeat-factor multiplier for the training split')
+    checkpoint_save_freq = scfg.Value(1, help='checkpoint save frequency in epochs')
+    category_names = scfg.Value(None, help='optional YAML list of category names to keep for SAM2 fine-tuning')
+    config_overrides = scfg.Value(None, help='optional YAML fragment merged into the generated SAM2 training config')
 
     @classmethod
     def main(cls, argv=1, **kwargs):
@@ -75,18 +100,47 @@ class segmenter(scfg.DataConfig):
             segmenter_cfg['checkpoint_fpath'] = str(Path(config.checkpoint_fpath).expanduser())
         if config.config_fpath is not None:
             segmenter_cfg['config_fpath'] = str(Path(config.config_fpath).expanduser())
-        validate_segmenter_assets(segmenter_cfg)
-        package = build_package(
-            backend='deimv2_sam2',
-            segmenter_preset=config.variant,
-            segmenter_checkpoint_fpath=config.checkpoint_fpath,
-            metadata_name=config.metadata_name,
-        )
-        if config.config_fpath is not None:
-            package['segmenter']['config_fpath'] = str(Path(config.config_fpath).expanduser())
-        if config.package_out is not None:
-            dump_package(package, config.package_out)
-        print(ub.urepr(package, nl=1))
+        if config.train_kwcoco:
+            if not config.vali_kwcoco:
+                raise ValueError('vali_kwcoco is required when launching SAM2 fine-tuning')
+            result = train_segmenter(
+                train_kwcoco=config.train_kwcoco,
+                vali_kwcoco=config.vali_kwcoco,
+                workdir=config.workdir,
+                segmenter_cfg=segmenter_cfg,
+                init_checkpoint_fpath=config.checkpoint_fpath,
+                package_out=config.package_out,
+                metadata_name=config.metadata_name,
+                train_kwargs={
+                    'detector_checkpoint_fpath': config.detector_checkpoint_fpath,
+                    'resolution': config.resolution,
+                    'train_batch_size': config.train_batch_size,
+                    'num_train_workers': config.num_train_workers,
+                    'num_epochs': config.num_epochs,
+                    'num_gpus': config.num_gpus,
+                    'base_lr': config.base_lr,
+                    'vision_lr': config.vision_lr,
+                    'max_num_objects': config.max_num_objects,
+                    'multiplier': config.multiplier,
+                    'checkpoint_save_freq': config.checkpoint_save_freq,
+                    'category_names': _coerce_yaml_value(config.category_names),
+                    'config_overrides': _coerce_yaml_overrides(config.config_overrides),
+                },
+            )
+            print(ub.urepr(result, nl=1))
+        else:
+            validate_segmenter_assets(segmenter_cfg)
+            package = build_package(
+                backend='deimv2_sam2',
+                segmenter_preset=config.variant,
+                segmenter_checkpoint_fpath=config.checkpoint_fpath,
+                metadata_name=config.metadata_name,
+            )
+            if config.config_fpath is not None:
+                package['segmenter']['config_fpath'] = str(Path(config.config_fpath).expanduser())
+            if config.package_out is not None:
+                dump_package(package, config.package_out)
+            print(ub.urepr(package, nl=1))
 
 
 @AlgoTrainCLI.register
