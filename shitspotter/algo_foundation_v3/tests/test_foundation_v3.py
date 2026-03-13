@@ -1,4 +1,5 @@
 import importlib
+import json
 import subprocess
 import sys
 import types
@@ -101,10 +102,12 @@ def test_image_dir_to_kwcoco_and_coco_export(tmp_path):
         output_dpath=tmp_path / 'mscoco',
         include_segmentations=True,
     )
-    train_data = kwcoco.CocoDataset(exports['train']).dataset
+    train_data = json.loads(ub.Path(exports['train']).read_text())
     assert len(train_data['images']) == 1
     assert len(train_data['annotations']) == 1
     assert train_data['categories'][0]['name'] == 'poop'
+    assert train_data['categories'][0]['id'] == 0
+    assert train_data['annotations'][0]['category_id'] == 0
 
 
 def test_coco_export_skips_null_and_non_target_categories(tmp_path):
@@ -133,9 +136,9 @@ def test_coco_export_skips_null_and_non_target_categories(tmp_path):
         output_dpath=tmp_path / 'mscoco_invalid',
         include_segmentations=True,
     )
-    train_data = kwcoco.CocoDataset(exports['train']).dataset
+    train_data = json.loads(ub.Path(exports['train']).read_text())
     assert len(train_data['annotations']) == 1
-    assert train_data['annotations'][0]['category_id'] == 1
+    assert train_data['annotations'][0]['category_id'] == 0
 
 
 def test_predict_write_and_labelme_export_with_fake_backend(tmp_path, monkeypatch):

@@ -2,10 +2,11 @@
 Export kwcoco datasets to COCO json for external training stacks.
 """
 
+import json
 from pathlib import Path
 
 
-def _build_coco_export(src, dst, category_name='poop', include_segmentations=True):
+def _build_coco_export(src, dst, category_name='poop', include_segmentations=True, category_id=0):
     import kwcoco
     import kwimage
 
@@ -14,7 +15,7 @@ def _build_coco_export(src, dst, category_name='poop', include_segmentations=Tru
         'images': [],
         'annotations': [],
         'categories': [{
-            'id': 1,
+            'id': category_id,
             'name': category_name,
             'supercategory': category_name,
         }],
@@ -42,10 +43,10 @@ def _build_coco_export(src, dst, category_name='poop', include_segmentations=Tru
         gid = ann['image_id']
         if gid not in kept_gids:
             continue
-        category_id = ann.get('category_id', None)
-        if category_id is None:
+        src_category_id = ann.get('category_id', None)
+        if src_category_id is None:
             continue
-        cat = src_dset.cats.get(category_id, None)
+        cat = src_dset.cats.get(src_category_id, None)
         if cat is None:
             continue
         catname = cat['name']
@@ -54,7 +55,7 @@ def _build_coco_export(src, dst, category_name='poop', include_segmentations=Tru
         new_ann = {
             'id': ann_id,
             'image_id': gid,
-            'category_id': 1,
+            'category_id': category_id,
             'iscrowd': int(ann.get('iscrowd', 0)),
             'bbox': ann.get('bbox', None),
             'area': float(ann.get('area', 0.0)),
@@ -63,6 +64,8 @@ def _build_coco_export(src, dst, category_name='poop', include_segmentations=Tru
             seg = kwimage.Segmentation.coerce(ann['segmentation']).to_multi_polygon()
             new_ann['bbox'] = seg.box().to_coco()
             new_ann['area'] = float(seg.area)
+        elif new_ann['bbox'] is not None and not new_ann['area']:
+            new_ann['area'] = float(new_ann['bbox'][2] * new_ann['bbox'][3])
         if include_segmentations and ann.get('segmentation', None) is not None:
             new_ann['segmentation'] = ann['segmentation']
             if not new_ann['area']:
@@ -73,12 +76,12 @@ def _build_coco_export(src, dst, category_name='poop', include_segmentations=Tru
 
     dst = Path(dst)
     dst.parent.mkdir(parents=True, exist_ok=True)
-    kwcoco.CocoDataset(export).dump(dst)
+    dst.write_text(json.dumps(export))
     return dst
 
 
 def export_training_splits(train_kwcoco, vali_kwcoco, output_dpath, test_kwcoco=None,
-                           category_name='poop', include_segmentations=True):
+                           category_name='poop', include_segmentations=True, category_id=0):
     output_dpath = Path(output_dpath)
     output_dpath.mkdir(parents=True, exist_ok=True)
     exports = {
@@ -87,12 +90,14 @@ def export_training_splits(train_kwcoco, vali_kwcoco, output_dpath, test_kwcoco=
             output_dpath / 'train.mscoco.json',
             category_name=category_name,
             include_segmentations=include_segmentations,
+            category_id=category_id,
         ),
         'vali': _build_coco_export(
             vali_kwcoco,
             output_dpath / 'vali.mscoco.json',
             category_name=category_name,
             include_segmentations=include_segmentations,
+            category_id=category_id,
         ),
     }
     if test_kwcoco is not None:
@@ -101,5 +106,6 @@ def export_training_splits(train_kwcoco, vali_kwcoco, output_dpath, test_kwcoco=
             output_dpath / 'test.mscoco.json',
             category_name=category_name,
             include_segmentations=include_segmentations,
+            category_id=category_id,
         )
     return exports
