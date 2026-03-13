@@ -189,10 +189,25 @@ That script defaults to:
 - `VALI_FPATH=$FOUNDATION_V3_VALI_KWCOCO_FPATH`
 - `VARIANT=deimv2_m`
 - `WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/deimv2_m`
+- `TRAIN_BATCH_SIZE=4`
+- `VAL_BATCH_SIZE=8`
+- `USE_AMP=True`
+- `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`
 
 If you unset `DEIMV2_INIT_CKPT`, the upstream S/M config will still use the
 downloaded distilled backbone init file from `tpl/DEIMv2/ckpts/`. That is still
 pretrained initialization, just not a full detector checkpoint resume/tune.
+
+These memory-oriented defaults are intentional for a single 24 GB GPU. The
+upstream COCO configs assume much larger total batch sizes. If you need a
+smaller or larger run, override them directly before calling the script:
+
+```bash
+export TRAIN_BATCH_SIZE=2
+export VAL_BATCH_SIZE=4
+export USE_AMP=True
+bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/train_deimv2_detector.sh"
+```
 
 ### 10. Build a package for your trained detector
 
