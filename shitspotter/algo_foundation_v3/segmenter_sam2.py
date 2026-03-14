@@ -187,6 +187,11 @@ def _find_training_template(segmenter_cfg):
     return (repo_dpath / relpath).resolve()
 
 
+def _dump_hydra_global_yaml(data, fpath):
+    text = '# @package _global_\n\n' + yaml.safe_dump(data, sort_keys=False)
+    Path(fpath).write_text(text)
+
+
 def build_sam2_training_config(
     segmenter_cfg,
     prepared,
@@ -276,10 +281,10 @@ def build_sam2_training_config(
     hydra_config_name = Path('configs/shitspotter_training') / f'{logical_name}.yaml'
     repo_config_fpath = repo_dpath / repo_config_relpath
     repo_config_fpath.parent.mkdir(parents=True, exist_ok=True)
-    repo_config_fpath.write_text(yaml.safe_dump(resolved, sort_keys=False))
+    _dump_hydra_global_yaml(resolved, repo_config_fpath)
 
     workdir_config_fpath = generated_dpath / 'train_sam2.yaml'
-    workdir_config_fpath.write_text(yaml.safe_dump(resolved, sort_keys=False))
+    _dump_hydra_global_yaml(resolved, workdir_config_fpath)
 
     metadata = {
         'repo_config_relpath': str(repo_config_relpath).replace('\\', '/'),
