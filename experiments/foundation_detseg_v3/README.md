@@ -99,82 +99,13 @@ ls "$SHITSPOTTER_SAM2_REPO_DPATH/checkpoints/sam2.1_hiera_large.pt"
 bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/cpu_smoke_tests.sh"
 ```
 
-## First useful thing: run off-the-shelf DEIMv2+SAM2 inference
-
-The package step is only for inference. It is not needed to train the detector.
-This first package uses the downloaded COCO-pretrained DEIMv2-M checkpoint plus
-the downloaded SAM2.1 Base+ checkpoint.
-
-### 5. Build an inference package
-
-```bash
-export DEIMV2_M_COCO_CKPT="$FOUNDATION_V3_MODEL_DPATH/deimv2/deimv2_dinov3_m_coco.pth"
-export SAM2_BPLUS_CKPT="$SHITSPOTTER_SAM2_REPO_DPATH/checkpoints/sam2.1_hiera_base_plus.pt"
-export DEIMV2_SAM2_PACKAGE="$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/packages/deimv2_sam2_local.yaml"
-
-python -m shitspotter.algo_foundation_v3.cli_package build \
-    "$DEIMV2_SAM2_PACKAGE" \
-    --backend deimv2_sam2 \
-    --detector_preset deimv2_m \
-    --segmenter_preset sam2.1_hiera_base_plus \
-    --detector_checkpoint_fpath "$DEIMV2_M_COCO_CKPT" \
-    --segmenter_checkpoint_fpath "$SAM2_BPLUS_CKPT" \
-    --metadata_name deimv2_sam2_local
-
-python -m shitspotter.algo_foundation_v3.cli_package validate \
-    "$DEIMV2_SAM2_PACKAGE"
-```
-
-### 6. Run that package on validation
-
-```bash
-export PACKAGE_FPATH="$DEIMV2_SAM2_PACKAGE"
-bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/run_deimv2_sam2_on_vali.sh"
-```
-
-### 7. Run that package on test
-
-```bash
-export PACKAGE_FPATH="$DEIMV2_SAM2_PACKAGE"
-bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/run_deimv2_sam2_on_test.sh"
-```
-
-### 8. Aggregate evaluation results with the existing repo tooling
-
-```bash
-TARGET_DPATH="$DVC_EXPT_DPATH/_foundation_detseg_v3" \
-bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/aggregate_foundation_results.sh"
-```
-
-## Bootstrap a new cohort of phone images
-
-This is the intended annotation-seeding workflow. The command below accepts a
-directory of new phone images, writes a kwcoco prediction artifact under
-`_predictions/`, and creates only-missing LabelMe sidecars beside the original
-images.
-
-```bash
-export COHORT_DPATH=/path/to/new/cohort
-export PACKAGE_FPATH="$DEIMV2_SAM2_PACKAGE"
-
-bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/run_bootstrap_new_cohort.sh"
-```
-
-If you already have a prediction kwcoco file and only want the LabelMe sidecars:
-
-```bash
-python -m shitspotter.algo_foundation_v3.cli_export_labelme \
-    /path/to/pred.kwcoco.zip \
-    --only_missing True
-```
-
 ## Fine-tune the DEIMv2 detector on ShitSpotter
 
 Training does not require a package file. It reads kwcoco, exports deterministic
 COCO json under the workdir, generates the upstream DEIMv2 config, and runs the
 upstream training code.
 
-### 9. Fine-tune from the downloaded DEIMv2-M pretrained detector checkpoint
+### 5. Fine-tune from the downloaded DEIMv2-M pretrained detector checkpoint
 
 ```bash
 export DEIMV2_INIT_CKPT="$FOUNDATION_V3_MODEL_DPATH/deimv2/deimv2_dinov3_m_coco.pth"
@@ -192,8 +123,8 @@ That script defaults to:
 - `ENABLE_RESIZE_PREPROCESS=True`
 - `RESIZE_MAX_DIM=640`
 - `RESIZE_OUTPUT_EXT=.jpg`
-- `TRAIN_BATCH_SIZE=4`
-- `VAL_BATCH_SIZE=8`
+- `TRAIN_BATCH_SIZE=24`
+- `VAL_BATCH_SIZE=48`
 - `USE_AMP=True`
 - `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`
 
@@ -213,13 +144,16 @@ The detector then trains against those preprocessed bundles instead of the
 full-resolution phone images. This is meant to reduce the decode+resize
 bottleneck without forcing you to manually manage a second set of dataset paths.
 
-These memory-oriented defaults are intentional for a single 24 GB GPU. The
-upstream COCO configs assume much larger total batch sizes. If you need a
-smaller or larger run, override them directly before calling the script:
+These defaults are intentional for the resized-data path on a single 24 GB GPU.
+In the current ShitSpotter setup, `TRAIN_BATCH_SIZE=24` used about `20 / 24 GB`
+and produced roughly `70-80%` GPU utilization, which was much healthier than
+the earlier overly conservative settings. The upstream COCO configs still assume
+larger aggregate batch sizes, so if you need a smaller or larger run, override
+them directly before calling the script:
 
 ```bash
-export TRAIN_BATCH_SIZE=2
-export VAL_BATCH_SIZE=4
+export TRAIN_BATCH_SIZE=16
+export VAL_BATCH_SIZE=32
 export USE_AMP=True
 bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/train_deimv2_detector.sh"
 ```
@@ -234,10 +168,32 @@ bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/train_deimv2_detector.
 ```bash
 export FORCE_RESIZE_PREPROCESS=True
 export RESIZE_MAX_DIM=512
+export TRAIN_BATCH_SIZE=24
+export VAL_BATCH_SIZE=48
 bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/train_deimv2_detector.sh"
 ```
 
-### 10. Build a package for your trained detector
+### 6. Evaluate the tuned detector with box AP
+
+Detector-only box AP currently comes from the DEIMv2 validation loop itself.
+The generated DEIMv2 config uses a `CocoEvaluator` with `iou_types=['bbox']`, so
+the detector training run reports bbox AP on the validation split while it
+trains. In other words, the current detector-only evaluation path is the native
+DEIMv2 validation metric inside the training job, not a separate ShitSpotter
+experiment wrapper script.
+
+Useful files to inspect after training:
+
+```bash
+ls "$WORKDIR"
+ls "$WORKDIR/summary"
+ls "$WORKDIR/best_stg2.pth"
+```
+
+Use that detector-side validation signal to pick the checkpoint you want to
+carry into the detector+segmenter evaluation path below.
+
+### 7. Build a package for your trained detector
 
 Replace `best_stg2.pth` with whichever checkpoint you want to deploy.
 
@@ -275,7 +231,7 @@ Like detector training, SAM2 fine-tuning does not require a package file to
 start training. The package is only for inference after you have a tuned
 checkpoint you want to deploy.
 
-### 11. Fine-tune SAM2.1 Base+ from the downloaded checkpoint
+### 8. Fine-tune SAM2.1 Base+ from the downloaded checkpoint
 
 ```bash
 export SAM2_INIT_CKPT="$SHITSPOTTER_SAM2_REPO_DPATH/checkpoints/sam2.1_hiera_base_plus.pt"
@@ -335,7 +291,53 @@ export CATEGORY_NAMES='["poop"]'
 bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/train_sam2_segmenter.sh"
 ```
 
-### 12. Compare zero-shot SAM2 against tuned SAM2 with the same detector
+## Evaluate detector+segmenter packages with the repo metric tooling
+
+This is the main ShitSpotter comparison path. These validation/test runs go
+through the foundation prediction backend, write kwcoco predictions, and then
+feed the repo's existing evaluation / aggregation tooling. This is the path to
+use when you want the combined detector+segmenter system judged on box metrics
+and mask/pixel metrics rather than just detector bbox AP inside the upstream
+trainer.
+
+### 9. Evaluate the tuned detector with zero-shot SAM2
+
+First build a package that pairs your tuned detector with the downloaded
+zero-shot SAM2 checkpoint:
+
+```bash
+export DEIMV2_TRAINED_CKPT="$WORKDIR/best_stg2.pth"
+export SAM2_BPLUS_CKPT="$SHITSPOTTER_SAM2_REPO_DPATH/checkpoints/sam2.1_hiera_base_plus.pt"
+export DEIMV2_SAM2_TRAINED_PACKAGE="$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/packages/deimv2_sam2_trained.yaml"
+
+python -m shitspotter.algo_foundation_v3.cli_package build \
+    "$DEIMV2_SAM2_TRAINED_PACKAGE" \
+    --backend deimv2_sam2 \
+    --detector_preset deimv2_m \
+    --segmenter_preset sam2.1_hiera_base_plus \
+    --detector_checkpoint_fpath "$DEIMV2_TRAINED_CKPT" \
+    --segmenter_checkpoint_fpath "$SAM2_BPLUS_CKPT" \
+    --metadata_name deimv2_sam2_trained
+```
+
+Then run validation and test:
+
+```bash
+export PACKAGE_FPATH="$DEIMV2_SAM2_TRAINED_PACKAGE"
+bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/run_deimv2_sam2_on_vali.sh"
+
+export PACKAGE_FPATH="$DEIMV2_SAM2_TRAINED_PACKAGE"
+bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/run_deimv2_sam2_on_test.sh"
+```
+
+And aggregate:
+
+```bash
+TARGET_DPATH="$DVC_EXPT_DPATH/_foundation_detseg_v3" \
+bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/aggregate_foundation_results.sh"
+```
+
+### 10. Compare zero-shot SAM2 against tuned SAM2 with the same detector
 
 Zero-shot comparison package:
 
@@ -380,7 +382,7 @@ it does not have a good off-the-shelf ShitSpotter-ready checkpoint in this repo.
 The normal flow is train first, then package the trained checkpoint for
 prediction/evaluation.
 
-### 13. Train MaskDINO-R50
+### 11. Train MaskDINO-R50
 
 ```bash
 export WORKDIR="${WORKDIR:-$DVC_EXPT_DPATH/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/maskdino_r50}"
@@ -388,7 +390,7 @@ export WORKDIR="${WORKDIR:-$DVC_EXPT_DPATH/training/$HOSTNAME/$USER/ShitSpotter/
 bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/train_maskdino_baseline.sh"
 ```
 
-### 14. Build a package for the trained MaskDINO checkpoint
+### 12. Build a package for the trained MaskDINO checkpoint
 
 ```bash
 export MASKDINO_CKPT="$WORKDIR/model_final.pth"
@@ -402,7 +404,7 @@ python -m shitspotter.algo_foundation_v3.cli_package build \
     --metadata_name maskdino_r50_local
 ```
 
-### 15. Run MaskDINO on validation and test
+### 13. Run MaskDINO on validation and test
 
 ```bash
 export PACKAGE_FPATH="$MASKDINO_PACKAGE"
@@ -412,11 +414,35 @@ export PACKAGE_FPATH="$MASKDINO_PACKAGE"
 bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/run_maskdino_on_test.sh"
 ```
 
-### 16. Aggregate results again
+### 14. Aggregate results again
 
 ```bash
 TARGET_DPATH="$DVC_EXPT_DPATH/_foundation_detseg_v3" \
 bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/aggregate_foundation_results.sh"
+```
+
+## Bootstrap a new cohort of phone images
+
+This is the intended annotation-seeding workflow, and it comes last on purpose:
+the expectation is that you first tune and compare the detector / segmenter
+variants above, then pick the package you trust for a new cohort.
+
+```bash
+export COHORT_DPATH=/path/to/new/cohort
+export PACKAGE_FPATH="$DEIMV2_SAM2_TUNED_SEG_PACKAGE"
+
+bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/run_bootstrap_new_cohort.sh"
+```
+
+If you want to bootstrap with the tuned detector plus zero-shot SAM2 instead,
+point `PACKAGE_FPATH` at `$DEIMV2_SAM2_TRAINED_PACKAGE` instead.
+
+If you already have a prediction kwcoco file and only want the LabelMe sidecars:
+
+```bash
+python -m shitspotter.algo_foundation_v3.cli_export_labelme \
+    /path/to/pred.kwcoco.zip \
+    --only_missing True
 ```
 
 ## What the package step is for
