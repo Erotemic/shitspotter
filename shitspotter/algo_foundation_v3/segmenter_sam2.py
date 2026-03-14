@@ -273,6 +273,7 @@ def build_sam2_training_config(
 
     logical_name = f'foundation_v3_{segmenter_cfg.get("variant", "sam2").replace(".", "_")}_{workdir.name}'
     repo_config_relpath = Path('sam2/configs/shitspotter_training') / f'{logical_name}.yaml'
+    hydra_config_name = Path('configs/shitspotter_training') / f'{logical_name}.yaml'
     repo_config_fpath = repo_dpath / repo_config_relpath
     repo_config_fpath.parent.mkdir(parents=True, exist_ok=True)
     repo_config_fpath.write_text(yaml.safe_dump(resolved, sort_keys=False))
@@ -282,6 +283,7 @@ def build_sam2_training_config(
 
     metadata = {
         'repo_config_relpath': str(repo_config_relpath).replace('\\', '/'),
+        'hydra_config_name': str(hydra_config_name).replace('\\', '/'),
         'repo_config_fpath': str(repo_config_fpath),
         'workdir_config_fpath': str(workdir_config_fpath),
         'expected_checkpoint_fpath': str(workdir / 'checkpoints' / 'checkpoint.pt'),
@@ -330,7 +332,7 @@ def train_segmenter(
         sys.executable,
         str((repo_dpath / 'training' / 'train.py').resolve()),
         '-c',
-        metadata['repo_config_relpath'],
+        metadata['hydra_config_name'],
         '--num-gpus',
         str(int((train_kwargs or {}).get('num_gpus', 1))),
     ]

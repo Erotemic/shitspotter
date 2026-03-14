@@ -237,6 +237,7 @@ def test_sam2_training_bundle_and_config_generation(tmp_path):
         },
     )
     cfg_text = Path(meta['workdir_config_fpath']).read_text()
+    assert meta['hydra_config_name'].startswith('configs/shitspotter_training/')
     assert 'training.dataset.vos_raw_dataset.SA1BRawDataset' in cfg_text
     assert str(prepared.train_image_dpath) in cfg_text
     assert str(fake_ckpt) in cfg_text
