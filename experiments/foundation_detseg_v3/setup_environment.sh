@@ -65,6 +65,7 @@ python -m pip install kwcoco kwimage kwutil huggingface_hub gdown pycocotools
 
 install_deimv2_requirements_without_torch_pins "$SHITSPOTTER_DEIMV2_REPO_DPATH/requirements.txt"
 python -m pip install -e "$SHITSPOTTER_SAM2_REPO_DPATH"
+python -m pip install tensordict submitit iopath fvcore pandas scikit-image tensorboard
 install_maskdino_requirements_preserve_opencv_stack "$SHITSPOTTER_MASKDINO_REPO_DPATH/requirements.txt"
 
 cat <<EOF
@@ -81,6 +82,7 @@ Notes:
   - MaskDINO upstream lists opencv-python, but this setup script preserves your existing cv2 provider and only installs opencv-python-headless if cv2 is missing entirely.
   - MaskDINO still requires a compatible Detectron2 install and its CUDA ops.
   - SAM2 may require a recent torch build and optional CUDA extension support.
+  - SAM2 fine-tuning also needs training-side extras such as tensordict, submitit, iopath, and fvcore; this setup script now installs them explicitly.
   - Run experiments/foundation_detseg_v3/download_foundation_assets.sh next if you want the default DEIMv2 and SAM2 weights placed in the expected locations.
   - geowatch aggregation may require extra GDAL/OSGeo system packages.
 EOF

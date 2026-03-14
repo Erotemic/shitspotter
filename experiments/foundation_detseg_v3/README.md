@@ -231,11 +231,15 @@ Like detector training, SAM2 fine-tuning does not require a package file to
 start training. The package is only for inference after you have a tuned
 checkpoint you want to deploy.
 
+The SAM2 experiment script intentionally uses `SAM2_*` environment variable
+names instead of generic names like `WORKDIR` and `TRAIN_BATCH_SIZE`. This
+avoids accidental leakage from a previous detector-training shell session.
+
 ### 8. Fine-tune SAM2.1 Base+ from the downloaded checkpoint
 
 ```bash
 export SAM2_INIT_CKPT="$SHITSPOTTER_SAM2_REPO_DPATH/checkpoints/sam2.1_hiera_base_plus.pt"
-export WORKDIR="${WORKDIR:-$DVC_EXPT_DPATH/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/sam2.1_hiera_base_plus}"
+export SAM2_WORKDIR="${SAM2_WORKDIR:-$DVC_EXPT_DPATH/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/sam2.1_hiera_base_plus}"
 
 bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/train_sam2_segmenter.sh"
 ```
@@ -244,30 +248,30 @@ That script defaults to:
 
 - `TRAIN_FPATH=$FOUNDATION_V3_TRAIN_KWCOCO_FPATH`
 - `VALI_FPATH=$FOUNDATION_V3_VALI_KWCOCO_FPATH`
-- `VARIANT=sam2.1_hiera_base_plus`
+- `SAM2_VARIANT=sam2.1_hiera_base_plus`
 - `SAM2_INIT_CKPT=$SHITSPOTTER_SAM2_REPO_DPATH/checkpoints/sam2.1_hiera_base_plus.pt`
-- `WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/sam2.1_hiera_base_plus`
-- `RESOLUTION=1024`
-- `TRAIN_BATCH_SIZE=1`
-- `NUM_TRAIN_WORKERS=8`
-- `NUM_EPOCHS=20`
-- `NUM_GPUS=1`
-- `BASE_LR=5e-6`
-- `VISION_LR=3e-6`
+- `SAM2_WORKDIR=$DVC_EXPT_DPATH/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/sam2.1_hiera_base_plus`
+- `SAM2_RESOLUTION=1024`
+- `SAM2_TRAIN_BATCH_SIZE=1`
+- `SAM2_NUM_TRAIN_WORKERS=8`
+- `SAM2_NUM_EPOCHS=20`
+- `SAM2_NUM_GPUS=1`
+- `SAM2_BASE_LR=5e-6`
+- `SAM2_VISION_LR=3e-6`
 
 The generated SAM2 bundle lives under:
 
 ```bash
-ls "$WORKDIR/prepared_data/sam2/train/images"
-ls "$WORKDIR/prepared_data/sam2/train/annotations"
-ls "$WORKDIR/prepared_data/sam2/train/train.txt"
-ls "$WORKDIR/generated_configs/train_sam2.yaml"
+ls "$SAM2_WORKDIR/prepared_data/sam2/train/images"
+ls "$SAM2_WORKDIR/prepared_data/sam2/train/annotations"
+ls "$SAM2_WORKDIR/prepared_data/sam2/train/train.txt"
+ls "$SAM2_WORKDIR/generated_configs/train_sam2.yaml"
 ```
 
 The expected tuned checkpoint lands here:
 
 ```bash
-ls "$WORKDIR/checkpoints/checkpoint.pt"
+ls "$SAM2_WORKDIR/checkpoints/checkpoint.pt"
 ```
 
 If you already know which detector checkpoint you want to pair with this tuned
@@ -276,7 +280,7 @@ the end of fine-tuning:
 
 ```bash
 export DEIMV2_TRAINED_CKPT="$DVC_EXPT_DPATH/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/deimv2_m/best_stg2.pth"
-export PACKAGE_OUT="$WORKDIR/tuned_segmenter_package.yaml"
+export SAM2_PACKAGE_OUT="$SAM2_WORKDIR/tuned_segmenter_package.yaml"
 
 bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/train_sam2_segmenter.sh"
 ```
@@ -287,7 +291,7 @@ If you want to keep only the target category when exporting masks into the SAM2
 training bundle, make that explicit:
 
 ```bash
-export CATEGORY_NAMES='["poop"]'
+export SAM2_CATEGORY_NAMES='["poop"]'
 bash "$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/train_sam2_segmenter.sh"
 ```
 
@@ -351,7 +355,7 @@ Tuned-SAM package:
 ```bash
 export WORKDIR_DETECTOR="${WORKDIR_DETECTOR:-$DVC_EXPT_DPATH/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/deimv2_m}"
 export DEIMV2_TRAINED_CKPT="$WORKDIR_DETECTOR/best_stg2.pth"
-export SAM2_TUNED_CKPT="$WORKDIR/checkpoints/checkpoint.pt"
+export SAM2_TUNED_CKPT="$SAM2_WORKDIR/checkpoints/checkpoint.pt"
 export DEIMV2_SAM2_TUNED_SEG_PACKAGE="$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/packages/deimv2_sam2_tuned_segmenter.yaml"
 
 python -m shitspotter.algo_foundation_v3.cli_package build \
