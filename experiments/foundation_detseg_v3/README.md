@@ -56,6 +56,8 @@ This uses the `tpl/` git submodules by default and installs the local Python
 package plus the extra runtime/test utilities used by the foundation pipeline.
 The setup script intentionally preserves your existing Torch stack and current
 OpenCV provider instead of forcing the exact upstream DEIMv2 / MaskDINO pins.
+When `uv` is available, the script uses `uv pip install` for these Python
+package installs and falls back to `python -m pip install` otherwise.
 
 ```bash
 git -C "$SHITSPOTTER_DPATH" submodule update --init --recursive --depth 1 \

@@ -22,7 +22,11 @@ import sys
 sys.exit(0 if importlib.util.find_spec("$module_name") is not None else 1)
 PY
     then
-        python -m pip install "$package_name"
+        if command -v uv >/dev/null 2>&1; then
+            uv pip install "$package_name"
+        else
+            python -m pip install "$package_name"
+        fi
     fi
 }
 

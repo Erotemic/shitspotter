@@ -29,6 +29,14 @@ ensure_checkout() {
     fi
 }
 
+python_pkg_install() {
+    if command -v uv >/dev/null 2>&1; then
+        uv pip install "$@"
+    else
+        python -m pip install "$@"
+    fi
+}
+
 ensure_checkout "$SHITSPOTTER_DEIMV2_REPO_DPATH" "tpl/DEIMv2" "https://github.com/Intellindust-AI-Lab/DEIMv2.git"
 ensure_checkout "$SHITSPOTTER_SAM2_REPO_DPATH" "tpl/segment-anything-2" "https://github.com/fal-ai/segment-anything-2.git"
 ensure_checkout "$SHITSPOTTER_MASKDINO_REPO_DPATH" "tpl/MaskDINO" "https://github.com/IDEA-Research/MaskDINO.git"
@@ -38,7 +46,7 @@ install_deimv2_requirements_without_torch_pins() {
     local filtered_req_fpath
     filtered_req_fpath="$(mktemp)"
     grep -vE '^(torch|torchvision)([[:space:]]*[<>=!~].*)?$' "$req_fpath" > "$filtered_req_fpath"
-    python -m pip install -r "$filtered_req_fpath"
+    python_pkg_install -r "$filtered_req_fpath"
     rm -f "$filtered_req_fpath"
 }
 
@@ -47,7 +55,7 @@ install_maskdino_requirements_preserve_opencv_stack() {
     local filtered_req_fpath
     filtered_req_fpath="$(mktemp)"
     grep -vE '^opencv-python([[:space:]]*[<>=!~].*)?$' "$req_fpath" > "$filtered_req_fpath"
-    python -m pip install -r "$filtered_req_fpath"
+    python_pkg_install -r "$filtered_req_fpath"
     rm -f "$filtered_req_fpath"
     if ! python - <<'PY'
 import importlib.util
@@ -55,17 +63,17 @@ import sys
 sys.exit(0 if importlib.util.find_spec("cv2") is not None else 1)
 PY
     then
-        python -m pip install opencv-python-headless
+        python_pkg_install opencv-python-headless
     fi
 }
 
-python -m pip install -r "$FOUNDATION_V3_ROOT_DIR/requirements/runtime.txt" -r "$FOUNDATION_V3_ROOT_DIR/requirements/tests.txt"
-python -m pip install -e "$FOUNDATION_V3_ROOT_DIR"
-python -m pip install kwcoco kwimage kwutil huggingface_hub gdown pycocotools
+python_pkg_install -r "$FOUNDATION_V3_ROOT_DIR/requirements/runtime.txt" -r "$FOUNDATION_V3_ROOT_DIR/requirements/tests.txt"
+python_pkg_install -e "$FOUNDATION_V3_ROOT_DIR"
+python_pkg_install kwcoco kwimage kwutil huggingface_hub gdown pycocotools
 
 install_deimv2_requirements_without_torch_pins "$SHITSPOTTER_DEIMV2_REPO_DPATH/requirements.txt"
-python -m pip install -e "$SHITSPOTTER_SAM2_REPO_DPATH"
-python -m pip install tensordict submitit iopath fvcore pandas scikit-image tensorboard
+python_pkg_install -e "$SHITSPOTTER_SAM2_REPO_DPATH"
+python_pkg_install tensordict submitit iopath fvcore pandas scikit-image tensorboard
 install_maskdino_requirements_preserve_opencv_stack "$SHITSPOTTER_MASKDINO_REPO_DPATH/requirements.txt"
 
 cat <<EOF
