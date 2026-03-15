@@ -83,7 +83,7 @@ def clone_dataset_for_predictions(src_fpath, pred_fpath):
     return pred_dset
 
 
-def _stage_labelme_copy_dataset(export_dset, copy_dst):
+def _stage_labelme_copy_dataset(pred_dset, export_dset, copy_dst):
     import shutil
 
     copy_dst = Path(copy_dst).expanduser().resolve()
@@ -96,7 +96,7 @@ def _stage_labelme_copy_dataset(export_dset, copy_dst):
         copy_dst.mkdir(parents=True, exist_ok=False)
 
     for img in export_dset.images().objs:
-        src_fpath = Path(img['file_name']).expanduser().resolve()
+        src_fpath = Path(pred_dset.get_image_fpath(img['id'])).expanduser().resolve()
         staged_name = f'{int(img["id"]):08d}_{src_fpath.name}'
         staged_fpath = copy_dst / staged_name
         shutil.copy2(src_fpath, staged_fpath)
@@ -141,7 +141,7 @@ def export_predictions_to_labelme(pred_dataset, only_missing=True, score_thresh=
             export_dset.add_annotation(**export_ann)
 
     if copy_dst is not None:
-        _stage_labelme_copy_dataset(export_dset, copy_dst)
+        _stage_labelme_copy_dataset(pred_dset, export_dset, copy_dst)
 
     sidecars = list(LabelMeFile.multiple_from_coco(export_dset))
     written = []
