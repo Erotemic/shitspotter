@@ -15,6 +15,7 @@ from shitspotter.algo_foundation_v3 import kwcoco_adapter
 from shitspotter.algo_foundation_v3 import packaging
 from shitspotter.algo_foundation_v3 import cli_predict
 from shitspotter.algo_foundation_v3 import model_registry
+from shitspotter.algo_foundation_v3 import detector_deimv2
 from shitspotter.algo_foundation_v3 import segmenter_sam2
 from shitspotter.algo_foundation_v3.datasets import prepare_segmenter_training_data
 
@@ -86,6 +87,19 @@ def test_package_build_and_resolve(tmp_path):
     assert resolved['backend'] == 'deimv2_sam2'
     assert resolved['metadata']['name'] == 'demo-package'
     assert resolved['detector']['checkpoint_fpath'] == '/tmp/detector.pth'
+
+
+def test_deimv2_infer_num_classes_from_state():
+    class FakeWeight:
+        def __init__(self, shape):
+            self.shape = shape
+            self.ndim = len(shape)
+
+    state = {'decoder.enc_score_head.weight': FakeWeight((1, 256))}
+    assert detector_deimv2._infer_num_classes_from_state(state) == 1
+
+    state = {'decoder.denoising_class_embed.weight': FakeWeight((81, 256))}
+    assert detector_deimv2._infer_num_classes_from_state(state) == 80
 
 
 def test_image_dir_to_kwcoco_and_coco_export(tmp_path):

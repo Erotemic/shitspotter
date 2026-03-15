@@ -54,6 +54,18 @@ def _load_checkpoint_state(checkpoint_fpath):
     return checkpoint
 
 
+def _infer_num_classes_from_state(state_dict):
+    weight = state_dict.get('decoder.enc_score_head.weight', None)
+    if weight is not None and getattr(weight, 'ndim', None) == 2:
+        return int(weight.shape[0])
+
+    weight = state_dict.get('decoder.denoising_class_embed.weight', None)
+    if weight is not None and getattr(weight, 'ndim', None) == 2 and weight.shape[0] > 0:
+        return int(weight.shape[0] - 1)
+
+    return None
+
+
 class DEIMv2Predictor:
     def __init__(self, detector_cfg):
         self.detector_cfg = detector_cfg
@@ -77,11 +89,20 @@ class DEIMv2Predictor:
         if checkpoint_fpath is None:
             raise KeyError('Detector package requires detector.checkpoint_fpath')
 
-        cfg = YAMLConfig(str(config_fpath), resume=str(checkpoint_fpath))
+        checkpoint_state = _load_checkpoint_state(checkpoint_fpath)
+        num_classes = self.detector_cfg.get('num_classes', None)
+        if num_classes is None:
+            num_classes = _infer_num_classes_from_state(checkpoint_state)
+
+        yaml_kwargs = {'resume': str(checkpoint_fpath)}
+        if num_classes is not None:
+            yaml_kwargs['num_classes'] = int(num_classes)
+
+        cfg = YAMLConfig(str(config_fpath), **yaml_kwargs)
         if 'HGNetv2' in cfg.yaml_cfg:
             cfg.yaml_cfg['HGNetv2']['pretrained'] = False
 
-        cfg.model.load_state_dict(_load_checkpoint_state(checkpoint_fpath))
+        cfg.model.load_state_dict(checkpoint_state)
 
         class Model(nn.Module):
             def __init__(self, cfg_):
