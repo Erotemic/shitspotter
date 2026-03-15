@@ -17,6 +17,9 @@ fall back to `$HOME/code/shitspotter/experiments/foundation_detseg_v3` when
 their contents are pasted directly into an interactive bash shell and
 `BASH_SOURCE` does not point at a real file.
 
+If you are iterating on model quality rather than just running the happy-path
+scripts, see [KARPATHY_LOOP.md](/home/agent/code/shitspotter/experiments/foundation_detseg_v3/KARPATHY_LOOP.md).
+
 ## End-to-end quick start
 
 These commands follow the same path conventions used in the older ShitSpotter
