@@ -219,3 +219,14 @@ Design takeaways:
 * When an end-to-end metric collapses while an upstream stage still looks strong, the workflow needs more intermediate observability before it needs more training.
 * A good experiment loop is built from separable gates, not just more checkpoints.
 * Adding one missing diagnostic primitive can be more valuable than adding another generic wrapper script.
+## 2026-03-15 17:03:56 +0000
+Added a safety-oriented improvement to the LabelMe export path after the user correctly pointed out that our debug kwcoco bundles still reference the original image files. The existing `cli_export_labelme` behavior writes sidecar JSON files next to whatever images the kwcoco references, which is acceptable for a deliberate annotation workflow but too risky for ad hoc debugging. In the current experiment loop, we specifically want to inspect predictions without any chance of clobbering files in the source image tree, so the export path needed a staging mode rather than just better documentation.
+
+I implemented that as a new `copy_dst` option on both `export_predictions_to_labelme` and `cli_export_labelme`. When supplied, the helper now stages copies of the referenced images into a new destination directory, rewrites the export dataset to point at those staged image paths, and emits the LabelMe sidecars there. To make the “never clobber” guarantee meaningful, the helper fails closed if `copy_dst` already exists and contains files. I also gave staged images deterministic unique names prefixed by image id so basename collisions do not silently overwrite within the scratch directory. This felt like the right tradeoff: simple enough for debugging, strict enough to be safe by default, and aligned with the user's desire for a guaranteed non-destructive path.
+
+The change is covered by extending the existing fake-backend prediction/export test so it now verifies that `copy_dst` creates copied images and sidecars inside the scratch directory while leaving the original image location untouched. I am confident this makes the debug loop materially safer and easier to recommend. The remaining limitation is intentional: `copy_dst` is a staging/export mechanism, not a full bundle-reroot utility, so if future workflows need a permanent relocatable inspection bundle with preserved directory structure, that would deserve its own helper rather than more complexity inside LabelMe export.
+
+Design takeaways:
+* If a debug artifact still points at production-like paths, add an explicit staging mode instead of trusting operator caution.
+* “Safe by default” often means failing when a destination is not pristine, not trying to be clever about merges.
+* Small export utilities benefit from deterministic file naming because it turns one-off scratch output into something scriptable and comparable across runs.

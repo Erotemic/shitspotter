@@ -83,7 +83,29 @@ def clone_dataset_for_predictions(src_fpath, pred_fpath):
     return pred_dset
 
 
-def export_predictions_to_labelme(pred_dataset, only_missing=True, score_thresh=0.0):
+def _stage_labelme_copy_dataset(export_dset, copy_dst):
+    import shutil
+
+    copy_dst = Path(copy_dst).expanduser().resolve()
+    if copy_dst.exists():
+        if any(copy_dst.iterdir()):
+            raise FileExistsError(
+                f'copy_dst={copy_dst} must not already contain files when staging LabelMe exports'
+            )
+    else:
+        copy_dst.mkdir(parents=True, exist_ok=False)
+
+    for img in export_dset.images().objs:
+        src_fpath = Path(img['file_name']).expanduser().resolve()
+        staged_name = f'{int(img["id"]):08d}_{src_fpath.name}'
+        staged_fpath = copy_dst / staged_name
+        shutil.copy2(src_fpath, staged_fpath)
+        img['file_name'] = str(staged_fpath)
+    export_dset.reroot(absolute=True)
+    return copy_dst
+
+
+def export_predictions_to_labelme(pred_dataset, only_missing=True, score_thresh=0.0, copy_dst=None):
     import kwcoco
     import kwimage
     from kwcoco.formats.labelme import LabelMeFile
@@ -117,6 +139,9 @@ def export_predictions_to_labelme(pred_dataset, only_missing=True, score_thresh=
                 'role': ann.get('role', 'prediction'),
             }
             export_dset.add_annotation(**export_ann)
+
+    if copy_dst is not None:
+        _stage_labelme_copy_dataset(export_dset, copy_dst)
 
     sidecars = list(LabelMeFile.multiple_from_coco(export_dset))
     written = []

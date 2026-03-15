@@ -12,6 +12,7 @@ class AlgoExportLabelmeCLI(scfg.DataConfig):
     src = scfg.Value(None, position=1, help='prediction kwcoco path')
     only_missing = scfg.Value(True, help='only create missing sidecars')
     score_thresh = scfg.Value(0.0, help='drop predictions below this score')
+    copy_dst = scfg.Value(None, help='if specified, copy referenced images into a new directory and write LabelMe sidecars there')
 
     @classmethod
     def main(cls, argv=1, **kwargs):
@@ -20,6 +21,7 @@ class AlgoExportLabelmeCLI(scfg.DataConfig):
             pred_dataset=ub.Path(config.src).expand(),
             only_missing=config.only_missing,
             score_thresh=float(config.score_thresh),
+            copy_dst=None if config.copy_dst is None else ub.Path(config.copy_dst).expand(),
         )
         print(ub.urepr([str(path) for path in written], nl=1))
 

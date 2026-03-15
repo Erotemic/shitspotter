@@ -253,6 +253,21 @@ def test_predict_write_and_labelme_export_with_fake_backend(tmp_path, monkeypatc
     written_again = kwcoco_adapter.export_predictions_to_labelme(pred_fpath, only_missing=True)
     assert written_again == []
 
+    copy_dst = tmp_path / 'labelme_copy'
+    if labelme_fpath.exists():
+        labelme_fpath.unlink()
+    copied_written = kwcoco_adapter.export_predictions_to_labelme(
+        pred_fpath,
+        only_missing=True,
+        copy_dst=copy_dst,
+    )
+    assert copied_written
+    copied_sidecar = copied_written[0]
+    assert copied_sidecar.parent == copy_dst
+    copied_image = copy_dst / f'{next(iter(pred_dset.imgs)):08d}_{img_fpath.name}'
+    assert copied_image.exists()
+    assert not labelme_fpath.exists()
+
 
 def test_sam2_training_bundle_and_config_generation(tmp_path):
     dset_fpath, _ = _demo_dataset(tmp_path)
