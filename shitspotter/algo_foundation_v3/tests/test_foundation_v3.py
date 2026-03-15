@@ -47,6 +47,7 @@ def test_foundation_module_imports():
     modules = [
         'shitspotter.algo_foundation_v3.cli_train',
         'shitspotter.algo_foundation_v3.cli_predict',
+        'shitspotter.algo_foundation_v3.cli_predict_boxes',
         'shitspotter.algo_foundation_v3.cli_predict_gtboxes',
         'shitspotter.algo_foundation_v3.cli_export_labelme',
         'shitspotter.algo_foundation_v3.cli_package',
@@ -68,6 +69,7 @@ def test_cli_help_smoke():
         [sys.executable, '-m', 'shitspotter.algo_foundation_v3.cli_train', 'segmenter', '--help'],
         [sys.executable, '-m', 'shitspotter.algo_foundation_v3.cli_train', 'baseline-maskdino', '--help'],
         [sys.executable, '-m', 'shitspotter.algo_foundation_v3.cli_predict', '--help'],
+        [sys.executable, '-m', 'shitspotter.algo_foundation_v3.cli_predict_boxes', '--help'],
         [sys.executable, '-m', 'shitspotter.algo_foundation_v3.cli_predict_gtboxes', '--help'],
         [sys.executable, '-m', 'shitspotter.algo_foundation_v3.cli_export_labelme', '--help'],
         [sys.executable, '-m', 'shitspotter.algo_foundation_v3.cli_package', '--help'],

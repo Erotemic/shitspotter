@@ -34,6 +34,26 @@ def apply_box_filters(records, score_thresh, nms_thresh):
     return [filtered[idx] for idx in keep_idxs]
 
 
+def detector_records_to_bbox_anns(detector_records, label_mapping, post_cfg):
+    anns = []
+    records = apply_box_filters(
+        detector_records,
+        score_thresh=post_cfg['score_thresh'],
+        nms_thresh=post_cfg['nms_thresh'],
+    )
+    for record in records:
+        category_name = _normalize_label(record.get('label', 0), label_mapping)
+        if category_name is None:
+            continue
+        x1, y1, x2, y2 = map(float, record['bbox_ltrb'])
+        anns.append({
+            'bbox': [x1, y1, x2 - x1, y2 - y1],
+            'score': float(record['score']),
+            'category_name': category_name,
+        })
+    return anns
+
+
 def detector_records_to_anns(image, detector_records, segmenter, label_mapping, post_cfg):
     anns = []
     image_shape = image.shape
