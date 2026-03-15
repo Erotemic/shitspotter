@@ -16,6 +16,7 @@ from shitspotter.algo_foundation_v3 import packaging
 from shitspotter.algo_foundation_v3 import cli_predict
 from shitspotter.algo_foundation_v3 import model_registry
 from shitspotter.algo_foundation_v3 import detector_deimv2
+from shitspotter.algo_foundation_v3 import polygon_utils
 from shitspotter.algo_foundation_v3 import segmenter_sam2
 from shitspotter.algo_foundation_v3.datasets import prepare_segmenter_training_data
 
@@ -108,6 +109,34 @@ def test_sam2_inference_config_name_resolution():
 
     cfg = {'hydra_config_name': 'configs/shitspotter_training/demo.yaml'}
     assert segmenter_sam2._resolve_inference_config_name(cfg) == 'configs/shitspotter_training/demo.yaml'
+
+
+def test_mask_to_multi_polygon_tolerates_degenerate_polygons(monkeypatch):
+    class BadPoly:
+        @property
+        def area(self):
+            raise ValueError('A linearring requires at least 4 coordinates.')
+
+        def simplify(self, *_args, **_kwargs):
+            return self
+
+    class DummyMultiPolygon:
+        def __init__(self, data):
+            self.data = data
+
+    class DummyMask:
+        def to_multi_polygon(self):
+            return DummyMultiPolygon([BadPoly()])
+
+    class DummyMaskCoerce:
+        @staticmethod
+        def coerce(_mask):
+            return DummyMask()
+
+    monkeypatch.setattr('kwimage.Mask', DummyMaskCoerce)
+    monkeypatch.setattr('kwimage.MultiPolygon', DummyMultiPolygon)
+    result = polygon_utils.mask_to_multi_polygon(np.ones((1, 1), dtype=np.uint8))
+    assert result.data == []
 
 
 def test_image_dir_to_kwcoco_and_coco_export(tmp_path):

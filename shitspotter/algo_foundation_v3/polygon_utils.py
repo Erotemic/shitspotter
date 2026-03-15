@@ -15,6 +15,13 @@ def expand_box_ltrb(box_ltrb, padding, image_shape):
     return [x1, y1, x2, y2]
 
 
+def _safe_polygon_area(poly):
+    try:
+        return float(poly.area)
+    except Exception:
+        return 0.0
+
+
 def mask_to_multi_polygon(mask, polygon_simplify=0.0, min_component_area=0.0,
                           keep_largest_component=True):
     import kwimage
@@ -22,12 +29,15 @@ def mask_to_multi_polygon(mask, polygon_simplify=0.0, min_component_area=0.0,
     bool_mask = np.asarray(mask).astype(bool)
     mpoly = kwimage.Mask.coerce(bool_mask).to_multi_polygon()
     polygons = list(mpoly.data)
-    polygons = [poly for poly in polygons if poly.area >= min_component_area]
+    polygons = [
+        poly for poly in polygons
+        if _safe_polygon_area(poly) > 0 and _safe_polygon_area(poly) >= min_component_area
+    ]
     if keep_largest_component and polygons:
-        polygons = [max(polygons, key=lambda poly: poly.area)]
+        polygons = [max(polygons, key=_safe_polygon_area)]
     if polygon_simplify:
         polygons = [poly.simplify(polygon_simplify) for poly in polygons]
-        polygons = [poly for poly in polygons if poly.area > 0]
+        polygons = [poly for poly in polygons if _safe_polygon_area(poly) > 0]
     return kwimage.MultiPolygon(polygons)
 
 
