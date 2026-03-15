@@ -197,10 +197,21 @@ carry into the detector+segmenter evaluation path below.
 
 ### 7. Build a package for your trained detector
 
-Replace `best_stg2.pth` with whichever checkpoint you want to deploy.
+Replace `best_stg2.pth` with whichever checkpoint you want to deploy. This step
+needs both:
+
+- the tuned DEIMv2 detector checkpoint you want to package
+- the SAM2 checkpoint you want to pair it with for box-prompted refinement
+
+If you are coming from step 5, `WORKDIR` should already be set to the detector
+run directory. If you are coming from a fresh shell or from the SAM2 training
+section below, set it again here so `DEIMV2_TRAINED_CKPT` does not accidentally
+expand to `/best_stg2.pth`.
 
 ```bash
+export WORKDIR="${WORKDIR:-$DVC_EXPT_DPATH/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/deimv2_m}"
 export DEIMV2_TRAINED_CKPT="$WORKDIR/best_stg2.pth"
+export SAM2_BPLUS_CKPT="${SAM2_BPLUS_CKPT:-$SHITSPOTTER_SAM2_REPO_DPATH/checkpoints/sam2.1_hiera_base_plus.pt}"
 export DEIMV2_SAM2_TRAINED_PACKAGE="$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/packages/deimv2_sam2_trained.yaml"
 
 python -m shitspotter.algo_foundation_v3.cli_package build \
