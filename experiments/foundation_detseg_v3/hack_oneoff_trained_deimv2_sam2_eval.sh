@@ -105,7 +105,7 @@ python -m geowatch.mlops.schedule_evaluation \
     " \
     --root_dpath="$VALI_EVAL_PATH" \
     --devices="0," --tmux_workers=1 \
-    --backend=tmux --skip_existing=1 \
+    --backend=serial --skip_existing=1 \
     --run=1
 
 python -m geowatch.mlops.schedule_evaluation \
@@ -121,5 +121,5 @@ python -m geowatch.mlops.schedule_evaluation \
     " \
     --root_dpath="$TEST_EVAL_PATH" \
     --devices="0," --tmux_workers=1 \
-    --backend=tmux --skip_existing=1 \
+    --backend=serial --skip_existing=1 \
     --run=1
