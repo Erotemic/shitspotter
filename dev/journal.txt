@@ -653,7 +653,7 @@ A colleague made a suggestion for a tagline that is fantastic:
 "This might not be the most important research in the world, but its at least number two."
 He gave me permission to use it and I will add to the README shortly.
 
-# 2025-01-05
+# 2026-01-05
 
 We lost Honey today. It was getting hard for her to breathe, but she had a good
 last day. She made some extra long poops due to the additional rich food she's
@@ -678,7 +678,7 @@ I did not continue the BAN labeling this time. I know there was one BAN error
 in this batch where I forgot the negative. I will likely go back and make
 explicit BAN labels for the entire dataset at some point, but not today.
 
-# 2025-02-27
+# 2026-02-27
 
 Gave a practice presentation at the Kitware research roundup today.  A
 co-worker pointed me to: AnimalClue to recognize animals by their traces
@@ -688,7 +688,7 @@ tend to be more close up, but you probably need that for the problem they are
 solving.
 
 
-# 2025-03-13
+# 2026-03-13
 
 Back from WACV. I found a new related dataset: 
 
@@ -703,3 +703,13 @@ https://pubmed.ncbi.nlm.nih.gov/37674505/
 We also have: Pig-Feces on Pig Skin Dataset
 https://data.mendeley.com/datasets/g97dmjymk5/3
 It is 221 MB. 
+
+# 2026-03-14
+
+Vibe coding up the next gen of detectors. The DINO v3 seems to be working,
+might have worse performance than v2, but still good. Could also just be that
+its very untuned, but I suppose v2 was as well. But for v2 I chose the gut
+check params, and in this case it was codex 5.4. Not sure if it matters.  If
+this vibe coding session works, it should also connect to a tuned SAM2 model
+and we should be able to get something better than the MaskRCNN for
+bootstrapping.
