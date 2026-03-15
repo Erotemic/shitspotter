@@ -197,3 +197,14 @@ Design takeaways:
 * If training-time and inference-time configs diverge, look first for structural parameters that were implicitly fixed during training but left implicit during inference.
 * Checkpoints often contain enough shape information to recover missing structural metadata safely.
 * A small, well-targeted inference helper can be the right bridge when existing artifacts predate richer package metadata.
+## 2026-03-15 04:25:16 +0000
+The next prediction-time crash came from an even narrower adapter edge: a degenerate polygon emitted during SAM2-mask postprocessing caused Shapely to raise `ValueError: A linearring requires at least 4 coordinates.` This happened inside our `mask_to_multi_polygon` helper when it tried to access `poly.area` on every connected component produced by `kwimage.Mask.to_multi_polygon()`. The key detail is that the bad geometry did not need to be “fixed” into something meaningful for the current workflow; it just needed to be ignored so one malformed contour would not kill the entire validation/test run.
+
+I hardened `mask_to_multi_polygon` by introducing a safe area helper and filtering out any component whose area computation fails or resolves to zero before later simplification/selection logic runs. That is intentionally conservative. In this pipeline, a component that cannot even support a valid area query is not a trustworthy candidate annotation, so dropping it is a better operational tradeoff than trying to salvage it heuristically. I also tightened the zero-threshold behavior so invalid components with fallback area `0` do not sneak through when `min_component_area=0`. A small regression test now simulates exactly this failure mode by monkeypatching a polygon whose `area` property raises the same `ValueError`.
+
+This is another good example of why research-style model stacks need defensive postprocessing around geometry libraries. Upstream segmenters can emit masks that are semantically fine at the raster level but awkward at the polygon level, and geometry kernels are often less forgiving than image-space code. I am confident this fix addresses the observed crash and is behaviorally aligned with the intent of the postprocessing stage. The residual risk is only that we may silently drop a few tiny pathological components, but given the current one-class, keep-largest-component pipeline, that is an acceptable and likely desirable tradeoff.
+
+Design takeaways:
+* Geometry conversion code should treat invalid components as data-quality issues to filter, not fatal exceptions.
+* Zero-area and exception-throwing polygons are operationally the same class of artifact for this pipeline.
+* Defensive postprocessing often matters more than clever recovery when the downstream task only needs one clean final component.
