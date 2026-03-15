@@ -22,6 +22,14 @@ TEST_FPATH="${TEST_FPATH:-${FOUNDATION_V3_TEST_KWCOCO_FPATH:?Set FOUNDATION_V3_T
 
 VALI_EVAL_PATH="${VALI_EVAL_PATH:-${DVC_EXPT_DPATH:?Set DVC_EXPT_DPATH or install geowatch_dvc}/_foundation_detseg_v3/vali_trained_oneoff}"
 TEST_EVAL_PATH="${TEST_EVAL_PATH:-${DVC_EXPT_DPATH:?Set DVC_EXPT_DPATH or install geowatch_dvc}/_foundation_detseg_v3/test_trained_oneoff}"
+VALI_PRED_FPATH="${VALI_PRED_FPATH:-$VALI_EVAL_PATH/pred.kwcoco.zip}"
+TEST_PRED_FPATH="${TEST_PRED_FPATH:-$TEST_EVAL_PATH/pred.kwcoco.zip}"
+VALI_METRICS_DPATH="${VALI_METRICS_DPATH:-$VALI_EVAL_PATH/eval}"
+TEST_METRICS_DPATH="${TEST_METRICS_DPATH:-$TEST_EVAL_PATH/eval}"
+VALI_METRICS_FPATH="${VALI_METRICS_FPATH:-$VALI_METRICS_DPATH/detect_metrics.json}"
+TEST_METRICS_FPATH="${TEST_METRICS_FPATH:-$TEST_METRICS_DPATH/detect_metrics.json}"
+VALI_CONFUSION_FPATH="${VALI_CONFUSION_FPATH:-$VALI_METRICS_DPATH/confusion.kwcoco.zip}"
+TEST_CONFUSION_FPATH="${TEST_CONFUSION_FPATH:-$TEST_METRICS_DPATH/confusion.kwcoco.zip}"
 
 print_path_status() {
     local label="$1"
@@ -82,6 +90,10 @@ echo "Planned outputs:"
 print_output_parent_status "PACKAGE_FPATH" "$PACKAGE_FPATH"
 print_output_parent_status "VALI_EVAL_PATH" "$VALI_EVAL_PATH"
 print_output_parent_status "TEST_EVAL_PATH" "$TEST_EVAL_PATH"
+print_output_parent_status "VALI_PRED_FPATH" "$VALI_PRED_FPATH"
+print_output_parent_status "TEST_PRED_FPATH" "$TEST_PRED_FPATH"
+print_output_parent_status "VALI_METRICS_FPATH" "$VALI_METRICS_FPATH"
+print_output_parent_status "TEST_METRICS_FPATH" "$TEST_METRICS_FPATH"
 echo
 
 python -m shitspotter.algo_foundation_v3.cli_package build "$PACKAGE_FPATH" \
@@ -92,34 +104,38 @@ python -m shitspotter.algo_foundation_v3.cli_package build "$PACKAGE_FPATH" \
     --segmenter_checkpoint_fpath "$SAM2_CKPT" \
     --metadata_name deimv2_sam2_trained_oneoff
 
-python -m geowatch.mlops.schedule_evaluation \
-    --params="
-        pipeline: 'shitspotter.pipelines.foundation_v3_evaluation_pipeline()'
-        matrix:
-            foundation_v3_pred.src:
-                - '$VALI_FPATH'
-            foundation_v3_pred.package_fpath:
-                - '$PACKAGE_FPATH'
-            foundation_v3_pred.create_labelme: 0
-            detection_evaluation.__enabled__: 1
-    " \
-    --root_dpath="$VALI_EVAL_PATH" \
-    --devices="0," --tmux_workers=1 \
-    --backend=serial --skip_existing=1 \
-    --run=1
+mkdir -p "$VALI_EVAL_PATH" "$TEST_EVAL_PATH" "$VALI_METRICS_DPATH" "$TEST_METRICS_DPATH"
 
-python -m geowatch.mlops.schedule_evaluation \
-    --params="
-        pipeline: 'shitspotter.pipelines.foundation_v3_evaluation_pipeline()'
-        matrix:
-            foundation_v3_pred.src:
-                - '$TEST_FPATH'
-            foundation_v3_pred.package_fpath:
-                - '$PACKAGE_FPATH'
-            foundation_v3_pred.create_labelme: 0
-            detection_evaluation.__enabled__: 1
-    " \
-    --root_dpath="$TEST_EVAL_PATH" \
-    --devices="0," --tmux_workers=1 \
-    --backend=serial --skip_existing=1 \
-    --run=1
+echo "Running validation prediction"
+python -m shitspotter.algo_foundation_v3.cli_predict \
+    --src="$VALI_FPATH" \
+    --package_fpath="$PACKAGE_FPATH" \
+    --create_labelme=0 \
+    --dst="$VALI_PRED_FPATH"
+
+echo "Running validation evaluation"
+python -m kwcoco eval \
+    --true_dataset="$VALI_FPATH" \
+    --pred_dataset="$VALI_PRED_FPATH" \
+    --out_dpath="$VALI_METRICS_DPATH" \
+    --out_fpath="$VALI_METRICS_FPATH" \
+    --confusion_fpath="$VALI_CONFUSION_FPATH" \
+    --draw=False \
+    --iou_thresh=0.5
+
+echo "Running test prediction"
+python -m shitspotter.algo_foundation_v3.cli_predict \
+    --src="$TEST_FPATH" \
+    --package_fpath="$PACKAGE_FPATH" \
+    --create_labelme=0 \
+    --dst="$TEST_PRED_FPATH"
+
+echo "Running test evaluation"
+python -m kwcoco eval \
+    --true_dataset="$TEST_FPATH" \
+    --pred_dataset="$TEST_PRED_FPATH" \
+    --out_dpath="$TEST_METRICS_DPATH" \
+    --out_fpath="$TEST_METRICS_FPATH" \
+    --confusion_fpath="$TEST_CONFUSION_FPATH" \
+    --draw=False \
+    --iou_thresh=0.5

@@ -175,3 +175,14 @@ Design takeaways:
 * Preflight checks should distinguish required prerequisites from expected-to-be-created outputs.
 * A red-looking status marker is expensive; use it only for conditions that are genuinely actionable failures.
 * In experiment wrappers, better messaging often removes as much friction as additional automation.
+## 2026-03-15 01:26:35 +0000
+The first real run of the one-off validation/test wrapper exposed a deeper integration bug than the earlier path-state issues. The direct artifact paths were all correct, but `geowatch.mlops.schedule_evaluation` treated the generated package YAML like a structured configuration object instead of a literal input file path. That caused the scheduler to fan out the package's top-level keys (`format_version`, `backend`, `detector`, `segmenter`, and so on) into separate jobs, which then passed nonsense values like `--package_fpath=format_version` into the foundation predictor. The resulting failures looked dramatic, but they were all symptoms of the same path-versus-structured-config confusion.
+
+For this one-off, I decided not to fight the scheduler abstraction. The user wanted a reliable way to run the trained detector+segmenter pair on validation and test with repo-native tooling, not a generalized fix to the geowatch scheduling layer. I rewrote the wrapper to keep using the repo's own predictor CLI and kwcoco evaluation CLI directly: build the package YAML, run `shitspotter.algo_foundation_v3.cli_predict` once on validation and once on test, then run `kwcoco eval` on each resulting prediction bundle. That keeps the workflow honest, removes the YAML reinterpretation hazard, and is easier to inspect end-to-end than the generated queue scripts.
+
+This does leave an unresolved general issue in the scheduled foundation-v3 evaluation path whenever `package_fpath` points at a YAML file that the scheduler decides to introspect. The existing generic wrappers may carry the same latent behavior depending on how `schedule_evaluation` handles in-path values in this environment. I am confident the one-off script is now the right operational tool for the user's immediate goal, but I would treat the scheduler-based foundation-v3 evaluation interface as suspect until we either reproduce the bug in a smaller test or find the correct quoting/typing convention expected by geowatch for literal YAML file inputs.
+
+Design takeaways:
+* When an orchestration layer starts reinterpreting your artifacts, a direct invocation of the stable underlying tools is often the fastest path back to truth.
+* YAML files used as model packages are especially vulnerable to being mistaken for parameter matrices by generic scheduling systems.
+* One-off reliability sometimes means deliberately stepping down a layer of abstraction rather than debugging the whole stack in place.
