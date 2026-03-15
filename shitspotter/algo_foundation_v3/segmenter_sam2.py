@@ -187,6 +187,30 @@ def _find_training_template(segmenter_cfg):
     return (repo_dpath / relpath).resolve()
 
 
+def _resolve_inference_config_name(segmenter_cfg):
+    repo_dpath = resolve_repo_dpath(segmenter_cfg)
+    config_name = segmenter_cfg.get('hydra_config_name', None)
+    if config_name is not None:
+        return str(config_name).replace('\\', '/')
+
+    config_relpath = segmenter_cfg.get('config_relpath', None)
+    if config_relpath is not None:
+        config_relpath = str(config_relpath).replace('\\', '/')
+        if config_relpath.startswith('sam2/'):
+            return config_relpath[len('sam2/'):]
+        return config_relpath
+
+    config_fpath = segmenter_cfg.get('config_fpath', None)
+    if config_fpath is not None and repo_dpath is not None:
+        relpath = Path(config_fpath).expanduser().resolve().relative_to(repo_dpath)
+        relpath = str(relpath).replace('\\', '/')
+        if relpath.startswith('sam2/'):
+            return relpath[len('sam2/'):]
+        return relpath
+
+    return None
+
+
 def _dump_hydra_global_yaml(data, fpath):
     text = '# @package _global_\n\n' + yaml.safe_dump(data, sort_keys=False)
     Path(fpath).write_text(text)
@@ -394,15 +418,13 @@ class SAM2Segmenter:
             ) from ex
 
         checkpoint_fpath = self.segmenter_cfg.get('checkpoint_fpath', None)
-        config_fpath = self.segmenter_cfg.get('config_fpath', None)
-        if config_fpath is None and repo_dpath is not None and self.segmenter_cfg.get('config_relpath', None):
-            config_fpath = repo_dpath / self.segmenter_cfg['config_relpath']
+        config_name = _resolve_inference_config_name(self.segmenter_cfg)
 
-        if checkpoint_fpath and config_fpath:
+        if checkpoint_fpath and config_name:
             build_sam2 = importlib.import_module('sam2.build_sam').build_sam2
             predictor = SAM2ImagePredictor(
                 build_sam2(
-                    str(config_fpath),
+                    str(config_name),
                     str(checkpoint_fpath),
                     device=self.segmenter_cfg.get('device', 'cuda:0'),
                 ),

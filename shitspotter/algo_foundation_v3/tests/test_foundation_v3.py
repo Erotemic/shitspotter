@@ -102,6 +102,14 @@ def test_deimv2_infer_num_classes_from_state():
     assert detector_deimv2._infer_num_classes_from_state(state) == 80
 
 
+def test_sam2_inference_config_name_resolution():
+    cfg = {'config_relpath': 'sam2/configs/sam2.1/sam2.1_hiera_b+.yaml'}
+    assert segmenter_sam2._resolve_inference_config_name(cfg) == 'configs/sam2.1/sam2.1_hiera_b+.yaml'
+
+    cfg = {'hydra_config_name': 'configs/shitspotter_training/demo.yaml'}
+    assert segmenter_sam2._resolve_inference_config_name(cfg) == 'configs/shitspotter_training/demo.yaml'
+
+
 def test_image_dir_to_kwcoco_and_coco_export(tmp_path):
     dset_fpath, img_fpath = _demo_dataset(tmp_path)
     image_dpath = tmp_path / 'images'
