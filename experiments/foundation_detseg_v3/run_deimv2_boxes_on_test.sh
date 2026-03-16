@@ -14,19 +14,18 @@ unset _foundation_v3_source
 unset _foundation_v3_script_dpath
 
 TEST_FPATH="${TEST_FPATH:-${FOUNDATION_V3_TEST_KWCOCO_FPATH:?Set FOUNDATION_V3_TEST_KWCOCO_FPATH or install geowatch_dvc}}"
-EVAL_PATH="${EVAL_PATH:-${DVC_EXPT_DPATH:?Set DVC_EXPT_DPATH or install geowatch_dvc}/_foundation_detseg_v3/test}"
-PRED_FPATH="${PRED_FPATH:-$EVAL_PATH/pred.kwcoco.zip}"
+EVAL_PATH="${EVAL_PATH:-${DVC_EXPT_DPATH:?Set DVC_EXPT_DPATH or install geowatch_dvc}/_foundation_detseg_v3/test_boxes}"
+PRED_FPATH="${PRED_FPATH:-$EVAL_PATH/pred_boxes.kwcoco.zip}"
 METRICS_DPATH="${METRICS_DPATH:-$EVAL_PATH/eval}"
 METRICS_FPATH="${METRICS_FPATH:-$METRICS_DPATH/detect_metrics.json}"
 CONFUSION_FPATH="${CONFUSION_FPATH:-$METRICS_DPATH/confusion.kwcoco.zip}"
-PACKAGE_FPATH="${PACKAGE_FPATH:-$FOUNDATION_V3_PACKAGE_DPATH/deimv2_sam2_default.yaml}"
+PACKAGE_FPATH="${PACKAGE_FPATH:?Set PACKAGE_FPATH to a deimv2_sam2 package yaml}"
 
 mkdir -p "$EVAL_PATH" "$METRICS_DPATH"
 
-python -m shitspotter.algo_foundation_v3.cli_predict \
+python -m shitspotter.algo_foundation_v3.cli_predict_boxes \
     --src="$TEST_FPATH" \
     --package_fpath="$PACKAGE_FPATH" \
-    --create_labelme=0 \
     --dst="$PRED_FPATH"
 
 python -m kwcoco eval \
