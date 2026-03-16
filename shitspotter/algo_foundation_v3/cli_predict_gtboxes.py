@@ -28,6 +28,7 @@ class AlgoPredictGTBoxesCLI(scfg.DataConfig):
     crop_padding = scfg.Value(None, help='override detector box padding')
     polygon_simplify = scfg.Value(None, help='override polygon simplification')
     min_component_area = scfg.Value(None, help='override min polygon area')
+    keep_largest_component = scfg.Value(None, help='override keep-largest-component postprocess flag')
     device = scfg.Value(None, help='override device for segmenter')
 
     @classmethod
@@ -41,6 +42,7 @@ class AlgoPredictGTBoxesCLI(scfg.DataConfig):
         package_overrides = {
             'postprocess': nonnull_overrides(dict(config), [
                 'crop_padding', 'polygon_simplify', 'min_component_area',
+                'keep_largest_component',
             ]),
         }
         package_overrides = {k: v for k, v in package_overrides.items() if v not in [None, {}]}
@@ -88,7 +90,7 @@ class AlgoPredictGTBoxesCLI(scfg.DataConfig):
                 padded_boxes.append(expand_box_ltrb(box_ltrb, post_cfg['crop_padding'], image_shape))
                 valid_gt_anns.append(ann)
             mask_infos = segmenter.predict_masks_for_boxes(image, padded_boxes)
-            for ann, mask_info in zip(valid_gt_anns, mask_infos):
+            for ann, prompt_box_ltrb, mask_info in zip(valid_gt_anns, padded_boxes, mask_infos):
                 mpoly = mask_to_multi_polygon(
                     mask_info['mask'],
                     polygon_simplify=post_cfg['polygon_simplify'],
@@ -105,6 +107,15 @@ class AlgoPredictGTBoxesCLI(scfg.DataConfig):
                     'score': 1.0,
                     'role': 'prediction',
                     'foundation_backend': 'sam2_gtboxes',
+                    'foundation_prompt_source': 'truth_box',
+                    'source_gt_ann_id': ann.get('id', None),
+                    'source_gt_bbox': ann['bbox'],
+                    'prompt_bbox': [
+                        float(prompt_box_ltrb[0]),
+                        float(prompt_box_ltrb[1]),
+                        float(prompt_box_ltrb[2] - prompt_box_ltrb[0]),
+                        float(prompt_box_ltrb[3] - prompt_box_ltrb[1]),
+                    ],
                 }
                 pred_dset.add_annotation(**pred_ann)
 

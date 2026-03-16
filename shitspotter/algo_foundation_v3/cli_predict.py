@@ -36,6 +36,7 @@ class AlgoPredictCLI(scfg.DataConfig):
     crop_padding = scfg.Value(None, help='override detector box padding')
     polygon_simplify = scfg.Value(None, help='override polygon simplification')
     min_component_area = scfg.Value(None, help='override min polygon area')
+    keep_largest_component = scfg.Value(None, help='override keep-largest-component postprocess flag')
     device = scfg.Value(None, help='override device for detector / segmenter / baseline')
 
     @classmethod
@@ -49,6 +50,7 @@ class AlgoPredictCLI(scfg.DataConfig):
             'postprocess': nonnull_overrides(dict(config), [
                 'score_thresh', 'nms_thresh', 'crop_padding',
                 'polygon_simplify', 'min_component_area',
+                'keep_largest_component',
             ]),
         }
         package_overrides = {k: v for k, v in package_overrides.items() if v not in [None, {}]}

@@ -71,7 +71,7 @@ def detector_records_to_anns(image, detector_records, segmenter, label_mapping, 
     ]
     mask_infos = segmenter.predict_masks_for_boxes(image, padded_boxes)
 
-    for record, mask_info in zip(records, mask_infos):
+    for record, prompt_box_ltrb, mask_info in zip(records, padded_boxes, mask_infos):
         category_name = _normalize_label(record.get('label', 0), label_mapping)
         if category_name is None:
             continue
@@ -88,6 +88,19 @@ def detector_records_to_anns(image, detector_records, segmenter, label_mapping, 
             'segmentation': segmentation_to_coco(mpoly),
             'score': float(record['score']),
             'category_name': category_name,
+            'foundation_prompt_source': 'detector_box',
+            'detector_bbox': [
+                float(record['bbox_ltrb'][0]),
+                float(record['bbox_ltrb'][1]),
+                float(record['bbox_ltrb'][2] - record['bbox_ltrb'][0]),
+                float(record['bbox_ltrb'][3] - record['bbox_ltrb'][1]),
+            ],
+            'prompt_bbox': [
+                float(prompt_box_ltrb[0]),
+                float(prompt_box_ltrb[1]),
+                float(prompt_box_ltrb[2] - prompt_box_ltrb[0]),
+                float(prompt_box_ltrb[3] - prompt_box_ltrb[1]),
+            ],
         })
     return anns
 

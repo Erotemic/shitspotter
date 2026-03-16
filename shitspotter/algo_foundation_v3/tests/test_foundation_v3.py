@@ -14,6 +14,7 @@ from shitspotter.algo_foundation_v3 import coco_adapter
 from shitspotter.algo_foundation_v3 import kwcoco_adapter
 from shitspotter.algo_foundation_v3 import packaging
 from shitspotter.algo_foundation_v3 import cli_predict
+from shitspotter.algo_foundation_v3 import cli_predict_gtboxes
 from shitspotter.algo_foundation_v3 import model_registry
 from shitspotter.algo_foundation_v3 import detector_deimv2
 from shitspotter.algo_foundation_v3 import polygon_utils
@@ -246,6 +247,9 @@ def test_predict_write_and_labelme_export_with_fake_backend(tmp_path, monkeypatc
     assert ann['role'] == 'prediction'
     assert ann['foundation_backend'] == 'deimv2_sam2'
     assert ann.get('segmentation', None) is not None
+    assert ann['foundation_prompt_source'] == 'detector_box'
+    assert ann['detector_bbox'] == [18.0, 14.0, 28.0, 28.0]
+    assert ann['prompt_bbox'] == [0.0, 0.0, 64.0, 64.0]
 
     labelme_fpath = img_fpath.with_suffix('.json')
     if labelme_fpath.exists():
@@ -269,6 +273,51 @@ def test_predict_write_and_labelme_export_with_fake_backend(tmp_path, monkeypatc
     copied_image = copy_dst / f'{next(iter(pred_dset.imgs)):08d}_{img_fpath.name}'
     assert copied_image.exists()
     assert not labelme_fpath.exists()
+
+
+def test_predict_gtboxes_records_prompt_metadata(tmp_path, monkeypatch):
+    dset_fpath, _img_fpath = _demo_dataset(tmp_path)
+
+    package = packaging.build_package(
+        backend='deimv2_sam2',
+        detector_checkpoint_fpath='/tmp/detector.pth',
+        segmenter_checkpoint_fpath='/tmp/segmenter.pt',
+        metadata_name='fake-deimv2-sam2',
+    )
+    package_fpath = tmp_path / 'package_gtboxes.yaml'
+    packaging.dump_package(package, package_fpath)
+
+    class FakeSegmenter:
+        def __init__(self, segmenter_cfg):
+            self.segmenter_cfg = segmenter_cfg
+
+        def predict_masks_for_boxes(self, image, boxes_xyxy):
+            mask = np.zeros(image.shape[:2], dtype=np.uint8)
+            mask[16:40, 20:44] = 1
+            return [{'mask': mask, 'score': 0.99} for _ in boxes_xyxy]
+
+    monkeypatch.setattr(cli_predict_gtboxes, 'SAM2Segmenter', FakeSegmenter)
+
+    pred_fpath = tmp_path / 'pred_gtboxes.kwcoco.zip'
+    cli_predict_gtboxes.AlgoPredictGTBoxesCLI.main(
+        argv=0,
+        src=dset_fpath,
+        dst=pred_fpath,
+        package_fpath=package_fpath,
+        create_labelme=False,
+        crop_padding=0,
+        polygon_simplify=0,
+        min_component_area=0,
+        keep_largest_component=False,
+    )
+
+    pred_dset = kwcoco.CocoDataset(pred_fpath)
+    ann = pred_dset.annots().objs[0]
+    assert ann['foundation_backend'] == 'sam2_gtboxes'
+    assert ann['foundation_prompt_source'] == 'truth_box'
+    assert ann['source_gt_ann_id'] is not None
+    assert ann['source_gt_bbox'] == [20.0, 16.0, 24.0, 24.0]
+    assert ann['prompt_bbox'] == [20.0, 16.0, 24.0, 24.0]
 
 
 def test_sam2_training_bundle_and_config_generation(tmp_path):
