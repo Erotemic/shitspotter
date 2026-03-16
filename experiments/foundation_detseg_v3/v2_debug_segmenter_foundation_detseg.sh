@@ -488,6 +488,24 @@ import json
 import sys
 from pathlib import Path
 
+
+def find_ap(obj):
+    if isinstance(obj, dict):
+        nocls = obj.get('nocls_measures')
+        if isinstance(nocls, dict) and 'ap' in nocls:
+            return float(nocls['ap'])
+        for value in obj.values():
+            found = find_ap(value)
+            if found is not None:
+                return found
+    elif isinstance(obj, list):
+        for value in obj:
+            found = find_ap(value)
+            if found is not None:
+                return found
+    return None
+
+
 v2_root = Path(sys.argv[1])
 rows = [
     ('detector_only_vali', v2_root / 'eval_detector_only/vali/eval/detect_metrics.json', None),
@@ -504,7 +522,9 @@ rows = [
 
 for name, metrics_fpath, geom_fpath in rows:
     metrics = json.loads(metrics_fpath.read_text())
-    ap = metrics['nocls_measures']['ap']
+    ap = find_ap(metrics)
+    if ap is None:
+        raise KeyError(f'Could not find AP in {metrics_fpath}')
     line = f'{name:30s} ap={ap:.3f}'
     if geom_fpath is not None:
         geom = json.loads(geom_fpath.read_text())['summary']
