@@ -116,6 +116,28 @@ def test_sam2_inference_config_name_resolution():
     assert segmenter_sam2._resolve_inference_config_name(cfg) == 'configs/shitspotter_training/demo.yaml'
 
 
+def test_sam2_predict_masks_for_boxes_normalizes_pixel_prompts(monkeypatch):
+    calls = []
+
+    class FakePredictor:
+        def set_image(self, image):
+            self.image = image
+
+        def predict(self, **kwargs):
+            calls.append(kwargs)
+            mask = np.zeros((1, 8, 8), dtype=np.uint8)
+            scores = np.array([1.0], dtype=np.float32)
+            logits = np.zeros((1, 8, 8), dtype=np.float32)
+            return mask, scores, logits
+
+    seg = segmenter_sam2.SAM2Segmenter({'checkpoint_fpath': '/tmp/fake.pt', 'config_relpath': 'sam2/configs/demo.yaml'})
+    seg.predictor = FakePredictor()
+    image = np.zeros((16, 16, 3), dtype=np.uint8)
+    seg.predict_masks_for_boxes(image, [[1, 2, 7, 8]])
+    assert calls
+    assert calls[0]['normalize_coords'] is True
+
+
 def test_mask_to_multi_polygon_tolerates_degenerate_polygons(monkeypatch):
     class BadPoly:
         @property

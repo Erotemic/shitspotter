@@ -449,7 +449,9 @@ class SAM2Segmenter:
                 box=box,
                 multimask_output=False,
                 return_logits=False,
-                normalize_coords=False,
+                # SAM2 expects pixel-space prompts to be normalized relative to
+                # the original image size before mapping into model resolution.
+                normalize_coords=True,
             )
             best_idx = int(scores.argmax()) if len(scores) else 0
             mask_infos.append({
