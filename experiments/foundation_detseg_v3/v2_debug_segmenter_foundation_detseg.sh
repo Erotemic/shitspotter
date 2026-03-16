@@ -41,15 +41,6 @@ COMBINED_TUNED_DEFAULT_VALI_DPATH="$V2_ROOT/eval_detector_segmenter/vali/tuned_d
 COMBINED_ZEROSHOT_RAW_VALI_DPATH="$V2_ROOT/eval_detector_segmenter/vali/zeroshot_raw"
 COMBINED_ZEROSHOT_DEFAULT_VALI_DPATH="$V2_ROOT/eval_detector_segmenter/vali/zeroshot_default"
 
-fail_if_exists() {
-    local path="$1"
-    if [ -e "$path" ]; then
-        echo "Refusing to overwrite existing path: $path" >&2
-        echo "Use a new script version label (v3, v4, ...) or remove the old path manually." >&2
-        exit 1
-    fi
-}
-
 require_path() {
     local path="$1"
     if [ ! -e "$path" ]; then
@@ -61,6 +52,10 @@ require_path() {
 write_dataset_size_report() {
     local dataset_fpath="$1"
     local report_fpath="$2"
+    if [ -f "$report_fpath" ]; then
+        echo "Reusing existing dataset geometry report: $report_fpath"
+        return 0
+    fi
     python - "$dataset_fpath" "$report_fpath" <<'PY'
 import json
 import sys
@@ -150,6 +145,7 @@ from pathlib import Path
 import kwcoco
 
 true_fpath, pred_fpath, report_fpath = sys.argv[1:4]
+report_fpath = Path(report_fpath)
 true_dset = kwcoco.CocoDataset(true_fpath)
 pred_dset = kwcoco.CocoDataset(pred_fpath)
 
@@ -288,6 +284,10 @@ run_detector_eval() {
     local dataset_fpath="$1"
     local package_fpath="$2"
     local out_dpath="$3"
+    if [ -f "$out_dpath/eval/detect_metrics.json" ]; then
+        echo "Reusing existing detector eval: $out_dpath/eval/detect_metrics.json"
+        return 0
+    fi
     mkdir -p "$out_dpath/eval"
     python -m shitspotter.algo_foundation_v3.cli_predict_boxes \
         "$dataset_fpath" \
@@ -308,6 +308,10 @@ run_gtbox_eval() {
     local package_fpath="$2"
     local out_dpath="$3"
     local mode="$4"
+    if [ -f "$out_dpath/eval/detect_metrics.json" ] && [ -f "$out_dpath/geometry_report.json" ]; then
+        echo "Reusing existing GT-box eval: $out_dpath/eval/detect_metrics.json"
+        return 0
+    fi
     mkdir -p "$out_dpath/eval"
     local extra_args=()
     if [ "$mode" = "raw" ]; then
@@ -342,6 +346,10 @@ run_combined_eval() {
     local package_fpath="$2"
     local out_dpath="$3"
     local mode="$4"
+    if [ -f "$out_dpath/eval/detect_metrics.json" ] && [ -f "$out_dpath/geometry_report.json" ]; then
+        echo "Reusing existing combined eval: $out_dpath/eval/detect_metrics.json"
+        return 0
+    fi
     mkdir -p "$out_dpath/eval"
     local extra_args=()
     if [ "$mode" = "raw" ]; then
@@ -375,6 +383,10 @@ build_package() {
     local package_fpath="$1"
     local segmenter_ckpt="$2"
     local metadata_name="$3"
+    if [ -f "$package_fpath" ]; then
+        echo "Reusing existing package: $package_fpath"
+        return 0
+    fi
     python -m shitspotter.algo_foundation_v3.cli_package build \
         "$package_fpath" \
         --backend deimv2_sam2 \
@@ -409,9 +421,7 @@ for required in \
     require_path "$required"
 done
 
-fail_if_exists "$V2_ROOT"
-fail_if_exists "$TUNED_PACKAGE_FPATH"
-fail_if_exists "$ZEROSHOT_PACKAGE_FPATH"
+mkdir -p "$V2_ROOT"
 
 export SHITSPOTTER_DPATH="$REPO_DPATH"
 export FOUNDATION_V3_DEV_DPATH="$REPO_DPATH/experiments/foundation_detseg_v3"
