@@ -6,9 +6,29 @@ set -euo pipefail
 # GT-box-prompted SAM2 sanity checks so prompt-coordinate regressions
 # are visible before we trust end-to-end package metrics.
 
-REPO_DPATH="/home/joncrall/code/shitspotter"
-DATA_DPATH="/home/joncrall/data/dvc-repos/shitspotter_dvc"
-EXPT_DPATH="/home/joncrall/data/dvc-repos/shitspotter_expt_dvc"
+canonical_existing_path() {
+    local path="$1"
+    if [ ! -e "$path" ]; then
+        echo "Required path does not exist: $path" >&2
+        exit 1
+    fi
+    (cd "$path" && pwd -P)
+}
+
+choose_first_existing_file() {
+    local candidate
+    for candidate in "$@"; do
+        if [ -f "$candidate" ]; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
+REPO_DPATH="$(canonical_existing_path /home/joncrall/code/shitspotter)"
+DATA_DPATH="$(canonical_existing_path /home/joncrall/data/dvc-repos/shitspotter_dvc)"
+EXPT_DPATH="$(canonical_existing_path /home/joncrall/data/dvc-repos/shitspotter_expt_dvc)"
 
 SHITSPOTTER_DEIMV2_REPO_DPATH="$REPO_DPATH/tpl/DEIMv2"
 SHITSPOTTER_SAM2_REPO_DPATH="$REPO_DPATH/tpl/segment-anything-2"
@@ -141,7 +161,13 @@ export RESIZE_MAX_DIM="640"
 bash "$REPO_DPATH/experiments/foundation_detseg_v3/train_deimv2_detector.sh"
 
 DEIMV2_TRAINED_CKPT="$DETECTOR_WORKDIR/best_stg2.pth"
-require_path "$DEIMV2_TRAINED_CKPT"
+DEIMV2_TRAINED_CKPT="$(choose_first_existing_file \
+    "$DETECTOR_WORKDIR/best_stg2.pth" \
+    "$DETECTOR_WORKDIR/best_stg1.pth" \
+    "$DETECTOR_WORKDIR/last.pth")" || {
+    echo "Expected detector checkpoint missing in: $DETECTOR_WORKDIR" >&2
+    exit 1
+}
 
 echo
 echo "=== Train segmenter ==="
