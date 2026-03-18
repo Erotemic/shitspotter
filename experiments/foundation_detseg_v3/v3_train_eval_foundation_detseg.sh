@@ -2,7 +2,9 @@
 set -euo pipefail
 
 # Hard-coded experiment layout for a coord-fix-aware v3 run.
-# This keeps the explicit, non-overwriting style from v1, but adds
+# This keeps the explicit v1-style structure, but is resumable: if a
+# checkpoint, package, or metrics file already exists, the script will
+# reuse it and continue from the next unfinished stage. It also adds
 # GT-box-prompted SAM2 sanity checks so prompt-coordinate regressions
 # are visible before we trust end-to-end package metrics.
 
@@ -58,15 +60,6 @@ PACKAGE_DPATH="$REPO_DPATH/experiments/foundation_detseg_v3/packages"
 TUNED_PACKAGE_FPATH="$PACKAGE_DPATH/v3_deimv2_m_sam2_1_hiera_base_plus_tuned.yaml"
 ZEROSHOT_PACKAGE_FPATH="$PACKAGE_DPATH/v3_deimv2_m_sam2_1_hiera_base_plus_zeroshot.yaml"
 
-fail_if_exists() {
-    local path="$1"
-    if [ -e "$path" ]; then
-        echo "Refusing to overwrite existing path: $path" >&2
-        echo "Use a new script version label (v4, v5, ...) or remove the old path manually." >&2
-        exit 1
-    fi
-}
-
 require_path() {
     local path="$1"
     if [ ! -e "$path" ]; then
@@ -108,6 +101,23 @@ print(f'{float(ap):.3f}')
 PY
 }
 
+ensure_detector_checkpoint() {
+    choose_first_existing_file \
+        "$DETECTOR_WORKDIR/best_stg2.pth" \
+        "$DETECTOR_WORKDIR/best_stg1.pth" \
+        "$DETECTOR_WORKDIR/last.pth"
+}
+
+ensure_segmenter_checkpoint() {
+    choose_first_existing_file \
+        "$SAM2_WORKDIR/checkpoints/checkpoint.pt"
+}
+
+have_metrics() {
+    local dpath="$1"
+    [ -f "$dpath/eval/detect_metrics.json" ]
+}
+
 echo "v3 foundation_detseg_v3 coord-fix-aware experiment"
 printf '  %-30s %s\n' "REPO_DPATH" "$REPO_DPATH"
 printf '  %-30s %s\n' "DATA_DPATH" "$DATA_DPATH"
@@ -133,10 +143,6 @@ for required in \
     require_path "$required"
 done
 
-fail_if_exists "$V3_ROOT"
-fail_if_exists "$TUNED_PACKAGE_FPATH"
-fail_if_exists "$ZEROSHOT_PACKAGE_FPATH"
-
 export SHITSPOTTER_DPATH="$REPO_DPATH"
 export FOUNDATION_V3_DEV_DPATH="$REPO_DPATH/experiments/foundation_detseg_v3"
 export DVC_DATA_DPATH="$DATA_DPATH"
@@ -158,13 +164,14 @@ export USE_AMP="True"
 export ENABLE_RESIZE_PREPROCESS="True"
 export FORCE_RESIZE_PREPROCESS="False"
 export RESIZE_MAX_DIM="640"
-bash "$REPO_DPATH/experiments/foundation_detseg_v3/train_deimv2_detector.sh"
+DEIMV2_TRAINED_CKPT="$(ensure_detector_checkpoint || true)"
+if [ -n "${DEIMV2_TRAINED_CKPT:-}" ]; then
+    echo "Reusing existing detector checkpoint: $DEIMV2_TRAINED_CKPT"
+else
+    bash "$REPO_DPATH/experiments/foundation_detseg_v3/train_deimv2_detector.sh"
+fi
 
-DEIMV2_TRAINED_CKPT="$DETECTOR_WORKDIR/best_stg2.pth"
-DEIMV2_TRAINED_CKPT="$(choose_first_existing_file \
-    "$DETECTOR_WORKDIR/best_stg2.pth" \
-    "$DETECTOR_WORKDIR/best_stg1.pth" \
-    "$DETECTOR_WORKDIR/last.pth")" || {
+DEIMV2_TRAINED_CKPT="$(ensure_detector_checkpoint)" || {
     echo "Expected detector checkpoint missing in: $DETECTOR_WORKDIR" >&2
     exit 1
 }
@@ -184,121 +191,160 @@ export SAM2_MAX_NUM_OBJECTS="8"
 export SAM2_MULTIPLIER="1"
 export SAM2_CHECKPOINT_SAVE_FREQ="1"
 export DEIMV2_TRAINED_CKPT
-bash "$REPO_DPATH/experiments/foundation_detseg_v3/train_sam2_segmenter.sh"
+SAM2_TRAINED_CKPT="$(ensure_segmenter_checkpoint || true)"
+if [ -n "${SAM2_TRAINED_CKPT:-}" ]; then
+    echo "Reusing existing segmenter checkpoint: $SAM2_TRAINED_CKPT"
+else
+    bash "$REPO_DPATH/experiments/foundation_detseg_v3/train_sam2_segmenter.sh"
+fi
 
-SAM2_TRAINED_CKPT="$SAM2_WORKDIR/checkpoints/checkpoint.pt"
-require_path "$SAM2_TRAINED_CKPT"
+SAM2_TRAINED_CKPT="$(ensure_segmenter_checkpoint)" || {
+    echo "Expected segmenter checkpoint missing in: $SAM2_WORKDIR/checkpoints" >&2
+    exit 1
+}
 
 echo
 echo "=== Build tuned and zero-shot packages ==="
-python -m shitspotter.algo_foundation_v3.cli_package build \
-    "$TUNED_PACKAGE_FPATH" \
-    --backend deimv2_sam2 \
-    --detector_preset deimv2_m \
-    --segmenter_preset sam2.1_hiera_base_plus \
-    --detector_checkpoint_fpath "$DEIMV2_TRAINED_CKPT" \
-    --segmenter_checkpoint_fpath "$SAM2_TRAINED_CKPT" \
-    --metadata_name v3_deimv2_m_sam2_1_hiera_base_plus_tuned
+if [ -f "$TUNED_PACKAGE_FPATH" ]; then
+    echo "Reusing existing package: $TUNED_PACKAGE_FPATH"
+else
+    python -m shitspotter.algo_foundation_v3.cli_package build \
+        "$TUNED_PACKAGE_FPATH" \
+        --backend deimv2_sam2 \
+        --detector_preset deimv2_m \
+        --segmenter_preset sam2.1_hiera_base_plus \
+        --detector_checkpoint_fpath "$DEIMV2_TRAINED_CKPT" \
+        --segmenter_checkpoint_fpath "$SAM2_TRAINED_CKPT" \
+        --metadata_name v3_deimv2_m_sam2_1_hiera_base_plus_tuned
+fi
 
-python -m shitspotter.algo_foundation_v3.cli_package build \
-    "$ZEROSHOT_PACKAGE_FPATH" \
-    --backend deimv2_sam2 \
-    --detector_preset deimv2_m \
-    --segmenter_preset sam2.1_hiera_base_plus \
-    --detector_checkpoint_fpath "$DEIMV2_TRAINED_CKPT" \
-    --segmenter_checkpoint_fpath "$SAM2_INIT_CKPT" \
-    --metadata_name v3_deimv2_m_sam2_1_hiera_base_plus_zeroshot
+if [ -f "$ZEROSHOT_PACKAGE_FPATH" ]; then
+    echo "Reusing existing package: $ZEROSHOT_PACKAGE_FPATH"
+else
+    python -m shitspotter.algo_foundation_v3.cli_package build \
+        "$ZEROSHOT_PACKAGE_FPATH" \
+        --backend deimv2_sam2 \
+        --detector_preset deimv2_m \
+        --segmenter_preset sam2.1_hiera_base_plus \
+        --detector_checkpoint_fpath "$DEIMV2_TRAINED_CKPT" \
+        --segmenter_checkpoint_fpath "$SAM2_INIT_CKPT" \
+        --metadata_name v3_deimv2_m_sam2_1_hiera_base_plus_zeroshot
+fi
 
 echo
 echo "=== Evaluate detector only on validation ==="
 export PACKAGE_FPATH="$TUNED_PACKAGE_FPATH"
 export EVAL_PATH="$BOX_VALI_DPATH"
-bash "$REPO_DPATH/experiments/foundation_detseg_v3/run_deimv2_boxes_on_vali.sh"
+if have_metrics "$BOX_VALI_DPATH"; then
+    echo "Reusing existing detector eval: $BOX_VALI_DPATH/eval/detect_metrics.json"
+else
+    bash "$REPO_DPATH/experiments/foundation_detseg_v3/run_deimv2_boxes_on_vali.sh"
+fi
 
 echo
 echo "=== Evaluate detector only on test ==="
 export EVAL_PATH="$BOX_TEST_DPATH"
-bash "$REPO_DPATH/experiments/foundation_detseg_v3/run_deimv2_boxes_on_test.sh"
+if have_metrics "$BOX_TEST_DPATH"; then
+    echo "Reusing existing detector eval: $BOX_TEST_DPATH/eval/detect_metrics.json"
+else
+    bash "$REPO_DPATH/experiments/foundation_detseg_v3/run_deimv2_boxes_on_test.sh"
+fi
 
 echo
 echo "=== GT-box SAM2 sanity check on validation: tuned raw ==="
-mkdir -p "$GTBOX_TUNED_RAW_VALI_DPATH/eval"
-python -m shitspotter.algo_foundation_v3.cli_predict_gtboxes \
-    "$VALI_FPATH" \
-    --package_fpath "$TUNED_PACKAGE_FPATH" \
-    --dst "$GTBOX_TUNED_RAW_VALI_DPATH/pred.kwcoco.zip" \
-    --crop_padding 0 \
-    --polygon_simplify 0 \
-    --min_component_area 0 \
-    --keep_largest_component False
-python -m kwcoco eval \
-    --true_dataset "$VALI_FPATH" \
-    --pred_dataset "$GTBOX_TUNED_RAW_VALI_DPATH/pred.kwcoco.zip" \
-    --out_dpath "$GTBOX_TUNED_RAW_VALI_DPATH/eval" \
-    --out_fpath "$GTBOX_TUNED_RAW_VALI_DPATH/eval/detect_metrics.json" \
-    --confusion_fpath "$GTBOX_TUNED_RAW_VALI_DPATH/eval/confusion.kwcoco.zip" \
-    --draw False \
-    --iou_thresh 0.5
+if have_metrics "$GTBOX_TUNED_RAW_VALI_DPATH"; then
+    echo "Reusing existing GT-box eval: $GTBOX_TUNED_RAW_VALI_DPATH/eval/detect_metrics.json"
+else
+    mkdir -p "$GTBOX_TUNED_RAW_VALI_DPATH/eval"
+    python -m shitspotter.algo_foundation_v3.cli_predict_gtboxes \
+        "$VALI_FPATH" \
+        --package_fpath "$TUNED_PACKAGE_FPATH" \
+        --dst "$GTBOX_TUNED_RAW_VALI_DPATH/pred.kwcoco.zip" \
+        --crop_padding 0 \
+        --polygon_simplify 0 \
+        --min_component_area 0 \
+        --keep_largest_component False
+    python -m kwcoco eval \
+        --true_dataset "$VALI_FPATH" \
+        --pred_dataset "$GTBOX_TUNED_RAW_VALI_DPATH/pred.kwcoco.zip" \
+        --out_dpath "$GTBOX_TUNED_RAW_VALI_DPATH/eval" \
+        --out_fpath "$GTBOX_TUNED_RAW_VALI_DPATH/eval/detect_metrics.json" \
+        --confusion_fpath "$GTBOX_TUNED_RAW_VALI_DPATH/eval/confusion.kwcoco.zip" \
+        --draw False \
+        --iou_thresh 0.5
+fi
 
 echo
 echo "=== GT-box SAM2 sanity check on validation: zero-shot raw ==="
-mkdir -p "$GTBOX_ZEROSHOT_RAW_VALI_DPATH/eval"
-python -m shitspotter.algo_foundation_v3.cli_predict_gtboxes \
-    "$VALI_FPATH" \
-    --package_fpath "$ZEROSHOT_PACKAGE_FPATH" \
-    --dst "$GTBOX_ZEROSHOT_RAW_VALI_DPATH/pred.kwcoco.zip" \
-    --crop_padding 0 \
-    --polygon_simplify 0 \
-    --min_component_area 0 \
-    --keep_largest_component False
-python -m kwcoco eval \
-    --true_dataset "$VALI_FPATH" \
-    --pred_dataset "$GTBOX_ZEROSHOT_RAW_VALI_DPATH/pred.kwcoco.zip" \
-    --out_dpath "$GTBOX_ZEROSHOT_RAW_VALI_DPATH/eval" \
-    --out_fpath "$GTBOX_ZEROSHOT_RAW_VALI_DPATH/eval/detect_metrics.json" \
-    --confusion_fpath "$GTBOX_ZEROSHOT_RAW_VALI_DPATH/eval/confusion.kwcoco.zip" \
-    --draw False \
-    --iou_thresh 0.5
+if have_metrics "$GTBOX_ZEROSHOT_RAW_VALI_DPATH"; then
+    echo "Reusing existing GT-box eval: $GTBOX_ZEROSHOT_RAW_VALI_DPATH/eval/detect_metrics.json"
+else
+    mkdir -p "$GTBOX_ZEROSHOT_RAW_VALI_DPATH/eval"
+    python -m shitspotter.algo_foundation_v3.cli_predict_gtboxes \
+        "$VALI_FPATH" \
+        --package_fpath "$ZEROSHOT_PACKAGE_FPATH" \
+        --dst "$GTBOX_ZEROSHOT_RAW_VALI_DPATH/pred.kwcoco.zip" \
+        --crop_padding 0 \
+        --polygon_simplify 0 \
+        --min_component_area 0 \
+        --keep_largest_component False
+    python -m kwcoco eval \
+        --true_dataset "$VALI_FPATH" \
+        --pred_dataset "$GTBOX_ZEROSHOT_RAW_VALI_DPATH/pred.kwcoco.zip" \
+        --out_dpath "$GTBOX_ZEROSHOT_RAW_VALI_DPATH/eval" \
+        --out_fpath "$GTBOX_ZEROSHOT_RAW_VALI_DPATH/eval/detect_metrics.json" \
+        --confusion_fpath "$GTBOX_ZEROSHOT_RAW_VALI_DPATH/eval/confusion.kwcoco.zip" \
+        --draw False \
+        --iou_thresh 0.5
+fi
 
 echo
 echo "=== Evaluate detector + segmenter on validation: tuned raw ==="
-mkdir -p "$COMBINED_TUNED_RAW_VALI_DPATH/eval"
-python -m shitspotter.algo_foundation_v3.cli_predict \
-    "$VALI_FPATH" \
-    --package_fpath "$TUNED_PACKAGE_FPATH" \
-    --dst "$COMBINED_TUNED_RAW_VALI_DPATH/pred.kwcoco.zip" \
-    --crop_padding 0 \
-    --polygon_simplify 0 \
-    --min_component_area 0 \
-    --keep_largest_component False
-python -m kwcoco eval \
-    --true_dataset "$VALI_FPATH" \
-    --pred_dataset "$COMBINED_TUNED_RAW_VALI_DPATH/pred.kwcoco.zip" \
-    --out_dpath "$COMBINED_TUNED_RAW_VALI_DPATH/eval" \
-    --out_fpath "$COMBINED_TUNED_RAW_VALI_DPATH/eval/detect_metrics.json" \
-    --confusion_fpath "$COMBINED_TUNED_RAW_VALI_DPATH/eval/confusion.kwcoco.zip" \
-    --draw False \
-    --iou_thresh 0.5
+if have_metrics "$COMBINED_TUNED_RAW_VALI_DPATH"; then
+    echo "Reusing existing combined eval: $COMBINED_TUNED_RAW_VALI_DPATH/eval/detect_metrics.json"
+else
+    mkdir -p "$COMBINED_TUNED_RAW_VALI_DPATH/eval"
+    python -m shitspotter.algo_foundation_v3.cli_predict \
+        "$VALI_FPATH" \
+        --package_fpath "$TUNED_PACKAGE_FPATH" \
+        --dst "$COMBINED_TUNED_RAW_VALI_DPATH/pred.kwcoco.zip" \
+        --crop_padding 0 \
+        --polygon_simplify 0 \
+        --min_component_area 0 \
+        --keep_largest_component False
+    python -m kwcoco eval \
+        --true_dataset "$VALI_FPATH" \
+        --pred_dataset "$COMBINED_TUNED_RAW_VALI_DPATH/pred.kwcoco.zip" \
+        --out_dpath "$COMBINED_TUNED_RAW_VALI_DPATH/eval" \
+        --out_fpath "$COMBINED_TUNED_RAW_VALI_DPATH/eval/detect_metrics.json" \
+        --confusion_fpath "$COMBINED_TUNED_RAW_VALI_DPATH/eval/confusion.kwcoco.zip" \
+        --draw False \
+        --iou_thresh 0.5
+fi
 
 echo
 echo "=== Evaluate detector + segmenter on test: tuned raw ==="
-mkdir -p "$COMBINED_TUNED_RAW_TEST_DPATH/eval"
-python -m shitspotter.algo_foundation_v3.cli_predict \
-    "$TEST_FPATH" \
-    --package_fpath "$TUNED_PACKAGE_FPATH" \
-    --dst "$COMBINED_TUNED_RAW_TEST_DPATH/pred.kwcoco.zip" \
-    --crop_padding 0 \
-    --polygon_simplify 0 \
-    --min_component_area 0 \
-    --keep_largest_component False
-python -m kwcoco eval \
-    --true_dataset "$TEST_FPATH" \
-    --pred_dataset "$COMBINED_TUNED_RAW_TEST_DPATH/pred.kwcoco.zip" \
-    --out_dpath "$COMBINED_TUNED_RAW_TEST_DPATH/eval" \
-    --out_fpath "$COMBINED_TUNED_RAW_TEST_DPATH/eval/detect_metrics.json" \
-    --confusion_fpath "$COMBINED_TUNED_RAW_TEST_DPATH/eval/confusion.kwcoco.zip" \
-    --draw False \
-    --iou_thresh 0.5
+if have_metrics "$COMBINED_TUNED_RAW_TEST_DPATH"; then
+    echo "Reusing existing combined eval: $COMBINED_TUNED_RAW_TEST_DPATH/eval/detect_metrics.json"
+else
+    mkdir -p "$COMBINED_TUNED_RAW_TEST_DPATH/eval"
+    python -m shitspotter.algo_foundation_v3.cli_predict \
+        "$TEST_FPATH" \
+        --package_fpath "$TUNED_PACKAGE_FPATH" \
+        --dst "$COMBINED_TUNED_RAW_TEST_DPATH/pred.kwcoco.zip" \
+        --crop_padding 0 \
+        --polygon_simplify 0 \
+        --min_component_area 0 \
+        --keep_largest_component False
+    python -m kwcoco eval \
+        --true_dataset "$TEST_FPATH" \
+        --pred_dataset "$COMBINED_TUNED_RAW_TEST_DPATH/pred.kwcoco.zip" \
+        --out_dpath "$COMBINED_TUNED_RAW_TEST_DPATH/eval" \
+        --out_fpath "$COMBINED_TUNED_RAW_TEST_DPATH/eval/detect_metrics.json" \
+        --confusion_fpath "$COMBINED_TUNED_RAW_TEST_DPATH/eval/confusion.kwcoco.zip" \
+        --draw False \
+        --iou_thresh 0.5
+fi
 
 echo
 echo "=== v3 summary ==="
