@@ -28,6 +28,9 @@ ENABLE_RESIZE_PREPROCESS="${ENABLE_RESIZE_PREPROCESS:-True}"
 FORCE_RESIZE_PREPROCESS="${FORCE_RESIZE_PREPROCESS:-False}"
 RESIZE_MAX_DIM="${RESIZE_MAX_DIM:-640}"
 RESIZE_OUTPUT_EXT="${RESIZE_OUTPUT_EXT:-.jpg}"
+ENABLE_SIMPLIFY_PREPROCESS="${ENABLE_SIMPLIFY_PREPROCESS:-False}"
+FORCE_SIMPLIFY_PREPROCESS="${FORCE_SIMPLIFY_PREPROCESS:-False}"
+SIMPLIFY_MINIMUM_INSTANCES="${SIMPLIFY_MINIMUM_INSTANCES:-100}"
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 
 _foundation_v3_truthy() {
@@ -67,6 +70,30 @@ if _foundation_v3_truthy "$ENABLE_RESIZE_PREPROCESS"; then
 
     TRAIN_FPATH="$PREPROC_TRAIN_FPATH"
     VALI_FPATH="$PREPROC_VALI_FPATH"
+fi
+
+if _foundation_v3_truthy "$ENABLE_SIMPLIFY_PREPROCESS"; then
+    PREPROC_DPATH="$WORKDIR/preprocessed_kwcoco"
+    mkdir -p "$PREPROC_DPATH"
+    SIMPLIFY_TRAIN_FPATH="$PREPROC_DPATH/$(basename "${TRAIN_FPATH%.*}").simplified.kwcoco.zip"
+    SIMPLIFY_VALI_FPATH="$PREPROC_DPATH/$(basename "${VALI_FPATH%.*}").simplified.kwcoco.zip"
+
+    if _foundation_v3_truthy "$FORCE_SIMPLIFY_PREPROCESS" || [ ! -f "$SIMPLIFY_TRAIN_FPATH" ]; then
+        python -m shitspotter.cli.simplify_kwcoco \
+            --src "$TRAIN_FPATH" \
+            --dst "$SIMPLIFY_TRAIN_FPATH" \
+            --minimum_instances "$SIMPLIFY_MINIMUM_INSTANCES"
+    fi
+
+    if _foundation_v3_truthy "$FORCE_SIMPLIFY_PREPROCESS" || [ ! -f "$SIMPLIFY_VALI_FPATH" ]; then
+        python -m shitspotter.cli.simplify_kwcoco \
+            --src "$VALI_FPATH" \
+            --dst "$SIMPLIFY_VALI_FPATH" \
+            --minimum_instances "$SIMPLIFY_MINIMUM_INSTANCES"
+    fi
+
+    TRAIN_FPATH="$SIMPLIFY_TRAIN_FPATH"
+    VALI_FPATH="$SIMPLIFY_VALI_FPATH"
 fi
 
 if [ -z "$DEIMV2_CONFIG_OVERRIDES" ]; then
