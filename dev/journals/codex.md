@@ -344,3 +344,14 @@ Design takeaways:
 * Once a composite model is clearly detector-limited, the next experiment should isolate detector-data preparation before changing more model components.
 * A preprocessing hypothesis deserves its own versioned experiment slot when it changes training semantics, even if the shell diff is small.
 * Distinguish “plausible remembered factor” from “confirmed historical cause”; encode the former as an ablation, not as a silent baseline rewrite.
+## 2026-03-19 02:00:57 +0000
+The user's first `v4` run produced exactly the kind of failure that is easy to misread if the logs are only skimmed. The initial "No such file or directory" messages were just a sync timing issue before the new script had been pulled. The real run then progressed through resize preprocessing, simplify preprocessing, and into DEIMv2 training successfully. The actual crash happened later, during DEIMv2 evaluation after the first training epoch, with `OSError: [Errno 24] Too many open files` bubbling out of PyTorch multiprocessing / resource sharing. That matters because it means the simplify-based experiment concept itself survived far enough to start training; the blocker was a loader-level operational limit, not an immediate semantic failure in the new preprocessing path.
+
+I chose the narrowest fix that preserves the experimental comparison. Rather than changing the shared detector wrapper globally, I only adjusted `v4_train_eval_foundation_detseg.sh` to export more conservative `TRAIN_NUM_WORKERS=2` and `VAL_NUM_WORKERS=0` before calling the existing detector training wrapper. That keeps `v4` as the simplify ablation while acknowledging that the simplified dataset variant appears to put more pressure on file descriptors during DEIMv2's validation loop in this environment. I explicitly did not add a `ulimit` hack or another broad environment mutation because those are harder to trust and much less portable as part of the experiment provenance story.
+
+I am fairly confident this is the right operational response. The remaining uncertainty is whether the lower worker counts will change wall-clock time enough to be annoying or if there is a deeper file-descriptor leak that could still surface later in longer runs. But the evidence so far points to "reduce multiprocessing pressure and continue," not "rethink the simplify experiment." If the next run gets past epoch-zero evaluation cleanly, then this patch will have served its purpose by keeping attention on the real scientific question instead of a dataloader limit.
+
+Design takeaways:
+* Distinguish early sync/path hiccups from the substantive failure in long experiment logs before deciding what to patch.
+* When a new experiment branch hits an environment limit, prefer a branch-local operational fix over mutating the shared baseline wrapper.
+* In reproducible experiments, a slower dataloader is usually a better tradeoff than an opaque environment hack.

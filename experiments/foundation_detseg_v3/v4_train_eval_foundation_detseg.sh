@@ -159,6 +159,8 @@ export VARIANT="deimv2_m"
 export DEIMV2_INIT_CKPT
 export TRAIN_BATCH_SIZE="24"
 export VAL_BATCH_SIZE="48"
+export TRAIN_NUM_WORKERS="2"
+export VAL_NUM_WORKERS="0"
 export USE_AMP="True"
 export ENABLE_RESIZE_PREPROCESS="True"
 export FORCE_RESIZE_PREPROCESS="False"
