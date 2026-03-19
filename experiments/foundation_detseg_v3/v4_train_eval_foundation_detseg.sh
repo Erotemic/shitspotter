@@ -6,6 +6,8 @@ set -euo pipefail
 # input preparation by adding simplify_kwcoco after the existing resize
 # preprocess. The goal is to test whether merged / simplified training
 # targets recover some of the historical detector AP seen in older stacks.
+# SAM2 defaults to 2 GPUs here because the wrapper already supports it and
+# detector training is no longer the only expensive stage worth accelerating.
 
 canonical_existing_path() {
     local path="$1"
@@ -117,6 +119,8 @@ have_metrics() {
     [ -f "$dpath/eval/detect_metrics.json" ]
 }
 
+FORCE_SEGMENTER_RERUN="${FORCE_SEGMENTER_RERUN:-False}"
+
 echo "v4 foundation_detseg_v3 simplify-preprocessed experiment"
 printf '  %-30s %s\n' "REPO_DPATH" "$REPO_DPATH"
 printf '  %-30s %s\n' "DATA_DPATH" "$DATA_DPATH"
@@ -188,14 +192,19 @@ export SAM2_INIT_CKPT
 export SAM2_TRAIN_BATCH_SIZE="1"
 export SAM2_NUM_TRAIN_WORKERS="8"
 export SAM2_NUM_EPOCHS="20"
-export SAM2_NUM_GPUS="1"
+export SAM2_NUM_GPUS="${SAM2_NUM_GPUS:-2}"
 export SAM2_BASE_LR="0.000005"
 export SAM2_VISION_LR="0.000003"
 export SAM2_MAX_NUM_OBJECTS="8"
 export SAM2_MULTIPLIER="1"
 export SAM2_CHECKPOINT_SAVE_FREQ="1"
 export DEIMV2_TRAINED_CKPT
-SAM2_TRAINED_CKPT="$(ensure_segmenter_checkpoint || true)"
+SAM2_TRAINED_CKPT=""
+if [ "$FORCE_SEGMENTER_RERUN" = "True" ] || [ "$FORCE_SEGMENTER_RERUN" = "true" ]; then
+    echo "FORCE_SEGMENTER_RERUN is enabled; rerunning segmenter training"
+else
+    SAM2_TRAINED_CKPT="$(ensure_segmenter_checkpoint || true)"
+fi
 if [ -n "${SAM2_TRAINED_CKPT:-}" ]; then
     echo "Reusing existing segmenter checkpoint: $SAM2_TRAINED_CKPT"
 else

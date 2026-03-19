@@ -28,6 +28,7 @@ challenges). This is not a changelog.  Write at a high level for future
 maintainers: enough context for someone to pick up where you left off.
 
 - Format: Each entry starts with `## YYYY-MM-DD HH:MM:SS -ZZZZ` (local time).
+- Must include: summary of user intent. If still editing this entry then you can update this if the user provides a clarifying prompt. The idea is that this is a compressed form of the prompt you are responding to. You can refer to previous entries to keep this concise.
 - Must include: what you were working on, a substantive entry about your state of mind / reflections, uncertainties/risks, tradeoffs, what might break, what you're confident about.
 - May include: what happened, rationale, testing notes, next steps, open questions.
 - Rules: Prefer append-only. You may edit only the most recent entry *during the same session* (use timestamp + context to judge); never modify the timestamp line; once a new session starts, create a new entry. Never modify older entries. Avoid large diffs; reference files/modules/issues instead.
