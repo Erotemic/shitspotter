@@ -121,6 +121,17 @@ have_metrics() {
 
 FORCE_SEGMENTER_RERUN="${FORCE_SEGMENTER_RERUN:-False}"
 
+is_truthy() {
+    case "${1:-}" in
+        1|true|True|TRUE|yes|Yes|YES|on|On|ON)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 echo "v4 foundation_detseg_v3 simplify-preprocessed experiment"
 printf '  %-30s %s\n' "REPO_DPATH" "$REPO_DPATH"
 printf '  %-30s %s\n' "DATA_DPATH" "$DATA_DPATH"
@@ -200,7 +211,7 @@ export SAM2_MULTIPLIER="1"
 export SAM2_CHECKPOINT_SAVE_FREQ="1"
 export DEIMV2_TRAINED_CKPT
 SAM2_TRAINED_CKPT=""
-if [ "$FORCE_SEGMENTER_RERUN" = "True" ] || [ "$FORCE_SEGMENTER_RERUN" = "true" ]; then
+if is_truthy "$FORCE_SEGMENTER_RERUN"; then
     echo "FORCE_SEGMENTER_RERUN is enabled; rerunning segmenter training"
 else
     SAM2_TRAINED_CKPT="$(ensure_segmenter_checkpoint || true)"
@@ -218,7 +229,17 @@ SAM2_TRAINED_CKPT="$(ensure_segmenter_checkpoint)" || {
 
 echo
 echo "=== Build tuned and zero-shot packages ==="
-if [ -f "$TUNED_PACKAGE_FPATH" ]; then
+if is_truthy "$FORCE_SEGMENTER_RERUN"; then
+    echo "FORCE_SEGMENTER_RERUN is enabled; rebuilding tuned package"
+    python -m shitspotter.algo_foundation_v3.cli_package build \
+        "$TUNED_PACKAGE_FPATH" \
+        --backend deimv2_sam2 \
+        --detector_preset deimv2_m \
+        --segmenter_preset sam2.1_hiera_base_plus \
+        --detector_checkpoint_fpath "$DEIMV2_TRAINED_CKPT" \
+        --segmenter_checkpoint_fpath "$SAM2_TRAINED_CKPT" \
+        --metadata_name v4_deimv2_m_sam2_1_hiera_base_plus_tuned
+elif [ -f "$TUNED_PACKAGE_FPATH" ]; then
     echo "Reusing existing package: $TUNED_PACKAGE_FPATH"
 else
     python -m shitspotter.algo_foundation_v3.cli_package build \
@@ -265,7 +286,29 @@ fi
 
 echo
 echo "=== GT-box SAM2 sanity check on validation: tuned raw ==="
-if have_metrics "$GTBOX_TUNED_RAW_VALI_DPATH"; then
+if is_truthy "$FORCE_SEGMENTER_RERUN"; then
+    echo "FORCE_SEGMENTER_RERUN is enabled; recomputing tuned GT-box eval"
+    mkdir -p "$GTBOX_TUNED_RAW_VALI_DPATH/eval"
+    rm -f "$GTBOX_TUNED_RAW_VALI_DPATH/pred.kwcoco.zip" \
+          "$GTBOX_TUNED_RAW_VALI_DPATH/eval/detect_metrics.json" \
+          "$GTBOX_TUNED_RAW_VALI_DPATH/eval/confusion.kwcoco.zip"
+    python -m shitspotter.algo_foundation_v3.cli_predict_gtboxes \
+        "$VALI_FPATH" \
+        --package_fpath "$TUNED_PACKAGE_FPATH" \
+        --dst "$GTBOX_TUNED_RAW_VALI_DPATH/pred.kwcoco.zip" \
+        --crop_padding 0 \
+        --polygon_simplify 0 \
+        --min_component_area 0 \
+        --keep_largest_component False
+    python -m kwcoco eval \
+        --true_dataset "$VALI_FPATH" \
+        --pred_dataset "$GTBOX_TUNED_RAW_VALI_DPATH/pred.kwcoco.zip" \
+        --out_dpath "$GTBOX_TUNED_RAW_VALI_DPATH/eval" \
+        --out_fpath "$GTBOX_TUNED_RAW_VALI_DPATH/eval/detect_metrics.json" \
+        --confusion_fpath "$GTBOX_TUNED_RAW_VALI_DPATH/eval/confusion.kwcoco.zip" \
+        --draw False \
+        --iou_thresh 0.5
+elif have_metrics "$GTBOX_TUNED_RAW_VALI_DPATH"; then
     echo "Reusing existing GT-box eval: $GTBOX_TUNED_RAW_VALI_DPATH/eval/detect_metrics.json"
 else
     mkdir -p "$GTBOX_TUNED_RAW_VALI_DPATH/eval"
@@ -313,7 +356,29 @@ fi
 
 echo
 echo "=== Evaluate detector + segmenter on validation: tuned raw ==="
-if have_metrics "$COMBINED_TUNED_RAW_VALI_DPATH"; then
+if is_truthy "$FORCE_SEGMENTER_RERUN"; then
+    echo "FORCE_SEGMENTER_RERUN is enabled; recomputing tuned combined validation eval"
+    mkdir -p "$COMBINED_TUNED_RAW_VALI_DPATH/eval"
+    rm -f "$COMBINED_TUNED_RAW_VALI_DPATH/pred.kwcoco.zip" \
+          "$COMBINED_TUNED_RAW_VALI_DPATH/eval/detect_metrics.json" \
+          "$COMBINED_TUNED_RAW_VALI_DPATH/eval/confusion.kwcoco.zip"
+    python -m shitspotter.algo_foundation_v3.cli_predict \
+        "$VALI_FPATH" \
+        --package_fpath "$TUNED_PACKAGE_FPATH" \
+        --dst "$COMBINED_TUNED_RAW_VALI_DPATH/pred.kwcoco.zip" \
+        --crop_padding 0 \
+        --polygon_simplify 0 \
+        --min_component_area 0 \
+        --keep_largest_component False
+    python -m kwcoco eval \
+        --true_dataset "$VALI_FPATH" \
+        --pred_dataset "$COMBINED_TUNED_RAW_VALI_DPATH/pred.kwcoco.zip" \
+        --out_dpath "$COMBINED_TUNED_RAW_VALI_DPATH/eval" \
+        --out_fpath "$COMBINED_TUNED_RAW_VALI_DPATH/eval/detect_metrics.json" \
+        --confusion_fpath "$COMBINED_TUNED_RAW_VALI_DPATH/eval/confusion.kwcoco.zip" \
+        --draw False \
+        --iou_thresh 0.5
+elif have_metrics "$COMBINED_TUNED_RAW_VALI_DPATH"; then
     echo "Reusing existing combined eval: $COMBINED_TUNED_RAW_VALI_DPATH/eval/detect_metrics.json"
 else
     mkdir -p "$COMBINED_TUNED_RAW_VALI_DPATH/eval"
@@ -337,7 +402,29 @@ fi
 
 echo
 echo "=== Evaluate detector + segmenter on test: tuned raw ==="
-if have_metrics "$COMBINED_TUNED_RAW_TEST_DPATH"; then
+if is_truthy "$FORCE_SEGMENTER_RERUN"; then
+    echo "FORCE_SEGMENTER_RERUN is enabled; recomputing tuned combined test eval"
+    mkdir -p "$COMBINED_TUNED_RAW_TEST_DPATH/eval"
+    rm -f "$COMBINED_TUNED_RAW_TEST_DPATH/pred.kwcoco.zip" \
+          "$COMBINED_TUNED_RAW_TEST_DPATH/eval/detect_metrics.json" \
+          "$COMBINED_TUNED_RAW_TEST_DPATH/eval/confusion.kwcoco.zip"
+    python -m shitspotter.algo_foundation_v3.cli_predict \
+        "$TEST_FPATH" \
+        --package_fpath "$TUNED_PACKAGE_FPATH" \
+        --dst "$COMBINED_TUNED_RAW_TEST_DPATH/pred.kwcoco.zip" \
+        --crop_padding 0 \
+        --polygon_simplify 0 \
+        --min_component_area 0 \
+        --keep_largest_component False
+    python -m kwcoco eval \
+        --true_dataset "$TEST_FPATH" \
+        --pred_dataset "$COMBINED_TUNED_RAW_TEST_DPATH/pred.kwcoco.zip" \
+        --out_dpath "$COMBINED_TUNED_RAW_TEST_DPATH/eval" \
+        --out_fpath "$COMBINED_TUNED_RAW_TEST_DPATH/eval/detect_metrics.json" \
+        --confusion_fpath "$COMBINED_TUNED_RAW_TEST_DPATH/eval/confusion.kwcoco.zip" \
+        --draw False \
+        --iou_thresh 0.5
+elif have_metrics "$COMBINED_TUNED_RAW_TEST_DPATH"; then
     echo "Reusing existing combined eval: $COMBINED_TUNED_RAW_TEST_DPATH/eval/detect_metrics.json"
 else
     mkdir -p "$COMBINED_TUNED_RAW_TEST_DPATH/eval"
