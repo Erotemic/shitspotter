@@ -3,10 +3,10 @@ set -euo pipefail
 
 # Hard-coded experiment layout for a v5 run whose detector stage is meant to
 # be comparable to the older GroundingDINO / Detectron / YOLO family.
-# The important part is matching the older prep semantics: start from the
-# kwcoco splits, reroot/export detector COCO with absolute image paths, and
-# avoid the v4 resize / simplify preprocessors. The SAM stage stays on the
-# standard kwcoco path.
+# The important part is matching the detector-data semantics while still using
+# the efficient offline resize path that makes DEIMv2 training practical here.
+# So v5 keeps resize preprocessing, disables simplify preprocessing, and then
+# exports detector COCO with absolute image paths from the resized kwcoco.
 
 canonical_existing_path() {
     local path="$1"
@@ -160,18 +160,20 @@ export SHITSPOTTER_SAM2_REPO_DPATH
 export SHITSPOTTER_MASKDINO_REPO_DPATH
 
 echo
-echo "=== Train detector from rerooted kwcoco export ==="
+echo "=== Train detector from resized rerooted kwcoco export ==="
 export TRAIN_FPATH
 export VALI_FPATH
 export WORKDIR="$DETECTOR_WORKDIR"
 export VARIANT="deimv2_m"
 export DEIMV2_INIT_CKPT
-export TRAIN_BATCH_SIZE="24"
-export VAL_BATCH_SIZE="48"
-export TRAIN_NUM_WORKERS="4"
-export VAL_NUM_WORKERS="2"
-export USE_AMP="True"
-export ENABLE_RESIZE_PREPROCESS="False"
+export TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE:-24}"
+export VAL_BATCH_SIZE="${VAL_BATCH_SIZE:-48}"
+export TRAIN_NUM_WORKERS="${TRAIN_NUM_WORKERS:-2}"
+export VAL_NUM_WORKERS="${VAL_NUM_WORKERS:-0}"
+export USE_AMP="${USE_AMP:-True}"
+export ENABLE_RESIZE_PREPROCESS="${ENABLE_RESIZE_PREPROCESS:-True}"
+export RESIZE_MAX_DIM="${RESIZE_MAX_DIM:-640}"
+export FORCE_RESIZE_PREPROCESS="${FORCE_RESIZE_PREPROCESS:-False}"
 export ENABLE_SIMPLIFY_PREPROCESS="False"
 export FORCE_DETECTOR_RERUN="${FORCE_DETECTOR_RERUN:-False}"
 DEIMV2_TRAINED_CKPT=""
