@@ -3,9 +3,9 @@ set -euo pipefail
 
 # Hard-coded experiment layout for a v5 run whose detector stage is meant to
 # be comparable to the older GroundingDINO / Detectron / YOLO family.
-# The key difference from v3/v4 is that DEIMv2 is trained directly from the
-# prebuilt *.mscoco.json detector datasets instead of a fresh kwcoco export,
-# resize preprocess, or simplify preprocess. The SAM stage stays on the
+# The important part is matching the older prep semantics: start from the
+# kwcoco splits, reroot/export detector COCO with absolute image paths, and
+# avoid the v4 resize / simplify preprocessors. The SAM stage stays on the
 # standard kwcoco path.
 
 canonical_existing_path() {
@@ -86,6 +86,17 @@ have_metrics() {
     [ -f "$dpath/eval/detect_metrics.json" ]
 }
 
+is_truthy() {
+    case "${1:-}" in
+        1|true|True|TRUE|yes|Yes|YES|on|On|ON)
+            return 0
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
 REPO_DPATH="$(canonical_existing_path /home/joncrall/code/shitspotter)"
 DATA_DPATH="$(canonical_existing_path /home/joncrall/data/dvc-repos/shitspotter_dvc)"
 EXPT_DPATH="$(canonical_existing_path /home/joncrall/data/dvc-repos/shitspotter_expt_dvc)"
@@ -97,9 +108,6 @@ SHITSPOTTER_MASKDINO_REPO_DPATH="$REPO_DPATH/tpl/MaskDINO"
 TRAIN_FPATH="$DATA_DPATH/train_imgs5747_1e73d54f.kwcoco.zip"
 VALI_FPATH="$DATA_DPATH/vali_imgs691_99b22ad0.kwcoco.zip"
 TEST_FPATH="$DATA_DPATH/test_imgs121_6cb3b6ff.kwcoco.zip"
-
-TRAIN_COCO_JSON="$DATA_DPATH/train_imgs5747_1e73d54f.mscoco.json"
-VALI_COCO_JSON="$DATA_DPATH/vali_imgs691_99b22ad0.mscoco.json"
 
 DEIMV2_INIT_CKPT="$DATA_DPATH/models/foundation_detseg_v3/deimv2/deimv2_dinov3_m_coco.pth"
 SAM2_INIT_CKPT="$SHITSPOTTER_SAM2_REPO_DPATH/checkpoints/sam2.1_hiera_base_plus.pt"
@@ -121,14 +129,12 @@ PACKAGE_DPATH="$REPO_DPATH/experiments/foundation_detseg_v3/packages"
 TUNED_PACKAGE_FPATH="$PACKAGE_DPATH/v5_deimv2_m_sam2_1_hiera_base_plus_tuned.yaml"
 ZEROSHOT_PACKAGE_FPATH="$PACKAGE_DPATH/v5_deimv2_m_sam2_1_hiera_base_plus_zeroshot.yaml"
 
-echo "v5 foundation_detseg_v3 mscoco-comparable detector experiment"
+echo "v5 foundation_detseg_v3 rerooted-kwcoco detector experiment"
 printf '  %-30s %s\n' "REPO_DPATH" "$REPO_DPATH"
 printf '  %-30s %s\n' "DATA_DPATH" "$DATA_DPATH"
 printf '  %-30s %s\n' "EXPT_DPATH" "$EXPT_DPATH"
 printf '  %-30s %s\n' "TRAIN_FPATH" "$TRAIN_FPATH"
 printf '  %-30s %s\n' "VALI_FPATH" "$VALI_FPATH"
-printf '  %-30s %s\n' "TRAIN_COCO_JSON" "$TRAIN_COCO_JSON"
-printf '  %-30s %s\n' "VALI_COCO_JSON" "$VALI_COCO_JSON"
 printf '  %-30s %s\n' "V5_ROOT" "$V5_ROOT"
 printf '  %-30s %s\n' "DETECTOR_WORKDIR" "$DETECTOR_WORKDIR"
 printf '  %-30s %s\n' "SAM2_WORKDIR" "$SAM2_WORKDIR"
@@ -140,8 +146,6 @@ for required in \
     "$TRAIN_FPATH" \
     "$VALI_FPATH" \
     "$TEST_FPATH" \
-    "$TRAIN_COCO_JSON" \
-    "$VALI_COCO_JSON" \
     "$DEIMV2_INIT_CKPT" \
     "$SAM2_INIT_CKPT"; do
     require_path "$required"
@@ -156,9 +160,9 @@ export SHITSPOTTER_SAM2_REPO_DPATH
 export SHITSPOTTER_MASKDINO_REPO_DPATH
 
 echo
-echo "=== Train detector from prebuilt mscoco ==="
-export TRAIN_COCO_JSON
-export VALI_COCO_JSON
+echo "=== Train detector from rerooted kwcoco export ==="
+export TRAIN_FPATH
+export VALI_FPATH
 export WORKDIR="$DETECTOR_WORKDIR"
 export VARIANT="deimv2_m"
 export DEIMV2_INIT_CKPT
@@ -167,11 +171,17 @@ export VAL_BATCH_SIZE="48"
 export TRAIN_NUM_WORKERS="4"
 export VAL_NUM_WORKERS="2"
 export USE_AMP="True"
-DEIMV2_TRAINED_CKPT="$(ensure_detector_checkpoint || true)"
+export ENABLE_RESIZE_PREPROCESS="False"
+export ENABLE_SIMPLIFY_PREPROCESS="False"
+export FORCE_DETECTOR_RERUN="${FORCE_DETECTOR_RERUN:-False}"
+DEIMV2_TRAINED_CKPT=""
+if ! is_truthy "$FORCE_DETECTOR_RERUN"; then
+    DEIMV2_TRAINED_CKPT="$(ensure_detector_checkpoint || true)"
+fi
 if [ -n "${DEIMV2_TRAINED_CKPT:-}" ]; then
     echo "Reusing existing detector checkpoint: $DEIMV2_TRAINED_CKPT"
 else
-    bash "$REPO_DPATH/experiments/foundation_detseg_v3/train_deimv2_detector_from_coco.sh"
+    bash "$REPO_DPATH/experiments/foundation_detseg_v3/train_deimv2_detector.sh"
 fi
 
 DEIMV2_TRAINED_CKPT="$(ensure_detector_checkpoint)" || {
