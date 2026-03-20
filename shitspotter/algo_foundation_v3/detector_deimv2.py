@@ -187,18 +187,39 @@ def build_training_config(detector_cfg, train_json_fpath, vali_json_fpath, outpu
 
 def train_detector(train_kwcoco, vali_kwcoco, workdir, detector_cfg, test_kwcoco=None,
                    init_checkpoint_fpath=None, device=None, use_amp=False,
-                   config_overrides=None):
+                   config_overrides=None, train_coco_json=None,
+                   vali_coco_json=None, test_coco_json=None):
     workdir = Path(workdir).expanduser().resolve()
-    prepared = prepare_detector_training_data(
-        train_kwcoco=train_kwcoco,
-        vali_kwcoco=vali_kwcoco,
-        test_kwcoco=test_kwcoco,
-        output_dpath=workdir / 'prepared_data',
-    )
+    if train_coco_json is not None or vali_coco_json is not None or test_coco_json is not None:
+        if train_coco_json is None or vali_coco_json is None:
+            raise ValueError('train_coco_json and vali_coco_json must be specified together')
+        train_json_fpath = Path(train_coco_json).expanduser().resolve()
+        vali_json_fpath = Path(vali_coco_json).expanduser().resolve()
+        if not train_json_fpath.exists():
+            raise FileNotFoundError(train_json_fpath)
+        if not vali_json_fpath.exists():
+            raise FileNotFoundError(vali_json_fpath)
+        if test_coco_json is not None:
+            test_json_fpath = Path(test_coco_json).expanduser().resolve()
+            if not test_json_fpath.exists():
+                raise FileNotFoundError(test_json_fpath)
+        else:
+            test_json_fpath = None
+    else:
+        prepared = prepare_detector_training_data(
+            train_kwcoco=train_kwcoco,
+            vali_kwcoco=vali_kwcoco,
+            test_kwcoco=test_kwcoco,
+            output_dpath=workdir / 'prepared_data',
+        )
+        train_json_fpath = prepared.train_coco_fpath
+        vali_json_fpath = prepared.vali_coco_fpath
+        test_json_fpath = prepared.test_coco_fpath
+
     train_config_fpath = build_training_config(
         detector_cfg=detector_cfg,
-        train_json_fpath=prepared.train_coco_fpath,
-        vali_json_fpath=prepared.vali_coco_fpath,
+        train_json_fpath=train_json_fpath,
+        vali_json_fpath=vali_json_fpath,
         output_dpath=workdir,
         overrides=config_overrides,
     )

@@ -40,9 +40,12 @@ class AlgoTrainCLI(scfg.ModalCLI):
 
 @AlgoTrainCLI.register
 class detector(scfg.DataConfig):
-    train_kwcoco = scfg.Value(None, help='training kwcoco path', required=True)
-    vali_kwcoco = scfg.Value(None, help='validation kwcoco path', required=True)
+    train_kwcoco = scfg.Value(None, help='training kwcoco path')
+    vali_kwcoco = scfg.Value(None, help='validation kwcoco path')
     test_kwcoco = scfg.Value(None, help='optional test kwcoco path')
+    train_coco_json = scfg.Value(None, help='training COCO / MSCOCO json path')
+    vali_coco_json = scfg.Value(None, help='validation COCO / MSCOCO json path')
+    test_coco_json = scfg.Value(None, help='optional test COCO / MSCOCO json path')
     workdir = scfg.Value('./runs/foundation_detseg_v3/deimv2', help='work directory')
     variant = scfg.Value('deimv2_m', help='detector preset', choices=['deimv2_m', 'deimv2_s'])
     init_checkpoint_fpath = scfg.Value(None, help='optional checkpoint to fine-tune from')
@@ -53,11 +56,24 @@ class detector(scfg.DataConfig):
     @classmethod
     def main(cls, argv=1, **kwargs):
         config = cls.cli(argv=argv, data=kwargs, strict=True)
+        have_kwcoco = config.train_kwcoco is not None or config.vali_kwcoco is not None
+        have_coco = config.train_coco_json is not None or config.vali_coco_json is not None
+        if have_kwcoco and have_coco:
+            raise ValueError('Specify kwcoco inputs or coco_json inputs, not both')
+        if have_coco:
+            if config.train_coco_json is None or config.vali_coco_json is None:
+                raise ValueError('train_coco_json and vali_coco_json are required together')
+        else:
+            if config.train_kwcoco is None or config.vali_kwcoco is None:
+                raise ValueError('train_kwcoco and vali_kwcoco are required when coco_json inputs are not provided')
         detector_cfg = model_registry.resolve_detector_preset(config.variant)
         train_config_fpath = train_detector(
             train_kwcoco=config.train_kwcoco,
             vali_kwcoco=config.vali_kwcoco,
             test_kwcoco=config.test_kwcoco,
+            train_coco_json=config.train_coco_json,
+            vali_coco_json=config.vali_coco_json,
+            test_coco_json=config.test_coco_json,
             workdir=config.workdir,
             detector_cfg=detector_cfg,
             init_checkpoint_fpath=config.init_checkpoint_fpath,
