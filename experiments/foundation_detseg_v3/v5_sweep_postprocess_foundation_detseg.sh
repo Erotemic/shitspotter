@@ -286,10 +286,14 @@ SUMMARY_FPATH="$SWEEP_ROOT/summary.tsv"
 
 SCORE_THRESH_CANDIDATES=(${SCORE_THRESH_CANDIDATES:-0.20 0.25 0.30 0.35 0.40})
 NMS_THRESH_CANDIDATES=(${NMS_THRESH_CANDIDATES:-0.40 0.50 0.60})
-MIN_COMPONENT_AREA_CANDIDATES=(${MIN_COMPONENT_AREA_CANDIDATES:-16 32 64})
-KEEP_LARGEST_COMPONENT_CANDIDATES=(${KEEP_LARGEST_COMPONENT_CANDIDATES:-true false})
-CROP_PADDING_CANDIDATES=(${CROP_PADDING_CANDIDATES:-32})
-POLYGON_SIMPLIFY_CANDIDATES=(${POLYGON_SIMPLIFY_CANDIDATES:-2.0})
+BASE_CROP_PADDING="${BASE_CROP_PADDING:-0}"
+BASE_POLYGON_SIMPLIFY="${BASE_POLYGON_SIMPLIFY:-0}"
+BASE_MIN_COMPONENT_AREA="${BASE_MIN_COMPONENT_AREA:-0}"
+BASE_KEEP_LARGEST_COMPONENT="${BASE_KEEP_LARGEST_COMPONENT:-false}"
+MIN_COMPONENT_AREA_CANDIDATES=(${MIN_COMPONENT_AREA_CANDIDATES:-0 16 32})
+KEEP_LARGEST_COMPONENT_CANDIDATES=(${KEEP_LARGEST_COMPONENT_CANDIDATES:-false true})
+CROP_PADDING_CANDIDATES=(${CROP_PADDING_CANDIDATES:-0})
+POLYGON_SIMPLIFY_CANDIDATES=(${POLYGON_SIMPLIFY_CANDIDATES:-0})
 TOPK_PHASE1="${TOPK_PHASE1:-4}"
 TOPK_FINAL="${TOPK_FINAL:-3}"
 RUN_TEST_FOR_TOPK="${RUN_TEST_FOR_TOPK:-True}"
@@ -313,6 +317,10 @@ printf '  %-28s %s\n' "SWEEP_ROOT" "$SWEEP_ROOT"
 printf '  %-28s %s\n' "TOPK_PHASE1" "$TOPK_PHASE1"
 printf '  %-28s %s\n' "TOPK_FINAL" "$TOPK_FINAL"
 printf '  %-28s %s\n' "RUN_TEST_FOR_TOPK" "$RUN_TEST_FOR_TOPK"
+printf '  %-28s %s\n' "BASE_CROP_PADDING" "$BASE_CROP_PADDING"
+printf '  %-28s %s\n' "BASE_POLYGON_SIMPLIFY" "$BASE_POLYGON_SIMPLIFY"
+printf '  %-28s %s\n' "BASE_MIN_COMPONENT_AREA" "$BASE_MIN_COMPONENT_AREA"
+printf '  %-28s %s\n' "BASE_KEEP_LARGEST_COMPONENT" "$BASE_KEEP_LARGEST_COMPONENT"
 
 echo
 echo "=== Phase 1: score/nms sweep on validation ==="
@@ -328,10 +336,10 @@ for score_thresh in "${SCORE_THRESH_CANDIDATES[@]}"; do
             "$variant_id" \
             "$score_thresh" \
             "$nms_thresh" \
-            32 \
-            2.0 \
-            32 \
-            true
+            "$BASE_CROP_PADDING" \
+            "$BASE_POLYGON_SIMPLIFY" \
+            "$BASE_MIN_COMPONENT_AREA" \
+            "$BASE_KEEP_LARGEST_COMPONENT"
         if have_metrics "$vali_eval_dpath"; then
             echo "Reusing validation metrics for $variant_id"
         else
@@ -339,7 +347,9 @@ for score_thresh in "${SCORE_THRESH_CANDIDATES[@]}"; do
         fi
         vali_ap="$(read_ap "$vali_eval_dpath/eval/detect_metrics.json")"
         append_summary_row "$SUMMARY_FPATH" "phase1" "$variant_id" \
-            "$score_thresh" "$nms_thresh" 32 2.0 32 true \
+            "$score_thresh" "$nms_thresh" \
+            "$BASE_CROP_PADDING" "$BASE_POLYGON_SIMPLIFY" \
+            "$BASE_MIN_COMPONENT_AREA" "$BASE_KEEP_LARGEST_COMPONENT" \
             "$vali_ap" "NA" "$package_fpath" "$vali_eval_dpath" "NA"
         printf '  %-24s vali_ap=%s\n' "$variant_id" "$vali_ap"
     done
