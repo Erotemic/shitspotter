@@ -50,6 +50,7 @@ class detector(scfg.DataConfig):
     variant = scfg.Value('deimv2_m', help='detector preset', choices=['deimv2_m', 'deimv2_s'])
     init_checkpoint_fpath = scfg.Value(None, help='optional checkpoint to fine-tune from')
     device = scfg.Value(None, help='torch device passed to DEIMv2 train.py')
+    num_gpus = scfg.Value(1, help='gpus-per-node passed to the DEIMv2 trainer')
     use_amp = scfg.Value(False, help='if True pass --use-amp to train.py')
     config_overrides = scfg.Value(None, help='YAML fragment merged into generated DEIMv2 train config')
 
@@ -78,6 +79,7 @@ class detector(scfg.DataConfig):
             detector_cfg=detector_cfg,
             init_checkpoint_fpath=config.init_checkpoint_fpath,
             device=config.device,
+            num_gpus=config.num_gpus,
             use_amp=config.use_amp,
             config_overrides=_coerce_yaml_overrides(config.config_overrides),
         )

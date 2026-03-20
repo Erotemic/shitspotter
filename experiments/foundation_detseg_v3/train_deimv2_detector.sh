@@ -18,6 +18,7 @@ VALI_FPATH="${VALI_FPATH:-${FOUNDATION_V3_VALI_KWCOCO_FPATH:?Set FOUNDATION_V3_V
 WORKDIR="${WORKDIR:-${DVC_EXPT_DPATH:?Set DVC_EXPT_DPATH or install geowatch_dvc}/training/$HOSTNAME/$USER/ShitSpotter/runs/foundation_detseg_v3/deimv2_m}"
 VARIANT="${VARIANT:-deimv2_m}"
 DEIMV2_INIT_CKPT="${DEIMV2_INIT_CKPT:-}"
+DEIMV2_NUM_GPUS="${DEIMV2_NUM_GPUS:-1}"
 USE_AMP="${USE_AMP:-True}"
 TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE:-24}"
 VAL_BATCH_SIZE="${VAL_BATCH_SIZE:-48}"
@@ -135,6 +136,7 @@ ARGS=(
     --vali_kwcoco "$VALI_FPATH"
     --workdir "$WORKDIR"
     --variant "$VARIANT"
+    --num_gpus "$DEIMV2_NUM_GPUS"
     --use_amp "$USE_AMP"
     --config_overrides "$DEIMV2_CONFIG_OVERRIDES"
 )

@@ -229,7 +229,7 @@ def _normalize_existing_coco_json(src_fpath, dst_fpath):
 
 
 def train_detector(train_kwcoco, vali_kwcoco, workdir, detector_cfg, test_kwcoco=None,
-                   init_checkpoint_fpath=None, device=None, use_amp=False,
+                   init_checkpoint_fpath=None, device=None, num_gpus=1, use_amp=False,
                    config_overrides=None, train_coco_json=None,
                    vali_coco_json=None, test_coco_json=None):
     workdir = Path(workdir).expanduser().resolve()
@@ -275,7 +275,19 @@ def train_detector(train_kwcoco, vali_kwcoco, workdir, detector_cfg, test_kwcoco
     )
 
     repo_dpath = resolve_repo_dpath(detector_cfg)
-    command = [sys.executable, str(repo_dpath / 'train.py'), '-c', str(train_config_fpath)]
+    train_script = repo_dpath / 'train.py'
+    num_gpus = int(num_gpus or 1)
+    if num_gpus > 1:
+        master_port = str(detector_cfg.get('master_port', 29500))
+        command = [
+            sys.executable, '-m', 'torch.distributed.run',
+            '--master_port', master_port,
+            '--nproc_per_node', str(num_gpus),
+            str(train_script),
+            '-c', str(train_config_fpath),
+        ]
+    else:
+        command = [sys.executable, str(train_script), '-c', str(train_config_fpath)]
     if init_checkpoint_fpath is not None:
         command += ['-t', str(Path(init_checkpoint_fpath).expanduser())]
     if device is not None:
