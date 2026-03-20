@@ -2,6 +2,7 @@
 Thin wrappers around the DEIMv2 repo for detector training and inference.
 """
 
+import json
 import importlib
 import subprocess
 import sys
@@ -185,6 +186,48 @@ def build_training_config(detector_cfg, train_json_fpath, vali_json_fpath, outpu
     return train_fpath
 
 
+def _normalize_existing_coco_json(src_fpath, dst_fpath):
+    src_fpath = Path(src_fpath).expanduser().resolve()
+    dst_fpath = Path(dst_fpath).expanduser().resolve()
+    bundle_dpath = src_fpath.parent
+    data = json.loads(src_fpath.read_text())
+
+    normalized = 0
+    unresolved = []
+    for img in data.get('images', []):
+        file_name = img.get('file_name', None)
+        if not file_name:
+            continue
+        orig = Path(file_name)
+        candidates = []
+        if orig.is_absolute():
+            candidates.append(orig)
+            candidates.append(bundle_dpath / str(orig).lstrip('/'))
+        else:
+            candidates.append(bundle_dpath / orig)
+            candidates.append(orig)
+        resolved = None
+        for cand in candidates:
+            if cand.exists():
+                resolved = cand.resolve()
+                break
+        if resolved is None:
+            unresolved.append(str(file_name))
+            continue
+        img['file_name'] = str(resolved)
+        normalized += 1
+
+    if unresolved:
+        raise FileNotFoundError(
+            f'Unable to resolve {len(unresolved)} image paths from {src_fpath}. '
+            f'Example: {unresolved[0]!r}'
+        )
+
+    dst_fpath.parent.mkdir(parents=True, exist_ok=True)
+    dst_fpath.write_text(json.dumps(data))
+    return dst_fpath
+
+
 def train_detector(train_kwcoco, vali_kwcoco, workdir, detector_cfg, test_kwcoco=None,
                    init_checkpoint_fpath=None, device=None, use_amp=False,
                    config_overrides=None, train_coco_json=None,
@@ -193,16 +236,23 @@ def train_detector(train_kwcoco, vali_kwcoco, workdir, detector_cfg, test_kwcoco
     if train_coco_json is not None or vali_coco_json is not None or test_coco_json is not None:
         if train_coco_json is None or vali_coco_json is None:
             raise ValueError('train_coco_json and vali_coco_json must be specified together')
-        train_json_fpath = Path(train_coco_json).expanduser().resolve()
-        vali_json_fpath = Path(vali_coco_json).expanduser().resolve()
-        if not train_json_fpath.exists():
-            raise FileNotFoundError(train_json_fpath)
-        if not vali_json_fpath.exists():
-            raise FileNotFoundError(vali_json_fpath)
+        train_coco_json = Path(train_coco_json).expanduser().resolve()
+        vali_coco_json = Path(vali_coco_json).expanduser().resolve()
+        if not train_coco_json.exists():
+            raise FileNotFoundError(train_coco_json)
+        if not vali_coco_json.exists():
+            raise FileNotFoundError(vali_coco_json)
+        direct_coco_dpath = workdir / 'prepared_data' / 'from_coco'
+        train_json_fpath = _normalize_existing_coco_json(
+            train_coco_json, direct_coco_dpath / train_coco_json.name)
+        vali_json_fpath = _normalize_existing_coco_json(
+            vali_coco_json, direct_coco_dpath / vali_coco_json.name)
         if test_coco_json is not None:
-            test_json_fpath = Path(test_coco_json).expanduser().resolve()
-            if not test_json_fpath.exists():
-                raise FileNotFoundError(test_json_fpath)
+            test_coco_json = Path(test_coco_json).expanduser().resolve()
+            if not test_coco_json.exists():
+                raise FileNotFoundError(test_coco_json)
+            test_json_fpath = _normalize_existing_coco_json(
+                test_coco_json, direct_coco_dpath / test_coco_json.name)
         else:
             test_json_fpath = None
     else:
