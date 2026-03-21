@@ -19,6 +19,7 @@ WORKDIR="${WORKDIR:-${DVC_EXPT_DPATH:?Set DVC_EXPT_DPATH or install geowatch_dvc
 VARIANT="${VARIANT:-deimv2_m}"
 DEIMV2_INIT_CKPT="${DEIMV2_INIT_CKPT:-}"
 DEIMV2_NUM_GPUS="${DEIMV2_NUM_GPUS:-1}"
+DEIMV2_ALLOW_SINGLE_GPU_FALLBACK="${DEIMV2_ALLOW_SINGLE_GPU_FALLBACK:-False}"
 USE_AMP="${USE_AMP:-True}"
 TRAIN_BATCH_SIZE="${TRAIN_BATCH_SIZE:-24}"
 VAL_BATCH_SIZE="${VAL_BATCH_SIZE:-48}"
@@ -33,6 +34,7 @@ ENABLE_SIMPLIFY_PREPROCESS="${ENABLE_SIMPLIFY_PREPROCESS:-False}"
 FORCE_SIMPLIFY_PREPROCESS="${FORCE_SIMPLIFY_PREPROCESS:-False}"
 SIMPLIFY_MINIMUM_INSTANCES="${SIMPLIFY_MINIMUM_INSTANCES:-100}"
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
+export TORCH_NCCL_ASYNC_ERROR_HANDLING="${TORCH_NCCL_ASYNC_ERROR_HANDLING:-1}"
 
 _foundation_v3_truthy() {
     case "${1:-}" in
@@ -130,19 +132,31 @@ EOF
 )"
 fi
 
-ARGS=(
-    python -m shitspotter.algo_foundation_v3.cli_train detector
-    --train_kwcoco "$TRAIN_FPATH"
-    --vali_kwcoco "$VALI_FPATH"
-    --workdir "$WORKDIR"
-    --variant "$VARIANT"
-    --num_gpus "$DEIMV2_NUM_GPUS"
-    --use_amp "$USE_AMP"
-    --config_overrides "$DEIMV2_CONFIG_OVERRIDES"
-)
+run_detector_train() {
+    local run_num_gpus="$1"
+    local args=(
+        python -m shitspotter.algo_foundation_v3.cli_train detector
+        --train_kwcoco "$TRAIN_FPATH"
+        --vali_kwcoco "$VALI_FPATH"
+        --workdir "$WORKDIR"
+        --variant "$VARIANT"
+        --num_gpus "$run_num_gpus"
+        --use_amp "$USE_AMP"
+        --config_overrides "$DEIMV2_CONFIG_OVERRIDES"
+    )
 
-if [ -n "$DEIMV2_INIT_CKPT" ]; then
-    ARGS+=(--init_checkpoint_fpath "$DEIMV2_INIT_CKPT")
+    if [ -n "$DEIMV2_INIT_CKPT" ]; then
+        args+=(--init_checkpoint_fpath "$DEIMV2_INIT_CKPT")
+    fi
+
+    "${args[@]}"
+}
+
+if run_detector_train "$DEIMV2_NUM_GPUS"; then
+    :
+elif [ "$DEIMV2_NUM_GPUS" -gt 1 ] && _foundation_v3_truthy "$DEIMV2_ALLOW_SINGLE_GPU_FALLBACK"; then
+    echo "DEIMv2 multi-GPU training failed; retrying with a single GPU for robustness" >&2
+    run_detector_train 1
+else
+    exit 1
 fi
-
-"${ARGS[@]}"
