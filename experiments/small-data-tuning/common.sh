@@ -15,11 +15,27 @@ small_data_repo_dpath() {
 }
 
 small_data_data_dpath() {
-    small_data_canonical_existing_path "${DVC_DATA_DPATH:-/home/joncrall/data/dvc-repos/shitspotter_dvc}"
+    local default_path="${DVC_DATA_DPATH:-}"
+    if [ -z "$default_path" ]; then
+        if [ -e /data/joncrall/dvc-repos/shitspotter_dvc ]; then
+            default_path=/data/joncrall/dvc-repos/shitspotter_dvc
+        else
+            default_path=/home/joncrall/data/dvc-repos/shitspotter_dvc
+        fi
+    fi
+    small_data_canonical_existing_path "$default_path"
 }
 
 small_data_expt_dpath() {
-    small_data_canonical_existing_path "${DVC_EXPT_DPATH:-/home/joncrall/data/dvc-repos/shitspotter_expt_dvc}"
+    local default_path="${DVC_EXPT_DPATH:-}"
+    if [ -z "$default_path" ]; then
+        if [ -e /data/joncrall/dvc-repos/shitspotter_expt_dvc ]; then
+            default_path=/data/joncrall/dvc-repos/shitspotter_expt_dvc
+        else
+            default_path=/home/joncrall/data/dvc-repos/shitspotter_expt_dvc
+        fi
+    fi
+    small_data_canonical_existing_path "$default_path"
 }
 
 small_data_root() {

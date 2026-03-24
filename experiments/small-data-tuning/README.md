@@ -35,6 +35,27 @@ recent ShitSpotter work:
 The old experiment directories are still the source of truth for historical
 results. This directory standardizes a smaller, faster experimental loop.
 
+## Current priority
+
+The current high-priority benchmark is narrower than the original scaffold:
+
+* compare DINOv2 via OpenGroundingDINO against DINOv3 via DEIMv2,
+* detector-only first, no SAM in the comparison,
+* train on positives-only subsets of size `128`, `256`, and `512`,
+* evaluate on prepared derivatives of the canonical full validation and test
+  splits,
+* apply the same preprocessing recipe to both families:
+  * poop-only category view,
+  * offline size reduction,
+  * box simplification,
+  * explicit manifests recording that these happened.
+
+That benchmark lives under the shared benchmark root:
+
+```text
+$DVC_EXPT_DPATH/small_data_tuning/dino_detector_benchmark/
+```
+
 ## Directory layout
 
 ```text
@@ -147,6 +168,63 @@ Every new wrapper or experiment in this directory should follow these rules:
   * write explicit run-state metadata so partial artifacts are recognizable.
 
 ## Suggested workflow
+
+### Recommended detector benchmark workflow
+
+This is the end-to-end path to answer the current DINOv2-vs-DINOv3 question.
+
+#### 1. Prepare the shared benchmark data once
+
+```bash
+PYTHON_BIN=/home/joncrall/.local/uv/envs/uvpy3.13.2/bin/python \
+bash /home/joncrall/code/shitspotter/experiments/small-data-tuning/prepare_dino_detector_benchmark.sh
+```
+
+This writes:
+
+* a benchmark-wide [`benchmark_manifest.json`](./prepare_dino_detector_benchmark.py),
+* positives-only prepared train subsets for `128`, `256`, `512`,
+* prepared validation and test sets derived from the canonical full splits,
+* per-split metadata describing source statistics and prepared statistics.
+
+#### 2. Run the OpenGroundingDINO line
+
+```bash
+PYTHON_BIN=/home/joncrall/.local/uv/envs/uvpy3.13.2/bin/python \
+bash /home/joncrall/code/shitspotter/experiments/small-data-tuning/run_opengroundingdino_dino_detector_benchmark.sh
+```
+
+#### 3. Run the DEIMv2 line
+
+```bash
+PYTHON_BIN=/home/joncrall/.local/uv/envs/uvpy3.13.2/bin/python \
+bash /home/joncrall/code/shitspotter/experiments/small-data-tuning/run_deimv2_dino_detector_benchmark.sh
+```
+
+#### 4. Aggregate and draw the train-size curves
+
+```bash
+PYTHON_BIN=/home/joncrall/.local/uv/envs/uvpy3.13.2/bin/python \
+python /home/joncrall/code/shitspotter/experiments/small-data-tuning/analyze_dino_detector_benchmark.py \
+    --benchmark_root /data/joncrall/dvc-repos/shitspotter_expt_dvc/small_data_tuning/dino_detector_benchmark \
+    --out_dpath /data/joncrall/dvc-repos/shitspotter_expt_dvc/small_data_tuning/dino_detector_benchmark/analysis
+```
+
+Or run the whole chain:
+
+```bash
+PYTHON_BIN=/home/joncrall/.local/uv/envs/uvpy3.13.2/bin/python \
+bash /home/joncrall/code/shitspotter/experiments/small-data-tuning/run_dino_detector_benchmark.sh
+```
+
+The analysis step writes:
+
+* `benchmark_summary.tsv`
+* `train_size_curve.png`
+* `analysis_manifest.json`
+
+The curves plot Box AP on the y-axis, training size on the x-axis, and model
+family as the comparison hue.
 
 ### 1. Materialize the benchmark cohorts
 
