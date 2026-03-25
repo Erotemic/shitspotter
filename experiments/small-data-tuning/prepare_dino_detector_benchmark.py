@@ -163,6 +163,7 @@ def _materialize_prepared_split(src_dset, chosen_gids: list[int], split_dpath: p
                                 split_tag: str, keep_only_positive_images: bool,
                                 resize_max_dim: int, resize_output_ext: str,
                                 simplify_minimum_instances: int) -> dict:
+    split_dpath.mkdir(parents=True, exist_ok=True)
     raw_kwcoco = split_dpath / f'{split_tag}.poop_only.kwcoco.zip'
     resized_kwcoco = split_dpath / f'{split_tag}.poop_only_maxdim{resize_max_dim}.kwcoco.zip'
     simplified_kwcoco = split_dpath / f'{split_tag}.poop_only_maxdim{resize_max_dim}.simplified.kwcoco.zip'
