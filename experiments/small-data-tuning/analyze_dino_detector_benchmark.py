@@ -38,6 +38,8 @@ def _normalize_row(row: dict, *, model_family: str, subset_name: str) -> dict:
     row = dict(row)
     row['model_family'] = model_family
     row['subset_name'] = subset_name
+    row.setdefault('config_tag', 'baseline')
+    row['config_label'] = f"{model_family}:{row['config_tag']}"
     row['selected_candidate_id'] = row.get('candidate_id', '')
     row['train_size'] = int(row['train_size'])
     row['poop_vali_ap'] = _coerce_float(row.get('poop_vali_ap'))
@@ -55,14 +57,32 @@ def main(argv=1) -> int:
     out_dpath.mkdir(parents=True, exist_ok=True)
 
     selected_rows = []
-    for summary_fpath in sorted(benchmark_root.glob('runs/*/*/summary.tsv')):
-        model_family = summary_fpath.parent.parent.name
-        subset_name = summary_fpath.parent.name
+    summary_fpaths = sorted(benchmark_root.glob('runs/*/*/summary.tsv'))
+    summary_fpaths += sorted(benchmark_root.glob('runs/*/*/*/summary.tsv'))
+    seen = set()
+    deduped_summary_fpaths = []
+    for summary_fpath in summary_fpaths:
+        if summary_fpath in seen:
+            continue
+        deduped_summary_fpaths.append(summary_fpath)
+        seen.add(summary_fpath)
+
+    for summary_fpath in deduped_summary_fpaths:
+        rel_parts = summary_fpath.relative_to(benchmark_root).parts
+        if len(rel_parts) == 4:
+            _, model_family, subset_name, _ = rel_parts
+            config_tag = 'baseline'
+        elif len(rel_parts) == 5:
+            _, model_family, config_tag, subset_name, _ = rel_parts
+        else:
+            continue
         raw_rows = _read_summary_rows(summary_fpath)
         selected_row = None
         for row in raw_rows:
             if str(row.get('selected', '')).strip() == '1':
                 selected_row = _normalize_row(row, model_family=model_family, subset_name=subset_name)
+                selected_row['config_tag'] = config_tag
+                selected_row['config_label'] = f'{model_family}:{config_tag}'
                 break
         if selected_row is None or not _is_finite_number(selected_row.get('poop_vali_ap')):
             finite_candidates = [
@@ -72,6 +92,8 @@ def main(argv=1) -> int:
             ]
             if finite_candidates:
                 selected_row = max(finite_candidates, key=lambda row: row['poop_vali_ap'])
+                selected_row['config_tag'] = config_tag
+                selected_row['config_label'] = f'{model_family}:{config_tag}'
                 selected_row['selected_candidate_id'] = selected_row.get('candidate_id', '')
                 selected_row['selection_recovered'] = '1'
                 selected_row['poop_test_ap'] = None
@@ -83,6 +105,8 @@ def main(argv=1) -> int:
     summary_fpath = out_dpath / 'benchmark_summary.tsv'
     fieldnames = [
         'model_family',
+        'config_tag',
+        'config_label',
         'subset_name',
         'train_size',
         'selected_candidate_id',
@@ -96,7 +120,7 @@ def main(argv=1) -> int:
     with summary_fpath.open('w', newline='') as file:
         writer = csv.DictWriter(file, delimiter='\t', fieldnames=fieldnames)
         writer.writeheader()
-        for row in sorted(selected_rows, key=lambda row: (row['model_family'], row['train_size'])):
+        for row in sorted(selected_rows, key=lambda row: (row['model_family'], row.get('config_tag', 'baseline'), row['train_size'])):
             writer.writerow({key: row.get(key, '') for key in fieldnames})
 
     plot_fpath = out_dpath / 'train_size_curve.png'
@@ -104,12 +128,12 @@ def main(argv=1) -> int:
         import matplotlib.pyplot as plt
 
         fig, ax = plt.subplots(figsize=(8, 5))
-        families = sorted({row['model_family'] for row in selected_rows})
+        families = sorted({row['config_label'] for row in selected_rows})
         for family in families:
             family_rows = sorted(
                 [
                     row for row in selected_rows
-                    if row['model_family'] == family and _is_finite_number(row['poop_vali_ap'])
+                    if row['config_label'] == family and _is_finite_number(row['poop_vali_ap'])
                 ],
                 key=lambda row: row['train_size'],
             )

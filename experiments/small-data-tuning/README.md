@@ -50,6 +50,22 @@ The current high-priority benchmark is narrower than the original scaffold:
   * box simplification,
   * explicit manifests recording that these happened.
 
+The benchmark is now config-tag aware:
+
+* OpenGroundingDINO can be rerun under tagged configs, though the default is a
+  single `baseline` tag so it remains a stable reference line.
+* DEIMv2 is intended to carry most of the tuning work. Each DEIMv2 recipe gets
+  a `config_tag`, writes into its own run subtree, and appears as its own curve
+  in the aggregate plot.
+* The current default DEIMv2 tags are:
+  * `baseline`
+  * `v6_backbone_quarter`
+  * `v7_global_lr_0p8`
+
+That means new DEIMv2 tuning ideas can be added without overwriting earlier
+results, and the analysis layer can compare `model_family + config_tag` against
+training size.
+
 That benchmark lives under the shared benchmark root:
 
 ```text
@@ -223,8 +239,31 @@ The analysis step writes:
 * `train_size_curve.png`
 * `analysis_manifest.json`
 
-The curves plot Box AP on the y-axis, training size on the x-axis, and model
-family as the comparison hue.
+The curves plot Box AP on the y-axis, training size on the x-axis, and
+`model_family:config_tag` as the comparison hue.
+
+### Extending DEIMv2 tuning
+
+The DEIMv2 runner accepts a space-separated list of tagged config specs through
+`DEIMV2_CONFIG_SPECS`. Each spec is encoded as:
+
+```text
+config_tag|main_lr_scale|backbone_lr_scale|train_batch_size|use_amp
+```
+
+Example:
+
+```bash
+DEIMV2_CONFIG_SPECS="
+baseline|1.0|1.0|24|True
+low_lr|0.7|0.7|24|True
+backbone_tiny|1.0|0.15|24|True
+" \
+bash /home/joncrall/code/shitspotter/experiments/small-data-tuning/run_deimv2_dino_detector_benchmark.sh
+```
+
+This keeps the shared benchmark data fixed while letting the DEIMv2 detector
+recipe evolve in a comparable, append-only way.
 
 ### 1. Materialize the benchmark cohorts
 
