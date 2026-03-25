@@ -194,6 +194,14 @@ EOF
     export TEXT_ENCODER_TYPE
     export TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD="${TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD:-1}"
 
+    # If a prior attempt died mid-training, OpenGroundingDINO will try to
+    # auto-resume from a stale checkpoint. Under newer PyTorch that resume path
+    # is brittle, so prefer a clean restart unless a benchmark summary already
+    # proves the subset finished end-to-end.
+    if [ -d "$output_dir" ] && [ ! -f "$summary_fpath" ]; then
+        rm -rf "$output_dir"
+    fi
+
     case "$FORCE_GDINO_RERUN" in
         1|true|True|TRUE|yes|Yes|YES|on|On|ON)
             rm -rf "$output_dir" "$run_dpath/checkpoint_select" "$run_dpath/test_eval" "$summary_fpath"
