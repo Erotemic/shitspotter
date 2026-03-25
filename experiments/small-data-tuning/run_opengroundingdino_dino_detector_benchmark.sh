@@ -192,6 +192,13 @@ EOF
     export OUTPUT_DIR="$output_dir"
     export PRETRAIN_MODEL_PATH
     export TEXT_ENCODER_TYPE
+    export TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD="${TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD:-1}"
+
+    case "$FORCE_GDINO_RERUN" in
+        1|true|True|TRUE|yes|Yes|YES|on|On|ON)
+            rm -rf "$output_dir" "$run_dpath/checkpoint_select" "$run_dpath/test_eval" "$summary_fpath"
+            ;;
+    esac
 
     if [ ! -f "$output_dir/checkpoint0014.pth" ] || [ "$FORCE_GDINO_RERUN" = "True" ]; then
         bash train_dist.sh "$GPU_NUM" "$CFG" "$DATASETS" "$OUTPUT_DIR"
