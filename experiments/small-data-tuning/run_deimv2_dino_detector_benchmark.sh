@@ -25,7 +25,7 @@ FORCE_DETECTOR_RERUN="${FORCE_DETECTOR_RERUN:-False}"
 DEIMV2_SCORE_THRESH="${DEIMV2_SCORE_THRESH:-0.2}"
 DEIMV2_NMS_THRESH="${DEIMV2_NMS_THRESH:-0.5}"
 DEIMV2_CANDIDATES=(${DEIMV2_CANDIDATES:-checkpoint0019 checkpoint0024 checkpoint0029 checkpoint0034 checkpoint0039 checkpoint0044 checkpoint0049 checkpoint0054 checkpoint0059 best_stg1 last})
-DEIMV2_CONFIG_SPECS="${DEIMV2_CONFIG_SPECS:-baseline|1.0|1.0|24|True v6_backbone_quarter|1.0|0.25|24|True v7_global_lr_0p8|0.8|1.0|24|True}"
+DEIMV2_CONFIG_SPECS="${DEIMV2_CONFIG_SPECS:-baseline|1.0|1.0|24|True low_lr_all_0p7|0.7|0.7|24|True low_lr_all_0p5|0.5|0.5|24|True backbone_tiny_0p25|1.0|0.25|24|True backbone_tiny_0p10|1.0|0.10|24|True small_batch16|1.0|1.0|16|True}"
 
 read_metric() {
     local metrics_fpath="$1"
@@ -290,8 +290,15 @@ EOF
         done
 
         if [ -z "$best_ckpt" ]; then
-            echo "No DEIMv2 checkpoint candidates with finite validation AP found in $detector_workdir" >&2
-            exit 1
+            printf '%s\t%s\tNA\tNA\tNA\tNA\t0\t%s\t%s\t%s\t%s\n' \
+                "" \
+                "$train_size" "$detector_workdir" "$run_dpath" "$summary_fpath" "$config_tag" >> "$summary_fpath"
+            printf 'DEIMv2 benchmark incomplete\n'
+            printf '  %-22s %s\n' "CONFIG_TAG" "$config_tag"
+            printf '  %-22s %s\n' "SUBSET" "$subset_name"
+            printf '  %-22s %s\n' "SUMMARY_FPATH" "$summary_fpath"
+            printf '  %-22s %s\n' "REASON" "No finite validation AP for any candidate"
+            continue
         fi
 
         final_package_fpath="$run_dpath/deimv2_selected.yaml"
