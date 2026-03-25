@@ -34,12 +34,25 @@ def _is_finite_number(value) -> bool:
     return value is not None and math.isfinite(value)
 
 
+def _row_preference_key(row: dict) -> tuple:
+    # Prefer rows with more complete metrics, then prefer tagged-layout runs
+    # over legacy baseline-layout runs when the scientific identity is the same.
+    run_path = pathlib.Path(row.get('run_dpath', ''))
+    rel_depth = len(run_path.parts)
+    return (
+        1 if _is_finite_number(row.get('poop_test_ap')) else 0,
+        1 if _is_finite_number(row.get('poop_vali_ap')) else 0,
+        rel_depth,
+    )
+
+
 def _normalize_row(row: dict, *, model_family: str, subset_name: str) -> dict:
     row = dict(row)
     row['model_family'] = model_family
     row['subset_name'] = subset_name
     row.setdefault('config_tag', 'baseline')
     row['config_label'] = f"{model_family}:{row['config_tag']}"
+    row.setdefault('status', 'selected')
     row['selected_candidate_id'] = row.get('candidate_id', '')
     row['train_size'] = int(row['train_size'])
     row['poop_vali_ap'] = _coerce_float(row.get('poop_vali_ap'))
@@ -95,18 +108,40 @@ def main(argv=1) -> int:
                 selected_row['config_tag'] = config_tag
                 selected_row['config_label'] = f'{model_family}:{config_tag}'
                 selected_row['selected_candidate_id'] = selected_row.get('candidate_id', '')
+                selected_row['status'] = 'selection_recovered'
                 selected_row['selection_recovered'] = '1'
                 selected_row['poop_test_ap'] = None
                 selected_row['nocls_test_ap'] = None
         if selected_row is None:
-            continue
+            if raw_rows:
+                placeholder = _normalize_row(raw_rows[0], model_family=model_family, subset_name=subset_name)
+                placeholder['config_tag'] = config_tag
+                placeholder['config_label'] = f'{model_family}:{config_tag}'
+                placeholder['selected_candidate_id'] = ''
+                placeholder['poop_vali_ap'] = None
+                placeholder['poop_test_ap'] = None
+                placeholder['nocls_vali_ap'] = None
+                placeholder['nocls_test_ap'] = None
+                placeholder['status'] = 'no_finite_selection'
+                selected_row = placeholder
+            else:
+                continue
         selected_rows.append(selected_row)
+
+    deduped_rows = {}
+    for row in selected_rows:
+        key = (row['model_family'], row.get('config_tag', 'baseline'), row['subset_name'], row['train_size'])
+        prev = deduped_rows.get(key)
+        if prev is None or _row_preference_key(row) > _row_preference_key(prev):
+            deduped_rows[key] = row
+    selected_rows = list(deduped_rows.values())
 
     summary_fpath = out_dpath / 'benchmark_summary.tsv'
     fieldnames = [
         'model_family',
         'config_tag',
         'config_label',
+        'status',
         'subset_name',
         'train_size',
         'selected_candidate_id',
