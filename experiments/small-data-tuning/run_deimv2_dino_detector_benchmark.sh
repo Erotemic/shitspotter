@@ -47,6 +47,34 @@ print(f'{float(val):.6f}')
 PY
 }
 
+is_finite_metric() {
+    local value="$1"
+    "$PYTHON_BIN" - "$value" <<'PY'
+import math
+import sys
+
+value = float(sys.argv[1])
+raise SystemExit(0 if math.isfinite(value) else 1)
+PY
+}
+
+metric_is_greater() {
+    local left="$1"
+    local right="$2"
+    "$PYTHON_BIN" - "$left" "$right" <<'PY'
+import math
+import sys
+
+left = float(sys.argv[1])
+right = float(sys.argv[2])
+if not math.isfinite(left):
+    raise SystemExit(1)
+if not math.isfinite(right):
+    raise SystemExit(0)
+raise SystemExit(0 if left > right else 1)
+PY
+}
+
 resolve_candidate_checkpoint() {
     local detector_workdir="$1"
     local candidate_id="$2"
@@ -204,12 +232,7 @@ EOF
         nocls_vali_ap="$(read_metric "$candidate_eval_dpath/eval/detect_metrics.json" nocls_ap)"
         printf '%s\t%s\t%s\t%s\tNA\tNA\t0\t%s\t%s\t%s\n' \
             "$candidate_id" "$train_size" "$poop_vali_ap" "$nocls_vali_ap" "$ckpt_fpath" "$run_dpath" "$summary_fpath" >> "$summary_fpath"
-        if [ -z "$best_poop_vali" ] || "$PYTHON_BIN" - <<PY
-best_score = float("${best_poop_vali:-0}")
-candidate_score = float("$poop_vali_ap")
-raise SystemExit(0 if candidate_score > best_score else 1)
-PY
-        then
+        if is_finite_metric "$poop_vali_ap" && { [ -z "$best_poop_vali" ] || metric_is_greater "$poop_vali_ap" "$best_poop_vali"; }; then
             best_candidate="$candidate_id"
             best_ckpt="$ckpt_fpath"
             best_poop_vali="$poop_vali_ap"
@@ -217,7 +240,7 @@ PY
     done
 
     if [ -z "$best_ckpt" ]; then
-        echo "No DEIMv2 checkpoint candidates found in $detector_workdir" >&2
+        echo "No DEIMv2 checkpoint candidates with finite validation AP found in $detector_workdir" >&2
         exit 1
     fi
 
@@ -231,4 +254,9 @@ PY
         "$best_candidate" "$train_size" "$best_poop_vali" \
         "$(read_metric "$eval_dpath/${best_candidate}/vali/eval/detect_metrics.json" nocls_ap)" \
         "$poop_test_ap" "$nocls_test_ap" "$best_ckpt" "$run_dpath" "$summary_fpath" >> "$summary_fpath"
+
+    printf 'DEIMv2 benchmark complete\n'
+    printf '  %-22s %s\n' "SELECTED_CANDIDATE" "$best_candidate"
+    printf '  %-22s %s\n' "SUMMARY_FPATH" "$summary_fpath"
+    printf '  %-22s %s\n' "RUN_DPATH" "$run_dpath"
 done
