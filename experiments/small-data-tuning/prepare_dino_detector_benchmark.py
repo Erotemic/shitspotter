@@ -148,6 +148,8 @@ def _run_simplify(src_fpath: pathlib.Path, dst_fpath: pathlib.Path, minimum_inst
 
 
 def _export_coco(src_kwcoco: pathlib.Path, dst_json: pathlib.Path):
+    from pathlib import Path
+    import json
     from shitspotter.algo_foundation_v3.coco_adapter import _build_coco_export
 
     _build_coco_export(
@@ -157,6 +159,14 @@ def _export_coco(src_kwcoco: pathlib.Path, dst_json: pathlib.Path):
         include_segmentations=True,
         category_id=0,
     )
+    data = json.loads(Path(dst_json).read_text())
+    data.setdefault('info', {
+        'description': 'ShitSpotter small-data DINO detector benchmark export',
+        'version': '1.0',
+        'year': 2026,
+    })
+    data.setdefault('licenses', [])
+    Path(dst_json).write_text(json.dumps(data))
 
 
 def _materialize_prepared_split(src_dset, chosen_gids: list[int], split_dpath: pathlib.Path, *,
