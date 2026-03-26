@@ -9,7 +9,9 @@ import argparse
 import csv
 import json
 import math
+import os
 import pathlib
+import re
 
 
 def _build_argparser() -> argparse.ArgumentParser:
@@ -44,6 +46,70 @@ def _row_preference_key(row: dict) -> tuple:
         1 if _is_finite_number(row.get('poop_vali_ap')) else 0,
         rel_depth,
     )
+
+
+def _load_json_if_exists(fpath: pathlib.Path):
+    if fpath.exists():
+        return json.loads(fpath.read_text())
+    return None
+
+
+def _parse_python_batch_size(config_fpath: pathlib.Path):
+    if not config_fpath.exists():
+        return None
+    text = config_fpath.read_text()
+    match = re.search(r'^\s*batch_size\s*=\s*([0-9]+)\s*$', text, flags=re.MULTILINE)
+    if match:
+        return int(match.group(1))
+    return None
+
+
+def _augment_with_run_metadata(row: dict) -> dict:
+    row = dict(row)
+    run_dpath = pathlib.Path(row.get('run_dpath', ''))
+    run_manifest_fpath = run_dpath / 'run_manifest.json'
+    row['run_manifest_fpath'] = str(run_manifest_fpath) if run_manifest_fpath.exists() else ''
+    row['train_batch_size'] = ''
+    row['vali_batch_size'] = ''
+    row['num_gpus_requested'] = ''
+    manifest = _load_json_if_exists(run_manifest_fpath)
+    if manifest:
+        if 'train_batch_size' in manifest:
+            row['train_batch_size'] = manifest.get('train_batch_size', '')
+        if 'vali_batch_size' in manifest:
+            row['vali_batch_size'] = manifest.get('vali_batch_size', '')
+        if 'num_gpus_requested' in manifest:
+            row['num_gpus_requested'] = manifest.get('num_gpus_requested', '')
+        elif 'gpu_num' in manifest:
+            row['num_gpus_requested'] = manifest.get('gpu_num', '')
+
+    if row.get('model_family') == 'opengroundingdino' and not row['train_batch_size']:
+        config_json = run_dpath / 'train_output' / 'config_args_all.json'
+        config_data = _load_json_if_exists(config_json)
+        if config_data and 'batch_size' in config_data:
+            row['train_batch_size'] = config_data.get('batch_size', '')
+        else:
+            cfg_py = run_dpath / 'prepared' / 'shitspotter_cfg_odvg.py'
+            parsed_batch_size = _parse_python_batch_size(cfg_py)
+            if parsed_batch_size is not None:
+                row['train_batch_size'] = parsed_batch_size
+
+    return row
+
+
+def _safe_link_name(text: str) -> str:
+    return re.sub(r'[^A-Za-z0-9._-]+', '_', text)
+
+
+def _refresh_symlink(link_fpath: pathlib.Path, target: pathlib.Path) -> None:
+    link_fpath.parent.mkdir(parents=True, exist_ok=True)
+    if link_fpath.is_symlink() or link_fpath.exists():
+        if link_fpath.is_symlink() and os.path.realpath(link_fpath) == str(target.resolve()):
+            return
+        if link_fpath.is_dir() and not link_fpath.is_symlink():
+            return
+        link_fpath.unlink()
+    link_fpath.symlink_to(target)
 
 
 def _normalize_row(row: dict, *, model_family: str, subset_name: str) -> dict:
@@ -135,6 +201,17 @@ def main(argv=1) -> int:
         if prev is None or _row_preference_key(row) > _row_preference_key(prev):
             deduped_rows[key] = row
     selected_rows = list(deduped_rows.values())
+    selected_rows = [_augment_with_run_metadata(row) for row in selected_rows]
+
+    run_links_dpath = out_dpath / 'run_links'
+    for row in selected_rows:
+        link_fpath = run_links_dpath / _safe_link_name(row['model_family']) / _safe_link_name(row.get('config_tag', 'baseline')) / _safe_link_name(row['subset_name'])
+        target = pathlib.Path(row['run_dpath'])
+        if target.exists():
+            _refresh_symlink(link_fpath, target)
+            row['run_link_fpath'] = str(link_fpath)
+        else:
+            row['run_link_fpath'] = ''
 
     summary_fpath = out_dpath / 'benchmark_summary.tsv'
     fieldnames = [
@@ -144,12 +221,17 @@ def main(argv=1) -> int:
         'status',
         'subset_name',
         'train_size',
+        'train_batch_size',
+        'vali_batch_size',
+        'num_gpus_requested',
         'selected_candidate_id',
         'poop_vali_ap',
         'poop_test_ap',
         'nocls_vali_ap',
         'nocls_test_ap',
         'run_dpath',
+        'run_link_fpath',
+        'run_manifest_fpath',
         'summary_fpath',
     ]
     with summary_fpath.open('w', newline='') as file:
@@ -202,12 +284,14 @@ def main(argv=1) -> int:
         'summary_fpath': str(summary_fpath),
         'num_rows': len(selected_rows),
         'plot_fpath': str(plot_fpath),
+        'run_links_dpath': str(run_links_dpath),
     }
     (out_dpath / 'analysis_manifest.json').write_text(json.dumps(manifest, indent=2))
     print('DINO detector benchmark analysis complete')
     print(f'  BENCHMARK_ROOT         {benchmark_root}')
     print(f'  SUMMARY_FPATH          {summary_fpath}')
     print(f'  PLOT_FPATH             {plot_fpath}')
+    print(f'  RUN_LINKS_DPATH        {run_links_dpath}')
     return 0
 
 
