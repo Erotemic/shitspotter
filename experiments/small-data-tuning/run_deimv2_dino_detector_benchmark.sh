@@ -76,6 +76,23 @@ raise SystemExit(0 if left > right else 1)
 PY
 }
 
+summary_is_terminal() {
+    local summary_fpath="$1"
+    [ -f "$summary_fpath" ] || return 1
+    "$PYTHON_BIN" - "$summary_fpath" <<'PY'
+import csv
+import sys
+
+rows = list(csv.DictReader(open(sys.argv[1], 'r'), delimiter='\t'))
+for row in rows:
+    if str(row.get('selected', '')).strip() == '1':
+        raise SystemExit(0)
+    if row.get('candidate_id', '') == '' and row.get('config_tag', ''):
+        raise SystemExit(0)
+raise SystemExit(1)
+PY
+}
+
 resolve_candidate_checkpoint() {
     local detector_workdir="$1"
     local candidate_id="$2"
@@ -210,6 +227,11 @@ EOF
         printf '  %-22s %s\n' "SUBSET" "$subset_name"
         printf '  %-22s %s\n' "TRAIN_SIZE" "$train_size"
         printf '  %-22s %s\n' "RUN_DPATH" "$run_dpath"
+
+        if [ "$FORCE_DETECTOR_RERUN" != "True" ] && summary_is_terminal "$summary_fpath"; then
+            printf '  %-22s %s\n' "STATUS" "Reusing completed benchmark summary"
+            continue
+        fi
 
         cat > "$run_manifest_fpath" <<EOF
 {
