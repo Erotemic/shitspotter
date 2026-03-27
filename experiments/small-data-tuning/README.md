@@ -58,14 +58,12 @@ The benchmark is now config-tag aware:
   a `config_tag`, writes into its own run subtree, and appears as its own curve
   in the aggregate plot.
 * The current default DEIMv2 tags are:
-  * `baseline`
-  * `small_batch16`
-  * `small_batch16_low_lr_all_0p8`
-  * `small_batch16_low_lr_all_0p6`
-  * `small_batch16_backbone_0p5`
-  * `small_batch16_backbone_0p25`
   * `small_batch4`
   * `small_batch4_low_lr_all_0p8`
+  * `small_batch4_low_lr_all_0p6`
+  * `small_batch4_backbone_0p5`
+  * `small_batch4_low_lr_backbone_0p5`
+  * `small_batch16_low_lr_all_0p8`
 
 That means new DEIMv2 tuning ideas can be added without overwriting earlier
 results, and the analysis layer can compare `model_family + config_tag` against

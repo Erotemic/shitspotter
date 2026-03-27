@@ -25,7 +25,7 @@ FORCE_DETECTOR_RERUN="${FORCE_DETECTOR_RERUN:-False}"
 DEIMV2_SCORE_THRESH="${DEIMV2_SCORE_THRESH:-0.2}"
 DEIMV2_NMS_THRESH="${DEIMV2_NMS_THRESH:-0.5}"
 DEIMV2_CANDIDATES=(${DEIMV2_CANDIDATES:-checkpoint0019 checkpoint0024 checkpoint0029 checkpoint0034 checkpoint0039 checkpoint0044 checkpoint0049 checkpoint0054 checkpoint0059 best_stg1 last})
-DEIMV2_CONFIG_SPECS="${DEIMV2_CONFIG_SPECS:-baseline|1.0|1.0|24|True small_batch16|1.0|1.0|16|True small_batch16_low_lr_all_0p8|0.8|0.8|16|True small_batch16_low_lr_all_0p6|0.6|0.6|16|True small_batch16_backbone_0p5|1.0|0.5|16|True small_batch16_backbone_0p25|1.0|0.25|16|True small_batch4|1.0|1.0|4|True small_batch4_low_lr_all_0p8|0.8|0.8|4|True}"
+DEIMV2_CONFIG_SPECS="${DEIMV2_CONFIG_SPECS:-small_batch4|1.0|1.0|4|True small_batch4_low_lr_all_0p8|0.8|0.8|4|True small_batch4_low_lr_all_0p6|0.6|0.6|4|True small_batch4_backbone_0p5|1.0|0.5|4|True small_batch4_low_lr_backbone_0p5|0.8|0.4|4|True small_batch16_low_lr_all_0p8|0.8|0.8|16|True}"
 
 read_metric() {
     local metrics_fpath="$1"
