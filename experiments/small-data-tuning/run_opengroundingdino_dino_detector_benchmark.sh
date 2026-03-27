@@ -20,7 +20,18 @@ TEXT_ENCODER_TYPE="${TEXT_ENCODER_TYPE:-bert-base-uncased}"
 CFG_TEMPLATE="${CFG_TEMPLATE:-config/cfg_odvg.py}"
 FORCE_GDINO_RERUN="${FORCE_GDINO_RERUN:-False}"
 CLASSES_TEXT="${CLASSES_TEXT:-[poop]}"
+# Format: config_tag|gpu_num|pretrain_model|text_encoder|cfg_template[|batch_size|lr_scale|backbone_lr_scale]
+# The last three fields are optional. If omitted, the config template defaults are used.
+# When batch_size is provided, lr and lr_backbone are scaled linearly from their
+# base values (lr=0.0001 at batch=4, lr_backbone=1e-5 at batch=4) then multiplied
+# by lr_scale and backbone_lr_scale respectively.
 GDINO_CONFIG_SPECS="${GDINO_CONFIG_SPECS:-baseline|1|groundingdino_swint_ogc.pth|bert-base-uncased|config/cfg_odvg.py}"
+
+# OpenGroundingDINO base training hyperparameters (from cfg_odvg.py defaults).
+# Used to compute scaled LR values when batch_size is overridden.
+GDINO_BASE_BATCH_SIZE="${GDINO_BASE_BATCH_SIZE:-4}"
+GDINO_BASE_LR="${GDINO_BASE_LR:-0.0001}"
+GDINO_BASE_LR_BACKBONE="${GDINO_BASE_LR_BACKBONE:-1e-05}"
 
 read_metric() {
     local metrics_fpath="$1"
@@ -113,12 +124,37 @@ PY
 for row in "${TRAIN_ROWS[@]}"; do
     IFS=$'\t' read -r subset_name train_size train_kwcoco train_mscoco <<<"$row"
     for config_spec in ${GDINO_CONFIG_SPECS}; do
-        IFS='|' read -r config_tag config_gpu_num config_pretrain_model_path config_text_encoder_type config_cfg_template <<<"$config_spec"
+        # Parse config spec: first 5 fields are the original format, last 3 are optional tuning knobs
+        IFS='|' read -r config_tag config_gpu_num config_pretrain_model_path config_text_encoder_type config_cfg_template config_batch_size config_lr_scale config_backbone_lr_scale <<<"$config_spec"
         config_tag="${config_tag:-baseline}"
         config_gpu_num="${config_gpu_num:-$GPU_NUM}"
         config_pretrain_model_path="${config_pretrain_model_path:-$PRETRAIN_MODEL_PATH}"
         config_text_encoder_type="${config_text_encoder_type:-$TEXT_ENCODER_TYPE}"
         config_cfg_template="${config_cfg_template:-$CFG_TEMPLATE}"
+        # Optional tuning fields: empty string means "use config template defaults"
+        config_batch_size="${config_batch_size:-}"
+        config_lr_scale="${config_lr_scale:-}"
+        config_backbone_lr_scale="${config_backbone_lr_scale:-}"
+
+        # Resolve effective LR values when batch_size is overridden
+        resolved_lr=""
+        resolved_backbone_lr=""
+        if [ -n "$config_batch_size" ]; then
+            local_lr_scale="${config_lr_scale:-1.0}"
+            local_backbone_lr_scale="${config_backbone_lr_scale:-1.0}"
+            read -r resolved_lr resolved_backbone_lr < <("$PYTHON_BIN" - <<PY
+base_batch = float($GDINO_BASE_BATCH_SIZE)
+base_lr = float($GDINO_BASE_LR)
+base_backbone_lr = float($GDINO_BASE_LR_BACKBONE)
+batch = float($config_batch_size)
+lr_scale = float($local_lr_scale)
+backbone_lr_scale = float($local_backbone_lr_scale)
+resolved_lr = base_lr * (batch / base_batch) * lr_scale
+resolved_backbone_lr = base_backbone_lr * (batch / base_batch) * backbone_lr_scale
+print(f'{resolved_lr:.10g} {resolved_backbone_lr:.10g}')
+PY
+)
+        fi
 
         run_dpath="$RUN_ROOT/$config_tag/$subset_name"
         prep_dpath="$run_dpath/prepared"
@@ -136,28 +172,51 @@ for row in "${TRAIN_ROWS[@]}"; do
         printf '  %-22s %s\n' "SUBSET" "$subset_name"
         printf '  %-22s %s\n' "TRAIN_SIZE" "$train_size"
         printf '  %-22s %s\n' "RUN_DPATH" "$run_dpath"
+        if [ -n "$config_batch_size" ]; then
+            printf '  %-22s %s\n' "BATCH_SIZE" "$config_batch_size"
+            printf '  %-22s %s\n' "RESOLVED_LR" "$resolved_lr"
+            printf '  %-22s %s\n' "RESOLVED_LR_BACKBONE" "$resolved_backbone_lr"
+        fi
 
-        cat > "$run_manifest_fpath" <<EOF
-{
-  "model_family": "opengroundingdino",
-  "config_tag": "$config_tag",
-  "benchmark_manifest_fpath": "$BENCHMARK_MANIFEST_FPATH",
-  "subset_name": "$subset_name",
-  "train_size": $train_size,
-  "train_kwcoco_fpath": "$train_kwcoco",
-  "train_mscoco_fpath": "$train_mscoco",
-  "vali_kwcoco_fpath": "$VALI_KWCOCO",
-  "vali_mscoco_fpath": "$VALI_MSCOCO",
-  "test_kwcoco_fpath": "$TEST_KWCOCO",
-  "run_dpath": "$run_dpath",
-  "open_gdino_repo_dpath": "$OPEN_GDINO_REPO_DPATH",
-  "gpu_num": $config_gpu_num,
-  "cfg_template": "$config_cfg_template",
-  "pretrain_model_path": "$config_pretrain_model_path",
-  "text_encoder_type": "$config_text_encoder_type",
-  "classes_text": "$CLASSES_TEXT"
+        # Build run manifest with optional tuning fields
+        "$PYTHON_BIN" - "$run_manifest_fpath" <<PY
+import json, sys
+manifest = {
+    "model_family": "opengroundingdino",
+    "config_tag": "$config_tag",
+    "benchmark_manifest_fpath": "$BENCHMARK_MANIFEST_FPATH",
+    "subset_name": "$subset_name",
+    "train_size": $train_size,
+    "train_kwcoco_fpath": "$train_kwcoco",
+    "train_mscoco_fpath": "$train_mscoco",
+    "vali_kwcoco_fpath": "$VALI_KWCOCO",
+    "vali_mscoco_fpath": "$VALI_MSCOCO",
+    "test_kwcoco_fpath": "$TEST_KWCOCO",
+    "run_dpath": "$run_dpath",
+    "open_gdino_repo_dpath": "$OPEN_GDINO_REPO_DPATH",
+    "gpu_num": $config_gpu_num,
+    "cfg_template": "$config_cfg_template",
+    "pretrain_model_path": "$config_pretrain_model_path",
+    "text_encoder_type": "$config_text_encoder_type",
+    "classes_text": "$CLASSES_TEXT",
 }
-EOF
+# Include tuning overrides when batch_size is explicitly set
+batch_size_str = "$config_batch_size"
+if batch_size_str:
+    manifest["train_batch_size"] = int(batch_size_str)
+    manifest["lr_scale"] = float("${config_lr_scale:-1.0}")
+    manifest["backbone_lr_scale"] = float("${config_backbone_lr_scale:-1.0}")
+    manifest["resolved_lr"] = float("$resolved_lr")
+    manifest["resolved_backbone_lr"] = float("$resolved_backbone_lr")
+    manifest["base_batch_size"] = int("$GDINO_BASE_BATCH_SIZE")
+    manifest["base_lr"] = float("$GDINO_BASE_LR")
+    manifest["base_lr_backbone"] = float("$GDINO_BASE_LR_BACKBONE")
+else:
+    manifest["train_batch_size"] = int("$GDINO_BASE_BATCH_SIZE")
+with open(sys.argv[1], 'w') as f:
+    json.dump(manifest, f, indent=2)
+    f.write('\n')
+PY
 
         cd "$OPEN_GDINO_REPO_DPATH"
 
@@ -196,6 +255,18 @@ EOF
         sed -i 's|use_coco_eval = True|use_coco_eval = False|g' "$cfg_fpath"
         echo "" >> "$cfg_fpath"
         echo "label_list = ['poop']" >> "$cfg_fpath"
+
+        # Apply batch_size and LR overrides when tuning fields are specified.
+        # Appending to the Python config file overrides earlier definitions.
+        if [ -n "$config_batch_size" ]; then
+            cat >> "$cfg_fpath" <<PYOVERRIDE
+
+# --- Hyperparameter overrides (added by benchmark runner) ---
+batch_size = $config_batch_size
+lr = $resolved_lr
+lr_backbone = $resolved_backbone_lr
+PYOVERRIDE
+        fi
 
         export GPU_NUM="$config_gpu_num"
         export CFG="$cfg_fpath"
