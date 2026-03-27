@@ -270,6 +270,44 @@ bash /home/joncrall/code/shitspotter/experiments/small-data-tuning/run_deimv2_di
 This keeps the shared benchmark data fixed while letting the DEIMv2 detector
 recipe evolve in a comparable, append-only way.
 
+### Extending OpenGroundingDINO tuning
+
+The OpenGroundingDINO runner also supports tagged config specs through
+`GDINO_CONFIG_SPECS`. The original format is:
+
+```text
+config_tag|gpu_num|pretrain_model|text_encoder|cfg_template
+```
+
+This has been extended with three optional trailing fields for hyperparameter
+tuning:
+
+```text
+config_tag|gpu_num|pretrain_model|text_encoder|cfg_template|batch_size|lr_scale|backbone_lr_scale
+```
+
+When `batch_size` is provided, `lr` and `lr_backbone` are computed by scaling
+their base values (`lr=0.0001`, `lr_backbone=1e-5`, both at `batch_size=4`)
+linearly with batch size, then multiplying by the respective scale factors.
+If the last three fields are omitted, the config template defaults are used
+unchanged (backward compatible).
+
+Example — test whether larger batch sizes hurt DINOv2:
+
+```bash
+GDINO_CONFIG_SPECS="
+baseline|1|groundingdino_swint_ogc.pth|bert-base-uncased|config/cfg_odvg.py
+batch8|1|groundingdino_swint_ogc.pth|bert-base-uncased|config/cfg_odvg.py|8|1.0|1.0
+batch16|1|groundingdino_swint_ogc.pth|bert-base-uncased|config/cfg_odvg.py|16|1.0|1.0
+batch8_no_lr_scale|1|groundingdino_swint_ogc.pth|bert-base-uncased|config/cfg_odvg.py|8|0.5|0.5
+" \
+bash experiments/small-data-tuning/run_opengroundingdino_dino_detector_benchmark.sh
+```
+
+Each tagged config gets its own run subtree under
+`runs/opengroundingdino/<config_tag>/` and appears as a separate curve in the
+analysis plot, exactly like the DEIMv2 tags.
+
 ### 1. Materialize the benchmark cohorts
 
 ```bash
