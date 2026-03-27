@@ -16,3 +16,11 @@
 [submodule "tpl/MaskDINO"]
 	path = tpl/MaskDINO
 	url = https://github.com/IDEA-Research/MaskDINO.git
+[submodule "tpl/Open-GroundingDino"]
+	path = tpl/Open-GroundingDino
+	url = git@github.com:Erotemic/Open-GroundingDino.git
+	branch = shitspotter
+[submodule "tpl/YOLO-v9"]
+	path = tpl/YOLO-v9
+	url = git@github.com:Erotemic/YOLO.git
+	branch = shitspotter
