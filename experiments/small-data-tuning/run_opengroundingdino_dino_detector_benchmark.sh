@@ -13,7 +13,7 @@ BENCHMARK_ROOT="${BENCHMARK_ROOT:-$EXPT_DPATH/small_data_tuning/dino_detector_be
 BENCHMARK_MANIFEST_FPATH="$BENCHMARK_ROOT/benchmark_manifest.json"
 RUN_ROOT="$BENCHMARK_ROOT/runs/opengroundingdino"
 
-OPEN_GDINO_REPO_DPATH="${OPEN_GDINO_REPO_DPATH:-$HOME/code/Open-GroundingDino}"
+OPEN_GDINO_REPO_DPATH="${OPEN_GDINO_REPO_DPATH:-$REPO_DPATH/tpl/Open-GroundingDino}"
 GPU_NUM="${GPU_NUM:-1}"
 PRETRAIN_MODEL_PATH="${PRETRAIN_MODEL_PATH:-groundingdino_swint_ogc.pth}"
 TEXT_ENCODER_TYPE="${TEXT_ENCODER_TYPE:-bert-base-uncased}"
