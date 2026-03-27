@@ -121,8 +121,19 @@ print(data['eval_sets']['test']['prepared_kwcoco_fpath'])
 PY
 )"
 
+# Optional: space-separated list of train sizes to run (e.g. "128" or "128 256").
+# If empty, all sizes from the benchmark manifest are used.
+GDINO_TRAIN_SIZES="${GDINO_TRAIN_SIZES:-}"
+
 for row in "${TRAIN_ROWS[@]}"; do
     IFS=$'\t' read -r subset_name train_size train_kwcoco train_mscoco <<<"$row"
+    if [ -n "$GDINO_TRAIN_SIZES" ]; then
+        _skip=1
+        for _sz in $GDINO_TRAIN_SIZES; do
+            if [ "$train_size" = "$_sz" ]; then _skip=0; break; fi
+        done
+        if [ "$_skip" = "1" ]; then continue; fi
+    fi
     for config_spec in ${GDINO_CONFIG_SPECS}; do
         # Parse config spec: first 5 fields are the original format, last 3 are optional tuning knobs
         IFS='|' read -r config_tag config_gpu_num config_pretrain_model_path config_text_encoder_type config_cfg_template config_batch_size config_lr_scale config_backbone_lr_scale <<<"$config_spec"
