@@ -713,3 +713,11 @@ check params, and in this case it was codex 5.4. Not sure if it matters.  If
 this vibe coding session works, it should also connect to a tuned SAM2 model
 and we should be able to get something better than the MaskRCNN for
 bootstrapping.
+
+# 2026-03-27
+
+Started work with a Claude agent to complement the GPT agent. Working to make
+the repo easier to use. Adding Open-GroundingDINO and YOLO-v9 as submodules.
+The existing manual experiments currently reference them as repos on my home
+disk, but going forward we should probably be using the TPL variants so we can
+add modifications to them as necessary.
