@@ -128,6 +128,121 @@ def _normalize_row(row: dict, *, model_family: str, subset_name: str) -> dict:
     return row
 
 
+def _generate_plots(selected_rows: list[dict], plots_dpath: pathlib.Path,
+                     legacy_plot_fpath: pathlib.Path) -> None:
+    """Generate multi-variant plots using kwplot utilities.
+
+    Produces:
+        PLT01_train_size_curve_legend.png     - curve plot with legend
+        PLT02_train_size_curve_nolegend.png   - curve plot without legend
+        PLT03_train_size_curve_onlylegend.png - standalone legend
+        PLT04_results_table.png               - summary table as image
+    """
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    import kwplot
+    import pandas as pd
+
+    finalize = kwplot.FigureFinalizer(
+        dpi=200,
+        cropwhite=True,
+    )
+
+    # --- Build config_label palette for consistent colors ---
+    config_labels = sorted({row['config_label'] for row in selected_rows})
+    palette = kwplot.Palette.coerce(config_labels)
+
+    # --- Draw curves: one color per config_label, solid=vali, dashed=test ---
+    fig, ax = plt.subplots(figsize=(10, 6))
+    for config_label in config_labels:
+        color = palette[config_label]
+        family_rows = sorted(
+            [
+                row for row in selected_rows
+                if row['config_label'] == config_label
+                and _is_finite_number(row['poop_vali_ap'])
+            ],
+            key=lambda row: row['train_size'],
+        )
+        if not family_rows:
+            continue
+        ax.plot(
+            [row['train_size'] for row in family_rows],
+            [row['poop_vali_ap'] for row in family_rows],
+            marker='o', color=color,
+            label=f'{config_label} vali',
+        )
+        test_rows = [row for row in family_rows if _is_finite_number(row['poop_test_ap'])]
+        if test_rows:
+            ax.plot(
+                [row['train_size'] for row in test_rows],
+                [row['poop_test_ap'] for row in test_rows],
+                marker='s', linestyle='--', color=color,
+                label=f'{config_label} test',
+            )
+    ax.set_xlabel('Training size')
+    ax.set_ylabel('Box AP (poop)')
+    ax.set_title('DINO detector benchmark')
+    ax.grid(True, alpha=0.3)
+
+    # PLT01: with legend
+    ax.legend(fontsize='small', loc='best')
+    fpath_legend = plots_dpath / 'PLT01_train_size_curve_legend.png'
+    finalize.finalize(fig, fpath_legend)
+
+    # PLT03: standalone legend (extract before removing)
+    try:
+        legend_ax = kwplot.extract_legend(ax)
+        fpath_onlylegend = plots_dpath / 'PLT03_train_size_curve_onlylegend.png'
+        finalize.finalize(legend_ax.figure, fpath_onlylegend)
+        plt.close(legend_ax.figure)
+    except Exception:
+        pass  # non-critical
+
+    # PLT02: without legend
+    legend_obj = ax.get_legend()
+    if legend_obj is not None:
+        legend_obj.remove()
+    fpath_nolegend = plots_dpath / 'PLT02_train_size_curve_nolegend.png'
+    finalize.finalize(fig, fpath_nolegend)
+
+    # Copy to legacy path
+    import shutil
+    shutil.copy2(fpath_legend, legacy_plot_fpath)
+
+    plt.close(fig)
+
+    # PLT04: results table as image
+    table_rows = []
+    for row in selected_rows:
+        if row.get('status') == 'no_finite_selection':
+            continue
+        table_rows.append({
+            'model': row.get('model_family', ''),
+            'config': row.get('config_tag', ''),
+            'train_size': row.get('train_size', ''),
+            'batch': row.get('train_batch_size', ''),
+            'best_ckpt': row.get('selected_candidate_id', ''),
+            'vali_ap': row.get('poop_vali_ap'),
+            'test_ap': row.get('poop_test_ap'),
+        })
+    if table_rows:
+        df = pd.DataFrame(table_rows)
+        df = df.sort_values(['model', 'config', 'train_size'])
+        # Format AP columns
+        for col in ['vali_ap', 'test_ap']:
+            df[col] = df[col].apply(
+                lambda v: f'{v:.4f}' if _is_finite_number(v) else ''
+            )
+        fpath_table = plots_dpath / 'PLT04_results_table.png'
+        try:
+            kwplot.dataframe_table(df, fpath_table, title='DINO Detector Benchmark')
+            print(f'  TABLE_FPATH            {fpath_table}')
+        except Exception as ex:
+            print(f'  TABLE_FPATH            (skipped: {ex})')
+
+
 def main(argv=1) -> int:
     parser = _build_argparser()
     args = parser.parse_args(argv if isinstance(argv, list) else None)
@@ -240,49 +355,19 @@ def main(argv=1) -> int:
         for row in sorted(selected_rows, key=lambda row: (row['model_family'], row.get('config_tag', 'baseline'), row['train_size'])):
             writer.writerow({key: row.get(key, '') for key in fieldnames})
 
+    plots_dpath = out_dpath / 'plots'
+    plots_dpath.mkdir(parents=True, exist_ok=True)
+    # Keep legacy path for backward compat
     plot_fpath = out_dpath / 'train_size_curve.png'
-    if selected_rows:
-        import matplotlib.pyplot as plt
 
-        fig, ax = plt.subplots(figsize=(8, 5))
-        families = sorted({row['config_label'] for row in selected_rows})
-        for family in families:
-            family_rows = sorted(
-                [
-                    row for row in selected_rows
-                    if row['config_label'] == family and _is_finite_number(row['poop_vali_ap'])
-                ],
-                key=lambda row: row['train_size'],
-            )
-            if not family_rows:
-                continue
-            ax.plot(
-                [row['train_size'] for row in family_rows],
-                [row['poop_vali_ap'] for row in family_rows],
-                marker='o',
-                label=f'{family} vali',
-            )
-            test_rows = [row for row in family_rows if _is_finite_number(row['poop_test_ap'])]
-            if test_rows:
-                ax.plot(
-                    [row['train_size'] for row in test_rows],
-                    [row['poop_test_ap'] for row in test_rows],
-                    marker='s',
-                    linestyle='--',
-                    label=f'{family} test',
-                )
-        ax.set_xlabel('Training size')
-        ax.set_ylabel('Box AP (poop)')
-        ax.set_title('DINO detector benchmark')
-        ax.grid(True, alpha=0.3)
-        ax.legend()
-        fig.tight_layout()
-        fig.savefig(plot_fpath, dpi=200)
+    if selected_rows:
+        _generate_plots(selected_rows, plots_dpath, plot_fpath)
 
     manifest = {
         'benchmark_root': str(benchmark_root),
         'summary_fpath': str(summary_fpath),
         'num_rows': len(selected_rows),
+        'plots_dpath': str(plots_dpath),
         'plot_fpath': str(plot_fpath),
         'run_links_dpath': str(run_links_dpath),
     }
@@ -290,7 +375,7 @@ def main(argv=1) -> int:
     print('DINO detector benchmark analysis complete')
     print(f'  BENCHMARK_ROOT         {benchmark_root}')
     print(f'  SUMMARY_FPATH          {summary_fpath}')
-    print(f'  PLOT_FPATH             {plot_fpath}')
+    print(f'  PLOTS_DPATH            {plots_dpath}')
     print(f'  RUN_LINKS_DPATH        {run_links_dpath}')
     return 0
 
