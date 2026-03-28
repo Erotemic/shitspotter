@@ -135,8 +135,9 @@ for row in "${TRAIN_ROWS[@]}"; do
         if [ "$_skip" = "1" ]; then continue; fi
     fi
     for config_spec in ${GDINO_CONFIG_SPECS}; do
-        # Parse config spec: first 5 fields are the original format, last 3 are optional tuning knobs
-        IFS='|' read -r config_tag config_gpu_num config_pretrain_model_path config_text_encoder_type config_cfg_template config_batch_size config_lr_scale config_backbone_lr_scale <<<"$config_spec"
+        # Parse config spec: first 5 fields are the original format, last 4 are optional tuning knobs
+        # Format: config_tag|gpu_num|pretrain_model|text_encoder|cfg_template[|batch_size|lr_scale|backbone_lr_scale|epochs]
+        IFS='|' read -r config_tag config_gpu_num config_pretrain_model_path config_text_encoder_type config_cfg_template config_batch_size config_lr_scale config_backbone_lr_scale config_epochs <<<"$config_spec"
         config_tag="${config_tag:-baseline}"
         config_gpu_num="${config_gpu_num:-$GPU_NUM}"
         config_pretrain_model_path="${config_pretrain_model_path:-$PRETRAIN_MODEL_PATH}"
@@ -146,6 +147,7 @@ for row in "${TRAIN_ROWS[@]}"; do
         config_batch_size="${config_batch_size:-}"
         config_lr_scale="${config_lr_scale:-}"
         config_backbone_lr_scale="${config_backbone_lr_scale:-}"
+        config_epochs="${config_epochs:-}"
 
         # Resolve effective LR values when batch_size is overridden
         resolved_lr=""
@@ -188,6 +190,9 @@ PY
             printf '  %-22s %s\n' "RESOLVED_LR" "$resolved_lr"
             printf '  %-22s %s\n' "RESOLVED_LR_BACKBONE" "$resolved_backbone_lr"
         fi
+        if [ -n "$config_epochs" ]; then
+            printf '  %-22s %s\n' "EPOCHS" "$config_epochs"
+        fi
 
         # Build run manifest with optional tuning fields
         "$PYTHON_BIN" - "$run_manifest_fpath" <<PY
@@ -224,6 +229,9 @@ if batch_size_str:
     manifest["base_lr_backbone"] = float("$GDINO_BASE_LR_BACKBONE")
 else:
     manifest["train_batch_size"] = int("$GDINO_BASE_BATCH_SIZE")
+epochs_str = "$config_epochs"
+if epochs_str:
+    manifest["epochs"] = int(epochs_str)
 with open(sys.argv[1], 'w') as f:
     json.dump(manifest, f, indent=2)
     f.write('\n')
@@ -267,16 +275,17 @@ EOF
         echo "" >> "$cfg_fpath"
         echo "label_list = ['poop']" >> "$cfg_fpath"
 
-        # Apply batch_size and LR overrides when tuning fields are specified.
+        # Apply batch_size, LR, and epoch overrides when tuning fields are specified.
         # Appending to the Python config file overrides earlier definitions.
-        if [ -n "$config_batch_size" ]; then
-            cat >> "$cfg_fpath" <<PYOVERRIDE
-
-# --- Hyperparameter overrides (added by benchmark runner) ---
-batch_size = $config_batch_size
-lr = $resolved_lr
-lr_backbone = $resolved_backbone_lr
-PYOVERRIDE
+        if [ -n "$config_batch_size" ] || [ -n "$config_epochs" ]; then
+            {
+                echo ""
+                echo "# --- Hyperparameter overrides (added by benchmark runner) ---"
+                [ -n "$config_batch_size" ] && echo "batch_size = $config_batch_size"
+                [ -n "$config_batch_size" ] && echo "lr = $resolved_lr"
+                [ -n "$config_batch_size" ] && echo "lr_backbone = $resolved_backbone_lr"
+                [ -n "$config_epochs" ] && echo "epochs = $config_epochs"
+            } >> "$cfg_fpath"
         fi
 
         export GPU_NUM="$config_gpu_num"
@@ -297,7 +306,12 @@ PYOVERRIDE
                 ;;
         esac
 
-        if [ ! -f "$output_dir/checkpoint0014.pth" ] || [ "$FORCE_GDINO_RERUN" = "True" ]; then
+        # Compute expected final checkpoint filename (0-indexed epoch number)
+        _gdino_epochs="${config_epochs:-15}"
+        _gdino_final_ckpt_idx=$(( _gdino_epochs - 1 ))
+        _gdino_final_ckpt="$(printf 'checkpoint%04d.pth' "$_gdino_final_ckpt_idx")"
+
+        if [ ! -f "$output_dir/$_gdino_final_ckpt" ] || [ "$FORCE_GDINO_RERUN" = "True" ]; then
             # Wrap training in kwutil.ProcessContext for timing/environment telemetry.
             # Falls back to plain training if kwutil is not available.
             "$PYTHON_BIN" - "$run_manifest_fpath" "$output_dir" "$GPU_NUM" "$CFG" "$DATASETS" <<'PROCWRAP' || true
@@ -335,7 +349,7 @@ if proc_context is not None:
 sys.exit(ret)
 PROCWRAP
             # If the Python wrapper itself fails (e.g. syntax error), fall back
-            if [ ! -f "$output_dir/checkpoint0014.pth" ]; then
+            if [ ! -f "$output_dir/$_gdino_final_ckpt" ]; then
                 bash train_dist.sh "$GPU_NUM" "$CFG" "$DATASETS" "$OUTPUT_DIR"
             fi
         fi
