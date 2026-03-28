@@ -298,7 +298,46 @@ PYOVERRIDE
         esac
 
         if [ ! -f "$output_dir/checkpoint0014.pth" ] || [ "$FORCE_GDINO_RERUN" = "True" ]; then
-            bash train_dist.sh "$GPU_NUM" "$CFG" "$DATASETS" "$OUTPUT_DIR"
+            # Wrap training in kwutil.ProcessContext for timing/environment telemetry.
+            # Falls back to plain training if kwutil is not available.
+            "$PYTHON_BIN" - "$run_manifest_fpath" "$output_dir" "$GPU_NUM" "$CFG" "$DATASETS" <<'PROCWRAP' || true
+import subprocess
+import sys
+import json
+import pathlib
+
+run_manifest_fpath = sys.argv[1]
+output_dir = sys.argv[2]
+gpu_num, cfg, datasets = sys.argv[3], sys.argv[4], sys.argv[5]
+output_dpath = pathlib.Path(output_dir)
+output_dpath.mkdir(parents=True, exist_ok=True)
+
+try:
+    import kwutil
+    manifest = json.loads(pathlib.Path(run_manifest_fpath).read_text())
+    proc_context = kwutil.ProcessContext(
+        name='opengroundingdino.train',
+        config=manifest,
+    )
+    proc_context.start()
+    initial_fpath = output_dpath / 'initial_telemetry.json'
+    initial_fpath.write_text(kwutil.Json.dumps(proc_context.obj))
+except ImportError:
+    proc_context = None
+
+ret = subprocess.call(['bash', 'train_dist.sh', gpu_num, cfg, datasets, output_dir])
+
+if proc_context is not None:
+    proc_context.stop()
+    final_fpath = output_dpath / 'final_telemetry.json'
+    final_fpath.write_text(kwutil.Json.dumps(proc_context.obj))
+
+sys.exit(ret)
+PROCWRAP
+            # If the Python wrapper itself fails (e.g. syntax error), fall back
+            if [ ! -f "$output_dir/checkpoint0014.pth" ]; then
+                bash train_dist.sh "$GPU_NUM" "$CFG" "$DATASETS" "$OUTPUT_DIR"
+            fi
         fi
 
         mapfile -t CANDIDATES < <(find "$output_dir" -maxdepth 1 -type f -name 'checkpoint*.pth' | sort)

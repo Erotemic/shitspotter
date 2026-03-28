@@ -64,6 +64,56 @@ def _parse_python_batch_size(config_fpath: pathlib.Path):
     return None
 
 
+def _estimate_training_duration(run_dpath: pathlib.Path) -> tuple:
+    """Estimate training duration from available telemetry or checkpoint timestamps.
+
+    Returns:
+        (duration_minutes, timing_method) where timing_method describes the
+        estimation approach so downstream analysis can account for accuracy.
+
+        Timing methods:
+            'process_context' — direct measurement via kwutil.ProcessContext
+            'checkpoint_mtime_delta' — wall-clock delta between first and last
+                checkpoint file modification times (excludes data prep overhead)
+            '' — no timing data available
+    """
+    # Prefer direct measurement from ProcessContext telemetry
+    telemetry_fpath = run_dpath / 'train_output' / 'final_telemetry.json'
+    if not telemetry_fpath.exists():
+        telemetry_fpath = run_dpath / 'final_telemetry.json'
+    telemetry = _load_json_if_exists(telemetry_fpath)
+    if telemetry:
+        duration = telemetry.get('duration')
+        if duration is not None:
+            try:
+                return (float(duration) / 60.0, 'process_context')
+            except (ValueError, TypeError):
+                pass
+        # ProcessContext also stores start/stop timestamps
+        start_ts = telemetry.get('start_timestamp')
+        stop_ts = telemetry.get('stop_timestamp')
+        if start_ts and stop_ts:
+            try:
+                return ((float(stop_ts) - float(start_ts)) / 60.0, 'process_context')
+            except (ValueError, TypeError):
+                pass
+
+    # Fall back to checkpoint file modification timestamps
+    train_output = run_dpath / 'train_output'
+    if train_output.is_dir():
+        ckpt_files = sorted(train_output.glob('checkpoint*.pth'))
+    else:
+        ckpt_files = sorted(run_dpath.glob('checkpoint*.pth'))
+    if len(ckpt_files) >= 2:
+        first_mtime = ckpt_files[0].stat().st_mtime
+        last_mtime = ckpt_files[-1].stat().st_mtime
+        delta_minutes = (last_mtime - first_mtime) / 60.0
+        if delta_minutes > 0:
+            return (delta_minutes, 'checkpoint_mtime_delta')
+
+    return (None, '')
+
+
 def _augment_with_run_metadata(row: dict) -> dict:
     row = dict(row)
     run_dpath = pathlib.Path(row.get('run_dpath', ''))
@@ -72,6 +122,8 @@ def _augment_with_run_metadata(row: dict) -> dict:
     row['train_batch_size'] = ''
     row['vali_batch_size'] = ''
     row['num_gpus_requested'] = ''
+    row['train_duration_minutes'] = ''
+    row['timing_method'] = ''
     manifest = _load_json_if_exists(run_manifest_fpath)
     if manifest:
         if 'train_batch_size' in manifest:
@@ -93,6 +145,13 @@ def _augment_with_run_metadata(row: dict) -> dict:
             parsed_batch_size = _parse_python_batch_size(cfg_py)
             if parsed_batch_size is not None:
                 row['train_batch_size'] = parsed_batch_size
+
+    # Estimate training duration
+    if run_dpath.is_dir():
+        duration_minutes, timing_method = _estimate_training_duration(run_dpath)
+        if duration_minutes is not None:
+            row['train_duration_minutes'] = round(duration_minutes, 1)
+            row['timing_method'] = timing_method
 
     return row
 
@@ -227,6 +286,8 @@ def _generate_plots(selected_rows: list[dict], plots_dpath: pathlib.Path,
             'best_ckpt': row.get('selected_candidate_id', ''),
             'vali_ap': row.get('poop_vali_ap'),
             'test_ap': row.get('poop_test_ap'),
+            'train_min': row.get('train_duration_minutes', ''),
+            'timing': row.get('timing_method', ''),
         })
     if table_rows:
         df = pd.DataFrame(table_rows)
@@ -345,6 +406,8 @@ def main(argv=1) -> int:
         'poop_test_ap',
         'nocls_vali_ap',
         'nocls_test_ap',
+        'train_duration_minutes',
+        'timing_method',
         'run_dpath',
         'run_link_fpath',
         'run_manifest_fpath',
