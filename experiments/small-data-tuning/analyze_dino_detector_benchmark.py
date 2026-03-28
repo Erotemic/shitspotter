@@ -151,7 +151,8 @@ def _generate_plots(selected_rows: list[dict], plots_dpath: pathlib.Path,
 
     # --- Build config_label palette for consistent colors ---
     config_labels = sorted({row['config_label'] for row in selected_rows})
-    palette = kwplot.Palette.coerce(config_labels)
+    from kwplot.managers import Palette
+    palette = Palette.coerce(config_labels)
 
     # --- Draw curves: one color per config_label, solid=vali, dashed=test ---
     fig, ax = plt.subplots(figsize=(10, 6))
