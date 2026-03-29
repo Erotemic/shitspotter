@@ -59,3 +59,26 @@ already does.
 **Backward compatibility:** New TSV columns are additive. The ProcessContext
 wrapper degrades gracefully. Existing runs without telemetry files still get
 timing estimated from checkpoint timestamps.
+
+## 2026-03-28 (later) — claude-code
+
+### Added epochs field to config spec; fixed hardcoded final-checkpoint check
+
+**What changed:**
+
+- `run_opengroundingdino_dino_detector_benchmark.sh`: Added `epochs` as a 9th
+  optional field in `GDINO_CONFIG_SPECS`. When set, appends `epochs = N` to
+  the Python config override block. The training-completion check now computes
+  the expected final checkpoint dynamically (`checkpoint{epochs-1:04d}.pth`)
+  instead of the previous hardcoded `checkpoint0014.pth`. Added epoch display
+  in per-run stdout. Run manifest records `epochs` when explicitly set.
+
+**Why:** batch12 experiments OOM'd (needed ~20.7 GiB, GPU had ~19 GiB free).
+batch8 is the practical ceiling. Pivoting to epoch sweep: testing whether the
+two best LR recipes (lr_scale=1.25 and lr_scale=1.5) improve further with 25
+epochs vs the default 15. The hardcoded checkpoint0014.pth was also a latent
+bug — any non-default epoch count would have caused silent re-training.
+
+**Backward compatibility:** `config_epochs` defaults to empty (uses config
+template default of 15 epochs). The dynamic checkpoint check produces
+`checkpoint0014.pth` when no override is set, preserving existing behavior.

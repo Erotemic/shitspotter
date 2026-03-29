@@ -153,3 +153,171 @@ Added two pieces:
 - **Both columns in TSV**: `train_duration_minutes` and `timing_method` are
   added as new columns, not replacing anything. This preserves backward
   compatibility for any downstream consumers of the TSV.
+
+
+## 2026-03-28 — batch12 OOM, epoch sweep added
+
+### What happened
+
+Proposed and ran batch12 configs (batch12_lr1p25, batch12_lr1p5) as the next
+experiment, but both OOM'd during the backward pass:
+
+```
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.11 GiB.
+GPU 0 has 23.66 GiB total, 905.94 MiB free.
+Including non-PyTorch memory, process has 18.60 GiB in use.
+```
+
+Key memory facts:
+- batch8 peak: ~14.1 GiB (safe on either GPU)
+- batch12 peak: >18.6 GiB + attempted 2.11 GiB = ~20.7 GiB needed
+- GPU 1 (24 GiB) had ~5 GiB occupied by another process, leaving ~19 GiB
+- batch12 needs more than that → OOM during backward
+
+**Conclusion: batch8 is the practical ceiling** for the 3090/4090 setup with
+this model. No gradient accumulation support in OpenGroundingDINO's training
+loop, so effective batch size can't be increased without code changes.
+
+There was also a `FileNotFoundError` in the first run attempt (different log):
+the pretrained weights file at `models/groundingdino_swint_ogc.pth` was
+missing. The user re-downloaded it between attempts.
+
+### Pivot to epoch sweep
+
+With batch size maxed at 8, the natural next dimension is training duration.
+The overnight results showed best checkpoints at ckpt0002-0007 out of 15,
+suggesting the model converges early at high LR — but that doesn't mean more
+epochs can't help at moderate LR. Proposed: run the two best LR recipes
+(lr_scale=1.25, lr_scale=1.5) with 25 epochs instead of 15.
+
+### What I implemented
+
+Added `epochs` as a 9th optional field in `GDINO_CONFIG_SPECS`:
+
+```
+config_tag|gpu_num|pretrain|text_encoder|cfg_template[|batch_size|lr_scale|backbone_lr_scale|epochs]
+```
+
+Changes to `run_opengroundingdino_dino_detector_benchmark.sh`:
+1. Parse `config_epochs` from field 9; append `epochs = N` to Python config
+   override block when set
+2. Dynamically compute expected final checkpoint:
+   `checkpoint{epochs-1:04d}.pth` (was hardcoded to `checkpoint0014.pth`)
+3. Added epoch display in the per-run print block
+
+The hardcoded `checkpoint0014.pth` was a latent bug — any epoch sweep would
+have silently re-triggered training on every run because the completion check
+always looked for the 15-epoch checkpoint.
+
+### Command for next run
+
+```bash
+PTH=/data/joncrall/dvc-repos/shitspotter_expt_dvc/models/groundingdino_swint_ogc.pth
+GDINO_TRAIN_SIZES="128" \
+GDINO_CONFIG_SPECS="batch8_lr1p25_ep25|1|$PTH|bert-base-uncased|config/cfg_odvg.py|8|1.25|1.0|25 batch8_lr1p5_ep25|1|$PTH|bert-base-uncased|config/cfg_odvg.py|8|1.5|1.0|25" \
+bash experiments/small-data-tuning/run_opengroundingdino_dino_detector_benchmark.sh
+```
+
+Expected: ~27 min per config at train128 (scaling from 16 min × 25/15).
+
+### Reusable takeaways
+
+- **batch8 is the VRAM ceiling** for OpenGroundingDINO on these GPUs. Any
+  future experiment with this model should not exceed batch8 unless gradient
+  accumulation is added to the training loop.
+- **Hardcoded final-checkpoint filenames are fragile** when epochs vary. Always
+  derive the expected final checkpoint from the epoch count.
+- **Check GPU occupancy before scheduling runs.** The OOM was partly caused by
+  another process holding ~5 GiB on the 24 GiB GPU. Running `nvidia-smi` first
+  would catch this.
+
+
+## 2026-03-28 — ep25 results: more epochs hurt; DINOv2 tuning complete
+
+### 25-epoch experiment results
+
+The ep25 configs (batch8, lr_scale=1.25 and 1.5, 25 epochs) both underperformed
+their 15-epoch counterparts at train128:
+
+| config            | epochs | vali_ap | test_ap | best_ckpt |
+|-------------------|-------:|--------:|--------:|-----------|
+| batch8_lr1p25     |     15 |  0.5824 |  0.6336 | ckpt0002  |
+| batch8_lr1p25_ep25|     25 |  0.5560 |  0.6108 | ckpt0005  |
+| batch8_lr1p5      |     15 |  0.5749 |  0.6377 | ckpt0005  |
+| batch8_lr1p5_ep25 |     25 |  0.5481 |  0.5838 | ckpt0002  |
+
+**More epochs hurt.** -0.026 vali on lr1p25, -0.027 vali on lr1p5. Both ep25
+best checkpoints are still very early (ckpt0002–0005), confirming the model
+finds its optimum quickly and then overfits. The LR schedule is cosine decay
+over N epochs, so a 25-epoch run spends more time at low LR past the good
+checkpoint, apparently drifting.
+
+### DINOv2 hyperparameter sweep — summary of findings
+
+Explored: batch size (4, 8), LR scale (0.75, 1.0, 1.25, 1.5, 2.0 × linear
+batch scaling), epochs (15, 25). All evaluated at train128.
+
+**Best config: batch8, lr_scale=1.25, 15 epochs** (vali=0.582, test=0.634)
+
+Tuning axes exhausted:
+- Larger batch (12+): OOM — batch8 is the hardware ceiling
+- Higher LR (2x): Better test but worse vali — noisy, not clearly better
+- More epochs (25): Overfits — worse on both metrics
+- Fewer epochs: Not tested; best ckpt always at ep2–5, suggesting 10 epochs
+  might suffice, but diminishing returns for the paper
+
+### DINOv2 vs DEIMv2 gap — final assessment
+
+After full tuning on both sides:
+
+| model   | train_size | vali_ap | test_ap |
+|---------|-----------|--------:|--------:|
+| DINOv2  | 128       |   0.582 |   0.634 |
+| DEIMv2  | 128       |   0.453 |   0.502 |
+| gap     |           |  ~0.129 |  ~0.132 |
+
+The ~0.13 AP gap is robust: it persists across both vali and test, and was
+measured with both sides tuned. The gap is not a tuning artifact.
+
+### Next step: scale best DINOv2 to full training set
+
+The small-data benchmark was a proxy to iterate quickly. Now that the best
+config is identified (batch8_lr1p25, 15 epochs), the next experiment is to
+train on the **full training dataset** to see whether DINOv2 can beat the
+current best model.
+
+Current best model: **v5** (foundation-detseg pipeline = DINOv2 detector +
+SAM2 segmentation, full training data)
+- combined vali AP: 0.600
+- combined test AP: 0.550
+
+Note: the v5 combined AP includes the SAM2 segmentation stage. The DINOv2
+detector alone at train512 (512 images) already hits test AP ~0.685 on the
+detection-only metric. These aren't directly comparable (detection AP vs
+combined segmentation AP), but the detector component of v5 scored vali=0.572,
+test=0.526 — so DINOv2 at train512 already beats that on raw detection. Full
+training data should push further still.
+
+The full train set is `train_imgs5747_1e73d54f` (5747 images). This is ~11×
+more data than train512. The prepare script supports `TRAIN_SIZES` as a bash
+array, so a full-data run requires adding a `5747` (or `all`) entry or pointing
+directly at the full dataset.
+
+Command to run (after adding full-data support to prepare, or running directly):
+
+```bash
+cd /home/joncrall/code/shitspotter
+PTH=/data/joncrall/dvc-repos/shitspotter_expt_dvc/models/groundingdino_swint_ogc.pth
+
+# Option A: extend the benchmark to include the full training size
+TRAIN_SIZES="128 256 512 5747" \
+bash experiments/small-data-tuning/prepare_dino_detector_benchmark.sh
+
+# Then train only the full-data config with best recipe
+GDINO_TRAIN_SIZES="5747" \
+GDINO_CONFIG_SPECS="batch8_lr1p25|1|$PTH|bert-base-uncased|config/cfg_odvg.py|8|1.25|1.0" \
+bash experiments/small-data-tuning/run_opengroundingdino_dino_detector_benchmark.sh
+```
+
+Expected training time: ~16 min × (5747/512) × (1/1) ≈ ~3 hours at batch8
+(linear scaling with data size). This fits in an overnight run.

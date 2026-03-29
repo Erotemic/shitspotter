@@ -111,6 +111,22 @@ def _poop_only_subset(src_dset, chosen_gids: list[int], keep_only_positive_image
     remove_cids = [cid for cid in subset.cats if cid not in poop_cids]
     if remove_cids:
         subset.remove_categories(remove_cids)
+    # Remove annotations that reference category IDs absent from the category
+    # table (corrupt/orphaned annotations in the source data). These survive
+    # remove_categories because they are not registered in cats at all.
+    valid_cids = set(subset.cats.keys())
+    orphan_aids = [
+        aid for aid, ann in subset.anns.items()
+        if ann.get('category_id') not in valid_cids
+    ]
+    if orphan_aids:
+        import warnings
+        warnings.warn(
+            f'Dropping {len(orphan_aids)} annotation(s) with unknown category_id '
+            f'(aids={orphan_aids[:5]}{"..." if len(orphan_aids) > 5 else ""}). '
+            f'This indicates corrupt source data.'
+        )
+        subset.remove_annotations(orphan_aids)
     if keep_only_positive_images:
         empty_gids = [gid for gid, aids in subset.index.gid_to_aids.items() if len(aids) == 0]
         if empty_gids:
