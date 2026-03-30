@@ -1,0 +1,23 @@
+format_version: 1
+backend: opengroundingdino_sam2
+detector:
+  preset: opengroundingdino_shitspotter
+  config_fpath: REPLACE_ME_GDINO_CONFIG
+  checkpoint_fpath: REPLACE_ME_GDINO_CHECKPOINT
+segmenter:
+  preset: sam2.1_hiera_base_plus
+  checkpoint_fpath: REPLACE_ME_SAM2_CHECKPOINT
+postprocess:
+  score_thresh: 0.20
+  nms_thresh: 0.50
+  crop_padding: 32
+  polygon_simplify: 2.0
+  min_component_area: 32
+  keep_largest_component: true
+label_mapping:
+  '0': poop
+  '1': poop
+  poop: poop
+metadata:
+  name: opengroundingdino_sam2_default
+  family: foundation_detseg_v3
