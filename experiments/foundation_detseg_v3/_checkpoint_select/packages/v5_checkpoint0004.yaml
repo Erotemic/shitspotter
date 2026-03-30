@@ -1,0 +1,39 @@
+format_version: 1
+backend: deimv2_sam2
+detector:
+  backend: deimv2
+  variant: deimv2_m
+  repo_envvar: SHITSPOTTER_DEIMV2_REPO_DPATH
+  config_relpath: configs/deimv2/deimv2_dinov3_m_coco.yml
+  input_size:
+  - 640
+  - 640
+  device: cuda:0
+  preset: deimv2_m
+  checkpoint_fpath: /data/joncrall/dvc-repos/shitspotter_expt_dvc/foundation_detseg_v3/v5/train_detector_deimv2_m/checkpoint0004.pth
+segmenter:
+  backend: sam2
+  variant: sam2.1_hiera_base_plus
+  repo_envvar: SHITSPOTTER_SAM2_REPO_DPATH
+  config_relpath: sam2/configs/sam2.1/sam2.1_hiera_b+.yaml
+  training_template_relpath: sam2/configs/sam2.1_training/sam2.1_hiera_b+_MOSE_finetune.yaml
+  hf_model_id: facebook/sam2.1-hiera-base-plus
+  device: cuda:0
+  mask_threshold: 0.0
+  preset: sam2.1_hiera_base_plus
+  checkpoint_fpath: /data/joncrall/dvc-repos/shitspotter_expt_dvc/foundation_detseg_v3/v5/train_segmenter_sam2_1_hiera_base_plus/checkpoints/checkpoint.pt
+postprocess:
+  score_thresh: 0.2
+  nms_thresh: 0.5
+  crop_padding: 32
+  polygon_simplify: 2.0
+  min_component_area: 32
+  keep_largest_component: true
+label_mapping:
+  '0': poop
+  '1': poop
+  poop: poop
+metadata:
+  name: v5_checkpoint0004
+  family: foundation_detseg_v3
+package_fpath: null
