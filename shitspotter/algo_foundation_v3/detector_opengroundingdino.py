@@ -83,7 +83,9 @@ def _build_inference_args(detector_cfg, repo_dpath):
 def _load_checkpoint(checkpoint_fpath):
     import torch
     from groundingdino.util.utils import clean_state_dict
-    ckpt = torch.load(str(checkpoint_fpath), map_location='cpu')
+    # weights_only=False because OpenGroundingDINO checkpoints embed
+    # argparse.Namespace objects alongside the model state dict.
+    ckpt = torch.load(str(checkpoint_fpath), map_location='cpu', weights_only=False)
     return clean_state_dict(ckpt['model'])
 
 
