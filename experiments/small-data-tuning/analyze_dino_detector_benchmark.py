@@ -214,6 +214,11 @@ def _generate_plots(selected_rows: list[dict], plots_dpath: pathlib.Path,
     palette = Palette.coerce(config_labels)
 
     # --- Draw curves: one color per config_label, solid=vali, dashed=test ---
+    # Use log scale on x-axis so that small-data and full-data points are both
+    # readable when train sizes span a wide range (e.g. 128 to 5747).
+    all_train_sizes = sorted({row['train_size'] for row in selected_rows})
+    use_log_x = len(all_train_sizes) >= 2 and (max(all_train_sizes) / max(min(all_train_sizes), 1)) > 10
+
     fig, ax = plt.subplots(figsize=(10, 6))
     for config_label in config_labels:
         color = palette[config_label]
@@ -241,7 +246,12 @@ def _generate_plots(selected_rows: list[dict], plots_dpath: pathlib.Path,
                 marker='s', linestyle='--', color=color,
                 label=f'{config_label} test',
             )
-    ax.set_xlabel('Training size')
+    if use_log_x:
+        ax.set_xscale('log')
+        ax.xaxis.set_major_formatter(plt.matplotlib.ticker.ScalarFormatter())
+        ax.set_xticks(all_train_sizes)
+        ax.xaxis.set_tick_params(which='minor', bottom=False)
+    ax.set_xlabel('Training size (log scale)' if use_log_x else 'Training size')
     ax.set_ylabel('Box AP (poop)')
     ax.set_title('DINO detector benchmark')
     ax.grid(True, alpha=0.3)

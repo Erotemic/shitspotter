@@ -26,6 +26,7 @@ REPO_ENV_VARS = {
     'deimv2': 'SHITSPOTTER_DEIMV2_REPO_DPATH',
     'sam2': 'SHITSPOTTER_SAM2_REPO_DPATH',
     'maskdino': 'SHITSPOTTER_MASKDINO_REPO_DPATH',
+    'opengroundingdino': 'SHITSPOTTER_OPENGROUNDINGDINO_REPO_DPATH',
 }
 
 DETECTOR_PRESETS = {
@@ -70,6 +71,15 @@ SEGMENTER_PRESETS = {
     },
 }
 
+DETECTOR_PRESETS['opengroundingdino_shitspotter'] = {
+    'backend': 'opengroundingdino',
+    'variant': 'opengroundingdino_shitspotter',
+    'repo_envvar': REPO_ENV_VARS['opengroundingdino'],
+    'label_list': [DEFAULT_CATEGORY_NAME],
+    'device': 'cuda:0',
+    # config_fpath and checkpoint_fpath must be set per-package
+}
+
 BASELINE_PRESETS = {
     'maskdino_r50': {
         'backend': 'maskdino',
@@ -102,6 +112,18 @@ BACKEND_DEFAULTS = {
         'label_mapping': deepcopy(DEFAULT_LABEL_MAPPING),
         'metadata': {
             'name': 'maskdino_r50_default',
+            'family': 'foundation_detseg_v3',
+        },
+    },
+    'opengroundingdino_sam2': {
+        'format_version': PACKAGE_FORMAT_VERSION,
+        'backend': 'opengroundingdino_sam2',
+        'detector': {'preset': 'opengroundingdino_shitspotter'},
+        'segmenter': {'preset': 'sam2.1_hiera_base_plus'},
+        'postprocess': deepcopy(DEFAULT_POSTPROCESS),
+        'label_mapping': deepcopy(DEFAULT_LABEL_MAPPING),
+        'metadata': {
+            'name': 'opengroundingdino_sam2_default',
             'family': 'foundation_detseg_v3',
         },
     },

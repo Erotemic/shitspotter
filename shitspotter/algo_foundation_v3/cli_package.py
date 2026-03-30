@@ -28,6 +28,7 @@ class build(scfg.DataConfig):
     segmenter_preset = scfg.Value(None, help='override segmenter preset')
     baseline_preset = scfg.Value(None, help='override baseline preset')
     detector_checkpoint_fpath = scfg.Value(None, help='detector checkpoint path')
+    detector_config_fpath = scfg.Value(None, help='detector config path (required for opengroundingdino)')
     segmenter_checkpoint_fpath = scfg.Value(None, help='segmenter checkpoint path')
     baseline_checkpoint_fpath = scfg.Value(None, help='baseline checkpoint path')
     metadata_name = scfg.Value(None, help='optional package name')
@@ -41,6 +42,7 @@ class build(scfg.DataConfig):
             segmenter_preset=config.segmenter_preset,
             baseline_preset=config.baseline_preset,
             detector_checkpoint_fpath=config.detector_checkpoint_fpath,
+            detector_config_fpath=config.detector_config_fpath,
             segmenter_checkpoint_fpath=config.segmenter_checkpoint_fpath,
             baseline_checkpoint_fpath=config.baseline_checkpoint_fpath,
             metadata_name=config.metadata_name,

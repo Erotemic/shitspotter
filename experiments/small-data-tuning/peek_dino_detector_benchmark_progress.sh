@@ -10,7 +10,7 @@ PYTHON_BIN="${PYTHON_BIN:-python}"
 EXPT_DPATH="$(small_data_expt_dpath)"
 BENCHMARK_ROOT="${BENCHMARK_ROOT:-$EXPT_DPATH/small_data_tuning/dino_detector_benchmark}"
 OUT_DPATH="${OUT_DPATH:-$BENCHMARK_ROOT/analysis}"
-FOCUS_TRAIN_SIZES="${FOCUS_TRAIN_SIZES:-128 256}"
+FOCUS_TRAIN_SIZES="${FOCUS_TRAIN_SIZES:-128 256 512 5747}"
 
 ensure_writable_out_dpath() {
     local candidate="$1"
@@ -46,7 +46,7 @@ import sys
 summary_fpath = sys.argv[1]
 focus_sizes = {int(arg) for arg in sys.argv[2:]}
 rows = list(csv.DictReader(open(summary_fpath, 'r'), delimiter='\t'))
-filtered = [row for row in rows if int(row['train_size']) in focus_sizes]
+filtered = [row for row in rows if not focus_sizes or int(row['train_size']) in focus_sizes]
 
 fieldnames = [
     'model_family',

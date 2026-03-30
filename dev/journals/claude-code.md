@@ -279,6 +279,38 @@ After full tuning on both sides:
 The ~0.13 AP gap is robust: it persists across both vali and test, and was
 measured with both sides tuned. The gap is not a tuning artifact.
 
+### Full-data DINOv2 result (train5747)
+
+**batch8_lr1p25 at train5747: vali=0.7118, test=0.7224**
+
+This is the headline result. Scaling from 512 to 5747 images (+0.026 vali /
++0.037 test) continues the scaling trend cleanly:
+
+| train_size | vali_ap | test_ap | delta_vali | delta_test |
+|----------:|--------:|--------:|-----------:|-----------:|
+|        128 |  0.5824 |  0.6336 |            |            |
+|        256 |  0.5970 |  0.6199 |     +0.015 |     -0.014 |
+|        512 |  0.6454 |  0.6848 |     +0.048 |     +0.065 |
+|       5747 |  0.7118 |  0.7224 |     +0.066 |     +0.038 |
+
+The model clearly benefits from more data — the scaling curve is still going
+up with no sign of saturation.
+
+**vs. current best published model (v5):** v5 was a combined pipeline
+(DINOv2 detector + SAM2) with combined test AP=0.550 and detector vali=0.572.
+The new DINOv2-only detector scores test=0.722 — +0.172 AP above v5's
+detector component, and well above v5's combined score. This is a strong
+improvement even before considering SAM2 integration.
+
+**vs. DEIMv2 best at train512:** 0.647 vali / 0.671 test. DINOv2 at full
+data is +0.065 vali / +0.051 test above DEIMv2's best small-data result.
+DEIMv2 was not run at full data, so direct apples-to-apples isn't available,
+but the gap at train512 was already ~0.10 AP.
+
+**Best checkpoint: checkpoint0006** (out of 14), consistent with earlier
+finding that the model converges early. The 5747-image dataset provides enough
+signal that the model reaches its optimum in ~6/15 epochs.
+
 ### Next step: scale best DINOv2 to full training set
 
 The small-data benchmark was a proxy to iterate quickly. Now that the best
@@ -321,3 +353,193 @@ bash experiments/small-data-tuning/run_opengroundingdino_dino_detector_benchmark
 
 Expected training time: ~16 min × (5747/512) × (1/1) ≈ ~3 hours at batch8
 (linear scaling with data size). This fits in an overnight run.
+
+
+## 2026-03-28 — OpenGroundingDINO inference adapter in shitspotter package
+
+### Summary
+
+Added an `OpenGroundingDINOPredictor` to `shitspotter/algo_foundation_v3/` so
+the trained DINOv2 detector can be combined with SAM2 segmentation in the
+production inference pipeline.  This extends the existing `deimv2_sam2` and
+`maskdino` backends with a new `opengroundingdino_sam2` backend.
+
+### Files changed
+
+- **`shitspotter/algo_foundation_v3/detector_opengroundingdino.py`** (new):
+  `OpenGroundingDINOPredictor` class that adapts the tpl/Open-GroundingDino
+  repo to the standard `predict_image_records(image)` interface returning
+  `[{'label': str, 'bbox_ltrb': [x1,y1,x2,y2], 'score': float}]`.
+
+  Key implementation details:
+  - `_build_inference_args()`: loads the SLConfig config from disk and merges
+    it into a `types.SimpleNamespace`.  Sets `use_coco_eval=False`,
+    `label_list=['poop']`, `distributed=False`, `amp=False`.  The PostProcess
+    class in the tpl repo reads `args.label_list` at `__init__` time to build
+    the positive token-to-label map.
+  - `_lazy_init()`: adds the tpl repo to sys.path, calls `build_model_main(args)`
+    to get (model, criterion, postprocessors), loads checkpoint via
+    `clean_state_dict(ckpt['model'])`.
+  - Inference: PIL image → resize (shorter side 800, max 1333, matching val
+    transforms) → ToTensor → Normalize(imagenet) → create NestedTensor with
+    zero mask → `model(nested, captions=[caption])` → `postprocessors['bbox']`
+    → filter by score_thresh → return records.
+  - Caption format: `' . '.join(label_list) + ' .'` — this is the exact
+    format used in the tpl training and evaluation code.
+
+- **`shitspotter/algo_foundation_v3/model_registry.py`**:
+  - Added `'opengroundingdino'` to `REPO_ENV_VARS`
+    (`SHITSPOTTER_OPENGROUNDINGDINO_REPO_DPATH`)
+  - Added `'opengroundingdino_shitspotter'` preset to `DETECTOR_PRESETS`
+    (note: `config_fpath` and `checkpoint_fpath` must be set per-package since
+    they vary across training runs)
+  - Added `'opengroundingdino_sam2'` backend to `BACKEND_DEFAULTS`
+
+- **`shitspotter/algo_foundation_v3/packaging.py`**:
+  - Added validation clause for `opengroundingdino_sam2` backend (requires
+    both `detector` and `segmenter` sections)
+
+- **`shitspotter/algo_foundation_v3/cli_predict.py`**:
+  - Imported `OpenGroundingDINOPredictor`
+  - Added `elif resolved_package['backend'] == 'opengroundingdino_sam2':` branch
+    (same pattern as `deimv2_sam2`)
+  - Added device override handling for the new backend
+
+### To use this pipeline
+
+Create a package YAML file (e.g., `gdino_sam2_v1.yaml`) with:
+
+```yaml
+backend: opengroundingdino_sam2
+detector:
+  preset: opengroundingdino_shitspotter
+  repo_dpath: /path/to/tpl/Open-GroundingDino
+  config_fpath: /path/to/training/output/config_cfg.py
+  checkpoint_fpath: /path/to/training/output/checkpoint0006.pth
+  label_list: [poop]
+segmenter:
+  preset: sam2.1_hiera_base_plus
+  repo_dpath: /path/to/sam2
+  checkpoint_fpath: /path/to/sam2_checkpoint.pth
+```
+
+Then run:
+
+```bash
+python -m shitspotter.algo_foundation_v3.cli_predict \
+    --src /path/to/test.kwcoco.zip \
+    --dst /path/to/pred.kwcoco.zip \
+    --model gdino_sam2_v1.yaml
+```
+
+### Design decisions
+
+1. **No separate config templating needed.** The training run already writes
+   a `config_cfg.py` to the output directory.  That file is already merged
+   with all the training overrides (including our `use_coco_eval = False` and
+   `label_list`), so it's the cleanest source of truth for inference.  If that
+   file is used as `config_fpath`, the PostProcess will be built with the
+   correct label list.
+
+2. **label_list override in detector_cfg.** The `label_list` field in the
+   detector section of the package overrides the one in the config file.  This
+   makes it easy to adapt a checkpoint to a different label vocabulary without
+   rewriting the config file.
+
+3. **Zero-mask NestedTensor.** For single-image inference without batching /
+   padding, the mask is all zeros (no masked pixels).  This matches what the
+   model expects for a fully-padded image.
+
+4. **score_thresh default 0.0.** Let `postprocess.DEFAULT_POSTPROCESS` handle
+   filtering.  The predictor applies a lower bound only to avoid passing
+   thousands of near-zero boxes to SAM2.
+
+### What's not yet done
+
+- No eval integration in the benchmark runner (uses a separate eval path).
+- No training adapter in `detector_opengroundingdino.py` (training uses the
+  existing `run_opengroundingdino_dino_detector_benchmark.sh` bash pipeline).
+- The `opengroundingdino_shitspotter` preset intentionally omits `config_fpath`
+  and `checkpoint_fpath` — these must be set in the package YAML.  We could
+  add a default checkpoint path once we have a stable trained model.
+
+
+## 2026-03-30 — Segmentation eval sweep: gdino + SAM2 candidates
+
+### Summary
+
+Wrote infrastructure to evaluate OpenGroundingDINO + SAM2 combos end-to-end
+(detector → SAM2 segmentation → kwcoco eval → pixel AP).  Also extended
+`build_package` / `cli_package build` to accept `detector_config_fpath`.
+
+### Files changed
+
+- **`shitspotter/algo_foundation_v3/packaging.py`** — added `detector_config_fpath`
+  parameter to `build_package()`.  OpenGroundingDINO needs both a checkpoint
+  and a SLConfig file; the deimv2/maskdino backends ignore this field.
+
+- **`shitspotter/algo_foundation_v3/cli_package.py`** — exposed
+  `--detector_config_fpath` in `cli_package build`.
+
+- **`experiments/foundation_detseg_v3/common.sh`** — added
+  `SHITSPOTTER_OPENGROUNDINGDINO_REPO_DPATH` export (defaults to
+  `tpl/Open-GroundingDino`).
+
+- **`experiments/foundation_detseg_v3/packages/opengroundingdino_sam2_default.yaml`**
+  (new) — template package with `REPLACE_ME_*` placeholders for all three
+  paths (`GDINO_CONFIG`, `GDINO_CHECKPOINT`, `SAM2_CHECKPOINT`).
+
+- **`experiments/foundation_detseg_v3/run_gdino_sam2_sweep.sh`** (new) — the
+  main experiment script.  Reads `GDINO_CKPT` and `GDINO_CFG` from the
+  environment, builds packages, runs `cli_predict` + `kwcoco eval` on vali and
+  test for three candidates:
+  - `gdino_zeroshot` — best DINOv2 (train5747) + pretrained SAM2 (no tuning)
+  - `gdino_tuned`    — best DINOv2 (train5747) + v5's fine-tuned SAM2
+  - `v5_baseline`    — v5 DEIMv2 detector + v5's fine-tuned SAM2
+
+  Results are cached (skips re-running if `detect_metrics.json` exists) and
+  printed in a summary table at the end.
+
+### How to run
+
+```bash
+# 1. Find the best gdino checkpoint (batch8_lr1p25, train5747, ckpt0006)
+EXPT=$DVC_EXPT_DPATH
+GDINO_RUN=$(find $EXPT/small_data_tuning/dino_detector_benchmark \
+    -name 'checkpoint0006.pth' -path '*/batch8_lr1p25/*' -path '*/train5747*' \
+    | head -1 | xargs dirname)
+
+GDINO_CKPT="$GDINO_RUN/checkpoint0006.pth"
+GDINO_CFG="$GDINO_RUN/config_cfg.py"
+
+# 2. Run the sweep
+GDINO_CKPT="$GDINO_CKPT" \
+GDINO_CFG="$GDINO_CFG" \
+bash experiments/foundation_detseg_v3/run_gdino_sam2_sweep.sh
+```
+
+### What the results will tell us
+
+- **gdino_zeroshot vs gdino_tuned**: how much does SAM2 fine-tuning help with
+  DINOv2's detection boxes (which are more accurate than DEIMv2's)?
+
+- **gdino_tuned vs v5_baseline**: how much does switching the detector from
+  DEIMv2 to DINOv2 improve the combined segmentation AP?  The detector
+  component already scores +0.172 AP on detection — but SAM2's segmentation
+  quality depends heavily on box accuracy, so the gain may compound.
+
+- **gdino_zeroshot vs v5_baseline**: whether zero-shot SAM2 + better detector
+  beats tuned SAM2 + weaker detector — i.e., is detector quality or SAM2
+  fine-tuning the bigger lever.
+
+### Expected outcome
+
+Based on the prior finding that SAM2 achieves ~1.0 AP with oracle boxes, the
+DINOv2 detector's better box quality should translate directly to better
+combined AP.  My expectation:
+  gdino_tuned > gdino_zeroshot > v5_baseline
+
+But the zero-shot vs tuned SAM2 gap is uncertain — the tuned SAM2 was trained
+on boxes from the weaker DEIMv2 detector, so it may not transfer perfectly to
+DINOv2's box distribution.  Re-tuning SAM2 on DINOv2 detections would be the
+natural follow-up if tuned underperforms zero-shot.

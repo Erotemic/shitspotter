@@ -61,6 +61,11 @@ def validate_package(data):
     elif backend == 'maskdino':
         if not isinstance(data.get('baseline', None), dict):
             raise ValueError('maskdino packages require a baseline section')
+    elif backend == 'opengroundingdino_sam2':
+        if not isinstance(data.get('detector', None), dict):
+            raise ValueError('opengroundingdino_sam2 packages require a detector section')
+        if not isinstance(data.get('segmenter', None), dict):
+            raise ValueError('opengroundingdino_sam2 packages require a segmenter section')
 
     data.setdefault('format_version', model_registry.PACKAGE_FORMAT_VERSION)
     data.setdefault('metadata', {})
@@ -109,6 +114,7 @@ def build_package(
     segmenter_preset=None,
     baseline_preset=None,
     detector_checkpoint_fpath=None,
+    detector_config_fpath=None,
     segmenter_checkpoint_fpath=None,
     baseline_checkpoint_fpath=None,
     metadata_name=None,
@@ -126,6 +132,9 @@ def build_package(
     if detector_checkpoint_fpath is not None:
         package.setdefault('detector', {})
         package['detector']['checkpoint_fpath'] = str(detector_checkpoint_fpath)
+    if detector_config_fpath is not None:
+        package.setdefault('detector', {})
+        package['detector']['config_fpath'] = str(detector_config_fpath)
     if segmenter_checkpoint_fpath is not None:
         package.setdefault('segmenter', {})
         package['segmenter']['checkpoint_fpath'] = str(segmenter_checkpoint_fpath)

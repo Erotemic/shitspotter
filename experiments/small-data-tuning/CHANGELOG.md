@@ -82,3 +82,40 @@ bug — any non-default epoch count would have caused silent re-training.
 **Backward compatibility:** `config_epochs` defaults to empty (uses config
 template default of 15 epochs). The dynamic checkpoint check produces
 `checkpoint0014.pth` when no override is set, preserving existing behavior.
+
+## 2026-03-29 — claude-code
+
+### Fixed corrupt annotation crash in prepare script for full-data run
+
+**What changed:**
+
+- `prepare_dino_detector_benchmark.py`: `_poop_only_subset()` now detects and
+  drops annotations whose `category_id` is absent from the category table
+  (orphaned/corrupt annotations). This was exposed when preparing the full
+  5747-image train split: annotation `id=4268, image_id=6455` had
+  `category_id=2` which does not exist in the source dataset. The smaller
+  subsets (128/256/512) never sampled that image, so the bug was invisible
+  until now. A `warnings.warn` is emitted so the issue is visible in logs.
+
+**Why:** `remove_categories` only removes categories that are registered; it
+cannot clean up annotations pointing to non-existent IDs. `simplify_kwcoco`
+then crashes when it tries to look up the category name.
+
+### Log-scale x-axis for train-size plots; full-data support in peek script
+
+**What changed:**
+
+- `analyze_dino_detector_benchmark.py`: Plot x-axis now uses log scale
+  automatically when the ratio of max to min train size exceeds 10×. This
+  keeps 128/256/512 readable alongside 5747. Tick marks are set to the actual
+  train sizes present in the data. X-axis label updates to note "(log scale)".
+
+- `peek_dino_detector_benchmark_progress.sh`: `FOCUS_TRAIN_SIZES` default
+  extended from `"128 256"` to `"128 256 512 5747"` so the full-data run
+  appears in the filtered summary table. The Python filter also now shows all
+  rows when `focus_sizes` is empty (pass `FOCUS_TRAIN_SIZES=""` to see
+  everything).
+
+**Why:** Adding a train5747 split compresses 128/256/512 into the far left on
+a linear axis, making the small-data sweep unreadable. Log scale gives each
+order of magnitude equal visual weight.

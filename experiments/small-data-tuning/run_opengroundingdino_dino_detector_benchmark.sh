@@ -296,8 +296,13 @@ EOF
         export TEXT_ENCODER_TYPE="$config_text_encoder_type"
         export TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD="${TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD:-1}"
 
+        # Only wipe output_dir if it exists but contains zero checkpoints
+        # (i.e. crashed before saving anything useful). If checkpoints are
+        # present, training will resume from where it left off on restart.
         if [ -d "$output_dir" ] && [ ! -f "$summary_fpath" ]; then
-            rm -rf "$output_dir"
+            if ! ls "$output_dir"/checkpoint*.pth >/dev/null 2>&1; then
+                rm -rf "$output_dir"
+            fi
         fi
 
         case "$FORCE_GDINO_RERUN" in

@@ -10,6 +10,7 @@ import ubelt as ub
 from shitspotter.algo_foundation_v3.baseline_maskdino import MaskDINOPredictor
 from shitspotter.algo_foundation_v3.config_utils import nonnull_overrides
 from shitspotter.algo_foundation_v3.detector_deimv2 import DEIMv2Predictor
+from shitspotter.algo_foundation_v3.detector_opengroundingdino import OpenGroundingDINOPredictor
 from shitspotter.algo_foundation_v3.kwcoco_adapter import (
     clone_dataset_for_predictions,
     coerce_input_kwcoco,
@@ -64,6 +65,9 @@ class AlgoPredictCLI(scfg.DataConfig):
                 resolved_package['segmenter']['device'] = config.device
             elif resolved_package['backend'] == 'maskdino':
                 resolved_package['baseline']['device'] = config.device
+            elif resolved_package['backend'] == 'opengroundingdino_sam2':
+                resolved_package['detector']['device'] = config.device
+                resolved_package['segmenter']['device'] = config.device
 
         paths = prepare_prediction_io(config.src, config.dst, package_name(resolved_package))
         src_fpath, _ = coerce_input_kwcoco(config.src, paths)
@@ -104,6 +108,20 @@ class AlgoPredictCLI(scfg.DataConfig):
                 mask_records = predictor.predict_image_records(image)
                 anns = mask_records_to_anns(
                     mask_records=mask_records,
+                    label_mapping=resolved_package['label_mapping'],
+                    post_cfg=resolved_package['postprocess'],
+                )
+                add_prediction_annotations(pred_dset, coco_img.img['id'], anns, backend_name=backend)
+        elif backend == 'opengroundingdino_sam2':
+            detector = OpenGroundingDINOPredictor(resolved_package['detector'])
+            segmenter = SAM2Segmenter(resolved_package['segmenter'])
+            for coco_img in ub.ProgIter(src_dset.images().coco_images, desc='predict opengroundingdino_sam2'):
+                image = coco_img.imdelay().finalize()
+                detector_records = detector.predict_image_records(image)
+                anns = detector_records_to_anns(
+                    image=image,
+                    detector_records=detector_records,
+                    segmenter=segmenter,
                     label_mapping=resolved_package['label_mapping'],
                     post_cfg=resolved_package['postprocess'],
                 )
