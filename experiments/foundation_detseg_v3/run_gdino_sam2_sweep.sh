@@ -41,6 +41,7 @@ fi
 source "$_foundation_v3_script_dpath/common.sh"
 unset _foundation_v3_source
 unset _foundation_v3_script_dpath
+# FOUNDATION_V3_SCRIPT_DPATH is now set by common.sh
 
 PYTHON_BIN="${PYTHON_BIN:-python}"
 
@@ -60,7 +61,7 @@ ZEROSHOT_SAM2_CKPT="${ZEROSHOT_SAM2_CKPT:-$SHITSPOTTER_SAM2_REPO_DPATH/checkpoin
 TUNED_SAM2_CKPT="${TUNED_SAM2_CKPT:-$EXPT_DPATH/foundation_detseg_v3/v5/train_segmenter_sam2_1_hiera_base_plus/checkpoints/checkpoint.pt}"
 
 # ---- v5 baseline package ----------------------------------------------------
-V5_PACKAGE_FPATH="${V5_PACKAGE_FPATH:-$_foundation_v3_script_dpath/_checkpoint_select/packages/v5_checkpoint0004.yaml}"
+V5_PACKAGE_FPATH="${V5_PACKAGE_FPATH:-$FOUNDATION_V3_SCRIPT_DPATH/_checkpoint_select/packages/v5_checkpoint0004.yaml}"
 
 # ---- output root ------------------------------------------------------------
 DEFAULT_SWEEP_ROOT="$EXPT_DPATH/foundation_detseg_v3/gdino_sam2_sweep"
