@@ -56,7 +56,7 @@ This following is the high level status of the project.
 - ☑ Scientific paper about dataset `published on arxiv <https://arxiv.org/abs/2412.16473v1>`_ (2024-12-21)
 - ☑ Scientific paper about dataset `peer-reviewed <https://openreview.net/forum?id=aO24vWoPmK&referrer=%5Bthe%20profile%20of%20Jon%20Crall%5D(%2Fprofile%3Fid%3D~Jon_Crall1)>_` (2025-07-30ish)
 - ☑ Efficient models for phones are trained (2025-07-30ish)
-- ☑ Scientific paper about dataset peer-reviewed & `published <https://arxiv.org/abs/2412.16473>`_ (2026-03-06)
+- ☑ Scientific paper about dataset peer-reviewed &  `published <https://openaccess.thecvf.com/content/WACV2026W/WasteVision/html/Crall_ScatSpotter_A_Dog_Poop_Detection_Dataset_WACVW_2026_paper.html>`_ (longer arxiv version `published <https://arxiv.org/abs/2412.16473>`_) (2026-03-06)
 - ☐ Phone application is developed (external prototype: https://github.com/mkorzunowicz/poopdetector/releases/tag/v1.1.0)
 - ☐ Phone application is available for download and usage
 - ☐ Phone application is release on app stores for free
@@ -168,6 +168,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2026-03-30 - Posted a `youtube video <https://www.youtube.com/watch?v=Dyh0A4aIZbE>`_ that goes over the slides. Working on preparing a new bootstrap model before I annotate the next cohort.
 * 2026-03-01 - Getting ready for presentation at WasteVision 2026 - International Workshop on Smart Waste Monitoring at WACV. `Slides are online <https://docs.google.com/presentation/d/14Yb6qc_5wQK0PzYqiqiIFVECuq1JTsr5N3EIBKKcGL8/edit?slide=id.g39399de817a_1_34#slide=id.g39399de817a_1_34>`_.
 * 2026-01-05 - Its the new year, and it is bittersweet. The revised dataset paper was peer reviewed and accepted to WasteVision 2026. But we've lost Honey to cancer.
 * 2025-11-26 - A pre-holiday update 🦃. Paper was rejected twice, resubmitting again. Started measuring performance on new data detection F1 is ~0.5. Lots of leafy hard cases in this batch. The IPFS transfer was remarkably easier this time around. No peer discovery issues.

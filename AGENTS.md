@@ -22,6 +22,11 @@
   - For long-running experiment scripts, prefer atomic final artifacts: either emit the canonical "final" outputs only after the stage completes successfully, or write explicit run-state metadata alongside intermediate outputs so resumable scripts can distinguish complete artifacts from partial/failed ones.
   - Be mindful of large external datasets / models; avoid hardcoding environment-specific secrets or paths.
 
+
+## Behavior
+* Think like a computer vision researcher, when you see a new result it is
+  important to record it in our research journal
+
 ## Developer journal
 Keep a running journal at `dev/journals/<agent_name>.md` (e.g.
 `dev/journals/codex.md`) to capture the story of the work (decisions, progress,
