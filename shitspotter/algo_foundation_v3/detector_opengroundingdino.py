@@ -138,7 +138,14 @@ class OpenGroundingDINOPredictor:
     def _lazy_init(self):
         if self.model is not None:
             return
+        import warnings
         import torch
+
+        # These warnings fire on every forward pass from OpenGroundingDINO's
+        # internal use of torch.utils.checkpoint.  They are library-level issues
+        # we cannot fix; show each once rather than flooding the output.
+        warnings.filterwarnings('once', message='.*use_reentrant parameter should be passed.*')
+        warnings.filterwarnings('once', message='.*None of the inputs have requires_grad.*')
 
         repo_dpath = _resolve_repo_dpath(self.detector_cfg)
         _ensure_repo_on_path(repo_dpath)
