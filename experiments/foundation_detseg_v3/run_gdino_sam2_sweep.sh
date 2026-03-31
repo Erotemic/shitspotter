@@ -74,7 +74,7 @@ RUN_TEST="${RUN_TEST:-true}"
 # Merge nearby annotations before eval (both truth and predictions) so that
 # a model which detects a cluster of close objects as one is not over-penalised.
 RUN_MERGED_EVAL="${RUN_MERGED_EVAL:-true}"
-MERGE_PAD_FACTOR="${MERGE_PAD_FACTOR:-0.5}"   # grow each box by 50% before proximity test
+MERGE_SCALE="${MERGE_SCALE:-1.5}"             # box scale for proximity test (matches simplify_kwcoco default)
 MERGED_IOU_THRESH="${MERGED_IOU_THRESH:-0.3}" # lower threshold for merged eval
 
 # ---- helpers ----------------------------------------------------------------
@@ -154,7 +154,7 @@ run_combined_eval() {
 run_merged_eval() {
     local src_fpath="$1"    # original truth kwcoco
     local out_dpath="$2"    # same dpath as run_combined_eval wrote pred.kwcoco.zip
-    local pad_factor="$3"
+    local scale="$3"
     local iou_thresh="$4"
     local merged_dpath="$out_dpath/merged_eval"
     mkdir -p "$merged_dpath/eval"
@@ -162,12 +162,12 @@ run_merged_eval() {
     "$PYTHON_BIN" -m shitspotter.algo_foundation_v3.merge_nearby_anns \
         --src="$src_fpath" \
         --dst="$merged_dpath/true_merged.kwcoco.zip" \
-        --pad_factor="$pad_factor"
+        --scale="$scale"
     # Merge predictions
     "$PYTHON_BIN" -m shitspotter.algo_foundation_v3.merge_nearby_anns \
         --src="$out_dpath/pred.kwcoco.zip" \
         --dst="$merged_dpath/pred_merged.kwcoco.zip" \
-        --pad_factor="$pad_factor"
+        --scale="$scale"
     # Evaluate merged vs merged
     "$PYTHON_BIN" -m kwcoco eval \
         --true_dataset="$merged_dpath/true_merged.kwcoco.zip" \
@@ -238,7 +238,7 @@ if [ "$SKIP_ZEROSHOT" = "false" ]; then
         if have_metrics "$vali_dpath/merged_eval"; then
             echo "  Reusing merged vali metrics"
         else
-            run_merged_eval "$VALI_FPATH" "$vali_dpath" "$MERGE_PAD_FACTOR" "$MERGED_IOU_THRESH"
+            run_merged_eval "$VALI_FPATH" "$vali_dpath" "$MERGE_SCALE" "$MERGED_IOU_THRESH"
         fi
         gdino_zeroshot_vali_merged_ap="$(read_ap "$vali_dpath/merged_eval/eval/detect_metrics.json")"
     else
@@ -257,7 +257,7 @@ if [ "$SKIP_ZEROSHOT" = "false" ]; then
             if have_metrics "$test_dpath/merged_eval"; then
                 echo "  Reusing merged test metrics"
             else
-                run_merged_eval "$TEST_FPATH" "$test_dpath" "$MERGE_PAD_FACTOR" "$MERGED_IOU_THRESH"
+                run_merged_eval "$TEST_FPATH" "$test_dpath" "$MERGE_SCALE" "$MERGED_IOU_THRESH"
             fi
             gdino_zeroshot_test_merged_ap="$(read_ap "$test_dpath/merged_eval/eval/detect_metrics.json")"
         else
@@ -290,7 +290,7 @@ if [ "$SKIP_TUNED" = "false" ]; then
         if have_metrics "$vali_dpath/merged_eval"; then
             echo "  Reusing merged vali metrics"
         else
-            run_merged_eval "$VALI_FPATH" "$vali_dpath" "$MERGE_PAD_FACTOR" "$MERGED_IOU_THRESH"
+            run_merged_eval "$VALI_FPATH" "$vali_dpath" "$MERGE_SCALE" "$MERGED_IOU_THRESH"
         fi
         gdino_tuned_vali_merged_ap="$(read_ap "$vali_dpath/merged_eval/eval/detect_metrics.json")"
     else
@@ -309,7 +309,7 @@ if [ "$SKIP_TUNED" = "false" ]; then
             if have_metrics "$test_dpath/merged_eval"; then
                 echo "  Reusing merged test metrics"
             else
-                run_merged_eval "$TEST_FPATH" "$test_dpath" "$MERGE_PAD_FACTOR" "$MERGED_IOU_THRESH"
+                run_merged_eval "$TEST_FPATH" "$test_dpath" "$MERGE_SCALE" "$MERGED_IOU_THRESH"
             fi
             gdino_tuned_test_merged_ap="$(read_ap "$test_dpath/merged_eval/eval/detect_metrics.json")"
         else
@@ -342,7 +342,7 @@ if [ "${RUN_V5_BASELINE,,}" != "false" ]; then
             if have_metrics "$vali_dpath/merged_eval"; then
                 echo "  Reusing merged vali metrics"
             else
-                run_merged_eval "$VALI_FPATH" "$vali_dpath" "$MERGE_PAD_FACTOR" "$MERGED_IOU_THRESH"
+                run_merged_eval "$VALI_FPATH" "$vali_dpath" "$MERGE_SCALE" "$MERGED_IOU_THRESH"
             fi
             v5_vali_merged_ap="$(read_ap "$vali_dpath/merged_eval/eval/detect_metrics.json")"
         else
@@ -361,7 +361,7 @@ if [ "${RUN_V5_BASELINE,,}" != "false" ]; then
                 if have_metrics "$test_dpath/merged_eval"; then
                     echo "  Reusing merged test metrics"
                 else
-                    run_merged_eval "$TEST_FPATH" "$test_dpath" "$MERGE_PAD_FACTOR" "$MERGED_IOU_THRESH"
+                    run_merged_eval "$TEST_FPATH" "$test_dpath" "$MERGE_SCALE" "$MERGED_IOU_THRESH"
                 fi
                 v5_test_merged_ap="$(read_ap "$test_dpath/merged_eval/eval/detect_metrics.json")"
             else
@@ -390,7 +390,7 @@ printf '  %-38s  %-12s  %s\n' "---------" "-------" "-------"
     print_result "v5_baseline (deimv2+tuned_sam2)"      "$v5_vali_ap"              "$v5_test_ap"
 
 echo
-echo "=== Summary (merged anns, iou=${MERGED_IOU_THRESH}, pad=${MERGE_PAD_FACTOR}) ==="
+echo "=== Summary (merged anns, iou=${MERGED_IOU_THRESH}, scale=${MERGE_SCALE}) ==="
 printf '  %-38s  %-12s  %s\n' "candidate" "vali_ap" "test_ap"
 printf '  %-38s  %-12s  %s\n' "---------" "-------" "-------"
 [ "$SKIP_ZEROSHOT" = "false" ] && [ "${RUN_MERGED_EVAL,,}" != "false" ] && \
