@@ -543,3 +543,79 @@ But the zero-shot vs tuned SAM2 gap is uncertain — the tuned SAM2 was trained
 on boxes from the weaker DEIMv2 detector, so it may not transfer perfectly to
 DINOv2's box distribution.  Re-tuning SAM2 on DINOv2 detections would be the
 natural follow-up if tuned underperforms zero-shot.
+
+
+## 2026-03-31 — gdino_sam2_sweep results
+
+### Sweep results
+
+Three candidates evaluated on vali (691 images, 627 GT anns) and test
+(121 images), two scoring protocols:
+
+**Standard (iou_thresh=0.5, no merging):**
+
+| candidate                  | vali AP | test AP |
+|----------------------------|--------:|--------:|
+| gdino_zeroshot             |   0.491 |   0.669 |
+| gdino_tuned                |   0.522 |   0.664 |
+| v5_baseline (deimv2+tuned) |   0.371 |   0.425 |
+
+**Merged (scale=1.5, iou_thresh=0.3):**
+
+| candidate                  | vali AP | test AP |
+|----------------------------|--------:|--------:|
+| gdino_zeroshot             |   0.544 |   0.723 |
+| gdino_tuned                |   0.550 |   0.718 |
+| v5_baseline (deimv2+tuned) |   0.405 |   0.466 |
+
+### Key findings
+
+1. **DINOv2+SAM2 substantially beats v5 on both protocols.**
+   - Merged test AP: gdino_tuned=0.718 vs v5=0.466 → +0.252 AP
+   - This is the headline result. The better detector translates directly
+     into better combined segmentation AP.
+
+2. **Zero-shot SAM2 nearly matches tuned SAM2.**
+   - gdino_zeroshot: merged vali=0.544, merged test=0.723
+   - gdino_tuned:    merged vali=0.550, merged test=0.718
+   - Tuned is +0.006 vali but -0.005 test — essentially a wash.
+   - The v5 SAM2 was tuned on DEIMv2 boxes; it doesn't transfer better
+     to DINOv2's more accurate box distribution than zero-shot.
+   - **Conclusion: the detector quality is the dominant factor, not SAM2 tuning.**
+
+3. **Vali/test discrepancy** (0.49 vali vs 0.67 test standard) reflects:
+   - The vali set has 2.7× more images including many negatives (691 images
+     for 627 GT anns), giving the over-detecting model more FP opportunities.
+   - The model is still over-detecting at score_thresh=0.2 (2168 preds vs
+     627 GT = 3.46×).  Merged eval with lower IoU threshold compensates
+     but doesn't fully resolve this.
+
+4. **Merged eval effect**: +0.053 on vali, +0.054 on test for gdino_zeroshot.
+   The merged annotation protocol (scale=1.5, iou=0.3) consistently benefits
+   all candidates similarly, so it doesn't change the relative ranking but
+   gives a better picture of practical performance.
+
+### Bugs fixed in this session
+
+- `merge_nearby_anns.py` initially written from scratch (redundant with
+  `simplify_kwcoco.py` which uses the same `find_low_overlap_covering_boxes`
+  algorithm); rewritten to use that function directly.
+- Two bugs in the rewrite:
+  1. Missing `src_dset.reroot(absolute=True)` before dump → kwcoco eval
+     crashed trying to resolve relative paths from wrong bundle directory.
+  2. Linter changed `annots.category_ids` → `annots.category_id` (wrong).
+     Fixed back to `annots.category_names` (matching simplify_kwcoco).
+
+### Next steps
+
+The natural progression:
+1. **Re-tune SAM2 on DINOv2 detections.** Since zero-shot ≈ tuned (v5 SAM2),
+   and the v5 SAM2 was trained on DEIMv2 boxes, the right experiment is to
+   fine-tune SAM2 using DINOv2 boxes as prompts. This may push tuned above
+   zero-shot by a meaningful margin.
+2. **Fix score calibration.** The 3.46× over-detection at score=0.2 is
+   dragging down vali AP. The optimal threshold is around 0.4 based on the
+   score distribution analysis. Re-tuning or post-hoc calibration would help.
+3. **Consider the result reportable.** gdino_zeroshot merged test=0.723 is a
+   strong result. If the paper deadline is before SAM2 re-tuning is done,
+   this can be reported as "DINOv2 detector + zero-shot SAM2 segmentation".
