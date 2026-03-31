@@ -619,3 +619,54 @@ The natural progression:
 3. **Consider the result reportable.** gdino_zeroshot merged test=0.723 is a
    strong result. If the paper deadline is before SAM2 re-tuning is done,
    this can be reported as "DINOv2 detector + zero-shot SAM2 segmentation".
+
+## 2026-03-30 — Pixel AP evaluation
+
+### Task
+
+Add true pixel-level AP measurement to `run_gdino_sam2_sweep.sh`. Pixel AP is
+independent of box assignment: it renders all predictions and truth masks as
+pixel canvases and computes pixelwise precision-recall. This is what was used
+for the ViT and MaskRCNN baselines.
+
+### Technical approach
+
+The evaluation pipeline requires heatmap-format predictions (a `salient`
+channel per image, float32 in [0, 1]) rather than polygon annotations.  The
+existing `detectron2/predict.py` converts its polygon predictions to heatmaps
+inline via `geowatch.tasks.fusion.coco_stitcher.CocoStitchingManager`.
+
+For our `algo_foundation_v3/cli_predict.py`, which outputs polygon kwcoco
+files, the same conversion is done as a post-processing step.
+
+### New files
+
+**`shitspotter/algo_foundation_v3/polys_to_heatmap.py`**
+- CLI: `python -m shitspotter.algo_foundation_v3.polys_to_heatmap --src pred.kwcoco.zip --dst pred_heatmap.kwcoco.zip`
+- Loads a polygon kwcoco file.
+- For each image: creates a float32 zeros canvas, paints detection polygons
+  in ascending score order (so the highest-score wins per pixel) using
+  `sseg.data.fill(heatmap, value=score, assert_inplace=True)` — same
+  technique as `detectron2/predict.py`.
+- Writes each canvas as a GeoTIFF (`_salient_assets/salient_XXXXXXXX.tif`)
+  with gdal (falls back to kwimage default if gdal unavailable).
+- Registers the asset as an `auxiliary` channel with `channels='salient'`
+  in the dst kwcoco.
+- Removes polygon annotations from dst kwcoco (they are replaced by the
+  heatmap channels; geowatch fusion.evaluate does not use annotations from
+  the pred dataset).
+
+### Changes to run_gdino_sam2_sweep.sh
+
+Added:
+- `RUN_PIXEL_EVAL=true` flag
+- `have_pixel_metrics()` helper (checks for `pixel_eval/pxl_eval.json`)
+- `read_pixel_ap()` helper (parses `salient_AP` from `pxl_eval.json` via
+  recursive search, same pattern as `read_ap`)
+- `run_pixel_eval()` function:
+  1. Calls `polys_to_heatmap` to convert `pred.kwcoco.zip` → `pixel_eval/pred_heatmap.kwcoco.zip`
+  2. Calls `geowatch.tasks.fusion.evaluate --score_space=image --draw_curves=False --draw_heatmaps=False`
+  3. Output: `pixel_eval/pxl_eval.json` with `salient_AP`
+- Integrated `run_pixel_eval` + `read_pixel_ap` into all three candidate
+  blocks (gdino_zeroshot, gdino_tuned, v5_baseline) for both vali and test
+- Added `=== Summary (pixel AP) ===` section to the final report

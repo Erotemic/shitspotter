@@ -76,12 +76,20 @@ RUN_TEST="${RUN_TEST:-true}"
 RUN_MERGED_EVAL="${RUN_MERGED_EVAL:-true}"
 MERGE_SCALE="${MERGE_SCALE:-1.5}"             # box scale for proximity test (matches simplify_kwcoco default)
 MERGED_IOU_THRESH="${MERGED_IOU_THRESH:-0.3}" # lower threshold for merged eval
+# Pixel-level AP via kwcoco.metrics.segmentation_metrics (renders polygon masks,
+# no box assignment — independent of IoU threshold).
+RUN_PIXEL_EVAL="${RUN_PIXEL_EVAL:-true}"
 
 # ---- helpers ----------------------------------------------------------------
 
 have_metrics() {
     local dpath="$1"
     [ -f "$dpath/eval/detect_metrics.json" ]
+}
+
+have_pixel_metrics() {
+    local dpath="$1"
+    [ -f "$dpath/pixel_eval/pxl_eval.json" ]
 }
 
 read_ap() {
@@ -110,6 +118,53 @@ if ap is None:
     raise KeyError('Could not find nocls_measures.ap')
 print(f'{float(ap):.6f}')
 PY
+}
+
+read_pixel_ap() {
+    local pxl_fpath="$1"
+    "$PYTHON_BIN" - "$pxl_fpath" <<'PY'
+import json, sys
+data = json.loads(open(sys.argv[1]).read())
+# geowatch pxl_eval.json stores salient_AP at top level or under 'metrics'
+def find_key(node, key):
+    if isinstance(node, dict):
+        if key in node:
+            return node[key]
+        for v in node.values():
+            found = find_key(v, key)
+            if found is not None:
+                return found
+    elif isinstance(node, list):
+        for v in node:
+            found = find_key(v, key)
+            if found is not None:
+                return found
+    return None
+ap = find_key(data, 'salient_AP')
+if ap is None:
+    raise KeyError('Could not find salient_AP in pxl_eval.json')
+print(f'{float(ap):.6f}')
+PY
+}
+
+# Run pixel-level AP evaluation on an existing pred.kwcoco.zip.
+# kwcoco.metrics.segmentation_metrics renders polygon masks directly —
+# no heatmap conversion needed.
+# Output goes to <out_dpath>/pixel_eval/pxl_eval.json.
+run_pixel_eval() {
+    local src_fpath="$1"    # true kwcoco
+    local out_dpath="$2"    # dir containing pred.kwcoco.zip
+    local pixel_dpath="$out_dpath/pixel_eval"
+    mkdir -p "$pixel_dpath"
+    "$PYTHON_BIN" -m kwcoco.metrics.segmentation_metrics \
+        --true_dataset="$src_fpath" \
+        --pred_dataset="$out_dpath/pred.kwcoco.zip" \
+        --eval_dpath="$pixel_dpath" \
+        --eval_fpath="$pixel_dpath/pxl_eval.json" \
+        --score_space=image \
+        --workers=2 \
+        --draw_curves=False \
+        --draw_heatmaps=False
 }
 
 build_gdino_package() {
@@ -234,6 +289,17 @@ if [ "$SKIP_ZEROSHOT" = "false" ]; then
     fi
     gdino_zeroshot_vali_ap="$(read_ap "$vali_dpath/eval/detect_metrics.json")"
 
+    if [ "${RUN_PIXEL_EVAL,,}" != "false" ]; then
+        if have_pixel_metrics "$vali_dpath"; then
+            echo "  Reusing vali pixel metrics"
+        else
+            run_pixel_eval "$VALI_FPATH" "$vali_dpath"
+        fi
+        gdino_zeroshot_vali_pixel_ap="$(read_pixel_ap "$vali_dpath/pixel_eval/pxl_eval.json")"
+    else
+        gdino_zeroshot_vali_pixel_ap="N/A"
+    fi
+
     if [ "${RUN_MERGED_EVAL,,}" != "false" ]; then
         if have_metrics "$vali_dpath/merged_eval"; then
             echo "  Reusing merged vali metrics"
@@ -253,6 +319,16 @@ if [ "$SKIP_ZEROSHOT" = "false" ]; then
             run_combined_eval "$pkg" "$TEST_FPATH" "$test_dpath"
         fi
         gdino_zeroshot_test_ap="$(read_ap "$test_dpath/eval/detect_metrics.json")"
+        if [ "${RUN_PIXEL_EVAL,,}" != "false" ]; then
+            if have_pixel_metrics "$test_dpath"; then
+                echo "  Reusing test pixel metrics"
+            else
+                run_pixel_eval "$TEST_FPATH" "$test_dpath"
+            fi
+            gdino_zeroshot_test_pixel_ap="$(read_pixel_ap "$test_dpath/pixel_eval/pxl_eval.json")"
+        else
+            gdino_zeroshot_test_pixel_ap="N/A"
+        fi
         if [ "${RUN_MERGED_EVAL,,}" != "false" ]; then
             if have_metrics "$test_dpath/merged_eval"; then
                 echo "  Reusing merged test metrics"
@@ -265,9 +341,11 @@ if [ "$SKIP_ZEROSHOT" = "false" ]; then
         fi
     else
         gdino_zeroshot_test_ap="N/A"
+        gdino_zeroshot_test_pixel_ap="N/A"
         gdino_zeroshot_test_merged_ap="N/A"
     fi
     print_result "gdino_zeroshot" "$gdino_zeroshot_vali_ap" "$gdino_zeroshot_test_ap"
+    print_result "gdino_zeroshot (pixel)" "$gdino_zeroshot_vali_pixel_ap" "$gdino_zeroshot_test_pixel_ap"
     print_result "gdino_zeroshot (merged)" "$gdino_zeroshot_vali_merged_ap" "$gdino_zeroshot_test_merged_ap"
 fi
 
@@ -285,6 +363,17 @@ if [ "$SKIP_TUNED" = "false" ]; then
         run_combined_eval "$pkg" "$VALI_FPATH" "$vali_dpath"
     fi
     gdino_tuned_vali_ap="$(read_ap "$vali_dpath/eval/detect_metrics.json")"
+
+    if [ "${RUN_PIXEL_EVAL,,}" != "false" ]; then
+        if have_pixel_metrics "$vali_dpath"; then
+            echo "  Reusing vali pixel metrics"
+        else
+            run_pixel_eval "$VALI_FPATH" "$vali_dpath"
+        fi
+        gdino_tuned_vali_pixel_ap="$(read_pixel_ap "$vali_dpath/pixel_eval/pxl_eval.json")"
+    else
+        gdino_tuned_vali_pixel_ap="N/A"
+    fi
 
     if [ "${RUN_MERGED_EVAL,,}" != "false" ]; then
         if have_metrics "$vali_dpath/merged_eval"; then
@@ -305,6 +394,16 @@ if [ "$SKIP_TUNED" = "false" ]; then
             run_combined_eval "$pkg" "$TEST_FPATH" "$test_dpath"
         fi
         gdino_tuned_test_ap="$(read_ap "$test_dpath/eval/detect_metrics.json")"
+        if [ "${RUN_PIXEL_EVAL,,}" != "false" ]; then
+            if have_pixel_metrics "$test_dpath"; then
+                echo "  Reusing test pixel metrics"
+            else
+                run_pixel_eval "$TEST_FPATH" "$test_dpath"
+            fi
+            gdino_tuned_test_pixel_ap="$(read_pixel_ap "$test_dpath/pixel_eval/pxl_eval.json")"
+        else
+            gdino_tuned_test_pixel_ap="N/A"
+        fi
         if [ "${RUN_MERGED_EVAL,,}" != "false" ]; then
             if have_metrics "$test_dpath/merged_eval"; then
                 echo "  Reusing merged test metrics"
@@ -317,9 +416,11 @@ if [ "$SKIP_TUNED" = "false" ]; then
         fi
     else
         gdino_tuned_test_ap="N/A"
+        gdino_tuned_test_pixel_ap="N/A"
         gdino_tuned_test_merged_ap="N/A"
     fi
     print_result "gdino_tuned" "$gdino_tuned_vali_ap" "$gdino_tuned_test_ap"
+    print_result "gdino_tuned (pixel)" "$gdino_tuned_vali_pixel_ap" "$gdino_tuned_test_pixel_ap"
     print_result "gdino_tuned (merged)" "$gdino_tuned_vali_merged_ap" "$gdino_tuned_test_merged_ap"
 fi
 
@@ -337,6 +438,17 @@ if [ "${RUN_V5_BASELINE,,}" != "false" ]; then
             run_combined_eval "$V5_PACKAGE_FPATH" "$VALI_FPATH" "$vali_dpath"
         fi
         v5_vali_ap="$(read_ap "$vali_dpath/eval/detect_metrics.json")"
+
+        if [ "${RUN_PIXEL_EVAL,,}" != "false" ]; then
+            if have_pixel_metrics "$vali_dpath"; then
+                echo "  Reusing vali pixel metrics"
+            else
+                run_pixel_eval "$VALI_FPATH" "$vali_dpath"
+            fi
+            v5_vali_pixel_ap="$(read_pixel_ap "$vali_dpath/pixel_eval/pxl_eval.json")"
+        else
+            v5_vali_pixel_ap="N/A"
+        fi
 
         if [ "${RUN_MERGED_EVAL,,}" != "false" ]; then
             if have_metrics "$vali_dpath/merged_eval"; then
@@ -357,6 +469,16 @@ if [ "${RUN_V5_BASELINE,,}" != "false" ]; then
                 run_combined_eval "$V5_PACKAGE_FPATH" "$TEST_FPATH" "$test_dpath"
             fi
             v5_test_ap="$(read_ap "$test_dpath/eval/detect_metrics.json")"
+            if [ "${RUN_PIXEL_EVAL,,}" != "false" ]; then
+                if have_pixel_metrics "$test_dpath"; then
+                    echo "  Reusing test pixel metrics"
+                else
+                    run_pixel_eval "$TEST_FPATH" "$test_dpath"
+                fi
+                v5_test_pixel_ap="$(read_pixel_ap "$test_dpath/pixel_eval/pxl_eval.json")"
+            else
+                v5_test_pixel_ap="N/A"
+            fi
             if [ "${RUN_MERGED_EVAL,,}" != "false" ]; then
                 if have_metrics "$test_dpath/merged_eval"; then
                     echo "  Reusing merged test metrics"
@@ -369,9 +491,11 @@ if [ "${RUN_V5_BASELINE,,}" != "false" ]; then
             fi
         else
             v5_test_ap="N/A"
+            v5_test_pixel_ap="N/A"
             v5_test_merged_ap="N/A"
         fi
         print_result "v5_baseline (deimv2+tuned_sam2)" "$v5_vali_ap" "$v5_test_ap"
+        print_result "v5_baseline (pixel)" "$v5_vali_pixel_ap" "$v5_test_pixel_ap"
         print_result "v5_baseline (merged)" "$v5_vali_merged_ap" "$v5_test_merged_ap"
     fi
 fi
@@ -388,6 +512,17 @@ printf '  %-38s  %-12s  %s\n' "---------" "-------" "-------"
     print_result "gdino_tuned"                          "$gdino_tuned_vali_ap"     "$gdino_tuned_test_ap"
 [ "${RUN_V5_BASELINE,,}" != "false" ] && [ -f "$V5_PACKAGE_FPATH" ] && \
     print_result "v5_baseline (deimv2+tuned_sam2)"      "$v5_vali_ap"              "$v5_test_ap"
+
+echo
+echo "=== Summary (pixel AP via kwcoco.metrics.segmentation_metrics) ==="
+printf '  %-38s  %-12s  %s\n' "candidate" "vali_pixel_ap" "test_pixel_ap"
+printf '  %-38s  %-12s  %s\n' "---------" "-------------" "-------------"
+[ "$SKIP_ZEROSHOT" = "false" ] && [ "${RUN_PIXEL_EVAL,,}" != "false" ] && \
+    print_result "gdino_zeroshot"                       "$gdino_zeroshot_vali_pixel_ap"  "$gdino_zeroshot_test_pixel_ap"
+[ "$SKIP_TUNED" = "false" ] && [ "${RUN_PIXEL_EVAL,,}" != "false" ] && \
+    print_result "gdino_tuned"                          "$gdino_tuned_vali_pixel_ap"     "$gdino_tuned_test_pixel_ap"
+[ "${RUN_V5_BASELINE,,}" != "false" ] && [ -f "$V5_PACKAGE_FPATH" ] && [ "${RUN_PIXEL_EVAL,,}" != "false" ] && \
+    print_result "v5_baseline (deimv2+tuned_sam2)"      "$v5_vali_pixel_ap"              "$v5_test_pixel_ap"
 
 echo
 echo "=== Summary (merged anns, iou=${MERGED_IOU_THRESH}, scale=${MERGE_SCALE}) ==="
