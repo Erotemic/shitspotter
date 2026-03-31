@@ -38,6 +38,7 @@ class MergeNearbyAnnsCLI(scfg.DataConfig):
         import kwcoco
         config = cls.cli(argv=argv, data=kwargs, strict=True)
         src_dset = kwcoco.CocoDataset.coerce(config.src)
+        src_dset.reroot(absolute=True)
         dst_dset = merge_nearby_annotations(src_dset, scale=config.scale)
         dst_dset.fpath = config.dst
         dst_dset.dump(config.dst)
@@ -112,7 +113,7 @@ def merge_nearby_annotations(src_dset, scale=1.5):
             else:
                 # Merge cluster
                 if not ub.allsame(
-                        np.array(annots.category_id)[idxs].tolist()):
+                        np.array(annots.category_names)[idxs].tolist()):
                     # Different categories — don't merge, copy individually
                     for idx in idxs:
                         ann = dict(annots.objs[idx])
