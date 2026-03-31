@@ -112,7 +112,7 @@ def merge_nearby_annotations(src_dset, scale=1.5):
             else:
                 # Merge cluster
                 if not ub.allsame(
-                        np.array(annots.category_ids)[idxs].tolist()):
+                        np.array(annots.category_id)[idxs].tolist()):
                     # Different categories — don't merge, copy individually
                     for idx in idxs:
                         ann = dict(annots.objs[idx])
