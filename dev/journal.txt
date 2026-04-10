@@ -721,3 +721,24 @@ the repo easier to use. Adding Open-GroundingDINO and YOLO-v9 as submodules.
 The existing manual experiments currently reference them as repos on my home
 disk, but going forward we should probably be using the TPL variants so we can
 add modifications to them as necessary.
+
+# 2026-04-10
+
+Finally got around to transfering the latest images from my phone, and I tried
+to use the new DINO+SAM model, but the results looked like they would take more
+effort to correct, so I reverted back to the old MaskRCNN model.
+
+It could be a pipeline issue, but I was getting detections on every single
+image (really I should only be getting those every third image), and the
+segmentations were not very tight, and there was a lot of weird overlap (e.g.
+one box around 2 poops, but then another box around one of them with the
+segmentations wrapping in weird ways).
+
+One limitation is that I've still been using the old tagged dataset for
+training, but I expect I need to revisit the pipeline. I'm also wondering if
+that's why the DINOv3 results were worse than the V2 results.
+
+I wonder what would happen if we took the results, converted them to masks,
+unioned, and then re-extracted the polygons. The pixel eval should have taken
+care of that, but the coding agents might not be able to reason well about the
+kwcoco metric code.
