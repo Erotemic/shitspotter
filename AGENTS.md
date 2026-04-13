@@ -40,3 +40,12 @@ maintainers: enough context for someone to pick up where you left off.
 - May include: what happened, rationale, testing notes, next steps, open questions.
 - Rules: Prefer append-only. You may edit only the most recent entry *during the same session* (use timestamp + context to judge); never modify the timestamp line; once a new session starts, create a new entry. Never modify older entries. Avoid large diffs; reference files/modules/issues instead.
 - Write journal entries as design narratives: capture the user's underlying goal, the constraints that matter, the alternatives you considered, why the chosen approach won, what tradeoffs were accepted, and 1-3 reusable design takeaways that could teach a future engineer how to make a similar decision.
+
+# Agent Guidelines for ShitSpotter
+
+## Always end with rerun commands
+
+After any change to scripts, evaluations, or inference pipeline code, always
+finish your response with the concrete shell commands the user should run to
+exercise the new code.  This lets them copy-paste immediately without having to
+reconstruct the invocation themselves.

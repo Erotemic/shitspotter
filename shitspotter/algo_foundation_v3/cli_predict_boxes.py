@@ -8,6 +8,7 @@ import ubelt as ub
 from shitspotter.algo_foundation_v3.config_utils import nonnull_overrides
 from shitspotter.algo_foundation_v3.datasets import prepare_prediction_io
 from shitspotter.algo_foundation_v3.detector_deimv2 import DEIMv2Predictor
+from shitspotter.algo_foundation_v3.detector_opengroundingdino import OpenGroundingDINOPredictor
 from shitspotter.algo_foundation_v3.kwcoco_adapter import clone_dataset_for_predictions, coerce_input_kwcoco
 from shitspotter.algo_foundation_v3.packaging import dump_package, package_name, resolve_package
 from shitspotter.algo_foundation_v3.postprocess import add_prediction_annotations, detector_records_to_bbox_anns
@@ -34,8 +35,11 @@ class AlgoPredictBoxesCLI(scfg.DataConfig):
         }
         package_overrides = {k: v for k, v in package_overrides.items() if v not in [None, {}]}
         resolved_package = resolve_package(config.package_fpath, overrides=package_overrides)
-        if resolved_package['backend'] != 'deimv2_sam2':
-            raise ValueError('Detector-only box prediction currently requires a deimv2_sam2 package')
+        backend = resolved_package['backend']
+        if backend not in ('deimv2_sam2', 'opengroundingdino_sam2'):
+            raise ValueError(
+                f'Detector-only box prediction requires a deimv2_sam2 or opengroundingdino_sam2 package, got {backend!r}'
+            )
 
         if config.device is not None:
             resolved_package['detector']['device'] = config.device
@@ -57,8 +61,13 @@ class AlgoPredictBoxesCLI(scfg.DataConfig):
         )
         proc_context.start()
 
-        detector = DEIMv2Predictor(resolved_package['detector'])
-        for coco_img in ub.ProgIter(src_dset.images().coco_images, desc='predict deimv2 boxes'):
+        if backend == 'deimv2_sam2':
+            detector = DEIMv2Predictor(resolved_package['detector'])
+            desc = 'predict deimv2 boxes'
+        else:
+            detector = OpenGroundingDINOPredictor(resolved_package['detector'])
+            desc = 'predict opengroundingdino boxes'
+        for coco_img in ub.ProgIter(src_dset.images().coco_images, desc=desc):
             image = coco_img.imdelay().finalize()
             detector_records = detector.predict_image_records(image)
             anns = detector_records_to_bbox_anns(
@@ -66,7 +75,7 @@ class AlgoPredictBoxesCLI(scfg.DataConfig):
                 label_mapping=resolved_package['label_mapping'],
                 post_cfg=resolved_package['postprocess'],
             )
-            add_prediction_annotations(pred_dset, coco_img.img['id'], anns, backend_name='deimv2_boxes')
+            add_prediction_annotations(pred_dset, coco_img.img['id'], anns, backend_name=backend + '_boxes')
 
         proc_context.stop()
         proc_info = proc_context.obj or {}
