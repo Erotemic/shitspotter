@@ -75,7 +75,8 @@ class SimplifyKwcocoCLI(scfg.DataConfig):
         dset.reroot(absolute=True)
         dset._update_fpath(config.dst)
 
-        category_hist = {c: 0 for c in dset.categories().lookup('name')} | ub.dict_hist(dset.annots().category_names)
+        valid_aids = [a['id'] for a in dset.annots().objs if a.get('category_id') is not None and a.get('category_id') in dset.cats]
+        category_hist = {c: 0 for c in dset.categories().lookup('name')} | ub.dict_hist(dset.annots(valid_aids).category_names)
         print(f'category_hist = {ub.urepr(category_hist, nl=1)}')
         remove_catnames = [k for k, f in category_hist.items() if f < config.minimum_instances]
         keep_catnames = set(category_hist) - set(remove_catnames)
@@ -87,7 +88,10 @@ class SimplifyKwcocoCLI(scfg.DataConfig):
         to_remove = []
         new_anns = []
         for coco_image in ub.ProgIter(dset.images().coco_images_iter(), total=dset.n_images, desc='simplify'):
-            annots = coco_image.annots()
+            all_annots = coco_image.annots()
+            # Filter out annotations with missing/unknown category_id before any category lookup
+            valid_aids_img = [a['id'] for a in all_annots.objs if a.get('category_id') is not None and a.get('category_id') in dset.cats]
+            annots = dset.annots(valid_aids_img)
             # boxes: kwimage.Boxes = annots.boxes
             dets: kwimage.Detections = annots.detections
             if len(dets) == 0:
