@@ -742,3 +742,9 @@ I wonder what would happen if we took the results, converted them to masks,
 unioned, and then re-extracted the polygons. The pixel eval should have taken
 care of that, but the coding agents might not be able to reason well about the
 kwcoco metric code.
+
+# 2026-04-12
+
+I'm seeing something very strange in PXL_20260312_223749719.MP.jpg and
+PXL_20260312_224050094.jpg the later image appears to be temporally mixed up.
+I'm not sure how that could happen. 

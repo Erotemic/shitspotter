@@ -168,6 +168,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2026-04-12 - Annotated a big cohort of images. Some of these were not taken with the BAN protocol, but they are explicitly annotated as such. As the dataset grows I may start reconsidering adding a 3rd negative for every positive. In many cases they likely aren't going to be a hard negative.
 * 2026-03-30 - Posted a `youtube video <https://www.youtube.com/watch?v=Dyh0A4aIZbE>`_ that goes over the slides. Working on preparing a new bootstrap model before I annotate the next cohort.
 * 2026-03-01 - Getting ready for presentation at WasteVision 2026 - International Workshop on Smart Waste Monitoring at WACV. `Slides are online <https://docs.google.com/presentation/d/14Yb6qc_5wQK0PzYqiqiIFVECuq1JTsr5N3EIBKKcGL8/edit?slide=id.g39399de817a_1_34#slide=id.g39399de817a_1_34>`_.
 * 2026-01-05 - Its the new year, and it is bittersweet. The revised dataset paper was peer reviewed and accepted to WasteVision 2026. But we've lost Honey to cancer.
@@ -421,6 +422,8 @@ registration via the SIFT+RANSAC algorithm.
 | 2025-11-26  | 11089    | ~3827               | 2746                  | 3844                  | bafybeigbp5zpn7mauksdfghtogf3utvhibsfqtqdqbnxjzvqkbnljnx7nm  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 | 2026-01-05  | 11460    | ~3950               | 2829                  | 3967                  | bafybeib7solf3oxxmyfc4c37pnz7v5sefbj3z45b6ulxmxjotjy3om3yhi  |
++-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
+| 2026-04-12  | 12055    | ~4149               | 2985                  | 4178                  | bafybeihellhg4upl3e7pcd4kb37spqhcuiwxcde5anqhwcy5ul7gh3w75e  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 
 
