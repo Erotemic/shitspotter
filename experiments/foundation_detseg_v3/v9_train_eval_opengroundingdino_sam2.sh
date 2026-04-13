@@ -277,7 +277,13 @@ SELECTED_MANIFEST_FPATH="$V9_ROOT/selected_detector_checkpoint.yaml"
 PACKAGE_DPATH="$REPO_DPATH/experiments/foundation_detseg_v3/packages"
 FINAL_TUNED_PACKAGE_FPATH="$PACKAGE_DPATH/v9_opengroundingdino_sam2_1_hiera_base_plus_tuned.yaml"
 
-# Prepared data paths
+# Preprocessed kwcoco paths (resize then simplify before COCO export)
+PREPROC_TRAIN_RESIZED_FPATH="$DETECTOR_PREP_DPATH/train_maxdim${RESIZE_MAX_DIM}.kwcoco.zip"
+PREPROC_VALI_RESIZED_FPATH="$DETECTOR_PREP_DPATH/vali_maxdim${RESIZE_MAX_DIM}.kwcoco.zip"
+PREPROC_TRAIN_SIMPLIFIED_FPATH="$DETECTOR_PREP_DPATH/train_maxdim${RESIZE_MAX_DIM}.simplified.kwcoco.zip"
+PREPROC_VALI_SIMPLIFIED_FPATH="$DETECTOR_PREP_DPATH/vali_maxdim${RESIZE_MAX_DIM}.simplified.kwcoco.zip"
+
+# Prepared data paths (exported from preprocessed kwcoco)
 TRAIN_MSCOCO_FPATH="$DETECTOR_PREP_DPATH/train.mscoco.json"
 VALI_MSCOCO_FPATH="$DETECTOR_PREP_DPATH/vali.mscoco.json"
 TRAIN_ODVG_FPATH="$DETECTOR_PREP_DPATH/train.odvg.jsonl"
@@ -304,8 +310,15 @@ GDINO_LR_BACKBONE="${GDINO_LR_BACKBONE:-1e-05}"
 GDINO_EPOCHS="${GDINO_EPOCHS:-15}"
 CLASSES_TEXT="${CLASSES_TEXT:-[poop]}"
 
+# Preprocessing knobs (applied before COCO export)
+RESIZE_MAX_DIM="${RESIZE_MAX_DIM:-640}"
+RESIZE_OUTPUT_EXT="${RESIZE_OUTPUT_EXT:-.jpg}"
+FORCE_RESIZE_PREPROCESS="${FORCE_RESIZE_PREPROCESS:-False}"
+SIMPLIFY_MINIMUM_INSTANCES="${SIMPLIFY_MINIMUM_INSTANCES:-100}"
+FORCE_SIMPLIFY_PREPROCESS="${FORCE_SIMPLIFY_PREPROCESS:-False}"
+
 # SAM2 training - same as v5/v8
-SAM2_NUM_GPUS="${SAM2_NUM_GPUS:-2}"
+SAM2_NUM_GPUS="${SAM2_NUM_GPUS:-1}"
 SAM2_TRAIN_BATCH_SIZE="${SAM2_TRAIN_BATCH_SIZE:-1}"
 SAM2_NUM_TRAIN_WORKERS="${SAM2_NUM_TRAIN_WORKERS:-8}"
 SAM2_NUM_EPOCHS="${SAM2_NUM_EPOCHS:-20}"
@@ -365,6 +378,56 @@ printf '  %-32s %s\n' "GDINO_LR_BACKBONE" "$GDINO_LR_BACKBONE"
 printf '  %-32s %s\n' "GDINO_EPOCHS" "$GDINO_EPOCHS"
 printf '  %-32s %s\n' "SAM2_NUM_GPUS" "$SAM2_NUM_GPUS"
 printf '  %-32s %s\n' "SAM2_NUM_EPOCHS" "$SAM2_NUM_EPOCHS"
+printf '  %-32s %s\n' "RESIZE_MAX_DIM" "$RESIZE_MAX_DIM"
+printf '  %-32s %s\n' "SIMPLIFY_MINIMUM_INSTANCES" "$SIMPLIFY_MINIMUM_INSTANCES"
+
+# ---------------------------------------------------------------------------
+echo
+echo "=== Resize preprocessing ==="
+# ---------------------------------------------------------------------------
+if is_truthy "$FORCE_RESIZE_PREPROCESS" || [ ! -f "$PREPROC_TRAIN_RESIZED_FPATH" ]; then
+    "$PYTHON_BIN" -m shitspotter.cli.resize_kwcoco \
+        --src "$TRAIN_FPATH" \
+        --dst "$PREPROC_TRAIN_RESIZED_FPATH" \
+        --max_dim "$RESIZE_MAX_DIM" \
+        --asset_dname "train_assets_maxdim${RESIZE_MAX_DIM}" \
+        --output_ext "$RESIZE_OUTPUT_EXT"
+else
+    echo "  Reusing resized train: $PREPROC_TRAIN_RESIZED_FPATH"
+fi
+
+if is_truthy "$FORCE_RESIZE_PREPROCESS" || [ ! -f "$PREPROC_VALI_RESIZED_FPATH" ]; then
+    "$PYTHON_BIN" -m shitspotter.cli.resize_kwcoco \
+        --src "$VALI_FPATH" \
+        --dst "$PREPROC_VALI_RESIZED_FPATH" \
+        --max_dim "$RESIZE_MAX_DIM" \
+        --asset_dname "vali_assets_maxdim${RESIZE_MAX_DIM}" \
+        --output_ext "$RESIZE_OUTPUT_EXT"
+else
+    echo "  Reusing resized vali: $PREPROC_VALI_RESIZED_FPATH"
+fi
+
+# ---------------------------------------------------------------------------
+echo
+echo "=== Simplify preprocessing ==="
+# ---------------------------------------------------------------------------
+if is_truthy "$FORCE_SIMPLIFY_PREPROCESS" || [ ! -f "$PREPROC_TRAIN_SIMPLIFIED_FPATH" ]; then
+    "$PYTHON_BIN" -m shitspotter.cli.simplify_kwcoco \
+        --src "$PREPROC_TRAIN_RESIZED_FPATH" \
+        --dst "$PREPROC_TRAIN_SIMPLIFIED_FPATH" \
+        --minimum_instances "$SIMPLIFY_MINIMUM_INSTANCES"
+else
+    echo "  Reusing simplified train: $PREPROC_TRAIN_SIMPLIFIED_FPATH"
+fi
+
+if is_truthy "$FORCE_SIMPLIFY_PREPROCESS" || [ ! -f "$PREPROC_VALI_SIMPLIFIED_FPATH" ]; then
+    "$PYTHON_BIN" -m shitspotter.cli.simplify_kwcoco \
+        --src "$PREPROC_VALI_RESIZED_FPATH" \
+        --dst "$PREPROC_VALI_SIMPLIFIED_FPATH" \
+        --minimum_instances "$SIMPLIFY_MINIMUM_INSTANCES"
+else
+    echo "  Reusing simplified vali: $PREPROC_VALI_SIMPLIFIED_FPATH"
+fi
 
 # ---------------------------------------------------------------------------
 echo
@@ -372,31 +435,31 @@ echo "=== Prepare OpenGroundingDINO training data ==="
 # ---------------------------------------------------------------------------
 if is_truthy "$FORCE_DETECTOR_PREP" || [ ! -f "$TRAIN_ODVG_FPATH" ] || [ ! -f "$VALI_MSCOCO_FPATH" ]; then
 
-    echo "  Exporting kwcoco → MSCOCO for training split..."
-    "$PYTHON_BIN" - <<PY
+    echo "  Exporting preprocessed kwcoco → MSCOCO for training split..."
+    "$PYTHON_BIN" -c "
 from shitspotter.algo_foundation_v3.coco_adapter import _build_coco_export
 _build_coco_export(
-    src='$TRAIN_FPATH',
+    src='$PREPROC_TRAIN_SIMPLIFIED_FPATH',
     dst='$TRAIN_MSCOCO_FPATH',
     category_name='poop',
     include_segmentations=False,
     category_id=0,
 )
 print('Wrote $TRAIN_MSCOCO_FPATH')
-PY
+"
 
-    echo "  Exporting kwcoco → MSCOCO for validation split..."
-    "$PYTHON_BIN" - <<PY
+    echo "  Exporting preprocessed kwcoco → MSCOCO for validation split..."
+    "$PYTHON_BIN" -c "
 from shitspotter.algo_foundation_v3.coco_adapter import _build_coco_export
 _build_coco_export(
-    src='$VALI_FPATH',
+    src='$PREPROC_VALI_SIMPLIFIED_FPATH',
     dst='$VALI_MSCOCO_FPATH',
     category_name='poop',
     include_segmentations=False,
     category_id=0,
 )
 print('Wrote $VALI_MSCOCO_FPATH')
-PY
+"
 
     echo "  Converting train MSCOCO → ODVG..."
     (
@@ -408,14 +471,14 @@ PY
     )
 
     echo "  Writing label map..."
-    "$PYTHON_BIN" - <<PY
+    "$PYTHON_BIN" -c "
 import json
 from pathlib import Path
 data = json.loads(Path('$TRAIN_MSCOCO_FPATH').read_text())
 label_map = {str(cat['id']): cat['name'] for cat in data.get('categories', [])}
 Path('$LABEL_MAP_FPATH').write_text(json.dumps(label_map, indent=2))
 print('Wrote $LABEL_MAP_FPATH')
-PY
+"
 
     echo "  Writing datasets JSON..."
     cat > "$DATASETS_JSON_FPATH" <<DATASETS_EOF

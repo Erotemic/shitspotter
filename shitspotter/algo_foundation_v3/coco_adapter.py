@@ -12,6 +12,7 @@ def _build_coco_export(src, dst, category_name='poop', include_segmentations=Tru
 
     src_dset = kwcoco.CocoDataset.coerce(src)
     export = {
+        'info': {},
         'images': [],
         'annotations': [],
         'categories': [{
