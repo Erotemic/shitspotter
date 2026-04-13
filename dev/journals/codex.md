@@ -651,6 +651,16 @@ The main risks are environmental rather than conceptual. I could syntax-check al
 
 Reusable takeaways: for cross-model comparisons, shared prepared datasets are more important than shared wrapper style; benchmark metadata needs to record preprocessing as part of the scientific question, not as an implementation footnote; and for detector experiments, the metric used for checkpoint selection should match the category-specific task of interest rather than a generic class-agnostic fallback.
 
+## 2026-04-10 16:19:41 +0000
+
+Summary of user intent: determine whether the repo currently has a working DINOv2 + SAM detect-and-segment path that can be used to bootstrap annotations for a new cohort.
+
+I traced the current foundation-detseg code rather than relying only on the journal notes, because the key question is not whether the idea exists but whether the project now has a concrete runnable path. The code answer is encouraging: there is a real `opengroundingdino_sam2` package backend in `shitspotter/algo_foundation_v3/model_registry.py`, a detector wrapper in `detector_opengroundingdino.py`, a SAM2 box-prompt segmenter in `segmenter_sam2.py`, shared detector-to-mask postprocessing in `postprocess.py`, and a unified inference CLI in `cli_predict.py` that already has an `opengroundingdino_sam2` branch. The experiment README also documents `run_bootstrap_new_cohort.sh` as the intended annotation-seeding workflow and explicitly says to point `PACKAGE_FPATH` at a trained detector+segmenter package. That is the closest thing to a yes I can give from the codebase.
+
+What I like about the current shape is that the bootstrap flow is not a one-off hack: package resolution, detector inference, SAM2 prompting, and LabelMe export all use the same shared machinery as the rest of the foundation-v3 stack. The OpenGroundingDINO path is wired into the same prediction/evaluation pipeline as DEIMv2, which makes it much easier to trust the bootstrap outputs when they are used as annotation hints rather than final truth. The tradeoff is that I could not fully runtime-verify the path in this workspace because `kwcoco` is not installed here, so `pytest` failed during import before any of the foundation-v3 tests could run. That means I am confident the wiring exists, but I am not claiming fresh local execution proof from this environment.
+
+Reusable takeaways: when a bootstrap path matters, treat packaging and inference as first-class artifacts rather than just training outputs; keep detector family support symmetrical so switching from DEIMv2 to OpenGroundingDINO does not require a new user workflow; and when validation is blocked by missing dependencies, the journal should distinguish “code is present and consistent” from “I have personally run it here.”
+
 ## 2026-03-25 00:11:44 +0000
 Summary of user intent: fix the first real runtime error in the new DINO detector benchmark so the user can rerun the end-to-end comparison.
 
@@ -758,3 +768,26 @@ Summary of user intent: append a clean corrective note after a malformed journal
 Corrective note: the immediately previous entry lost some inline identifiers due to shell interpolation during append. The intended substance is as follows. Batch size 4 is the first DEIMv2 regime that materially improves the small-data DINOv3 line. At train size 128, the best validation AP is 0.452779 from config small_batch4_low_lr_all_0p8, while the best observed test AP is 0.501876 from config small_batch4_backbone_0p5. At train size 256, the best validation AP is 0.495747 from config small_batch4_backbone_0p5, while the best observed test AP is 0.522443 from config small_batch4_low_lr_all_0p8. OpenGroundingDINO still leads clearly at the same sizes with 0.544002 / 0.599663 for train128 and 0.588519 / 0.630317 for train256.
 
 The important interpretation is unchanged. DEIMv2 tuning is finally producing meaningful movement, but the remaining gap to the DINOv2 baseline is still large enough that further recipe work is needed. The next sweep should stay centered on the batch-4 family rather than reopening broad searches.
+## 2026-04-13 00:48:48 +0000
+
+**Model:** claude-sonnet-4-6
+
+**User intent:** Create training scripts and commands for the best-performing pipeline on new dataset splits — specifically OpenGroundingDINO (DINOv2) + SAM2 on the new larger splits: train_imgs10671_b277c63d, vali_imgs1258_577e331c, test_imgs121_d39956b1. Correction mid-session: user clarified that DEIMv2 (DINOv3) is not the target — OpenGroundingDINO (DINOv2) is the better performer (~0.10 AP lead on test per small-data benchmark), and that is what we should train.
+
+**What was done:**
+
+1. Created `experiments/foundation_detseg_v3/v8_train_eval_foundation_detseg.sh` — a DEIMv2 (DINOv3) full retrain on the new data using v7's best LR (global scale 0.8). This is a legitimate comparison baseline: same architecture as v5–v7 but trained on ~2x more data. Trains both SAM2 and the detector from scratch.
+
+2. Extended `shitspotter/algo_foundation_v3/cli_predict_boxes.py` to support `opengroundingdino_sam2` packages in addition to `deimv2_sam2`. Previously the CLI had a hard guard that rejected any non-DEIMv2 backend. `cli_predict.py` already supported `opengroundingdino_sam2`; this brings `cli_predict_boxes.py` into alignment.
+
+3. Created `experiments/foundation_detseg_v3/v9_train_eval_opengroundingdino_sam2.sh` — the primary new experiment. Full OpenGroundingDINO (DINOv2 + BERT) + SAM2 retrain on the new data. Steps: kwcoco→MSCOCO export via `coco_adapter._build_coco_export`, MSCOCO→ODVG via `tools/coco2odvg.py`, config patching, `train_dist.sh`, checkpoint sweep against vali using the same combined-raw-vali AP primary criterion from v6/v7, SAM2 fine-tune (same hyperparameters as v5/v8), `opengroundingdino_sam2` package build, and test evaluation.
+
+**Key design decision:** v8 (DEIMv2) and v9 (OpenGroundingDINO) are kept as separate experiments rather than overwriting. The DEIMv2 retrain on new data is a useful data-scaling ablation; if the new data closes the gap between DINOv2 and DINOv3, that is a meaningful scientific finding. If it doesn't, it confirms the architecture gap is the dominant factor. Either result is informative.
+
+**Uncertainties / risks:**
+- The `coco_adapter._build_coco_export` function is called inline with `python -c` in v9; it's not a public CLI. If the API changes this will silently break. Consider adding a dedicated `shitspotter.cli.export_coco` CLI.
+- `GDINO_PRETRAIN_CKPT` defaults to `$SHITSPOTTER_OPENGROUNDINGDINO_REPO_DPATH/groundingdino_swint_ogc.pth`. If the user hasn't placed the pretrained weights there, training will fail immediately. The `download_foundation_assets.sh` script may not cover this.
+- The `train_dist.sh` in Open-GroundingDino requires being run from within the repo directory (uses relative paths). The v9 script uses a subshell `(cd ...; bash train_dist.sh ...)` to handle this. If the script is resumed in a different shell, `TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1` must still be set.
+- The checkpoint naming convention in OpenGroundingDINO is `checkpoint{0000-N}.pth` (0-indexed), which is different from DEIMv2's `checkpoint{0019,0024,...}.pth` pattern. The sweep logic in v9 handles this correctly.
+
+**Design takeaway:** When a repo has multiple detector families with different training stacks, the right abstraction layer is the package format (shared) + per-family training scripts (separate). Don't try to unify training through a single CLI until the families converge enough to share meaningful structure.
