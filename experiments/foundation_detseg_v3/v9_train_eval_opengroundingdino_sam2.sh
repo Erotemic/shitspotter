@@ -226,6 +226,8 @@ write_selected_manifest() {
     local final_detector_test_ap="$6"
     local final_combined_test_ap="$7"
     local final_package_fpath="$8"
+    local final_detector_test_simplified_ap="${9:-}"
+    local final_combined_test_simplified_ap="${10:-}"
     local tmp_fpath="${manifest_fpath}.tmp"
     cat > "$tmp_fpath" <<EOF
 version: v9
@@ -237,6 +239,8 @@ detector_vali_ap: $detector_vali_ap
 combined_vali_ap: $combined_vali_ap
 detector_test_ap: $final_detector_test_ap
 combined_test_ap: $final_combined_test_ap
+detector_test_simplified_ap: $final_detector_test_simplified_ap
+combined_test_simplified_ap: $final_combined_test_simplified_ap
 package_fpath: $final_package_fpath
 timestamp_utc: $(date -u '+%Y-%m-%dT%H:%M:%SZ')
 EOF
@@ -289,6 +293,9 @@ PREPROC_TRAIN_RESIZED_FPATH="$DETECTOR_PREP_DPATH/train_maxdim${RESIZE_MAX_DIM}.
 PREPROC_VALI_RESIZED_FPATH="$DETECTOR_PREP_DPATH/vali_maxdim${RESIZE_MAX_DIM}.kwcoco.zip"
 PREPROC_TRAIN_SIMPLIFIED_FPATH="$DETECTOR_PREP_DPATH/train_maxdim${RESIZE_MAX_DIM}.simplified.kwcoco.zip"
 PREPROC_VALI_SIMPLIFIED_FPATH="$DETECTOR_PREP_DPATH/vali_maxdim${RESIZE_MAX_DIM}.simplified.kwcoco.zip"
+# Simplified test GT: annotations merged with same parameters as training preprocessing.
+# Images are not resized since existing predictions were made on original-resolution test images.
+PREPROC_TEST_SIMPLIFIED_FPATH="$DETECTOR_PREP_DPATH/test.simplified.kwcoco.zip"
 
 # Prepared data paths (exported from preprocessed kwcoco)
 TRAIN_MSCOCO_FPATH="$DETECTOR_PREP_DPATH/train.mscoco.json"
@@ -308,6 +315,8 @@ FORCE_DETECTOR_RERUN="${FORCE_DETECTOR_RERUN:-False}"
 FORCE_SEGMENTER_RERUN="${FORCE_SEGMENTER_RERUN:-False}"
 FORCE_CANDIDATE_EVALS="${FORCE_CANDIDATE_EVALS:-False}"
 FORCE_FINAL_EVALS="${FORCE_FINAL_EVALS:-False}"
+# Re-evaluate existing predictions against simplified test GT (no new inference)
+FORCE_SIMPLIFIED_REEVAL="${FORCE_SIMPLIFIED_REEVAL:-False}"
 
 # OpenGroundingDINO training - baseline hyperparameters validated in small-data benchmark
 GDINO_GPU_NUM="${GDINO_GPU_NUM:-1}"
@@ -634,6 +643,8 @@ build_package "$FINAL_TUNED_PACKAGE_FPATH" "$SELECTED_CKPT_FPATH" "$GDINO_CFG_FP
 SELECTED_FINAL_ROOT="$V9_ROOT/final_eval/${SELECTED_CANDIDATE_ID}"
 FINAL_DETECTOR_TEST_DPATH="$SELECTED_FINAL_ROOT/detector_test"
 FINAL_COMBINED_TEST_DPATH="$SELECTED_FINAL_ROOT/combined_raw_test"
+FINAL_DETECTOR_TEST_SIMPLIFIED_DPATH="$SELECTED_FINAL_ROOT/detector_test_simplified"
+FINAL_COMBINED_TEST_SIMPLIFIED_DPATH="$SELECTED_FINAL_ROOT/combined_raw_test_simplified"
 
 echo
 echo "=== Evaluate selected detector on test ==="
@@ -654,6 +665,66 @@ fi
 FINAL_DETECTOR_TEST_AP="$(read_ap "$FINAL_DETECTOR_TEST_DPATH/eval/detect_metrics.json")"
 FINAL_COMBINED_TEST_AP="$(read_ap "$FINAL_COMBINED_TEST_DPATH/eval/detect_metrics.json")"
 
+# ---------------------------------------------------------------------------
+# Simplified test GT re-evaluation
+#
+# The raw test set has ~16 poop annotations per image vs ~2 per image in the
+# training and validation splits. This density mismatch is due to inconsistent
+# per-instance vs per-cluster annotation conventions across the dataset.
+# Applying the same simplify_kwcoco merge step to the test GT puts all splits
+# on the same semantic footing (detect the cluster, not individual instances)
+# and is the canonical metric for this experiment family going forward.
+#
+# Importantly, this is a pure GT re-evaluation: existing prediction files are
+# reused as-is. No new inference is run.
+# ---------------------------------------------------------------------------
+
+echo
+echo "=== Create simplified test GT ==="
+if is_truthy "$FORCE_SIMPLIFIED_REEVAL" || [ ! -f "$PREPROC_TEST_SIMPLIFIED_FPATH" ]; then
+    "$PYTHON_BIN" -m shitspotter.cli.simplify_kwcoco \
+        --src "$TEST_FPATH" \
+        --dst "$PREPROC_TEST_SIMPLIFIED_FPATH" \
+        --minimum_instances "$SIMPLIFY_MINIMUM_INSTANCES"
+else
+    echo "  Reusing simplified test GT: $PREPROC_TEST_SIMPLIFIED_FPATH"
+fi
+
+echo
+echo "=== Re-evaluate selected detector on simplified test GT ==="
+if is_truthy "$FORCE_SIMPLIFIED_REEVAL" || ! have_metrics "$FINAL_DETECTOR_TEST_SIMPLIFIED_DPATH"; then
+    mkdir -p "$FINAL_DETECTOR_TEST_SIMPLIFIED_DPATH/eval"
+    "$PYTHON_BIN" -m kwcoco eval \
+        --true_dataset "$PREPROC_TEST_SIMPLIFIED_FPATH" \
+        --pred_dataset "$FINAL_DETECTOR_TEST_DPATH/pred_boxes.kwcoco.zip" \
+        --out_dpath "$FINAL_DETECTOR_TEST_SIMPLIFIED_DPATH/eval" \
+        --out_fpath "$FINAL_DETECTOR_TEST_SIMPLIFIED_DPATH/eval/detect_metrics.json" \
+        --confusion_fpath "$FINAL_DETECTOR_TEST_SIMPLIFIED_DPATH/eval/confusion.kwcoco.zip" \
+        --draw False \
+        --iou_thresh 0.5 >/dev/null
+else
+    echo "  Reusing simplified test detector metrics: $FINAL_DETECTOR_TEST_SIMPLIFIED_DPATH/eval/detect_metrics.json"
+fi
+
+echo
+echo "=== Re-evaluate combined on simplified test GT ==="
+if is_truthy "$FORCE_SIMPLIFIED_REEVAL" || ! have_metrics "$FINAL_COMBINED_TEST_SIMPLIFIED_DPATH"; then
+    mkdir -p "$FINAL_COMBINED_TEST_SIMPLIFIED_DPATH/eval"
+    "$PYTHON_BIN" -m kwcoco eval \
+        --true_dataset "$PREPROC_TEST_SIMPLIFIED_FPATH" \
+        --pred_dataset "$FINAL_COMBINED_TEST_DPATH/pred.kwcoco.zip" \
+        --out_dpath "$FINAL_COMBINED_TEST_SIMPLIFIED_DPATH/eval" \
+        --out_fpath "$FINAL_COMBINED_TEST_SIMPLIFIED_DPATH/eval/detect_metrics.json" \
+        --confusion_fpath "$FINAL_COMBINED_TEST_SIMPLIFIED_DPATH/eval/confusion.kwcoco.zip" \
+        --draw False \
+        --iou_thresh 0.5 >/dev/null
+else
+    echo "  Reusing simplified test combined metrics: $FINAL_COMBINED_TEST_SIMPLIFIED_DPATH/eval/detect_metrics.json"
+fi
+
+FINAL_DETECTOR_TEST_SIMPLIFIED_AP="$(read_ap "$FINAL_DETECTOR_TEST_SIMPLIFIED_DPATH/eval/detect_metrics.json")"
+FINAL_COMBINED_TEST_SIMPLIFIED_AP="$(read_ap "$FINAL_COMBINED_TEST_SIMPLIFIED_DPATH/eval/detect_metrics.json")"
+
 write_selected_manifest \
     "$SELECTED_MANIFEST_FPATH" \
     "$SELECTED_CANDIDATE_ID" \
@@ -662,15 +733,19 @@ write_selected_manifest \
     "$SELECTED_COMBINED_VALI_AP" \
     "$FINAL_DETECTOR_TEST_AP" \
     "$FINAL_COMBINED_TEST_AP" \
-    "$FINAL_TUNED_PACKAGE_FPATH"
+    "$FINAL_TUNED_PACKAGE_FPATH" \
+    "$FINAL_DETECTOR_TEST_SIMPLIFIED_AP" \
+    "$FINAL_COMBINED_TEST_SIMPLIFIED_AP"
 
 echo
 echo "=== v9 summary ==="
-printf '  %-32s %s\n' "selected_candidate_id" "$SELECTED_CANDIDATE_ID"
-printf '  %-32s ap=%s\n' "detector_only_vali" "$SELECTED_DETECTOR_VALI_AP"
-printf '  %-32s ap=%s\n' "combined_tuned_raw_vali" "$SELECTED_COMBINED_VALI_AP"
-printf '  %-32s ap=%s\n' "detector_only_test" "$FINAL_DETECTOR_TEST_AP"
-printf '  %-32s ap=%s\n' "combined_tuned_raw_test" "$FINAL_COMBINED_TEST_AP"
+printf '  %-36s %s\n' "selected_candidate_id" "$SELECTED_CANDIDATE_ID"
+printf '  %-36s ap=%s\n' "detector_only_vali" "$SELECTED_DETECTOR_VALI_AP"
+printf '  %-36s ap=%s\n' "combined_tuned_raw_vali" "$SELECTED_COMBINED_VALI_AP"
+printf '  %-36s ap=%s\n' "detector_only_test (dense GT)" "$FINAL_DETECTOR_TEST_AP"
+printf '  %-36s ap=%s\n' "combined_tuned_raw_test (dense GT)" "$FINAL_COMBINED_TEST_AP"
+printf '  %-36s ap=%s\n' "detector_only_test (simplified GT)" "$FINAL_DETECTOR_TEST_SIMPLIFIED_AP"
+printf '  %-36s ap=%s\n' "combined_tuned_raw_test (simplified GT)" "$FINAL_COMBINED_TEST_SIMPLIFIED_AP"
 
 echo
 echo "v9 run completed"
