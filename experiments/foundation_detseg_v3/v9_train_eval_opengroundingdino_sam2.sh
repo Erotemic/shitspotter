@@ -180,15 +180,28 @@ src_fpath, dst_fpath = sys.argv[1], sys.argv[2]
 dset = kwcoco.CocoDataset.coerce(src_fpath)
 dset.reroot(absolute=True)
 dset._update_fpath(dst_fpath)
-fixed = 0
+
+inferred = 0
+remove_aids = []
 for ann in dset.dataset['annotations']:
-    if 'bbox' not in ann or ann['bbox'] is None:
-        seg = ann.get('segmentation', None)
-        if seg is not None:
-            poly = kwimage.Segmentation.coerce(seg).to_multi_polygon()
+    has_bbox = 'bbox' in ann and ann['bbox'] is not None
+    has_seg  = ann.get('segmentation') is not None
+    if not has_bbox:
+        if has_seg:
+            # Infer bbox from segmentation polygon
+            poly = kwimage.Segmentation.coerce(ann['segmentation']).to_multi_polygon()
             ann['bbox'] = list(poly.box().to_coco())
-            fixed += 1
-print(f'ensure_true_bboxes: fixed {fixed} annotations')
+            inferred += 1
+        else:
+            # No spatial extent at all (e.g. caption/tag metadata annotations).
+            # These cannot participate in spatial evaluation — drop them.
+            remove_aids.append(ann['id'])
+
+if remove_aids:
+    dset.remove_annotations(remove_aids)
+
+print(f'ensure_true_bboxes: inferred bbox for {inferred} anns, '
+      f'removed {len(remove_aids)} non-spatial annotations')
 dset.dump()
 PY
 }
