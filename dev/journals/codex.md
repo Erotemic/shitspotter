@@ -834,3 +834,29 @@ The test set appears to have been annotated at much finer granularity (individua
 3. Audit the annotation consistency between train/vali/test splits to understand if the density gap reflects different annotation sessions or deliberate split design
 
 **Design takeaway:** When preprocessing changes annotation semantics (merging vs splitting), evaluation must use the same preprocessed GT to measure what the model was actually trained to predict. Evaluating a model trained on merged annotations against individually-annotated GT will always produce low AP. The vali/test AP gap is not informative about model quality — it reflects evaluation protocol mismatch.
+## 2026-04-14 (v9 simplified-GT re-evaluation)
+
+Confirmed the annotation density hypothesis and established the correct canonical metric for v9.
+
+**The fix:** Added a simplified-test GT re-evaluation block to `v9_train_eval_opengroundingdino_sam2.sh`. Rather than run new inference, the script re-runs `kwcoco eval` against a simplified version of the test GT (same `simplify_kwcoco` parameters used for training). The `FORCE_SIMPLIFIED_REEVAL` flag controls whether to regenerate. The manifest now records both dense-GT and simplified-GT test AP.
+
+**Final v9 results (checkpoint0006, OpenGroundingDINO + SAM2):**
+
+| split | GT style | AP |
+|---|---|---|
+| vali | simplified (training distribution) | 0.712 |
+| test | dense (raw annotations) | 0.090 |
+| test | simplified (canonical) | **0.766** |
+
+The true test AP is 0.766, which is slightly *above* vali (0.712). The earlier 0.090 figure was purely an evaluation artifact — the model predicted ~2.85 boxes/image while the dense test GT had ~16.4 poop annotations/image (individual instances inside clusters), giving a theoretical maximum recall of 17.6% regardless of detection quality.
+
+**Root cause confirmed:** `simplify_kwcoco` merges overlapping and nearby per-instance annotations into one cluster-level box. Train and vali were preprocessed this way; test was not. After applying the same simplification to the test GT, the AP number becomes consistent and meaningful.
+
+**Design decision going forward:** The simplified-GT metric is the canonical one for this experiment family. The rationale (per Jon): differentiating individual poop instances is not well-defined, and annotation granularity varies across data collection sessions. The goal is detecting *where* a poop cluster is, not counting instances. All future experiment scripts should apply `simplify_kwcoco` to the test GT before evaluation, or at minimum report simplified-GT AP as the primary number. The dense-GT number will be retained in the manifest as a secondary diagnostic.
+
+**Changes made:**
+- `experiments/foundation_detseg_v3/v9_train_eval_opengroundingdino_sam2.sh`: added `PREPROC_TEST_SIMPLIFIED_FPATH`, `FORCE_SIMPLIFIED_REEVAL` flag, simplified-test GT creation block, two re-eval blocks (detector-only and combined), extended `write_selected_manifest` with two new fields, updated summary table to show both GT styles side by side.
+
+**Next steps:**
+- Future experiment scripts (v10+) should preprocess test the same way as train/vali (resize + simplify) before the final eval, rather than evaluating against raw test GT.
+- The prior v5/v6/v7 experiments evaluated against raw test GT. Those numbers should be treated as comparable only when the same dense-GT protocol is used — they are not directly comparable to the v9 simplified-GT AP.

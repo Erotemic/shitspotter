@@ -151,6 +151,56 @@ evaluate_combined_raw_split() {
         --iou_thresh 0.5 >/dev/null
 }
 
+have_sseg_metrics() {
+    local dpath="$1"
+    [ -f "$dpath/sseg_eval/summary_metrics.json" ]
+}
+
+rasterize_pred_heatmap() {
+    local src_fpath="$1"
+    local dst_fpath="$2"
+    "$PYTHON_BIN" -m shitspotter.algo_foundation_v3.cli_rasterize_pred_heatmap \
+        "$src_fpath" \
+        --dst "$dst_fpath"
+}
+
+evaluate_segmentation_split() {
+    # Run kwcoco.metrics.segmentation_metrics against a simplified GT.
+    # Writes a reproduce_sseg_eval.sh script alongside results so the eval
+    # can be re-run or inspected independently.
+    local true_fpath="$1"
+    local pred_heatmap_fpath="$2"
+    local out_dpath="$3"
+    mkdir -p "$out_dpath/sseg_eval"
+    local eval_fpath="$out_dpath/sseg_eval/summary_metrics.json"
+    local script_fpath="$out_dpath/sseg_eval/reproduce_sseg_eval.sh"
+    # Write reproduce script first so it exists even if the eval fails
+    cat > "$script_fpath" <<REPRO
+#!/bin/bash
+# Auto-generated: re-runs the segmentation evaluation that produced
+# ${eval_fpath}
+python -m kwcoco.metrics.segmentation_metrics \\
+    --true_dataset "${true_fpath}" \\
+    --pred_dataset "${pred_heatmap_fpath}" \\
+    --eval_dpath "${out_dpath}/sseg_eval" \\
+    --eval_fpath "${eval_fpath}" \\
+    --score_space image \\
+    --draw_curves True \\
+    --draw_heatmaps False \\
+    --workers 2
+REPRO
+    chmod +x "$script_fpath"
+    "$PYTHON_BIN" -m kwcoco.metrics.segmentation_metrics \
+        --true_dataset "$true_fpath" \
+        --pred_dataset "$pred_heatmap_fpath" \
+        --eval_dpath "$out_dpath/sseg_eval" \
+        --eval_fpath "$eval_fpath" \
+        --score_space image \
+        --draw_curves True \
+        --draw_heatmaps False \
+        --workers 2
+}
+
 select_best_candidate() {
     local summary_fpath="$1"
     "$PYTHON_BIN" - "$summary_fpath" <<'PY'
@@ -317,6 +367,8 @@ FORCE_CANDIDATE_EVALS="${FORCE_CANDIDATE_EVALS:-False}"
 FORCE_FINAL_EVALS="${FORCE_FINAL_EVALS:-False}"
 # Re-evaluate existing predictions against simplified test GT (no new inference)
 FORCE_SIMPLIFIED_REEVAL="${FORCE_SIMPLIFIED_REEVAL:-False}"
+# Rasterize polygon predictions to salient heatmaps and run segmentation eval
+FORCE_SSEG_EVAL="${FORCE_SSEG_EVAL:-False}"
 
 # OpenGroundingDINO training - baseline hyperparameters validated in small-data benchmark
 GDINO_GPU_NUM="${GDINO_GPU_NUM:-1}"
@@ -645,6 +697,9 @@ FINAL_DETECTOR_TEST_DPATH="$SELECTED_FINAL_ROOT/detector_test"
 FINAL_COMBINED_TEST_DPATH="$SELECTED_FINAL_ROOT/combined_raw_test"
 FINAL_DETECTOR_TEST_SIMPLIFIED_DPATH="$SELECTED_FINAL_ROOT/detector_test_simplified"
 FINAL_COMBINED_TEST_SIMPLIFIED_DPATH="$SELECTED_FINAL_ROOT/combined_raw_test_simplified"
+# Segmentation evaluation paths (heatmap kwcoco + sseg metrics)
+FINAL_COMBINED_HEATMAP_FPATH="$SELECTED_FINAL_ROOT/combined_raw_test/pred_salient.kwcoco.zip"
+FINAL_COMBINED_SIMPLIFIED_HEATMAP_FPATH="$SELECTED_FINAL_ROOT/combined_raw_test_simplified/pred_salient.kwcoco.zip"
 
 echo
 echo "=== Evaluate selected detector on test ==="
@@ -725,6 +780,66 @@ fi
 FINAL_DETECTOR_TEST_SIMPLIFIED_AP="$(read_ap "$FINAL_DETECTOR_TEST_SIMPLIFIED_DPATH/eval/detect_metrics.json")"
 FINAL_COMBINED_TEST_SIMPLIFIED_AP="$(read_ap "$FINAL_COMBINED_TEST_SIMPLIFIED_DPATH/eval/detect_metrics.json")"
 
+# ---------------------------------------------------------------------------
+# Segmentation-level evaluation
+#
+# kwcoco.metrics.segmentation_metrics measures pixel-level AP (salient_ap)
+# and max-F1 against a binary foreground/background truth mask.  It requires
+# a per-pixel probability channel named 'salient' on each prediction image.
+#
+# Our SAM2 combined predictions store results as polygon annotations with a
+# float 'score' field.  cli_rasterize_pred_heatmap converts those into uint8
+# PNG assets (pixel value = max annotation score * 255) and writes a new
+# kwcoco that references them as an auxiliary 'salient' channel.
+#
+# We evaluate against two GT variants:
+#   1. Raw test GT (dense per-instance annotations)
+#   2. Simplified test GT (merged cluster-level annotations, canonical)
+#
+# For each eval a reproduce_sseg_eval.sh script is written alongside the
+# results so the eval can be re-run or inspected independently.
+# ---------------------------------------------------------------------------
+
+echo
+echo "=== Rasterize combined predictions to salient heatmaps ==="
+if is_truthy "$FORCE_SSEG_EVAL" || [ ! -f "$FINAL_COMBINED_HEATMAP_FPATH" ]; then
+    rasterize_pred_heatmap \
+        "$FINAL_COMBINED_TEST_DPATH/pred.kwcoco.zip" \
+        "$FINAL_COMBINED_HEATMAP_FPATH"
+else
+    echo "  Reusing heatmap kwcoco: $FINAL_COMBINED_HEATMAP_FPATH"
+fi
+
+if is_truthy "$FORCE_SSEG_EVAL" || [ ! -f "$FINAL_COMBINED_SIMPLIFIED_HEATMAP_FPATH" ]; then
+    rasterize_pred_heatmap \
+        "$FINAL_COMBINED_TEST_DPATH/pred.kwcoco.zip" \
+        "$FINAL_COMBINED_SIMPLIFIED_HEATMAP_FPATH"
+else
+    echo "  Reusing simplified heatmap kwcoco: $FINAL_COMBINED_SIMPLIFIED_HEATMAP_FPATH"
+fi
+
+echo
+echo "=== Segmentation eval: combined vs raw test GT ==="
+if is_truthy "$FORCE_SSEG_EVAL" || ! have_sseg_metrics "$FINAL_COMBINED_TEST_DPATH"; then
+    evaluate_segmentation_split \
+        "$TEST_FPATH" \
+        "$FINAL_COMBINED_HEATMAP_FPATH" \
+        "$FINAL_COMBINED_TEST_DPATH"
+else
+    echo "  Reusing sseg metrics: $FINAL_COMBINED_TEST_DPATH/sseg_eval/summary_metrics.json"
+fi
+
+echo
+echo "=== Segmentation eval: combined vs simplified test GT ==="
+if is_truthy "$FORCE_SSEG_EVAL" || ! have_sseg_metrics "$FINAL_COMBINED_TEST_SIMPLIFIED_DPATH"; then
+    evaluate_segmentation_split \
+        "$PREPROC_TEST_SIMPLIFIED_FPATH" \
+        "$FINAL_COMBINED_SIMPLIFIED_HEATMAP_FPATH" \
+        "$FINAL_COMBINED_TEST_SIMPLIFIED_DPATH"
+else
+    echo "  Reusing sseg metrics: $FINAL_COMBINED_TEST_SIMPLIFIED_DPATH/sseg_eval/summary_metrics.json"
+fi
+
 write_selected_manifest \
     "$SELECTED_MANIFEST_FPATH" \
     "$SELECTED_CANDIDATE_ID" \
@@ -749,6 +864,8 @@ printf '  %-36s ap=%s\n' "combined_tuned_raw_test (simplified GT)" "$FINAL_COMBI
 
 echo
 echo "v9 run completed"
+printf '  %-32s %s\n' "sseg_eval (raw GT)" "$FINAL_COMBINED_TEST_DPATH/sseg_eval/summary_metrics.json"
+printf '  %-32s %s\n' "sseg_eval (simplified GT)" "$FINAL_COMBINED_TEST_SIMPLIFIED_DPATH/sseg_eval/summary_metrics.json"
 printf '  %-32s %s\n' "SELECTED_DETECTOR_CKPT" "$SELECTED_CKPT_FPATH"
 printf '  %-32s %s\n' "DETECTOR_CONFIG_FPATH" "$GDINO_CFG_FPATH"
 printf '  %-32s %s\n' "TUNED_SAM2_CKPT" "$SAM2_TRAINED_CKPT"
