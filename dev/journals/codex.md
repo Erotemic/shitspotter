@@ -791,3 +791,46 @@ The important interpretation is unchanged. DEIMv2 tuning is finally producing me
 - The checkpoint naming convention in OpenGroundingDINO is `checkpoint{0000-N}.pth` (0-indexed), which is different from DEIMv2's `checkpoint{0019,0024,...}.pth` pattern. The sweep logic in v9 handles this correctly.
 
 **Design takeaway:** When a repo has multiple detector families with different training stacks, the right abstraction layer is the package format (shared) + per-family training scripts (separate). Don't try to unify training through a single CLI until the families converge enough to share meaningful structure.
+## 2026-04-14 12:02:09 +0000
+
+**Model:** claude-sonnet-4-6
+
+**User intent:** Log v9 results and diagnose the massive vali/test AP gap.
+
+**v9 results (OpenGroundingDINO + SAM2, new 10671-image dataset):**
+- detector_only_vali: AP=0.708 (selected checkpoint0006)
+- combined_tuned_raw_vali: AP=0.712
+- detector_only_test: AP=0.090
+- combined_tuned_raw_test: AP=0.090
+
+**Root cause of the vali/test gap — annotation density mismatch, NOT overfitting:**
+
+The preprocessing pipeline simplifies training data by merging nearby overlapping boxes, producing ~2 annotations/positive image. The model learns to predict at this density. The two evaluation sets have very different annotation densities in the original (un-simplified) GT:
+
+| Split | Images | Poop GT | Poop GT / pos-image |
+|-------|--------|---------|---------------------|
+| Vali (orig) | 1258 | 1019 | ~2.1 |
+| Test (orig) | 121 | 1962 | ~16.4 |
+
+- Model produces ~2.85 predictions/image on test → max recall = 345/1962 = 17.6% → AP ≤ 0.176
+- Vali original density ≈ simplified training density → model covers most GT → AP = 0.708
+
+The high vali AP is NOT inflated by category mismatch (checked: vali GT has mostly poop too after the split). It's a genuine match between model output density and vali GT density. The test AP collapse is because the test set contains images with far denser individual poop annotations (~8x denser than vali).
+
+**Key data:**
+- Simplified train: 3894 images, 7804 anns, 2.00 anns/img
+- Simplified vali used during training: 482 images, 939 anns
+- Vali predictions: 2582 (2.05/img) vs vali GT 1019 → sufficient coverage → high AP
+- Test predictions: 345 (2.85/img) vs test GT 1962 → severe under-prediction → low AP
+
+**This is a split quality / annotation convention issue:**
+The test set appears to have been annotated at much finer granularity (individual poop instances in dense clusters), while the vali/train were annotated at a coarser granularity. The simplification preprocessing further widened this gap on the training side.
+
+**To verify the hypothesis:** evaluate checkpoint0006 against a simplified version of the test set. If the simplified test has ~200-400 poop annotations (consistent with model output density), the test AP should rise dramatically.
+
+**Next steps:**
+1. Run simplified test evaluation: simplify test_imgs121_d39956b1 with same parameters and re-eval
+2. Consider removing the simplify step from v9 preprocessing so the model learns to predict individual instances
+3. Audit the annotation consistency between train/vali/test splits to understand if the density gap reflects different annotation sessions or deliberate split design
+
+**Design takeaway:** When preprocessing changes annotation semantics (merging vs splitting), evaluation must use the same preprocessed GT to measure what the model was actually trained to predict. Evaluating a model trained on merged annotations against individually-annotated GT will always produce low AP. The vali/test AP gap is not informative about model quality — it reflects evaluation protocol mismatch.
