@@ -164,23 +164,64 @@ rasterize_pred_heatmap() {
         --dst "$dst_fpath"
 }
 
+ensure_true_bboxes() {
+    # kwcoco.Detections.from_coco_annots requires every annotation to have a
+    # 'bbox' field.  Some raw GT datasets only carry 'segmentation'.  This
+    # function writes a patched copy of the dataset with bboxes inferred from
+    # segmentation polygons for any annotation that is missing one.
+    local src_fpath="$1"
+    local dst_fpath="$2"
+    "$PYTHON_BIN" - "$src_fpath" "$dst_fpath" <<'PY'
+import sys
+import kwcoco
+import kwimage
+
+src_fpath, dst_fpath = sys.argv[1], sys.argv[2]
+dset = kwcoco.CocoDataset.coerce(src_fpath)
+dset.reroot(absolute=True)
+dset._update_fpath(dst_fpath)
+fixed = 0
+for ann in dset.dataset['annotations']:
+    if 'bbox' not in ann or ann['bbox'] is None:
+        seg = ann.get('segmentation', None)
+        if seg is not None:
+            poly = kwimage.Segmentation.coerce(seg).to_multi_polygon()
+            ann['bbox'] = list(poly.box().to_coco())
+            fixed += 1
+print(f'ensure_true_bboxes: fixed {fixed} annotations')
+dset.dump()
+PY
+}
+
 evaluate_segmentation_split() {
-    # Run kwcoco.metrics.segmentation_metrics against a simplified GT.
-    # Writes a reproduce_sseg_eval.sh script alongside results so the eval
-    # can be re-run or inspected independently.
+    # Run kwcoco.metrics.segmentation_metrics.
+    # Writes a reproduce_sseg_eval.sh script alongside the results so the
+    # eval can be re-run or inspected independently.
+    #
+    # Note: segmentation_metrics requires every true annotation to have a
+    # 'bbox' field (kwcoco.Detections.from_coco_annots hard-requires it).
+    # We pre-patch the true dataset via ensure_true_bboxes before evaluating.
     local true_fpath="$1"
     local pred_heatmap_fpath="$2"
     local out_dpath="$3"
     mkdir -p "$out_dpath/sseg_eval"
     local eval_fpath="$out_dpath/sseg_eval/summary_metrics.json"
     local script_fpath="$out_dpath/sseg_eval/reproduce_sseg_eval.sh"
-    # Write reproduce script first so it exists even if the eval fails
+
+    # Patch true GT to guarantee bboxes (idempotent if already present)
+    local patched_true_fpath="$out_dpath/sseg_eval/true_with_bboxes.kwcoco.zip"
+    ensure_true_bboxes "$true_fpath" "$patched_true_fpath"
+
+    # Write reproduce script (points at the patched true GT)
     cat > "$script_fpath" <<REPRO
 #!/bin/bash
 # Auto-generated: re-runs the segmentation evaluation that produced
 # ${eval_fpath}
+#
+# true_with_bboxes.kwcoco.zip is a copy of the true GT with bboxes inferred
+# from segmentation polygons for any annotation that lacked one.
 python -m kwcoco.metrics.segmentation_metrics \\
-    --true_dataset "${true_fpath}" \\
+    --true_dataset "${patched_true_fpath}" \\
     --pred_dataset "${pred_heatmap_fpath}" \\
     --eval_dpath "${out_dpath}/sseg_eval" \\
     --eval_fpath "${eval_fpath}" \\
@@ -191,7 +232,7 @@ python -m kwcoco.metrics.segmentation_metrics \\
 REPRO
     chmod +x "$script_fpath"
     "$PYTHON_BIN" -m kwcoco.metrics.segmentation_metrics \
-        --true_dataset "$true_fpath" \
+        --true_dataset "$patched_true_fpath" \
         --pred_dataset "$pred_heatmap_fpath" \
         --eval_dpath "$out_dpath/sseg_eval" \
         --eval_fpath "$eval_fpath" \
