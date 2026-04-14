@@ -8,9 +8,13 @@ per-pixel float32 heatmaps where each pixel's value is the maximum ``score``
 of any polygon that covers it.
 
 The output is a copy of the input kwcoco that adds an auxiliary ``salient``
-asset (uint8 PNG, values 0-255 representing score 0.0-1.0) for every image
-that has at least one prediction.  Images with no predictions get a zero
-heatmap so that they contribute true-negatives to the metric.
+asset (float32 GeoTIFF, values 0.0-1.0) for every image that has at least
+one prediction.  Images with no predictions get a zero heatmap so that they
+contribute true-negatives to the metric.
+
+Float32 TIF is required because ``segmentation_metrics`` bins scores against
+``np.linspace(0, 1, N)``.  A uint8 PNG (values 0-255) would place all pixels
+above the bin range and cause an ``IndexError`` in the searchsorted path.
 
 The original prediction kwcoco is not modified.
 
@@ -97,14 +101,16 @@ class RasterizePredHeatmapCLI(scfg.DataConfig):
                 layer = sseg.fill(layer, value=score)
                 np.maximum(heatmap, layer, out=heatmap)
 
-            # Encode as uint8 PNG (0-255 maps to score 0.0-1.0)
-            heatmap_u8 = (heatmap * 255).clip(0, 255).astype(np.uint8)
-
+            # Write as float32 GeoTIFF so pixel values stay in [0, 1].
+            # segmentation_metrics bins scores against np.linspace(0, 1, N),
+            # so the heatmap must be in that range — uint8 (0-255) would place
+            # all pixels above the bin range and break the index math.
             img_name = Path(img['file_name']).stem
-            asset_fname = f'{img_name}_{img["id"]:06d}_salient.png'
+            asset_fname = f'{img_name}_{img["id"]:06d}_salient.tif'
             asset_fpath = asset_dpath / asset_fname
 
-            kwimage.imwrite(str(asset_fpath), heatmap_u8)
+            kwimage.imwrite(str(asset_fpath), heatmap, backend='gdal',
+                            compress='DEFLATE')
 
             # Register the auxiliary asset on the image
             auxiliary = img.setdefault('auxiliary', [])
