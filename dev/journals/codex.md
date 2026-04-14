@@ -860,3 +860,39 @@ The true test AP is 0.766, which is slightly *above* vali (0.712). The earlier 0
 **Next steps:**
 - Future experiment scripts (v10+) should preprocess test the same way as train/vali (resize + simplify) before the final eval, rather than evaluating against raw test GT.
 - The prior v5/v6/v7 experiments evaluated against raw test GT. Those numbers should be treated as comparable only when the same dense-GT protocol is used — they are not directly comparable to the v9 simplified-GT AP.
+## 2026-04-14 (v9 segmentation-level evaluation)
+
+Added pixel-level segmentation evaluation to the v9 experiment pipeline.
+
+**Motivation:** Detection AP (box IoU) tells you whether the model found the right location, but not how well the SAM2 segmentation masks cover the actual poop pixels. Segmentation metrics (`kwcoco.metrics.segmentation_metrics`) measure pixel-level AP using a per-pixel salient heatmap, which is a more direct measure of mask quality.
+
+**Implementation:**
+
+Three new components:
+
+1. **`shitspotter/algo_foundation_v3/cli_rasterize_pred_heatmap.py`** — converts polygon annotations (with float `score` field) into per-pixel uint8 PNG heatmaps. Each pixel gets the maximum score of any polygon covering it. Writes a new kwcoco (`pred_salient.kwcoco.zip`) with a `salient` auxiliary channel on each image. This bridges the gap between SAM2's polygon output format and what `segmentation_metrics` expects.
+
+2. **`ensure_true_bboxes` shell function** — the segmentation_metrics tool calls `kwcoco.Detections.from_coco_annots` which hard-requires a `bbox` field on every annotation. The raw test GT has two classes of problematic annotations:
+   - Annotations with `segmentation` but no `bbox` → bbox inferred from polygon bounds
+   - Caption/tag metadata annotations (`category_id: None`, no spatial extent) → removed entirely. These were image-level scene description tags (`'wet;garden;sidewalk'` etc.), not object annotations.
+   
+   Result written to `sseg_eval/true_with_bboxes.kwcoco.zip`.
+
+3. **`evaluate_segmentation_split` shell function** — orchestrates the full flow: patch GT → run `kwcoco.metrics.segmentation_metrics` → write `sseg_eval/summary_metrics.json` and `sseg_eval/reproduce_sseg_eval.sh`. The reproduce script is written *before* the eval runs (so it survives failures) and contains fully hardcoded absolute paths.
+
+**Evaluation runs against two GT variants** (consistent with detection eval):
+- Raw test GT (dense per-instance annotations) — secondary diagnostic
+- Simplified test GT (merged cluster-level, canonical)
+
+**Data note:** The 20 caption annotations in the raw test GT (`'nopoop;leaves;grass'` etc.) are scene-level tags from the annotation workflow, not spatial objects. They have `category_id: None` and no geometry. Correct treatment is to drop them before any spatial evaluation.
+
+**Output layout per eval dir:**
+```
+combined_raw_test/
+  pred_salient.kwcoco.zip        ← polygon predictions rasterized to salient channel
+  sseg_eval/
+    true_with_bboxes.kwcoco.zip  ← GT with bbox-inference + metadata removal applied
+    summary_metrics.json         ← salient_ap, salient_auc, salient_max_f1
+    reproduce_sseg_eval.sh       ← self-contained re-run command
+    *.png                        ← PR curve plots (draw_curves=True)
+```
