@@ -29,8 +29,12 @@ import kotlin.system.exitProcess
 object CompareCli {
 
     fun run(args: Array<String>): Int {
+        if (args.any { it == "--help" || it == "-h" }) {
+            printHelp()
+            return 0
+        }
         val image = argValue(args, "--image")?.let { File(it) }
-            ?: error("compare needs --image=<path>")
+            ?: error("compare needs --image=<path> (try --help)")
         require(image.isFile) { "image not found: ${image.absolutePath}" }
         // Multiple --model can be passed; --model-id at the same index
         // selects the ModelSpec. If model-ids are not given the loader
@@ -100,6 +104,35 @@ object CompareCli {
         val prefix = "$key="
         args.forEach { if (it.startsWith(prefix)) return it.removePrefix(prefix) }
         return null
+    }
+
+    private fun printHelp() {
+        println(
+            """
+            usage:
+              ./gradlew :composeApp:run --args="compare \\
+                  --image=<path>                  # required
+                  [--model=<onnx-path>]*          # repeat for multi-model compare
+                  [--model-id=<id>]*              # match by index; ModelRegistry id
+                  [--score-threshold=<float>]     # override ModelSpec default
+                  [--runs=<int>]                  # measured runs per backend (default 5)
+                  [--warmup=<int>]                # warmup runs before timing (default 1)
+                  [--no-stub]                     # drop the stub baseline row
+                  [--out=<json-path>]             # write a JSON report"
+
+            known model ids:
+              ${ModelRegistry.all.joinToString("\n              ") { "${it.modelId}: ${it.displayName}" }}
+
+            related sub-commands:
+              describe --model=<onnx-path>        # dump ONNX input/output shapes
+
+            example:
+              ./gradlew :composeApp:run --args="compare \\
+                  --image=tpl/YOLOX/assets/dog.jpg \\
+                  --model=tpl/poop_models/yolox_nano_poop_cropped_only_best.onnx \\
+                  --runs=10 --warmup=2 --out=docs/benchmarks/desktop_dog.json"
+            """.trimIndent(),
+        )
     }
 
     /** Best-effort match of a known ModelRegistry id from a file name, so
