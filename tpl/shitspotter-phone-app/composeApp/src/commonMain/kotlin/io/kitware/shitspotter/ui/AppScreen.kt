@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.TextField
 import io.kitware.shitspotter.core.AppState
 import io.kitware.shitspotter.core.FailureType
@@ -84,6 +85,8 @@ fun AppScreen(
                 )
                 Spacer(Modifier.height(4.dp))
                 ScoreThresholdControl(state)
+                Spacer(Modifier.height(4.dp))
+                ToggleRow(state)
                 state.lastError?.let { err ->
                     Spacer(Modifier.height(8.dp))
                     Text(
@@ -172,6 +175,28 @@ private fun ModelChipsRow(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ToggleRow(state: AppState) {
+    Row(
+        modifier = Modifier
+            .background(Color(0x88000000))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text("HUD", color = Color.White)
+        Switch(
+            checked = state.showFps,
+            onCheckedChange = { state.showFps = it },
+        )
+        Text("boxes", color = Color.White)
+        Switch(
+            checked = state.showOverlay,
+            onCheckedChange = { state.showOverlay = it },
+        )
     }
 }
 
