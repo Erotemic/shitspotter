@@ -25,6 +25,9 @@ class AndroidCameraSurface(
         loop?.isPaused = paused
     }
 
+    fun encodeLastFrameAsJpeg(quality: Int = 85): ByteArray =
+        loop?.lastAnalyzedFrame?.encodeJpeg(quality) ?: ByteArray(0)
+
     @Composable
     override fun Render(modifier: Modifier) {
         val androidContext = LocalContext.current

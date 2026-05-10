@@ -90,6 +90,9 @@ class CameraAnalysisLoop(
         return future
     }
 
+    @Volatile var lastAnalyzedFrame: ImageProxyFrame? = null
+        private set
+
     private fun handleFrame(proxy: ImageProxy) {
         try {
             if (isPaused) {
@@ -98,6 +101,7 @@ class CameraAnalysisLoop(
             }
             val captureStart = nowMonoMs()
             val frame = ImageProxyFrame.from(proxy)
+            lastAnalyzedFrame = frame
             captureLat.record(nowMonoMs() - captureStart)
 
             val backend = backendProvider()
@@ -147,14 +151,16 @@ class CameraAnalysisLoop(
 }
 
 /** Wraps a CameraX ImageProxy as a [FrameSource]. We only convert to RGB888
- * lazily — backends that don't need RGB skip the copy. */
+ * lazily — backends that don't need RGB skip the copy. The raw RGBA bytes
+ * are also exposed so that the failure-case capture can encode the latest
+ * analyzed frame as JPEG without re-grabbing it from the camera. */
 class ImageProxyFrame private constructor(
     override val width: Int,
     override val height: Int,
     override val rotationDegrees: Int,
-    private val rgbaPlane: ByteArray,
-    private val rowStride: Int,
-    private val pixelStride: Int,
+    val rgbaPlane: ByteArray,
+    val rowStride: Int,
+    val pixelStride: Int,
 ) : FrameSource {
 
     override fun toRgb888(): ByteArray {
@@ -187,6 +193,46 @@ class ImageProxyFrame private constructor(
             }
         }
         return out
+    }
+
+    /** Encode this frame as JPEG via Android Bitmap → JPEG. Used by the
+     *  failure-case capture path. Honours [rotationDegrees] so the saved
+     *  JPEG matches what the user saw on screen. */
+    fun encodeJpeg(quality: Int = 85): ByteArray {
+        val argb = IntArray(width * height)
+        if (rowStride == width * pixelStride && pixelStride == 4) {
+            var src = 0
+            for (i in argb.indices) {
+                val r = rgbaPlane[src].toInt() and 0xFF
+                val g = rgbaPlane[src + 1].toInt() and 0xFF
+                val b = rgbaPlane[src + 2].toInt() and 0xFF
+                val a = rgbaPlane[src + 3].toInt() and 0xFF
+                argb[i] = (a shl 24) or (r shl 16) or (g shl 8) or b
+                src += 4
+            }
+        } else {
+            var idx = 0
+            for (y in 0 until height) {
+                val rowStart = y * rowStride
+                for (x in 0 until width) {
+                    val src = rowStart + x * pixelStride
+                    val r = rgbaPlane[src].toInt() and 0xFF
+                    val g = rgbaPlane[src + 1].toInt() and 0xFF
+                    val b = rgbaPlane[src + 2].toInt() and 0xFF
+                    val a = if (pixelStride >= 4) rgbaPlane[src + 3].toInt() and 0xFF else 0xFF
+                    argb[idx++] = (a shl 24) or (r shl 16) or (g shl 8) or b
+                }
+            }
+        }
+        val bmp = android.graphics.Bitmap.createBitmap(argb, width, height, android.graphics.Bitmap.Config.ARGB_8888)
+        val rotated = if (rotationDegrees != 0) {
+            val m = android.graphics.Matrix().apply { postRotate(rotationDegrees.toFloat()) }
+            android.graphics.Bitmap.createBitmap(bmp, 0, 0, width, height, m, true).also { bmp.recycle() }
+        } else bmp
+        val baos = java.io.ByteArrayOutputStream(width * height / 8)
+        rotated.compress(android.graphics.Bitmap.CompressFormat.JPEG, quality, baos)
+        rotated.recycle()
+        return baos.toByteArray()
     }
 
     companion object {

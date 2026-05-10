@@ -42,7 +42,6 @@ class MainActivity : ComponentActivity() {
     private val state = AppState()
     private lateinit var failureStore: AndroidFailureCaseStore
     private var backend: DetectorBackend = StubDetectorBackend()
-    private var lastFrameJpegBytes: ByteArray = ByteArray(0)
     private var paused by mutableStateOf(false)
     private var androidSurface: AndroidCameraSurface? = null
 
@@ -115,9 +114,8 @@ class MainActivity : ComponentActivity() {
             userNote = note,
             detections = state.lastDetections,
         )
-        // Milestone 1 only persists JSON; image bytes are populated in
-        // Milestone 2 once we keep the latest frame's encoded JPEG around.
-        val path = failureStore.save(lastFrameJpegBytes, md)
+        val jpegBytes = androidSurface?.encodeLastFrameAsJpeg() ?: ByteArray(0)
+        val path = failureStore.save(jpegBytes, md)
         state.failureCasesSavedCount = state.failureCasesSavedCount + 1
         PrintlnLogger.info("ShitSpotter.Failure", "saved → $path")
     }

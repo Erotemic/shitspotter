@@ -1,0 +1,35 @@
+{
+    "timestamp": "2026-05-10T17:15:39.752584390Z",
+    "deviceModel": "Linux desktop (Linux amd64)",
+    "osVersion": "6.8.0-110-generic",
+    "rows": [
+        {
+            "frameWidth": 768,
+            "frameHeight": 576,
+            "backendName": "stub-1.0",
+            "delegate": null,
+            "modelId": "stub-fake-detector",
+            "inputWidth": 640,
+            "inputHeight": 640,
+            "preprocessMs": 1.047503799572587,
+            "inferenceMs": 0.004908600449562072,
+            "postprocessMs": 0.0,
+            "detectionCount": 1,
+            "topScore": 0.880198
+        },
+        {
+            "frameWidth": 768,
+            "frameHeight": 576,
+            "backendName": "onnxruntime-jvm-1.19",
+            "delegate": "CPU",
+            "modelId": "yolox-nano-poop-cropped-v1",
+            "inputWidth": 416,
+            "inputHeight": 416,
+            "preprocessMs": 4.538520400226116,
+            "inferenceMs": 9.905205999687315,
+            "postprocessMs": 2.8217436004430057,
+            "detectionCount": 3,
+            "topScore": 0.75680107
+        }
+    ]
+}
