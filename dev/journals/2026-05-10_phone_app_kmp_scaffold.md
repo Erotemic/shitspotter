@@ -101,13 +101,36 @@ at the time of this journal:
   `/sdcard/Android/data/io.kitware.shitspotter/files/failure_cases/`
   off a connected Pixel 5. Workstation script; never runs from this VM.
 
+- **Settings persistence** — `core/Settings.kt` exposes `AppSettings` +
+  `SettingsStore`; `androidMain/AndroidSettingsStore` writes a single
+  JSON blob to SharedPreferences, `desktopMain/FileSettingsStore`
+  writes `~/.shitspotter/settings.json`. Loaded on startup, saved on
+  Activity.onPause / Window.onCloseRequest.
+
+- **Release APK** — `assembleRelease` produces a 20 MB APK with R8
+  minification and resource shrinking. ProGuard rules at
+  `composeApp/proguard-rules.pro` keep ONNX Runtime native bindings,
+  kotlinx.serialization, AndroidX Camera, and the
+  `@Composable`-annotated members. The release variant deliberately
+  reuses the debug signing config until a real keystore is supplied.
+
+- **One-shot validation** — `scripts/run_all_desktop_validation.sh`
+  drives every check the Linux VM can do (toolchain → tests →
+  CompareCli → describe → python parity → APK build) and prints the
+  exact `adb install -r` command for the workstation.
+
+- **Multiplatform Fmt helpers** — `core/Format.kt::Fmt.ms` /
+  `Fmt.ms2` / `Fmt.score` so the HUD and the CompareCli table use the
+  same bit-exact rendering on both Android and JVM.
+
 - **Live score-threshold slider** + `List<Detection>.filterByScore`. The user
   can move the threshold on the phone without rebuilding; both the
   Android `CameraAnalysisLoop` and the desktop `DesktopHarness`
   re-filter post-backend. Verified: at `--score-threshold=0.8` the
   dog.jpg test goes 3 dets → 0.
 
-- **Test count**: 86 tests across 19 files, all green:
+- **Test count**: 105 tests across 21 files, all green. The remainder of
+  this section enumerates them by file:
   - `GeometryTest` (8) — bbox intersect, IoU, NMS, letterbox round-trip,
     YOLOX postprocess
   - `PreprocessingTest` (4) — pad colour, NCHW, NHWC, BGR swap
@@ -134,6 +157,10 @@ at the time of this journal:
   - `TfliteBackendStubTest` (3) — rejects non-TFLite spec, warmup +
     analyze throw NotImplementedError
   - `FilterByScoreTest` (3) — already counted above
+  - `SettingsTest` (4) — defaults, encode/decode round-trip,
+    in-memory store, applySettings → toSettings identity
+  - `FmtMsTest` (6) + `FmtScoreTest` (6) — multiplatform-safe number
+    formatting helpers
   - desktop-only:
     - `OnnxBackendSmokeTest` (1, conditional) — real ONNX model
     - `OnnxShapeValidationTest` (1, conditional) — rejects mismatched spec
@@ -141,6 +168,7 @@ at the time of this journal:
     - `DesktopFailureCaseStoreTest` (4) — metadata + image + note + unique-dirs
     - `CompareCliArgsTest` (8) — argValue, argValues, guessModelIdFromPath
     - `CompareCliEndToEndTest` (3) — --help, stub-only run, no-stub empty
+    - `FileSettingsStoreTest` (3) — defaults, round-trip, corrupt-json fallback
 
 The build succeeds on the Linux VM. The APK has not been installed on
 a Pixel 5 (no USB passthrough from this VM).
