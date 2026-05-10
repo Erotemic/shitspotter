@@ -231,8 +231,9 @@ scripts/run_all_desktop_validation.sh
 # (uses debug signing for now; replace with a real keystore before Play Store)
 
 # On a workstation with a Pixel 5 plugged in (NOT this VM):
-adb install -r composeApp/build/outputs/apk/debug/composeApp-debug.apk
-adb logcat -s "ShitSpotter.AnalysisLoop:V" "ShitSpotter.Failure:V"
+scripts/install_to_phone.sh debug         # builds + adb install -r
+scripts/install_to_phone.sh logcat        # tail ShitSpotter.* tags
+scripts/sync_failure_cases.sh             # pull failure_cases/ off the device
 ```
 
 Full operator checklist in [`docs/001_build_run_validate.md`](docs/001_build_run_validate.md).
