@@ -266,11 +266,15 @@ buttons sit at the bottom.
 └─────────────────────────────────────────────────┘
 ```
 
-Tapping `Save failure` brings up a column of failure-type buttons
+Tapping `Save failure` brings up a small overlay with a
+free-text note field (optional) and a column of failure-type buttons
 (`FALSE_POSITIVE` / `FALSE_NEGATIVE` / `BAD_LOCALIZATION` / `LAG` /
-`CRASH` / `UNCERTAIN` / `OTHER`); pick one and the current frame's
-JPEG plus the full `FailureCaseMetadata` JSON lands at
+`CRASH` / `UNCERTAIN` / `OTHER`). Type any context first, then tap a
+type — the current frame's JPEG, the typed note, and the full
+`FailureCaseMetadata` JSON land at
 `/sdcard/Android/data/io.kitware.shitspotter/files/failure_cases/<ts>/`.
+Pull them back to the workstation with
+[`scripts/sync_failure_cases.sh`](scripts/sync_failure_cases.sh).
 
 The HUD numbers are computed in
 [`composeApp/src/androidMain/.../CameraAnalysisLoop.kt`](composeApp/src/androidMain/kotlin/io/kitware/shitspotter/android/CameraAnalysisLoop.kt)

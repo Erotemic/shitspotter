@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Slider
+import androidx.compose.material3.TextField
 import io.kitware.shitspotter.core.AppState
 import io.kitware.shitspotter.core.FailureType
 import io.kitware.shitspotter.core.ModelRegistry
@@ -124,9 +125,9 @@ private fun ControlBar(
     ) {
         if (showFailureMenu) {
             FailureTypePicker(
-                onPick = { type ->
+                onPick = { type, note ->
                     showFailureMenu = false
-                    onSaveFailureCase(type, null)
+                    onSaveFailureCase(type, note)
                 },
                 onCancel = { showFailureMenu = false },
             )
@@ -196,17 +197,28 @@ private fun ScoreThresholdControl(state: AppState) {
 
 @Composable
 private fun FailureTypePicker(
-    onPick: (FailureType) -> Unit,
+    onPick: (FailureType, String?) -> Unit,
     onCancel: () -> Unit,
 ) {
+    var note by remember { mutableStateOf("") }
     Column(
         modifier = Modifier
             .background(Color(0xCC222222))
             .padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        TextField(
+            value = note,
+            onValueChange = { note = it },
+            modifier = Modifier.width(220.dp),
+            label = { Text("note (optional)", color = Color(0xFFCCCCCC)) },
+            singleLine = false,
+        )
         FailureType.values().forEach { ft ->
-            Button(onClick = { onPick(ft) }, modifier = Modifier.width(220.dp)) {
+            Button(
+                onClick = { onPick(ft, note.trim().ifEmpty { null }) },
+                modifier = Modifier.width(220.dp),
+            ) {
                 Text(ft.name)
             }
         }
