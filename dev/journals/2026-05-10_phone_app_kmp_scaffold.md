@@ -107,7 +107,7 @@ at the time of this journal:
   re-filter post-backend. Verified: at `--score-threshold=0.8` the
   dog.jpg test goes 3 dets → 0.
 
-- **Test count**: 55 tests across 16 files, all green:
+- **Test count**: 86 tests across 19 files, all green:
   - `GeometryTest` (8) — bbox intersect, IoU, NMS, letterbox round-trip,
     YOLOX postprocess
   - `PreprocessingTest` (4) — pad colour, NCHW, NHWC, BGR swap
@@ -123,11 +123,24 @@ at the time of this journal:
   - `YoloxRawStridesTest` (4) — unit-stride identity, multi-stride
     decode, mismatched-predictions assertion, mismatched-grid/strides
     assertion
+  - `YoloxPostprocessExtraTest` (5) — multi-class arg-max, zero-size
+    filtering, corner-form box coordinates, NMS collapse, too-small
+    buffer assertion
+  - `StubBackendTest` (6) — one box per call, in-bounds across 200
+    calls, warmup safe, close-then-analyze throws, spec round-trip,
+    finite timings
+  - `PreprocessingResizeTest` (5) — stretchRgb size + assertion,
+    centerCropRgb wide-vs-tall + assertion
   - `TfliteBackendStubTest` (3) — rejects non-TFLite spec, warmup +
     analyze throw NotImplementedError
-  - `OnnxBackendSmokeTest` (1, conditional) — real ONNX model
-  - `OnnxShapeValidationTest` (1, conditional) — rejects mismatched spec
-  - `FrameDirectorySourceTest` (3) — order, empty, non-dir
+  - `FilterByScoreTest` (3) — already counted above
+  - desktop-only:
+    - `OnnxBackendSmokeTest` (1, conditional) — real ONNX model
+    - `OnnxShapeValidationTest` (1, conditional) — rejects mismatched spec
+    - `FrameDirectorySourceTest` (3) — order, empty, non-dir
+    - `DesktopFailureCaseStoreTest` (4) — metadata + image + note + unique-dirs
+    - `CompareCliArgsTest` (8) — argValue, argValues, guessModelIdFromPath
+    - `CompareCliEndToEndTest` (3) — --help, stub-only run, no-stub empty
 
 The build succeeds on the Linux VM. The APK has not been installed on
 a Pixel 5 (no USB passthrough from this VM).

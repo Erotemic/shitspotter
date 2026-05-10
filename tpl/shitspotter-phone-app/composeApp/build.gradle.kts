@@ -140,7 +140,16 @@ android {
             )
         }
         release {
-            isMinifyEnabled = false
+            // Note: debuggable signing config is reused — release builds
+            // are not yet wired for Play Store signing. The user adds a
+            // real signingConfig + keystore before publishing.
+            signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
             buildConfigField(
                 "String",
                 "APP_GIT_COMMIT",
