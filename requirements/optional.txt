@@ -12,3 +12,5 @@ transformers>=4.53.3
 
 # Fixme need to add this, but also need to losen geowatch restrictions
 #timm>=1.0.19
+
+paramiko

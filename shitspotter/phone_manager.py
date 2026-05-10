@@ -232,7 +232,31 @@ class AndroidConventions:
         return info
 
 
-class GVFSAndroidPath(ub.Path):
+
+class AndroidPhonePath:
+    """
+    Small path-like protocol for files on the phone.
+
+    GVFS paths are real mounted local paths, but SFTP paths are remote
+    resources.  This common interface is intentionally narrow: only the
+    operations this module needs are represented here.
+    """
+
+    @property
+    def name(self):
+        raise NotImplementedError
+
+    def stat(self):
+        raise NotImplementedError
+
+    def unlink(self, missing_ok=False):
+        raise NotImplementedError
+
+    def copy_to(self, dst):
+        raise NotImplementedError
+
+
+class GVFSAndroidPath(ub.Path, AndroidPhonePath):
     """
     Discover connected android devices using a filesystem interface.
 
@@ -286,6 +310,12 @@ class GVFSAndroidPath(ub.Path):
                 # info['datetime_created'] = datetime_created
                 phone_image_infos.append(info)
         return phone_image_infos
+
+    def copy_to(self, dst):
+        import shutil
+        dst = ub.Path(dst)
+        if not dst.exists():
+            shutil.copy2(self, dst)
 
 
 class SFTPAndroidConnection_old:
@@ -344,6 +374,79 @@ class SFTPAndroidConnection_old:
         return phone_image_infos
 
 
+
+class SFTPAndroidPath(AndroidPhonePath):
+    """
+    Path-like wrapper for a file or directory on the Android phone over SFTP.
+
+    This intentionally does not implement __fspath__.  A remote phone path
+    should not be silently accepted by local filesystem functions such as
+    os.stat, open, shutil.copy2, etc.
+    """
+
+    def __init__(self, conn, path):
+        self.conn = conn
+        self.path = path.rstrip('/') or '/'
+
+    @property
+    def sftp(self):
+        if self.conn is None:
+            raise RuntimeError('This SFTPAndroidPath is detached from a live connection')
+        return self.conn.sftp
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.path!r})'
+
+    def __str__(self):
+        return self.path
+
+    def __getstate__(self):
+        # The transfer session cache is currently only for debugging / future
+        # resume support.  Do not try to pickle the live Paramiko connection.
+        return {'path': self.path}
+
+    def __setstate__(self, state):
+        self.conn = None
+        self.path = state['path']
+
+    @property
+    def name(self):
+        return self.path.rstrip('/').rsplit('/', 1)[-1]
+
+    def __truediv__(self, other):
+        other = str(other).strip('/')
+        if self.path == '/':
+            new_path = '/' + other
+        else:
+            new_path = self.path.rstrip('/') + '/' + other
+        return self.__class__(self.conn, new_path)
+
+    def iterdir(self):
+        for name in self.sftp.listdir(self.path):
+            yield self / name
+
+    def stat(self):
+        return self.sftp.stat(self.path)
+
+    def unlink(self, missing_ok=False):
+        try:
+            self.sftp.remove(self.path)
+        except FileNotFoundError:
+            if not missing_ok:
+                raise
+        except OSError as ex:
+            # Paramiko / Android SSH servers are not perfectly consistent
+            # about the exact exception class for a missing remote file.
+            if missing_ok and 'No such file' in str(ex):
+                return None
+            raise
+
+    def copy_to(self, dst):
+        dst = ub.Path(dst)
+        if not dst.exists():
+            self.sftp.get(self.path, str(dst))
+
+
 class SFTPAndroidConnection:
     """
     The SSH Server app can be used to start a sftp connection.
@@ -359,9 +462,10 @@ class SFTPAndroidConnection:
 
     """
 
-    def __init__(self, sftp, dcim_camera_path):
+    def __init__(self, sftp, dcim_camera_path, transport=None):
         self.sftp = sftp
         self.dcim_camera_path = dcim_camera_path
+        self.transport = transport
 
     @classmethod
     def from_hostname(cls):
@@ -424,13 +528,15 @@ class SFTPAndroidConnection:
         transport = Transport((hostname, port))
         transport.connect(username=username, password=phone_pass)
         sftp = SFTPClient.from_transport(transport)
-        return cls(sftp, dcim_camera_path)
+        return cls(sftp, dcim_camera_path, transport=transport)
+
+    def camera_path(self):
+        return SFTPAndroidPath(self, self.dcim_camera_path)
 
     def dcim_image_infos(self, verbose=1):
         if verbose:
-            print(f'SFTP: chdir({self.dcim_camera_path!r})')
-        self.sftp.chdir(self.dcim_camera_path)
-        file_names = self.sftp.listdir()
+            print(f'SFTP: listdir({self.dcim_camera_path!r})')
+        file_names = self.sftp.listdir(self.dcim_camera_path)
 
         phone_image_infos = []
         for fname in ub.ProgIter(file_names, desc='build image info'):
@@ -439,8 +545,9 @@ class SFTPAndroidConnection:
                 if info is None:
                     print('Not an known image file: {}'.format(fname))
                     continue
-                # IMPORTANT: this path is *remote*
-                remote_fpath = f'{self.dcim_camera_path}/{fname}'
+                # IMPORTANT: this path is remote, but exposes the same small
+                # path-like interface used by GVFSAndroidPath.
+                remote_fpath = self.camera_path() / fname
                 info['fpath'] = remote_fpath
                 # parse_image_filename already sets datetime_captured,
                 # no real need to recompute, but keep it consistent:
@@ -453,6 +560,17 @@ class SFTPAndroidConnection:
             self.sftp.close()
         except Exception:
             pass
+        try:
+            if self.transport is not None:
+                self.transport.close()
+        except Exception:
+            pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
 
 
 def prepare_phone_transfer(config):
@@ -578,12 +696,25 @@ def transfer_phone_pictures(new_dpath, needs_transfer_infos, config):
         # copyman.report(sizes=False)
         copyman.run()
     else:
-        sftp_conn = SFTPAndroidConnection.from_hostname()
-        sftp = sftp_conn.sftp
-        for p in ub.ProgIter(needs_transfer_infos, desc='sftp transfer'):
-            dst = tmp_dpath / ub.Path(p['fpath']).name
-            if not dst.exists():
-                sftp.get(p['fpath'], dst)
+        # SFTPAndroidPath knows how to copy itself while keeping the callsite
+        # path-like.  Keep a fallback for any cached/prepared transfer info
+        # that still contains plain remote strings.
+        sftp_conn = None
+        try:
+            for p in ub.ProgIter(needs_transfer_infos, desc='sftp transfer'):
+                src = p['fpath']
+                src_name = getattr(src, 'name', ub.Path(str(src)).name)
+                dst = tmp_dpath / src_name
+                if not dst.exists():
+                    if hasattr(src, 'copy_to'):
+                        src.copy_to(dst)
+                    else:
+                        if sftp_conn is None:
+                            sftp_conn = SFTPAndroidConnection.from_hostname()
+                        sftp_conn.sftp.get(str(src), str(dst))
+        finally:
+            if sftp_conn is not None:
+                sftp_conn.close()
 
     print('Copy finished, renaming...')
     os.rename(tmp_dpath, new_dpath)
@@ -866,7 +997,7 @@ def print_pin_instructions(shitspotter_dvc_dpath, new_shit_dpath):
     """
 
 
-def delete_shit_images_on_phone():
+def delete_shit_images_on_phone(backend='sftp', dry=False):
     """
     Looks for shit images that have been backed up in the shitspotter database
     and then removes them from the phone SD card.
@@ -876,11 +1007,26 @@ def delete_shit_images_on_phone():
 
     Ignore:
         from shitspotter.phone_manager import *
+        # backend='sftp'
+        backend='gvfs'
+        delete_shit_images_on_phone(backend=backend, dry=True)
     """
     import shitspotter
     import kwcoco
-    phone = GVFSAndroidPath.discover()[0]
-    phone_image_infos = phone.dcim_image_infos()
+
+    backend = backend or 'sftp'
+    assert backend in {'gvfs', 'sftp'}
+
+    sftp_conn = None
+    if backend == 'gvfs':
+        phone = GVFSAndroidPath.discover()[0]
+        phone_image_infos = phone.dcim_image_infos()
+    elif backend == 'sftp':
+        sftp_conn = SFTPAndroidConnection.from_hostname()
+        phone_image_infos = sftp_conn.dcim_image_infos()
+    else:
+        raise AssertionError
+
     phone_fpaths = [p['fpath'] for p in phone_image_infos]
 
     coco_fpath = shitspotter.util.find_shit_coco_fpath()
@@ -931,6 +1077,12 @@ def delete_shit_images_on_phone():
     print(len(to_delete))
     print(f'delete_size = {ub.urepr(delete_size, nl=1)}')
 
+    if dry:
+        print('Dry run enabled, not deleting.')
+        if sftp_conn is not None:
+            sftp_conn.close()
+        return to_delete
+
     ans = Confirm.ask('Ready to delete?')
     if ans:
         for row in ub.ProgIter(to_delete, desc='deleting file'):
@@ -939,6 +1091,10 @@ def delete_shit_images_on_phone():
         # ub.hash_file(dvc_fpath)
         # ub.hash_file(phone_fpath)
 
+    if sftp_conn is not None:
+        sftp_conn.close()
+    return to_delete
+
 
 if __name__ == '__main__':
     """
@@ -946,3 +1102,4 @@ if __name__ == '__main__':
         python -m shitspotter.phone_manager
     """
     RemoteFromPhoneConfig.main()
+
