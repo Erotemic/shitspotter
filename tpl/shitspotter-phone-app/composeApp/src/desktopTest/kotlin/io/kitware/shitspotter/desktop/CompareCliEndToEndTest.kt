@@ -67,6 +67,20 @@ class CompareCliEndToEndTest {
     }
 
     @Test
+    fun no_image_argument_throws_with_helpful_message() {
+        var threw = false
+        try {
+            CompareCli.run(arrayOf("--runs=1"))
+        } catch (e: IllegalStateException) {
+            threw = true
+            // Sanity: error message should mention --image so the user
+            // knows what they forgot.
+            assertTrue(e.message?.contains("--image") == true, "message: ${e.message}")
+        }
+        assertTrue(threw)
+    }
+
+    @Test
     fun no_stub_with_no_models_writes_empty_table() {
         val image = makeImageFile()
         val outFile = File(image.parentFile, "report.json")
