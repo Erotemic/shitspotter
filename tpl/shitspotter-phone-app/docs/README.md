@@ -27,6 +27,11 @@ Six docs, in the order a brand-new agent should read them:
    Per-package responsibilities, hot-path buffer count, lifecycle
    table. The deepest "where does this code live?" map.
 
+7. **[006_adding_a_new_model.md](006_adding_a_new_model.md)** —
+   Step-by-step recipe for plugging a new ONNX detector into the
+   ModelRegistry, plus the failure modes (silent normalisation,
+   colour order, output shape) to watch for.
+
 ## Plus
 
 - `benchmarks/` — concrete report archive. `2026-05-10_desktop_dog_jpg_baseline.md`
