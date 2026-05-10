@@ -1,0 +1,39 @@
+# Gradle / Android build outputs
+build/
+.gradle/
+local.properties
+*.iml
+.idea/
+captures/
+.cxx/
+
+# Kotlin Multiplatform
+.kotlin/
+
+# Flutter (if used)
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+
+# Rust (if used)
+target/
+
+# Model assets — never commit binaries (see README.md §1)
+*.onnx
+*.tflite
+*.pte
+*.pt
+*.ckpt
+*.safetensors
+*.aar
+*.so
+
+# Captured failure cases — local only
+failure_cases/
+
+# OS / editor noise
+.DS_Store
+*.swp

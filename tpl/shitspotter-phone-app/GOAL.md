@@ -1,5 +1,10 @@
 # ShitSpotter Phone App Agent Goal
 
+> **Read [`README.md`](README.md) first.** It contains short-term breadcrumbs
+> about the toolchain (already installed at `/data/tmp/shitspotter-app-toolchain/`),
+> the first model artifact to plug in, the in-tree layout convention, and
+> `.gitignore` guidance. Those are pre-flight notes that aren't repeated here.
+
 This document is for an implementation agent starting work on a replacement ShitSpotter phone app.
 
 The current `.NET MAUI` app is useful as a reference, but the goal of this effort is to move away from MAUI and build toward an Android-first, local-inference, battery-conscious app that can be developed and tested from Linux, with a plausible path to iOS.
@@ -710,6 +715,13 @@ adb install -r <debug-apk>
 or equivalent for the chosen stack.
 
 ### Milestone 2: first real model backend
+
+Suggested first model: `tpl/poop_models/yolox_nano_poop_cropped_only_best.onnx`
+(also present at `tpl/poopdetector/PoopDetector/Resources/Raw/`). Any of the
+poop YOLO-v9 ONNX models in `tpl/poop_models/` are acceptable. Do **not**
+copy model weights into `tpl/shitspotter-phone-app/`; reference them from
+`tpl/poop_models/` and bundle into the APK at build time, or load from a
+device-side path. Binary blobs do not get committed.
 
 Add:
 
