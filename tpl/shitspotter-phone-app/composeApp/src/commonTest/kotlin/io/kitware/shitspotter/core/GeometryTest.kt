@@ -57,6 +57,15 @@ class GeometryTest {
     }
 
     @Test
+    fun letterbox_handles_upscaling() {
+        // Upscale 640x480 → 1280x720 (1.5x scale, horizontal pad).
+        val p = LetterboxParams.compute(640, 480, 1280, 720)
+        assertEquals(1.5f, p.scale)
+        assertEquals(160f, p.padX)
+        assertEquals(0f, p.padY)
+    }
+
+    @Test
     fun letterbox_round_trip() {
         val p = LetterboxParams.compute(640, 480, 416, 416)
         // Box at center of source ≈ box at center of letterboxed image.
