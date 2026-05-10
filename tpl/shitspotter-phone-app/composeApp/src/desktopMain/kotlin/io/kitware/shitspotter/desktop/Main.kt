@@ -62,6 +62,7 @@ private fun chooseDesktopBackend(args: Array<String>): DetectorBackend {
 fun main(args: Array<String>) {
     PrintlnLogger.info("ShitSpotter.Desktop", "starting; commit=${BuildInfo.appCommit}")
     if (runCompareIfRequested(args)) return
+    if (runDescribeIfRequested(args)) return
 
     val state = AppState()
     val backend: DetectorBackend = chooseDesktopBackend(args)

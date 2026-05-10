@@ -127,3 +127,45 @@ fun runCompareIfRequested(args: Array<String>): Boolean {
     if (rc != 0) exitProcess(rc)
     return true
 }
+
+/**
+ * Quick model introspection: dump the ONNX input/output names + shapes
+ * + dtype to stdout. Useful when adding a new ModelSpec — confirm the
+ * actual shape before guessing.
+ *
+ *   ./gradlew :composeApp:run --args="describe --model=/path/to.onnx"
+ */
+fun runDescribeIfRequested(args: Array<String>): Boolean {
+    if (args.isEmpty() || args[0] != "describe") return false
+    val modelPath = args.firstOrNull { it.startsWith("--model=") }?.removePrefix("--model=")
+        ?: error("describe needs --model=<path>")
+    val f = File(modelPath)
+    require(f.isFile) { "model not found: ${f.absolutePath}" }
+    val env = ai.onnxruntime.OrtEnvironment.getEnvironment()
+    val opts = ai.onnxruntime.OrtSession.SessionOptions()
+    val s = env.createSession(f.absolutePath, opts)
+    println("# describe ${f.absolutePath}")
+    println()
+    println("inputs:")
+    for (name in s.inputNames) {
+        val info = s.inputInfo[name]!!
+        val ti = info.info as? ai.onnxruntime.TensorInfo
+        if (ti != null) {
+            println("  $name : shape=${ti.shape.toList()} type=${ti.type}")
+        } else {
+            println("  $name : (non-tensor)")
+        }
+    }
+    println("outputs:")
+    for (name in s.outputNames) {
+        val info = s.outputInfo[name]!!
+        val ti = info.info as? ai.onnxruntime.TensorInfo
+        if (ti != null) {
+            println("  $name : shape=${ti.shape.toList()} type=${ti.type}")
+        } else {
+            println("  $name : (non-tensor)")
+        }
+    }
+    s.close()
+    return true
+}

@@ -41,6 +41,32 @@ class OnnxRuntimeJvmBackend(
         opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
         session = env.createSession(modelPath, opts)
         inputName = session.inputNames.first()
+        validateInputShape()
+    }
+
+    private fun validateInputShape() {
+        val info = session.inputInfo[inputName]
+            ?: error("session.inputInfo missing entry for $inputName")
+        val ti = info.info as? ai.onnxruntime.TensorInfo
+            ?: return // Non-tensor input; let analyze() fail with the model's own error.
+        val shape = ti.shape
+        // [batch, C, H, W] for NCHW; [batch, H, W, C] for NHWC.
+        if (shape.size != 4) return
+        val (modelH, modelW) = when (spec.inputLayout) {
+            InputLayout.NCHW -> shape[2].toInt() to shape[3].toInt()
+            InputLayout.NHWC -> shape[1].toInt() to shape[2].toInt()
+        }
+        // ONNX uses -1 for dynamic dims; only validate when the export is fixed.
+        if (modelH > 0 && modelH != spec.inputHeight) {
+            error(
+                "ONNX model expects height=$modelH but ModelSpec.${spec.modelId} declares ${spec.inputHeight}",
+            )
+        }
+        if (modelW > 0 && modelW != spec.inputWidth) {
+            error(
+                "ONNX model expects width=$modelW but ModelSpec.${spec.modelId} declares ${spec.inputWidth}",
+            )
+        }
     }
 
     override fun warmup() {

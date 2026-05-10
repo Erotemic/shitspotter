@@ -74,6 +74,24 @@ class OnnxRuntimeAndroidBackend(
             "Could not create ONNX session for $modelPath", lastErr
         )
         inputName = s.inputNames.first()
+        validateInputShape(s)
+    }
+
+    private fun validateInputShape(s: OrtSession) {
+        val info = s.inputInfo[inputName] ?: return
+        val ti = info.info as? ai.onnxruntime.TensorInfo ?: return
+        val shape = ti.shape
+        if (shape.size != 4) return
+        val (modelH, modelW) = when (spec.inputLayout) {
+            InputLayout.NCHW -> shape[2].toInt() to shape[3].toInt()
+            InputLayout.NHWC -> shape[1].toInt() to shape[2].toInt()
+        }
+        if (modelH > 0 && modelH != spec.inputHeight) {
+            error("ONNX expects H=$modelH but ${spec.modelId} declares ${spec.inputHeight}")
+        }
+        if (modelW > 0 && modelW != spec.inputWidth) {
+            error("ONNX expects W=$modelW but ${spec.modelId} declares ${spec.inputWidth}")
+        }
     }
 
     override fun warmup() {
