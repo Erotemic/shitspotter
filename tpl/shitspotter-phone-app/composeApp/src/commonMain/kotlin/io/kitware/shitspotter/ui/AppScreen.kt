@@ -33,6 +33,11 @@ import io.kitware.shitspotter.core.FailureType
 import io.kitware.shitspotter.core.ModelRegistry
 
 interface CameraSurface {
+    /** How this surface scales its preview. The DetectionOverlay uses
+     *  this to keep boxes aligned with what the user actually sees on
+     *  screen. */
+    val overlayScaleMode: OverlayScaleMode get() = OverlayScaleMode.FILL_CENTER
+
     @Composable
     fun Render(modifier: Modifier)
 }
@@ -64,6 +69,7 @@ fun AppScreen(
                     frameWidth = state.lastFrameWidth,
                     frameHeight = state.lastFrameHeight,
                     modifier = Modifier.fillMaxSize(),
+                    scaleMode = cameraSurface.overlayScaleMode,
                 )
             }
 

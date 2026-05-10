@@ -14,11 +14,27 @@ import androidx.compose.ui.graphics.drawscope.translate
 import io.kitware.shitspotter.core.Detection
 
 /**
- * Draws bounding boxes in the parent layout's pixel space.
+ * Scaling mode for [DetectionOverlay]. Mirrors the meaningful subset of
+ * Android's PreviewView scale types so the overlay can stay aligned with
+ * the camera preview.
+ *
+ * - [FIT_CENTER] picks the smallest scale that fits the frame entirely
+ *   inside the canvas (letterbox). Detection boxes always fall inside
+ *   visible canvas space.
+ * - [FILL_CENTER] picks the largest scale that fills the canvas (crop
+ *   excess). Detection boxes near the cropped edges may render
+ *   partially or fully off-canvas — but the overlay aligns with the
+ *   camera preview, which is what the user actually sees.
+ */
+enum class OverlayScaleMode { FIT_CENTER, FILL_CENTER }
+
+/**
+ * Draws bounding boxes over the parent layout's pixel space, optionally
+ * matching a PreviewView FILL_CENTER scale type so the boxes line up
+ * with the on-screen camera image rather than a letterboxed overlay.
  *
  * [frameWidth] / [frameHeight] are the source dimensions of the frame the
- * detections were produced in. The overlay scales those boxes to fill its
- * own draw area (assumed to match the displayed frame's aspect ratio).
+ * detections were produced in.
  */
 @Composable
 fun DetectionOverlay(
@@ -28,13 +44,17 @@ fun DetectionOverlay(
     modifier: Modifier = Modifier,
     boxColor: Color = Color(0xFFFF4D4D),
     strokeWidthPx: Float = 4f,
+    scaleMode: OverlayScaleMode = OverlayScaleMode.FILL_CENTER,
 ) {
     Box(modifier = modifier) {
         if (frameWidth <= 0 || frameHeight <= 0 || detections.isEmpty()) return@Box
         Canvas(modifier = Modifier.fillMaxSize()) {
             val scaleX = size.width / frameWidth.toFloat()
             val scaleY = size.height / frameHeight.toFloat()
-            val scale = minOf(scaleX, scaleY)
+            val scale = when (scaleMode) {
+                OverlayScaleMode.FIT_CENTER -> minOf(scaleX, scaleY)
+                OverlayScaleMode.FILL_CENTER -> maxOf(scaleX, scaleY)
+            }
             val drawnW = frameWidth * scale
             val drawnH = frameHeight * scale
             val offX = (size.width - drawnW) / 2f

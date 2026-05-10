@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.unit.sp
 import io.kitware.shitspotter.ui.CameraSurface
+import io.kitware.shitspotter.ui.OverlayScaleMode
 import org.jetbrains.skia.Image as SkiaImage
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
@@ -34,6 +35,10 @@ class DesktopCameraSurface(
     private val backgroundImage: BufferedImage?,
 ) : CameraSurface {
     private val cached: ImageBitmap? = backgroundImage?.let { bufferedImageToImageBitmap(it) }
+
+    /** Desktop draws the still image with the same min-scale letterbox
+     *  that PreviewView FIT_CENTER would use, so the overlay must too. */
+    override val overlayScaleMode: OverlayScaleMode = OverlayScaleMode.FIT_CENTER
 
     @Composable
     override fun Render(modifier: Modifier) {
