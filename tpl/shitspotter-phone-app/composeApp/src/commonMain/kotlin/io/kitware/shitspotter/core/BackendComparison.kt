@@ -116,27 +116,7 @@ object BackendComparison {
     private fun padLeft(s: String, n: Int): String =
         if (s.length >= n) s else " ".repeat(n - s.length) + s
 
-    private fun formatMs(v: Double): String {
-        // Two-decimal place format without relying on JVM-only String.format.
-        val sign = if (v < 0) "-" else ""
-        val abs = if (v < 0) -v else v
-        val whole = abs.toLong()
-        val frac = ((abs - whole) * 100.0 + 0.5).toLong()
-        val (w, f) = if (frac >= 100) (whole + 1) to 0L else whole to frac
-        val fStr = if (f < 10) "0$f" else f.toString()
-        return "$sign$w.$fStr"
-    }
+    private fun formatMs(v: Double): String = Fmt.ms2(v)
 
-    private fun formatScore(v: Float): String {
-        val abs = if (v < 0) -v else v
-        val whole = abs.toInt()
-        val frac = ((abs - whole) * 1000.0f + 0.5f).toInt()
-        val (w, f) = if (frac >= 1000) (whole + 1) to 0 else whole to frac
-        val fStr = when {
-            f >= 100 -> f.toString()
-            f >= 10 -> "0$f"
-            else -> "00$f"
-        }
-        return (if (v < 0) "-" else "") + "$w.$fStr"
-    }
+    private fun formatScore(v: Float): String = Fmt.score(v)
 }

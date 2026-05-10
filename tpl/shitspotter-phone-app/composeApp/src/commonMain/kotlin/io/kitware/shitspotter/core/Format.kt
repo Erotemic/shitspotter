@@ -22,6 +22,18 @@ object Fmt {
         return "$sign$w.$f"
     }
 
+    /** Format a Double to two decimal places. NaN/Inf → "—". */
+    fun ms2(v: Double): String {
+        if (v.isNaN() || v.isInfinite()) return "—"
+        val sign = if (v < 0) "-" else ""
+        val abs = abs(v)
+        val whole = abs.toLong()
+        val frac = ((abs - whole) * 100.0 + 0.5).toLong()
+        val (w, f) = if (frac >= 100) (whole + 1) to 0L else whole to frac
+        val fStr = if (f < 10) "0$f" else f.toString()
+        return "$sign$w.$fStr"
+    }
+
     /** Format a Float score to three decimal places (no sign for >=0). */
     fun score(v: Float): String {
         if (v.isNaN() || v.isInfinite()) return "—"
