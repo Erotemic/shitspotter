@@ -18,9 +18,39 @@ enum class ResizePolicy { LETTERBOX, STRETCH, CENTER_CROP }
 enum class PostprocessType {
     YOLOX,
     YOLO_V9,
+    /**
+     * YOLOv9 multi-output export with per-stride class-logit tensors and
+     * per-stride pre-decoded bbox (4 channels, left/top/right/bottom
+     * distance in stride-units). Requires [ModelSpec.yolov9Schema] to be
+     * non-null so the backend knows which output names to look at and
+     * what stride each level represents.
+     *
+     * Class outputs are sigmoid-applied at postprocess. Bbox outputs are
+     * multiplied by the level's stride to convert to pixel units.
+     */
+    YOLO_V9_DFL,
     GENERIC_BOX_SCORE_CLASS,
     NONE,
     STUB,
+}
+
+/**
+ * Output-tensor schema for [PostprocessType.YOLO_V9_DFL]. The three
+ * lists are parallel — the i-th class output / bbox output / stride
+ * describe the same feature level (e.g. stride 8 = 80x80 grid for a
+ * 640x640 input).
+ */
+@Serializable
+data class Yolov9Schema(
+    val classOutputs: List<String>,
+    val bboxOutputs: List<String>,
+    val strides: List<Int>,
+) {
+    init {
+        require(classOutputs.size == bboxOutputs.size && classOutputs.size == strides.size) {
+            "Yolov9Schema lists must align by length"
+        }
+    }
 }
 
 @Serializable
@@ -50,6 +80,8 @@ data class ModelSpec(
     val modelVersion: String? = null,
     val trainingDatasetHint: String? = null,
     val notes: String? = null,
+    /** Only used when [postprocessType] = YOLO_V9_DFL. */
+    val yolov9Schema: Yolov9Schema? = null,
 ) {
     companion object {
         val STUB = ModelSpec(
@@ -119,6 +151,42 @@ data class ModelSpec(
         )
 
         /**
+         * YOLOv9-style anchor-free DFL detector trained on the
+         * ShitSpotter dataset, simple-v3 run-v06 epoch 32. Multi-output
+         * export with separate class-logit and pre-decoded bbox tensors
+         * at strides 8/16/32. See `Yolov9.decode` for the math.
+         *
+         * Source file is the long-named DVC export; we use a shorter
+         * `modelFile` so adb-pushing it stays tractable.
+         */
+        val SIMPLE_V3_RUN_V06 = ModelSpec(
+            modelId = "shitspotter-simple-v3-run-v06",
+            displayName = "Simple v3 run v06 (YOLOv9, 640x640)",
+            modelFile = "shitspotter-simple-v3-run-v06.onnx",
+            format = ModelFormat.ONNX,
+            inputWidth = 640,
+            inputHeight = 640,
+            inputLayout = InputLayout.NCHW,
+            colorOrder = ColorOrder.RGB,
+            normalization = Normalization(scale = 1f / 255f),
+            resizePolicy = ResizePolicy.LETTERBOX,
+            postprocessType = PostprocessType.YOLO_V9_DFL,
+            classNames = listOf("poop"),
+            scoreThreshold = 0.25f,
+            iouThreshold = 0.45f,
+            yolov9Schema = Yolov9Schema(
+                classOutputs = listOf("output", "2336", "2383"),
+                bboxOutputs = listOf("2318", "2365", "2412"),
+                strides = listOf(8, 16, 32),
+            ),
+            notes = "Multi-output YOLOv9 export. Class logits are raw " +
+                "(sigmoid applied in postprocess); bbox is in stride-units " +
+                "(multiplied by stride to get pixels). Aux head outputs " +
+                "(2957/3004/3051/...) are ignored — only the main head is " +
+                "used at inference time.",
+        )
+
+        /**
          * Earlier custom v2 detector. Same input/output shape as v5 but
          * trained on a smaller dataset. Useful as a comparison baseline.
          */
@@ -147,6 +215,7 @@ object ModelRegistry {
     val all: List<ModelSpec> = listOf(
         ModelSpec.STUB,
         ModelSpec.YOLOX_NANO_POOP,
+        ModelSpec.SIMPLE_V3_RUN_V06,
         ModelSpec.CUSTOM_V5_EPOCH115,
         ModelSpec.CUSTOM_V2_EPOCH126,
     )

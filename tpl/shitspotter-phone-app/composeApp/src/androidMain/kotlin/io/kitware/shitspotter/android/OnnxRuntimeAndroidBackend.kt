@@ -4,10 +4,13 @@ import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import ai.onnxruntime.providers.NNAPIFlags
+import ai.onnxruntime.TensorInfo
 import io.kitware.shitspotter.core.BACKEND_FLOOR_THRESHOLD
 import io.kitware.shitspotter.core.BoundingBox
 import io.kitware.shitspotter.core.ColorOrder
 import io.kitware.shitspotter.core.Detection
+import io.kitware.shitspotter.core.FeatureLevel
+import io.kitware.shitspotter.core.Yolov9
 import io.kitware.shitspotter.core.DetectorBackend
 import io.kitware.shitspotter.core.FrameSource
 import io.kitware.shitspotter.core.InferenceResult
@@ -137,37 +140,40 @@ class OnnxRuntimeAndroidBackend(
 
         var inferenceMs = 0.0
         var postprocessMs = 0.0
-        val finalDets: List<io.kitware.shitspotter.core.Detection>
+        val finalDets: List<Detection>
         try {
             val infStart = nowMonoMs()
             val outputs = s.run(mapOf(inputName to inputTensor))
             inferenceMs = nowMonoMs() - infStart
             try {
                 val postStart = nowMonoMs()
-                val raw = outputs[0]
-                val rawValue = raw.value
-                val flat = flattenOutput(rawValue)
                 val numClasses = spec.classNames.size
-                val perRow = 5 + numClasses
-                require(flat.size % perRow == 0) {
-                    "ONNX output shape ${flat.size} not divisible by $perRow"
-                }
-                val numAnchors = flat.size / perRow
-                val rawDets = when (spec.postprocessType) {
+                val rawDets: List<Detection> = when (spec.postprocessType) {
+                    PostprocessType.YOLO_V9_DFL -> decodeYolov9(outputs, numClasses)
                     PostprocessType.YOLOX,
                     PostprocessType.YOLO_V9,
-                    PostprocessType.GENERIC_BOX_SCORE_CLASS -> Yolox.postprocessDecoded(
-                        predictions = flat,
-                        numAnchors = numAnchors,
-                        numClasses = numClasses,
-                        // BACKEND_FLOOR_THRESHOLD here so the UI slider can
-                        // recover all the way down; spec.scoreThreshold is
-                        // the *default UI threshold* and is consulted by
-                        // AppState, not the backend.
-                        scoreThreshold = BACKEND_FLOOR_THRESHOLD,
-                        iouThreshold = spec.iouThreshold,
-                        classNames = spec.classNames,
-                    )
+                    PostprocessType.GENERIC_BOX_SCORE_CLASS -> {
+                        val raw = outputs[0]
+                        val rawValue = raw.value
+                        val flat = flattenOutput(rawValue)
+                        val perRow = 5 + numClasses
+                        require(flat.size % perRow == 0) {
+                            "ONNX output shape ${flat.size} not divisible by $perRow"
+                        }
+                        val numAnchors = flat.size / perRow
+                        Yolox.postprocessDecoded(
+                            predictions = flat,
+                            numAnchors = numAnchors,
+                            numClasses = numClasses,
+                            // BACKEND_FLOOR_THRESHOLD here so the UI slider can
+                            // recover all the way down; spec.scoreThreshold is
+                            // the *default UI threshold* and is consulted by
+                            // AppState, not the backend.
+                            scoreThreshold = BACKEND_FLOOR_THRESHOLD,
+                            iouThreshold = spec.iouThreshold,
+                            classNames = spec.classNames,
+                        )
+                    }
                     PostprocessType.STUB, PostprocessType.NONE -> emptyList()
                 }
                 val mappedDets = rawDets.map { d ->
@@ -199,6 +205,40 @@ class OnnxRuntimeAndroidBackend(
         try { session?.close() } catch (_: Throwable) {}
         session = null
         env = null
+    }
+
+    private fun decodeYolov9(
+        outputs: OrtSession.Result,
+        numClasses: Int,
+    ): List<Detection> {
+        val schema = spec.yolov9Schema
+            ?: error("YOLO_V9_DFL requires ModelSpec.yolov9Schema; '${spec.modelId}' has none")
+        val levels = ArrayList<FeatureLevel>(schema.classOutputs.size)
+        for (i in schema.classOutputs.indices) {
+            val classOut = outputs.get(schema.classOutputs[i]).orElseThrow {
+                error("YOLO_V9_DFL: missing output '${schema.classOutputs[i]}' on '${spec.modelId}'")
+            }
+            val bboxOut = outputs.get(schema.bboxOutputs[i]).orElseThrow {
+                error("YOLO_V9_DFL: missing output '${schema.bboxOutputs[i]}' on '${spec.modelId}'")
+            }
+            val classShape = (classOut.info as TensorInfo).shape
+            val gridH = classShape[classShape.size - 2].toInt()
+            val gridW = classShape[classShape.size - 1].toInt()
+            levels += FeatureLevel(
+                classLogits = flattenOutput(classOut.value),
+                bbox = flattenOutput(bboxOut.value),
+                gridH = gridH,
+                gridW = gridW,
+                stride = schema.strides[i],
+            )
+        }
+        return Yolov9.decode(
+            levels = levels,
+            numClasses = numClasses,
+            scoreThreshold = BACKEND_FLOOR_THRESHOLD,
+            iouThreshold = spec.iouThreshold,
+            classNames = spec.classNames,
+        )
     }
 
     private fun flattenOutput(v: Any?): FloatArray {

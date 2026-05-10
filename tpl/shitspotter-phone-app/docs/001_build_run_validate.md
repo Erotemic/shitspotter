@@ -134,6 +134,42 @@ Then launch the app — the model loader will check
 
 The desktop harness uses ONNX Runtime JVM (CPU only).
 
+### 5d. Registered models and where to put them
+
+The chips in the app correspond to entries in `ModelRegistry.all`. To
+make a chip do real inference instead of fall back to the stub, push
+the matching ONNX file under the exact `modelFile` name into the
+device's external-files models dir:
+
+```bash
+DEST=/sdcard/Android/data/io.kitware.shitspotter/files/models/
+adb shell mkdir -p $DEST
+
+# YOLOX-nano poop (416x416)
+adb push ../poop_models/yolox_nano_poop_cropped_only_best.onnx $DEST
+
+# Simple v3 run v06 (YOLOv9, 640x640) — note the file rename
+adb push '/data/joncrall/dvc-repos/shitspotter_dvc/models/yolo-v9/shitspotter-simple-v3-run-v06-epoch=0032-step=000132-trainlosstrain_loss=7.603.onnx' \
+    $DEST/shitspotter-simple-v3-run-v06.onnx
+
+# Custom v5 (640x640)
+adb push ../poop_models/shitspotter-custom-v5-epoch_115.onnx $DEST
+
+# Custom v2 (640x640)
+adb push ../poop_models/shitspotter_custom_v2_epoch126.onnx $DEST
+
+adb shell ls -lh $DEST
+```
+
+The destination filename **must** match the `modelFile` field on the
+corresponding `ModelSpec` (see
+[`composeApp/src/commonMain/.../ModelSpec.kt`](../composeApp/src/commonMain/kotlin/io/kitware/shitspotter/core/ModelSpec.kt));
+otherwise the chip falls back to stub and the HUD's chip shows the ⚠
+indicator added in commit 20aa1ae.
+
+After pushing, just tap the chip again — `setActive` re-checks the
+external dir on every tap.
+
 ---
 
 ## 6. iOS path (macOS host only)
