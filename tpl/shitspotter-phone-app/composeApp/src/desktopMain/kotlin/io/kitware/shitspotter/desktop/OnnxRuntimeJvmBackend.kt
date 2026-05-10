@@ -7,7 +7,6 @@ import io.kitware.shitspotter.core.DetectorBackend
 import io.kitware.shitspotter.core.FrameSource
 import io.kitware.shitspotter.core.InferenceResult
 import io.kitware.shitspotter.core.InputLayout
-import io.kitware.shitspotter.core.LetterboxParams
 import io.kitware.shitspotter.core.ModelSpec
 import io.kitware.shitspotter.core.Nms
 import io.kitware.shitspotter.core.PostprocessType
