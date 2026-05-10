@@ -204,7 +204,12 @@ df -h /data/tmp /home   # confirm there's room before a big build
 source /data/tmp/shitspotter-app-toolchain/env.sh
 cd tpl/shitspotter-phone-app
 
-# 30 unit tests for the shared core (~5 s after first build):
+# One-shot end-to-end validation (toolchain + tests + compare CLI +
+# python parity + APK build); use this as the first sanity check after
+# every non-trivial change:
+scripts/run_all_desktop_validation.sh
+
+# All shared-core unit tests (~5 s after first build):
 ./gradlew :composeApp:desktopTest
 
 # Compose for Desktop GUI (still-image harness, stub detector):
