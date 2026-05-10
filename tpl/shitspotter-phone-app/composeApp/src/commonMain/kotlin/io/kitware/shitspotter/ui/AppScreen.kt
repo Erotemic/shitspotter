@@ -100,10 +100,29 @@ fun AppScreen(
                     )
                 }
                 Spacer(Modifier.height(6.dp))
+                val activeBackendName = state.lastTelemetry?.runtimeBackend
+                val activeIsStubFallback =
+                    state.activeModelId != "stub-fake-detector" &&
+                        activeBackendName != null &&
+                        activeBackendName.startsWith("stub-")
                 ModelChipsRow(
                     activeId = state.activeModelId,
+                    activeIsStubFallback = activeIsStubFallback,
                     onSelect = { state.activeModelId = it },
                 )
+                if (activeIsStubFallback) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "⚠ model file not on device — using stub. " +
+                            "adb push the .onnx into " +
+                            "<external-files>/models/ and retap.",
+                        color = Color(0xFFFFCC66),
+                        fontSize = 11.sp,
+                        modifier = Modifier
+                            .background(Color(0x88000000))
+                            .padding(8.dp),
+                    )
+                }
                 Spacer(Modifier.height(4.dp))
                 ScoreThresholdControl(state)
                 Spacer(Modifier.height(4.dp))
@@ -193,6 +212,7 @@ private fun ControlBar(
 @Composable
 private fun ModelChipsRow(
     activeId: String,
+    activeIsStubFallback: Boolean,
     onSelect: (String) -> Unit,
 ) {
     Row(
@@ -204,8 +224,13 @@ private fun ModelChipsRow(
             Button(
                 onClick = { if (!active) onSelect(spec.modelId) },
             ) {
+                val prefix = when {
+                    active && activeIsStubFallback -> "⚠ "
+                    active -> "● "
+                    else -> ""
+                }
                 Text(
-                    text = if (active) "● ${spec.displayName}" else spec.displayName,
+                    text = "$prefix${spec.displayName}",
                     color = Color.White,
                 )
             }
