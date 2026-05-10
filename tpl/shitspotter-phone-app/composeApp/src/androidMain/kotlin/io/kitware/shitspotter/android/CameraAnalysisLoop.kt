@@ -14,6 +14,7 @@ import androidx.lifecycle.LifecycleOwner
 import com.google.common.util.concurrent.ListenableFuture
 import io.kitware.shitspotter.core.AppLogger
 import io.kitware.shitspotter.core.AppState
+import io.kitware.shitspotter.core.BoundingBox
 import io.kitware.shitspotter.core.BuildInfo
 import io.kitware.shitspotter.core.DetectorBackend
 import io.kitware.shitspotter.core.FpsCounter
@@ -118,7 +119,21 @@ class CameraAnalysisLoop(
             val overlayMs = nowMonoMs() - overlayStart
             overlayLat.record(overlayMs)
 
-            val filtered = result.detections.filterByScore(state.scoreThreshold)
+            val raw = result.detections.filterByScore(state.scoreThreshold)
+            // Compose the detector's frame-pixel coordinates with the camera
+            // rotation so the overlay can draw boxes in display orientation
+            // without knowing about CameraX rotationDegrees itself. We
+            // compute the rotated frame dims from a dummy box so the result
+            // is consistent whether or not we have any detections.
+            val rotation = frame.rotationDegrees
+            val frameRotated = BoundingBox(0f, 0f, 0f, 0f)
+                .rotated(rotation, frame.width, frame.height)
+            val rotatedW = frameRotated.second
+            val rotatedH = frameRotated.third
+            val filtered = raw.map { d ->
+                val r = d.box.rotated(rotation, frame.width, frame.height)
+                d.copy(box = r.first)
+            }
             val telemetry = FrameTelemetry(
                 deviceModel = BuildInfo.deviceModel,
                 osVersion = BuildInfo.osVersion,
@@ -138,7 +153,7 @@ class CameraAnalysisLoop(
                 detectionCount = filtered.size,
                 droppedFrames = droppedFrames.get(),
             )
-            state.pushFrame(filtered, telemetry, frame.width, frame.height)
+            state.pushFrame(filtered, telemetry, rotatedW, rotatedH)
         } catch (t: Throwable) {
             logger.error(TAG, "frame analysis failed", t)
             state.setError(t.message ?: t::class.simpleName ?: "unknown")

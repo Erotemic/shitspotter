@@ -32,6 +32,50 @@ data class BoundingBox(
         if (u <= 0f) return 0f
         return inter.area / u
     }
+
+    /**
+     * Rotate this box clockwise by 0/90/180/270 degrees within a frame
+     * of size [frameW] x [frameH]. Returns the new box and the new frame
+     * dimensions as a pair: `(rotatedBox, newFrameWidth to newFrameHeight)`.
+     *
+     * The box is assumed to be in pixel space of the source frame. Other
+     * rotation amounts throw — Android camera rotationDegrees is always
+     * a multiple of 90.
+     */
+    fun rotated(degrees: Int, frameW: Int, frameH: Int): Triple<BoundingBox, Int, Int> {
+        val d = ((degrees % 360) + 360) % 360
+        return when (d) {
+            0 -> Triple(this, frameW, frameH)
+            90 -> Triple(
+                BoundingBox(
+                    x = frameH - (y + height),
+                    y = x,
+                    width = height,
+                    height = width,
+                ),
+                frameH, frameW,
+            )
+            180 -> Triple(
+                BoundingBox(
+                    x = frameW - (x + width),
+                    y = frameH - (y + height),
+                    width = width,
+                    height = height,
+                ),
+                frameW, frameH,
+            )
+            270 -> Triple(
+                BoundingBox(
+                    x = y,
+                    y = frameW - (x + width),
+                    width = height,
+                    height = width,
+                ),
+                frameH, frameW,
+            )
+            else -> error("rotation must be a multiple of 90; got $degrees")
+        }
+    }
 }
 
 @Serializable
