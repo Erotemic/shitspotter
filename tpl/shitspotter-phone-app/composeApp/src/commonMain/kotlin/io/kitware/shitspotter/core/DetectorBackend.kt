@@ -46,8 +46,8 @@ class StubDetectorBackend(
         val n = (counter++ % 600L)
         val w = frame.width.toFloat()
         val h = frame.height.toFloat()
-        val cx = w * (0.4f + 0.2f * sineApprox(n / 60.0))
-        val cy = h * (0.5f + 0.15f * cosineApprox(n / 45.0))
+        val cx = w * (0.4f + 0.2f * sineApprox(n / 60.0).toFloat())
+        val cy = h * (0.5f + 0.15f * cosineApprox(n / 45.0).toFloat())
         val bw = w * 0.18f
         val bh = h * 0.22f
         val fakeBox = BoundingBox(

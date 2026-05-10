@@ -16,6 +16,8 @@ import io.kitware.shitspotter.core.BuildInfo
 import io.kitware.shitspotter.core.DetectorBackend
 import io.kitware.shitspotter.core.FailureCaseMetadata
 import io.kitware.shitspotter.core.FailureType
+import io.kitware.shitspotter.core.ModelRegistry
+import io.kitware.shitspotter.core.ModelSpec
 import io.kitware.shitspotter.core.PrintlnLogger
 import io.kitware.shitspotter.core.StubDetectorBackend
 import io.kitware.shitspotter.ui.AppRootTheme
@@ -23,20 +25,45 @@ import io.kitware.shitspotter.ui.AppScreen
 import kotlinx.datetime.Clock
 import java.io.File
 
+private fun argValue(args: Array<String>, key: String): String? {
+    val prefix = "$key="
+    args.forEach { if (it.startsWith(prefix)) return it.removePrefix(prefix) }
+    return null
+}
+
 private fun loadStillImageFromArgs(args: Array<String>): File? {
-    args.forEach { a ->
-        if (a.startsWith("--image=")) return File(a.removePrefix("--image="))
-    }
+    argValue(args, "--image")?.let { return File(it) }
     System.getenv("SHITSPOTTER_DESKTOP_IMAGE")?.let { return File(it) }
     System.getProperty("desktopHarnessImage")?.let { return File(it) }
     return null
+}
+
+private fun chooseDesktopBackend(args: Array<String>): DetectorBackend {
+    val modelPath = argValue(args, "--model") ?: System.getenv("SHITSPOTTER_DESKTOP_MODEL")
+    val modelId = argValue(args, "--model-id") ?: ModelRegistry.default.modelId
+    val spec: ModelSpec = ModelRegistry.byId(modelId) ?: ModelRegistry.default
+    if (modelPath.isNullOrBlank()) {
+        PrintlnLogger.info("ShitSpotter.Desktop", "no --model — using stub detector")
+        return StubDetectorBackend(spec.takeIf { it.format != io.kitware.shitspotter.core.ModelFormat.STUB } ?: ModelSpec.STUB)
+    }
+    val file = File(modelPath)
+    if (!file.isFile) {
+        PrintlnLogger.warn("ShitSpotter.Desktop", "model file missing: ${file.absolutePath} — falling back to stub")
+        return StubDetectorBackend()
+    }
+    return try {
+        OnnxRuntimeJvmBackend(spec, file.absolutePath).also { it.warmup() }
+    } catch (t: Throwable) {
+        PrintlnLogger.error("ShitSpotter.Desktop", "ONNX init failed; falling back to stub", t)
+        StubDetectorBackend()
+    }
 }
 
 fun main(args: Array<String>) {
     PrintlnLogger.info("ShitSpotter.Desktop", "starting; commit=${BuildInfo.appCommit}")
 
     val state = AppState()
-    val backend: DetectorBackend = StubDetectorBackend()
+    val backend: DetectorBackend = chooseDesktopBackend(args)
     val imageFile = loadStillImageFromArgs(args)
     val frame = imageFile?.takeIf { it.isFile }?.let { StillImageFrameSource.fromFile(it) }
     val backgroundImage = imageFile?.takeIf { it.isFile }?.let { javax.imageio.ImageIO.read(it) }

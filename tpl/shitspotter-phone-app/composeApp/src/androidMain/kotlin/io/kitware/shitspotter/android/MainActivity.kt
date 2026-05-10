@@ -29,9 +29,10 @@ import io.kitware.shitspotter.core.BuildInfo
 import io.kitware.shitspotter.core.DetectorBackend
 import io.kitware.shitspotter.core.FailureCaseMetadata
 import io.kitware.shitspotter.core.FailureType
+import io.kitware.shitspotter.core.ModelRegistry
+import io.kitware.shitspotter.core.ModelSpec
 import io.kitware.shitspotter.core.PrintlnLogger
 import io.kitware.shitspotter.core.StubDetectorBackend
-import io.kitware.shitspotter.core.nowMonoMs
 import io.kitware.shitspotter.ui.AppRootTheme
 import io.kitware.shitspotter.ui.AppScreen
 import kotlinx.datetime.Clock
@@ -55,6 +56,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         failureStore = AndroidFailureCaseStore(this)
+        backend = chooseBackend(this)
 
         val have = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
             PackageManager.PERMISSION_GRANTED
@@ -123,6 +125,27 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         try { backend.close() } catch (_: Throwable) {}
+    }
+
+    private fun chooseBackend(ctx: android.content.Context): DetectorBackend {
+        val candidate: ModelSpec = ModelSpec.YOLOX_NANO_POOP
+        val loader = AndroidModelLoader(ctx)
+        val file = loader.resolveOrCopy(candidate) ?: run {
+            PrintlnLogger.warn(
+                "ShitSpotter.MainActivity",
+                "no ${candidate.modelFile} found in external/cache/assets — using stub detector",
+            )
+            return StubDetectorBackend()
+        }
+        return try {
+            val hash = try { loader.sha256(file).take(16) } catch (_: Throwable) { null }
+            val resolved = candidate.copy(modelHash = hash)
+            OnnxRuntimeAndroidBackend(resolved, file.absolutePath, tryNnapi = true)
+                .also { it.warmup() }
+        } catch (t: Throwable) {
+            PrintlnLogger.error("ShitSpotter.MainActivity", "ONNX init failed; falling back to stub", t)
+            StubDetectorBackend()
+        }
     }
 }
 
