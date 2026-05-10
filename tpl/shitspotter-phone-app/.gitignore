@@ -34,6 +34,11 @@ target/
 # Captured failure cases — local only
 failure_cases/
 
+# Generated benchmark JSON reports (re-generate via scripts/bench_desktop.sh).
+# .keep below preserves the dir.
+docs/benchmarks/*.json
+!docs/benchmarks/.keep
+
 # OS / editor noise
 .DS_Store
 *.swp
