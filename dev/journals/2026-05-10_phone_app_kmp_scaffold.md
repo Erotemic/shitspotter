@@ -123,13 +123,26 @@ at the time of this journal:
   `Fmt.ms2` / `Fmt.score` so the HUD and the CompareCli table use the
   same bit-exact rendering on both Android and JVM.
 
+- **Front-camera toggle** — `state.useFrontCamera` plus a "front"
+  switch in the toggle row. CameraAnalysisLoop captures the bind
+  closure and re-binds CameraX on the main thread when the state
+  flips. Default remains DEFAULT_BACK_CAMERA. Persisted via Settings.
+
+- **Overlay scale mode** — the DetectionOverlay used to letterbox by
+  min-scale (FIT_CENTER) regardless of the platform's preview type;
+  on Android with PreviewView FILL_CENTER that meant the boxes
+  rendered in a different region than the camera image. Now
+  `OverlayScaleMode.FILL_CENTER` is the default and CameraSurface
+  exposes a per-platform override (the desktop harness sticks with
+  FIT_CENTER because it draws the still image at min-scale).
+
 - **Live score-threshold slider** + `List<Detection>.filterByScore`. The user
   can move the threshold on the phone without rebuilding; both the
   Android `CameraAnalysisLoop` and the desktop `DesktopHarness`
   re-filter post-backend. Verified: at `--score-threshold=0.8` the
   dog.jpg test goes 3 dets → 0.
 
-- **Test count**: 105 tests across 21 files, all green. The remainder of
+- **Test count**: 106 tests across 21 files, all green. The remainder of
   this section enumerates them by file:
   - `GeometryTest` (8) — bbox intersect, IoU, NMS, letterbox round-trip,
     YOLOX postprocess
