@@ -1,0 +1,49 @@
+package io.kitware.shitspotter.android
+
+import android.content.Context
+import androidx.camera.view.PreviewView
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.LifecycleOwner
+import io.kitware.shitspotter.core.AppState
+import io.kitware.shitspotter.core.DetectorBackend
+import io.kitware.shitspotter.ui.CameraSurface
+
+class AndroidCameraSurface(
+    private val context: Context,
+    private val lifecycleOwner: LifecycleOwner,
+    private val state: AppState,
+    private val backendProvider: () -> DetectorBackend,
+) : CameraSurface {
+
+    private var loop: CameraAnalysisLoop? = null
+
+    fun setPaused(paused: Boolean) {
+        loop?.isPaused = paused
+    }
+
+    @Composable
+    override fun Render(modifier: Modifier) {
+        val androidContext = LocalContext.current
+        AndroidView(
+            modifier = modifier,
+            factory = { ctx ->
+                val previewView = PreviewView(ctx).apply {
+                    scaleType = PreviewView.ScaleType.FILL_CENTER
+                }
+                val analysisLoop = CameraAnalysisLoop(
+                    context = androidContext,
+                    lifecycleOwner = lifecycleOwner,
+                    state = state,
+                    backendProvider = backendProvider,
+                )
+                this.loop = analysisLoop
+                analysisLoop.bind(previewView.surfaceProvider)
+                previewView
+            },
+        )
+    }
+}
