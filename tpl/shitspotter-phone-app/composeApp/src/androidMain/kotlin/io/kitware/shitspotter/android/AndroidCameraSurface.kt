@@ -3,20 +3,18 @@ package io.kitware.shitspotter.android
 import android.content.Context
 import androidx.camera.view.PreviewView
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.LifecycleOwner
 import io.kitware.shitspotter.core.AppState
-import io.kitware.shitspotter.core.DetectorBackend
 import io.kitware.shitspotter.ui.CameraSurface
 
 class AndroidCameraSurface(
     private val context: Context,
     private val lifecycleOwner: LifecycleOwner,
     private val state: AppState,
-    private val backendProvider: () -> DetectorBackend,
+    private val backendManager: AndroidBackendManager,
 ) : CameraSurface {
 
     private var loop: CameraAnalysisLoop? = null
@@ -50,7 +48,7 @@ class AndroidCameraSurface(
                     context = androidContext,
                     lifecycleOwner = lifecycleOwner,
                     state = state,
-                    backendProvider = backendProvider,
+                    backendManager = backendManager,
                 )
                 this.loop = analysisLoop
                 analysisLoop.bind(previewView.surfaceProvider)

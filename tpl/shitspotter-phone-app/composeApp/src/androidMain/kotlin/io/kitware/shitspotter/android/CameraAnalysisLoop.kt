@@ -16,7 +16,6 @@ import io.kitware.shitspotter.core.AppLogger
 import io.kitware.shitspotter.core.AppState
 import io.kitware.shitspotter.core.BoundingBox
 import io.kitware.shitspotter.core.BuildInfo
-import io.kitware.shitspotter.core.DetectorBackend
 import io.kitware.shitspotter.core.FpsCounter
 import io.kitware.shitspotter.core.FrameSource
 import io.kitware.shitspotter.core.FrameTelemetry
@@ -39,7 +38,7 @@ class CameraAnalysisLoop(
     private val context: Context,
     private val lifecycleOwner: LifecycleOwner,
     private val state: AppState,
-    private val backendProvider: () -> DetectorBackend,
+    private val backendManager: AndroidBackendManager,
     private val logger: AppLogger = PrintlnLogger,
     private val targetAnalysisSize: Size = Size(640, 480),
 ) {
@@ -65,10 +64,14 @@ class CameraAnalysisLoop(
     ): ListenableFuture<ProcessCameraProvider> {
         val future = ProcessCameraProvider.getInstance(context)
         future.addListener({
+            // The activity may have called close() while the provider
+            // future was still pending. Don't bind a doomed loop.
+            if (closed) return@addListener
             try {
                 val provider = future.get()
                 cameraProvider = provider
-                val rebind: () -> Unit = {
+                val rebind: () -> Unit = rebind@{
+                    if (closed) return@rebind
                     val preview = Preview.Builder().build().also {
                         it.setSurfaceProvider(previewSurfaceProvider)
                     }
@@ -161,8 +164,13 @@ class CameraAnalysisLoop(
             lastAnalyzedFrame = frame
             captureLat.record(nowMonoMs() - captureStart)
 
-            val backend = backendProvider()
-            val result = backend.analyze(frame)
+            // Runs under the backend manager's lock — concurrent
+            // setActive(...) cannot close the backend mid-analyse, and
+            // the returned spec is captured atomically alongside the
+            // result so the HUD never reports a stale model id.
+            val out = backendManager.analyze(frame)
+            val result = out.result
+            val spec = out.spec
 
             preLat.record(result.preprocessMs)
             infLat.record(result.inferenceMs)
@@ -193,12 +201,12 @@ class CameraAnalysisLoop(
                 deviceModel = BuildInfo.deviceModel,
                 osVersion = BuildInfo.osVersion,
                 appCommit = BuildInfo.appCommit,
-                modelId = backend.spec.modelId,
-                modelHash = backend.spec.modelHash,
+                modelId = spec.modelId,
+                modelHash = spec.modelHash,
                 runtimeBackend = result.backendName,
                 delegate = result.delegate,
-                inputWidth = backend.spec.inputWidth,
-                inputHeight = backend.spec.inputHeight,
+                inputWidth = spec.inputWidth,
+                inputHeight = spec.inputHeight,
                 captureMs = captureLat.mean(),
                 preprocessMs = result.preprocessMs,
                 inferenceMs = result.inferenceMs,

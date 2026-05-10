@@ -38,7 +38,7 @@ import io.kitware.shitspotter.ui.AppRootTheme
 import io.kitware.shitspotter.ui.AppScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 
 class MainActivity : ComponentActivity() {
@@ -82,13 +82,12 @@ class MainActivity : ComponentActivity() {
                     // the backend live so the chip-tap actually does
                     // something instead of being cosmetic. ONNX init can
                     // take a second or two so the actual setActive call
-                    // runs on Dispatchers.IO via .flowOn.
+                    // runs on Dispatchers.IO inside the collector.
                     LaunchedEffect(Unit) {
                         snapshotFlow { state.activeModelId }
                             .distinctUntilChanged()
-                            .flowOn(Dispatchers.IO)
                             .collect { id ->
-                                kotlinx.coroutines.withContext(Dispatchers.IO) {
+                                withContext(Dispatchers.IO) {
                                     backendManager.setActive(id)
                                 }
                             }
@@ -99,7 +98,7 @@ class MainActivity : ComponentActivity() {
                             context = this@MainActivity,
                             lifecycleOwner = this@MainActivity,
                             state = state,
-                            backendProvider = { backendManager.current },
+                            backendManager = backendManager,
                         ).also { androidSurface = it }
                     }
                     AppScreen(
@@ -120,7 +119,10 @@ class MainActivity : ComponentActivity() {
 
     private fun saveFailureCase(type: FailureType, note: String?) {
         val surface = androidSurface
-        val backend = backendManager.current
+        // Snapshot the active backend's spec under the manager's lock so a
+        // concurrent setActive can't swap mid-save and leave us writing a
+        // FailureCaseMetadata whose modelId disagrees with the on-disk JPEG.
+        val backendSnap = backendManager.snapshot()
         if (surface == null || !surface.hasAnalyzedFrame()) {
             PrintlnLogger.warn(
                 "ShitSpotter.Failure",
@@ -136,14 +138,14 @@ class MainActivity : ComponentActivity() {
             deviceModel = BuildInfo.deviceModel,
             osVersion = BuildInfo.osVersion,
             appCommit = BuildInfo.appCommit,
-            modelId = backend.spec.modelId,
-            modelHash = backend.spec.modelHash,
-            runtimeBackend = backend.backendName,
-            delegate = backend.delegate,
-            inputWidth = backend.spec.inputWidth,
-            inputHeight = backend.spec.inputHeight,
+            modelId = backendSnap.spec.modelId,
+            modelHash = backendSnap.spec.modelHash,
+            runtimeBackend = backendSnap.backendName,
+            delegate = backendSnap.delegate,
+            inputWidth = backendSnap.spec.inputWidth,
+            inputHeight = backendSnap.spec.inputHeight,
             scoreThreshold = state.scoreThreshold,
-            iouThreshold = backend.spec.iouThreshold,
+            iouThreshold = backendSnap.spec.iouThreshold,
             latencyMs = tele?.totalMs ?: 0.0,
             fpsRecent = tele?.fpsRecent ?: 0.0,
             failureType = type,
