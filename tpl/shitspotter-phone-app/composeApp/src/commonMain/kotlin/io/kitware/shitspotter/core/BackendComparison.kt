@@ -85,7 +85,8 @@ object BackendComparison {
     fun renderTable(rows: List<BackendRunRow>): String {
         if (rows.isEmpty()) return "(no rows)"
         val header = listOf(
-            padRight("backend", 26),
+            padRight("model", 32),
+            padRight("backend", 22),
             padRight("delegate", 8),
             padLeft("pre(ms)", 8),
             padLeft("inf(ms)", 8),
@@ -96,7 +97,8 @@ object BackendComparison {
         val sep = "-".repeat(header.length)
         val body = rows.joinToString("\n") { r ->
             listOf(
-                padRight(r.backendName.take(26), 26),
+                padRight(r.modelId.take(32), 32),
+                padRight(r.backendName.take(22), 22),
                 padRight((r.delegate ?: "—").take(8), 8),
                 padLeft(formatMs(r.preprocessMs), 8),
                 padLeft(formatMs(r.inferenceMs), 8),

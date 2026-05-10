@@ -32,25 +32,30 @@ object CompareCli {
         val image = argValue(args, "--image")?.let { File(it) }
             ?: error("compare needs --image=<path>")
         require(image.isFile) { "image not found: ${image.absolutePath}" }
-        val modelPath = argValue(args, "--model")?.let { File(it) }
-        // Default to the YOLOX-nano poop spec when an ONNX path is given but
-        // no model-id, since the stub spec's 640x640 input shape will not
-        // match a 416x416 YOLOX model.
-        val modelId = argValue(args, "--model-id") ?: if (modelPath != null) {
-            ModelSpec.YOLOX_NANO_POOP.modelId
-        } else {
-            ModelRegistry.default.modelId
-        }
+        // Multiple --model can be passed; --model-id at the same index
+        // selects the ModelSpec. If model-ids are not given the loader
+        // tries to infer from the filename.
+        val modelArgs = args.filter { it.startsWith("--model=") }.map { it.removePrefix("--model=") }
+        val modelIdArgs = args.filter { it.startsWith("--model-id=") }.map { it.removePrefix("--model-id=") }
         val runs = argValue(args, "--runs")?.toIntOrNull() ?: 5
         val warmup = argValue(args, "--warmup")?.toIntOrNull() ?: 1
         val outFile = argValue(args, "--out")?.let { File(it) }
         val thresholdOverride = argValue(args, "--score-threshold")?.toFloatOrNull()
+        val noStub = args.any { it == "--no-stub" }
 
         val frame = StillImageFrameSource.fromFile(image)
         val backends = mutableListOf<DetectorBackend>()
-        backends += StubDetectorBackend()  // sanity baseline
+        if (!noStub) backends += StubDetectorBackend()
 
-        if (modelPath != null && modelPath.isFile) {
+        modelArgs.forEachIndexed { i, p ->
+            val modelPath = File(p)
+            if (!modelPath.isFile) {
+                PrintlnLogger.warn("ShitSpotter.Compare", "skip missing model: $p")
+                return@forEachIndexed
+            }
+            val explicitId = modelIdArgs.getOrNull(i)
+            val inferredId = guessModelIdFromPath(modelPath.name)
+            val modelId = explicitId ?: inferredId ?: ModelSpec.YOLOX_NANO_POOP.modelId
             val baseSpec: ModelSpec = ModelRegistry.byId(modelId) ?: ModelRegistry.default
             val spec = if (thresholdOverride != null) baseSpec.copy(scoreThreshold = thresholdOverride) else baseSpec
             try {
@@ -95,6 +100,17 @@ object CompareCli {
         val prefix = "$key="
         args.forEach { if (it.startsWith(prefix)) return it.removePrefix(prefix) }
         return null
+    }
+
+    /** Best-effort match of a known ModelRegistry id from a file name, so
+     *  the caller can drop the bare ONNX path and still get the right
+     *  preprocessing/postprocessing config. */
+    private fun guessModelIdFromPath(fileName: String): String? {
+        val lower = fileName.lowercase()
+        return ModelRegistry.all.firstOrNull { spec ->
+            val mfLower = spec.modelFile.lowercase()
+            mfLower.isNotBlank() && lower == mfLower
+        }?.modelId
     }
 }
 

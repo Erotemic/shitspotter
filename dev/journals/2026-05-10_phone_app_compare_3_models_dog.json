@@ -1,0 +1,63 @@
+{
+    "timestamp": "2026-05-10T17:34:59.809537931Z",
+    "deviceModel": "Linux desktop (Linux amd64)",
+    "osVersion": "6.8.0-110-generic",
+    "rows": [
+        {
+            "frameWidth": 768,
+            "frameHeight": 576,
+            "backendName": "stub-1.0",
+            "delegate": null,
+            "modelId": "stub-fake-detector",
+            "inputWidth": 640,
+            "inputHeight": 640,
+            "preprocessMs": 0.5601786666860183,
+            "inferenceMs": 0.005302666376034419,
+            "postprocessMs": 0.0,
+            "detectionCount": 1,
+            "topScore": 0.7348624
+        },
+        {
+            "frameWidth": 768,
+            "frameHeight": 576,
+            "backendName": "onnxruntime-jvm-1.19",
+            "delegate": "CPU",
+            "modelId": "yolox-nano-poop-cropped-v1",
+            "inputWidth": 416,
+            "inputHeight": 416,
+            "preprocessMs": 9.861960000668963,
+            "inferenceMs": 9.078688999637961,
+            "postprocessMs": 3.015294333299001,
+            "detectionCount": 3,
+            "topScore": 0.75680107
+        },
+        {
+            "frameWidth": 768,
+            "frameHeight": 576,
+            "backendName": "onnxruntime-jvm-1.19",
+            "delegate": "CPU",
+            "modelId": "shitspotter-custom-v5-epoch115",
+            "inputWidth": 640,
+            "inputHeight": 640,
+            "preprocessMs": 8.351040334130326,
+            "inferenceMs": 49.91671300058564,
+            "postprocessMs": 1.3886099997907877,
+            "detectionCount": 0,
+            "topScore": 0.0
+        },
+        {
+            "frameWidth": 768,
+            "frameHeight": 576,
+            "backendName": "onnxruntime-jvm-1.19",
+            "delegate": "CPU",
+            "modelId": "shitspotter-custom-v2-epoch126",
+            "inputWidth": 640,
+            "inputHeight": 640,
+            "preprocessMs": 10.67731299996376,
+            "inferenceMs": 49.247481333712734,
+            "postprocessMs": 1.8471119993676741,
+            "detectionCount": 0,
+            "topScore": 0.0
+        }
+    ]
+}
