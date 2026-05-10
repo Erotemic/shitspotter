@@ -50,7 +50,10 @@ object BackendComparison {
         backends: List<DetectorBackend>,
         warmupRuns: Int = 1,
         measureRuns: Int = 5,
-    ): List<BackendRunRow> = backends.map { backend ->
+    ): List<BackendRunRow> {
+        require(measureRuns >= 1) { "measureRuns must be >= 1; got $measureRuns" }
+        require(warmupRuns >= 0) { "warmupRuns must be >= 0; got $warmupRuns" }
+        return backends.map { backend ->
         backend.warmup()
         repeat(warmupRuns) { backend.analyze(frame) }
         var pre = 0.0
@@ -80,6 +83,7 @@ object BackendComparison {
             detectionCount = dets,
             topScore = topScore,
         )
+    }
     }
 
     fun renderTable(rows: List<BackendRunRow>): String {

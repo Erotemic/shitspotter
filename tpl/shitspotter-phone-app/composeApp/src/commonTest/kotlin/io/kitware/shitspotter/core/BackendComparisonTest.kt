@@ -19,6 +19,38 @@ class BackendComparisonTest {
     }
 
     @Test
+    fun runMeasured_zero_runs_throws() {
+        var threw = false
+        try {
+            BackendComparison.runMeasured(
+                FakeFrame(),
+                listOf(StubDetectorBackend()),
+                warmupRuns = 0,
+                measureRuns = 0,
+            )
+        } catch (e: IllegalArgumentException) {
+            threw = true
+        }
+        assertEquals(true, threw)
+    }
+
+    @Test
+    fun runMeasured_negative_warmup_throws() {
+        var threw = false
+        try {
+            BackendComparison.runMeasured(
+                FakeFrame(),
+                listOf(StubDetectorBackend()),
+                warmupRuns = -1,
+                measureRuns = 1,
+            )
+        } catch (e: IllegalArgumentException) {
+            threw = true
+        }
+        assertEquals(true, threw)
+    }
+
+    @Test
     fun runMeasured_produces_one_row_per_backend() {
         val a = StubDetectorBackend(ModelSpec.STUB.copy(modelId = "stub-a"))
         val b = StubDetectorBackend(ModelSpec.STUB.copy(modelId = "stub-b"))
