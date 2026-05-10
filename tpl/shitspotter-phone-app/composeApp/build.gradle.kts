@@ -86,6 +86,14 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "0.1.0"
+
+        // Pixel 5 is arm64-v8a; filtering shrinks the APK from ~80 MB
+        // (4 ABIs of ONNX Runtime) to ~25 MB. Future agent: add x86_64
+        // back if running in an emulator, or armeabi-v7a for older
+        // phones.
+        ndk {
+            abiFilters += setOf("arm64-v8a")
+        }
     }
 
     buildFeatures {
