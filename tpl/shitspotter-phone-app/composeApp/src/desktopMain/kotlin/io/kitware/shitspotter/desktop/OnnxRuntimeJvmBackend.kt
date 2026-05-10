@@ -3,6 +3,7 @@ package io.kitware.shitspotter.desktop
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
+import io.kitware.shitspotter.core.BACKEND_FLOOR_THRESHOLD
 import io.kitware.shitspotter.core.DetectorBackend
 import io.kitware.shitspotter.core.FrameSource
 import io.kitware.shitspotter.core.InferenceResult
@@ -106,39 +107,48 @@ class OnnxRuntimeJvmBackend(
         val inputTensor = OnnxTensor.createTensor(env, FloatBuffer.wrap(tensorData), shape)
         val preprocessMs = nowMonoMs() - preStart
 
-        val infStart = nowMonoMs()
-        val outputs = session.run(mapOf(inputName to inputTensor))
-        val inferenceMs = nowMonoMs() - infStart
-
-        val postStart = nowMonoMs()
-        val raw = outputs[0].value
-        val flat = flattenOutput(raw)
-        val numClasses = spec.classNames.size
-        val perRow = 5 + numClasses
-        require(flat.size % perRow == 0) {
-            "ONNX output shape ${flat.size} not divisible by $perRow"
+        var inferenceMs = 0.0
+        var postprocessMs = 0.0
+        val finalDets: List<io.kitware.shitspotter.core.Detection>
+        try {
+            val infStart = nowMonoMs()
+            val outputs = session.run(mapOf(inputName to inputTensor))
+            inferenceMs = nowMonoMs() - infStart
+            try {
+                val postStart = nowMonoMs()
+                val raw = outputs[0].value
+                val flat = flattenOutput(raw)
+                val numClasses = spec.classNames.size
+                val perRow = 5 + numClasses
+                require(flat.size % perRow == 0) {
+                    "ONNX output shape ${flat.size} not divisible by $perRow"
+                }
+                val numAnchors = flat.size / perRow
+                val rawDets = when (spec.postprocessType) {
+                    PostprocessType.YOLOX,
+                    PostprocessType.YOLO_V9,
+                    PostprocessType.GENERIC_BOX_SCORE_CLASS -> Yolox.postprocessDecoded(
+                        predictions = flat,
+                        numAnchors = numAnchors,
+                        numClasses = numClasses,
+                        // BACKEND_FLOOR_THRESHOLD here, not spec.scoreThreshold —
+                        // see DetectorBackend.kt for the two-threshold rationale.
+                        scoreThreshold = BACKEND_FLOOR_THRESHOLD,
+                        iouThreshold = spec.iouThreshold,
+                        classNames = spec.classNames,
+                    )
+                    PostprocessType.STUB, PostprocessType.NONE -> emptyList()
+                }
+                val mappedDets = rawDets.map { it.copy(box = lbParams.mapBoxToSource(it.box)) }
+                finalDets = if (mappedDets.size > 1)
+                    Nms.apply(mappedDets, spec.iouThreshold) else mappedDets
+                postprocessMs = nowMonoMs() - postStart
+            } finally {
+                outputs.close()
+            }
+        } finally {
+            inputTensor.close()
         }
-        val numAnchors = flat.size / perRow
-        val rawDets = when (spec.postprocessType) {
-            PostprocessType.YOLOX,
-            PostprocessType.YOLO_V9,
-            PostprocessType.GENERIC_BOX_SCORE_CLASS -> Yolox.postprocessDecoded(
-                predictions = flat,
-                numAnchors = numAnchors,
-                numClasses = numClasses,
-                scoreThreshold = spec.scoreThreshold,
-                iouThreshold = spec.iouThreshold,
-                classNames = spec.classNames,
-            )
-            PostprocessType.STUB, PostprocessType.NONE -> emptyList()
-        }
-        val mappedDets = rawDets.map { it.copy(box = lbParams.mapBoxToSource(it.box)) }
-        val finalDets = if (mappedDets.size > 1)
-            Nms.apply(mappedDets, spec.iouThreshold) else mappedDets
-
-        outputs.close()
-        inputTensor.close()
-        val postprocessMs = nowMonoMs() - postStart
 
         return InferenceResult(
             detections = finalDets,

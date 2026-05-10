@@ -25,7 +25,9 @@ import io.kitware.shitspotter.core.filterByScore
 import io.kitware.shitspotter.core.PrintlnLogger
 import io.kitware.shitspotter.core.nowMonoMs
 import java.util.concurrent.Executor
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -46,9 +48,11 @@ class CameraAnalysisLoop(
     private var lastSelectorWasFront: Boolean = false
     private var rebindFn: (() -> Unit)? = null
 
-    private val analyzerExecutor: Executor = Executors.newSingleThreadExecutor { r ->
+    private val analyzerExecutor: ExecutorService = Executors.newSingleThreadExecutor { r ->
         Thread(r, "shitspotter-analyzer").apply { priority = Thread.NORM_PRIORITY + 1 }
     }
+    @Volatile private var closed = false
+    @Volatile private var cameraProvider: ProcessCameraProvider? = null
     private val fpsCounter = FpsCounter(windowMs = 1500L)
     private val captureLat = LatencyAccumulator(60)
     private val preLat = LatencyAccumulator(60)
@@ -63,6 +67,7 @@ class CameraAnalysisLoop(
         future.addListener({
             try {
                 val provider = future.get()
+                cameraProvider = provider
                 val rebind: () -> Unit = {
                     val preview = Preview.Builder().build().also {
                         it.setSurfaceProvider(previewSurfaceProvider)
@@ -107,6 +112,25 @@ class CameraAnalysisLoop(
         return future
     }
 
+    /** Tear down the CameraX bindings and shut down the analyzer thread.
+     *  Idempotent. Call from `MainActivity.onDestroy` (or via Compose's
+     *  `DisposableEffect`) so the singleThreadExecutor doesn't leak. */
+    fun close() {
+        if (closed) return
+        closed = true
+        try {
+            ContextCompatExecutors.main(context).execute {
+                try { cameraProvider?.unbindAll() } catch (_: Throwable) {}
+            }
+        } catch (_: Throwable) {}
+        analyzerExecutor.shutdown()
+        try {
+            analyzerExecutor.awaitTermination(1, TimeUnit.SECONDS)
+        } catch (_: Throwable) {}
+        if (!analyzerExecutor.isTerminated) analyzerExecutor.shutdownNow()
+        logger.info(TAG, "CameraAnalysisLoop closed")
+    }
+
     /** Rebind CameraX with the current `state.useFrontCamera` value if it
      *  has changed since the last bind. Safe to call from the main thread
      *  on every frame; no-op when nothing changed. */
@@ -123,6 +147,7 @@ class CameraAnalysisLoop(
 
     private fun handleFrame(proxy: ImageProxy) {
         try {
+            if (closed) return
             // Detect a state-driven camera switch and re-bind on the
             // main thread before the next frame arrives. Cheap when
             // there's no change.

@@ -25,8 +25,17 @@ class AndroidCameraSurface(
         loop?.isPaused = paused
     }
 
+    /** True iff at least one camera frame has been received and wrapped. */
+    fun hasAnalyzedFrame(): Boolean = loop?.lastAnalyzedFrame != null
+
     fun encodeLastFrameAsJpeg(quality: Int = 85): ByteArray =
         loop?.lastAnalyzedFrame?.encodeJpeg(quality) ?: ByteArray(0)
+
+    /** Tear down the analyzer thread + CameraX bindings. Idempotent. */
+    fun close() {
+        loop?.close()
+        loop = null
+    }
 
     @Composable
     override fun Render(modifier: Modifier) {

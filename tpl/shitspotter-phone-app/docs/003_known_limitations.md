@@ -5,25 +5,22 @@ for any agent who picks up the prototype next. They are not breakages.
 They are the things the next pull request should address before the app
 goes anywhere near a user-facing release.
 
+> **Update log.** Items marked **DONE** below have been resolved since
+> this file was first written. Items still open are not yet implemented
+> at the latest commit on `main`. Each pair has its fix SHA so an agent
+> can audit instead of trusting the marker.
+
 ## Hot-path correctness
 
-### 1. Overlay rotation handling
+### 1. Overlay rotation handling — **DONE** (feca293, 1eba4b8)
 
-The current `DetectionOverlay` assumes the analyzed frame is displayed
-in the same orientation it was analyzed. CameraX `ImageAnalysis` returns
-`ImageProxy` with a `rotationDegrees` field that describes how to rotate
-the buffer to match natural orientation. The activity is portrait-locked,
-so on Pixel 5 the back camera generally reports 90° rotation and the
-underlying buffer is `[height,width]` of the displayed preview.
-
-`ImageProxyFrame` records `rotationDegrees`. The overlay does **not**
-currently consume it. In practice this is fine for portrait-only viewing
-of a centered subject, but the boxes may be visibly off if the user
-looks at them carefully on a real device.
-
-Fix sketch: have `DetectionOverlay` accept a `rotationDegrees: Int`
-parameter and apply the inverse rotation to the canvas before drawing,
-matching what `PreviewView`'s ScaleType does internally.
+CameraX `ImageProxy` exposes `rotationDegrees`. `CameraAnalysisLoop`
+now rotates every detection box and the reported frame W/H via
+`BoundingBox.rotated(degrees, w, h)` before pushing into `AppState`.
+`DetectionOverlay` also reads the surface's `overlayScaleMode`
+(FILL_CENTER for the Android `PreviewView`, FIT_CENTER for the
+desktop still-image surface) so boxes line up with the displayed
+camera image. See `BoundingBoxRotationTest` and `docs/005` §"Hot path".
 
 ### 2. JPEG capture on rotated frames
 
@@ -65,12 +62,14 @@ committing — see `docs/002_benchmarks_template.md`.
 
 ## Build / packaging
 
-### 5. APK is unsigned debug-only
+### 5. Release APK signing — partially done (5f209d4)
 
-`assembleDebug` works. `assembleRelease` is not yet wired up because
-release signing is a user-managed concern. When the user is ready to
-sideload signed builds, add a signing config block + a `release {}`
-build type. Do not commit signing keys.
+`assembleRelease` now produces a 20 MB shrunk APK with R8 minification
+and resource shrinking enabled. **Still open:** the release build reuses
+the debug signing config — fine for sideloading, **not** suitable for
+Play Store. Replace `signingConfig = signingConfigs.getByName("debug")`
+in `composeApp/build.gradle.kts` with a real keystore + secret-managed
+credentials before any public release.
 
 ### 6. APK size (~82 MB)
 
@@ -136,11 +135,12 @@ follow-up for Milestone 3.
 
 ## Failure-case capture
 
-### 12. No "tag while captured" UI
+### 12. ~~No "tag while captured" UI~~ — **DONE** (527e9ae)
 
-The user can save a case but cannot type a freeform note. Adding a
-small text-input dialog before save would make captures much more
-useful for downstream dataset work.
+The failure-case save flow now opens an `AlertDialog` with an optional
+free-text note field above the failure-type buttons. The note is
+persisted as `userNote` in `metadata.json` and as `user_note.txt` next
+to the image.
 
 ### 13. Failure cases are never automatically uploaded
 
@@ -152,13 +152,11 @@ dependency" line.
 
 ## Documentation
 
-### 14. CLAUDE.md / AGENT_GOAL.md have not been authored
+### 14. ~~AGENT_GOAL.md missing~~ — **DONE**
 
-`README.md` and `docs/000-002` cover the operator path, but per
-`GOAL.md` §"Repo placement" we should also drop a copy or symlink at
-`tpl/shitspotter-phone-app/AGENT_GOAL.md` so future agents see the
-full goal without leaving the folder. This is a one-liner; left for the
-next agent so the diff stays focused.
+`AGENT_GOAL.md` is now a symlink to `GOAL.md` at the repo's root, so
+agents that look for the canonical agent-goal filename find it without
+having to read `docs/README.md`.
 
 ### 15. No screenshot, no demo gif
 
@@ -178,3 +176,36 @@ but will need migration when we move to Gradle 9.
 
 Kept in `gradle.properties` for the future iOS target. It's harmless
 on Android/desktop builds but should be removed if iOS is dropped.
+
+### 18. Two thresholds (backend floor vs UI default) — convention
+
+After review feedback, the backend score filter and the UI slider are
+two distinct fields:
+
+- `BACKEND_FLOOR_THRESHOLD = 0.01f` (constant in `DetectorBackend.kt`):
+  the floor that every real backend passes to `Yolox.postprocessDecoded`.
+  This is what the backend filters at before returning detections.
+- `state.scoreThreshold` (mutable, UI-controlled, persisted via
+  Settings): the live filter applied by the analysis loop *after* the
+  backend returns. Initialised to `ModelSpec.scoreThreshold` for
+  whichever model is active.
+
+A future change to the floor (e.g. dropping it to 0.001 so the slider
+can sweep wider) should keep the two-field invariant. Don't conflate
+them or you'll re-introduce the "slider can't lower the model
+threshold" bug. See the SettingsTest and `OnnxBackendSmokeTest` for
+the contract.
+
+### 19. `droppedFrames` counter is paused-only — naming
+
+`FrameTelemetry.droppedFrames` increments only while the user pause
+toggle is active. CameraX `STRATEGY_KEEP_ONLY_LATEST` drops frames
+internally when the analyzer can't keep up; those drops are *not*
+counted because CameraX doesn't expose them as events. The HUD field
+is paused-drop semantics, not analyzer-busy semantics.
+
+Fix sketch: rename to `pausedFrames`, or wire a real analyzer-busy
+counter by measuring time-between-frames vs camera frame interval.
+The latter would need either a separate camera-rate-known timer or
+ImageAnalysis's actual frame-interval, which is not directly
+exposed.

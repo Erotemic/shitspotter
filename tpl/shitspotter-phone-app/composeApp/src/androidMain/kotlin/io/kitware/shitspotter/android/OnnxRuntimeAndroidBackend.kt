@@ -4,6 +4,7 @@ import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import ai.onnxruntime.providers.NNAPIFlags
+import io.kitware.shitspotter.core.BACKEND_FLOOR_THRESHOLD
 import io.kitware.shitspotter.core.BoundingBox
 import io.kitware.shitspotter.core.ColorOrder
 import io.kitware.shitspotter.core.Detection
@@ -134,49 +135,53 @@ class OnnxRuntimeAndroidBackend(
         val inputTensor = OnnxTensor.createTensor(e, inputBuf, shape)
         val preprocessMs = nowMonoMs() - preStart
 
-        val infStart = nowMonoMs()
-        val outputs = s.run(mapOf(inputName to inputTensor))
-        val inferenceMs = nowMonoMs() - infStart
-
-        val postStart = nowMonoMs()
-        val raw = outputs[0]
-        val rawValue = raw.value
-        val flat = flattenOutput(rawValue)
-        val numClasses = spec.classNames.size
-        val perRow = 5 + numClasses
-        require(flat.size % perRow == 0) {
-            "ONNX output shape ${flat.size} not divisible by $perRow"
+        var inferenceMs = 0.0
+        var postprocessMs = 0.0
+        val finalDets: List<io.kitware.shitspotter.core.Detection>
+        try {
+            val infStart = nowMonoMs()
+            val outputs = s.run(mapOf(inputName to inputTensor))
+            inferenceMs = nowMonoMs() - infStart
+            try {
+                val postStart = nowMonoMs()
+                val raw = outputs[0]
+                val rawValue = raw.value
+                val flat = flattenOutput(rawValue)
+                val numClasses = spec.classNames.size
+                val perRow = 5 + numClasses
+                require(flat.size % perRow == 0) {
+                    "ONNX output shape ${flat.size} not divisible by $perRow"
+                }
+                val numAnchors = flat.size / perRow
+                val rawDets = when (spec.postprocessType) {
+                    PostprocessType.YOLOX,
+                    PostprocessType.YOLO_V9,
+                    PostprocessType.GENERIC_BOX_SCORE_CLASS -> Yolox.postprocessDecoded(
+                        predictions = flat,
+                        numAnchors = numAnchors,
+                        numClasses = numClasses,
+                        // BACKEND_FLOOR_THRESHOLD here so the UI slider can
+                        // recover all the way down; spec.scoreThreshold is
+                        // the *default UI threshold* and is consulted by
+                        // AppState, not the backend.
+                        scoreThreshold = BACKEND_FLOOR_THRESHOLD,
+                        iouThreshold = spec.iouThreshold,
+                        classNames = spec.classNames,
+                    )
+                    PostprocessType.STUB, PostprocessType.NONE -> emptyList()
+                }
+                val mappedDets = rawDets.map { d ->
+                    d.copy(box = lbParams.mapBoxToSource(d.box))
+                }
+                finalDets = if (mappedDets.size > 1)
+                    Nms.apply(mappedDets, spec.iouThreshold) else mappedDets
+                postprocessMs = nowMonoMs() - postStart
+            } finally {
+                outputs.close()
+            }
+        } finally {
+            inputTensor.close()
         }
-        val numAnchors = flat.size / perRow
-        val rawDets = when (spec.postprocessType) {
-            PostprocessType.YOLOX -> Yolox.postprocessDecoded(
-                predictions = flat,
-                numAnchors = numAnchors,
-                numClasses = numClasses,
-                scoreThreshold = spec.scoreThreshold,
-                iouThreshold = spec.iouThreshold,
-                classNames = spec.classNames,
-            )
-            PostprocessType.YOLO_V9, PostprocessType.GENERIC_BOX_SCORE_CLASS ->
-                Yolox.postprocessDecoded(
-                    predictions = flat,
-                    numAnchors = numAnchors,
-                    numClasses = numClasses,
-                    scoreThreshold = spec.scoreThreshold,
-                    iouThreshold = spec.iouThreshold,
-                    classNames = spec.classNames,
-                )
-            PostprocessType.STUB, PostprocessType.NONE -> emptyList()
-        }
-        val mappedDets = rawDets.map { d ->
-            d.copy(box = lbParams.mapBoxToSource(d.box))
-        }
-        val finalDets = if (mappedDets.size > 1)
-            Nms.apply(mappedDets, spec.iouThreshold) else mappedDets
-
-        outputs.close()
-        inputTensor.close()
-        val postprocessMs = nowMonoMs() - postStart
 
         return InferenceResult(
             detections = finalDets,

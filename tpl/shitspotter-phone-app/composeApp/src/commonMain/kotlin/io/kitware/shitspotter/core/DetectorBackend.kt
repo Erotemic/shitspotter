@@ -7,6 +7,22 @@ interface FrameSource {
     fun toRgb888(): ByteArray
 }
 
+/**
+ * Hard floor used by every real DetectorBackend's score filter. The
+ * `ModelSpec.scoreThreshold` is the *default UI threshold* (initial
+ * slider value); the backend always passes this floor to its
+ * postprocess so the UI slider can recover detections all the way
+ * down to 1%. Below this floor the cost of NMS over thousands of
+ * near-zero anchors isn't worth it.
+ *
+ * Two explicit thresholds:
+ *   - BACKEND_FLOOR_THRESHOLD (this value, fixed) — what the backend
+ *     filters at before returning detections to the analysis loop.
+ *   - state.scoreThreshold (mutable, UI-controlled) — what the
+ *     analysis loop filters at before pushing into AppState.
+ */
+const val BACKEND_FLOOR_THRESHOLD: Float = 0.01f
+
 data class InferenceResult(
     val detections: List<Detection>,
     val preprocessMs: Double,

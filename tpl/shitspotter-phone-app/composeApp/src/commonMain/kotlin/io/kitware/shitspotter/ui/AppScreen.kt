@@ -1,19 +1,28 @@
 package io.kitware.shitspotter.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,9 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
-import androidx.compose.material3.TextField
 import io.kitware.shitspotter.core.AppState
 import io.kitware.shitspotter.core.FailureType
 import io.kitware.shitspotter.core.ModelRegistry
@@ -58,6 +64,7 @@ fun AppScreen(
     onSaveFailureCase: (FailureType, String?) -> Unit,
     onTogglePause: (() -> Unit)? = null,
     isPaused: Boolean = false,
+    canSaveFailureCase: Boolean = true,
 ) {
     AppRootTheme {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -73,10 +80,18 @@ fun AppScreen(
                 )
             }
 
+            // Top control stack — uses systemBarsPadding so it sits below
+            // the status bar / camera cutout on Pixel 5 portrait.
             Column(
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .padding(12.dp),
+                    .systemBarsPadding()
+                    .padding(8.dp)
+                    // Cap height so this stack can't push the bottom
+                    // controls off-screen on a short phone; users scroll
+                    // it if their model labels are long.
+                    .heightIn(max = 360.dp)
+                    .verticalScroll(rememberScrollState()),
             ) {
                 if (state.showFps) {
                     TelemetryHud(
@@ -106,14 +121,21 @@ fun AppScreen(
                 }
             }
 
+            // Bottom control bar — also system-bars-padded so the
+            // navigation pill on Pixel 5 doesn't eat the buttons. The
+            // failure-type picker is a Dialog overlay, so it does not
+            // contribute to this bar's height any more.
             ControlBar(
                 state = state,
                 onSaveFailureCase = onSaveFailureCase,
                 onTogglePause = onTogglePause,
                 isPaused = isPaused,
+                canSaveFailureCase = canSaveFailureCase,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(12.dp),
+                    .fillMaxWidth()
+                    .systemBarsPadding()
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
             )
         }
     }
@@ -125,41 +147,47 @@ private fun ControlBar(
     onSaveFailureCase: (FailureType, String?) -> Unit,
     onTogglePause: (() -> Unit)?,
     isPaused: Boolean,
+    canSaveFailureCase: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    var showFailureMenu by remember { mutableStateOf(false) }
-    Column(
+    var showFailureDialog by remember { mutableStateOf(false) }
+    if (showFailureDialog) {
+        FailureTypeDialog(
+            onPick = { type, note ->
+                showFailureDialog = false
+                onSaveFailureCase(type, note)
+            },
+            onDismiss = { showFailureDialog = false },
+        )
+    }
+    Row(
         modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
     ) {
-        if (showFailureMenu) {
-            FailureTypePicker(
-                onPick = { type, note ->
-                    showFailureMenu = false
-                    onSaveFailureCase(type, note)
-                },
-                onCancel = { showFailureMenu = false },
+        Button(
+            onClick = { showFailureDialog = true },
+            enabled = canSaveFailureCase,
+        ) {
+            Text(
+                if (canSaveFailureCase) "Save failure (${state.failureCasesSavedCount})"
+                else "waiting for frame…",
             )
-            Spacer(Modifier.height(8.dp))
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { showFailureMenu = !showFailureMenu }) {
-                Text(if (showFailureMenu) "Cancel" else "Save failure (${state.failureCasesSavedCount})")
-            }
-            onTogglePause?.let {
-                Button(onClick = it) {
-                    Text(if (isPaused) "Resume" else "Pause")
-                }
+        onTogglePause?.let {
+            Button(onClick = it) {
+                Text(if (isPaused) "Resume" else "Pause")
             }
         }
     }
 }
 
 /**
- * Tiny chip-style model selector. The active model is bolded; tapping a
- * non-active chip writes the new id into [AppState.activeModelId]. The
- * actual backend swap is done lazily by the host (Android MainActivity
- * or desktop Main) the next time it picks up the registry id — this
+ * Horizontally-scrollable chip row so longer model display names
+ * don't get truncated or push other chips off-screen on a narrow
+ * portrait phone. The active model is prefixed with "●"; tapping a
+ * non-active chip writes the new id into [AppState.activeModelId].
+ * The actual backend swap is done by the host platform's reactive
+ * effect (Android MainActivity LaunchedEffect / desktop main); this
  * composable does not own backend lifecycle.
  */
 @Composable
@@ -169,6 +197,7 @@ private fun ModelChipsRow(
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.horizontalScroll(rememberScrollState()),
     ) {
         ModelRegistry.all.forEach { spec ->
             val active = spec.modelId == activeId
@@ -189,8 +218,9 @@ private fun ToggleRow(state: AppState) {
     Row(
         modifier = Modifier
             .background(Color(0x88000000))
+            .horizontalScroll(rememberScrollState())
             .padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text("HUD", color = Color.White)
@@ -231,36 +261,50 @@ private fun ScoreThresholdControl(state: AppState) {
     }
 }
 
+/**
+ * Failure-type picker rendered as an AlertDialog. The previous
+ * implementation stacked the picker above the bottom control bar in
+ * a Column that grew past the screen on short phones; the dialog
+ * floats over the camera preview and handles its own scrolling and
+ * system-bar insets.
+ */
 @Composable
-private fun FailureTypePicker(
+private fun FailureTypeDialog(
     onPick: (FailureType, String?) -> Unit,
-    onCancel: () -> Unit,
+    onDismiss: () -> Unit,
 ) {
     var note by remember { mutableStateOf("") }
-    Column(
-        modifier = Modifier
-            .background(Color(0xCC222222))
-            .padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        TextField(
-            value = note,
-            onValueChange = { note = it },
-            modifier = Modifier.width(220.dp),
-            label = { Text("note (optional)", color = Color(0xFFCCCCCC)) },
-            singleLine = false,
-        )
-        FailureType.values().forEach { ft ->
-            Button(
-                onClick = { onPick(ft, note.trim().ifEmpty { null }) },
-                modifier = Modifier.width(220.dp),
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Save failure case") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(ft.name)
+                TextField(
+                    value = note,
+                    onValueChange = { note = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("note (optional)") },
+                    singleLine = false,
+                )
+                FailureType.values().forEach { ft ->
+                    Button(
+                        onClick = { onPick(ft, note.trim().ifEmpty { null }) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(ft.name)
+                    }
+                }
             }
-        }
-        Button(onClick = onCancel, modifier = Modifier.width(220.dp)) {
-            Text("cancel")
-        }
-    }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text("cancel")
+            }
+        },
+    )
 }
-

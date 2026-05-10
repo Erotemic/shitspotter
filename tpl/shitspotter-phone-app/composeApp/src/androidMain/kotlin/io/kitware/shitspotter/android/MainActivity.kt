@@ -15,10 +15,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,17 +28,17 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import io.kitware.shitspotter.core.AppState
 import io.kitware.shitspotter.core.BuildInfo
-import io.kitware.shitspotter.core.DetectorBackend
 import io.kitware.shitspotter.core.FailureCaseMetadata
 import io.kitware.shitspotter.core.FailureType
-import io.kitware.shitspotter.core.ModelSpec
 import io.kitware.shitspotter.core.PrintlnLogger
 import io.kitware.shitspotter.core.SettingsStore
-import io.kitware.shitspotter.core.StubDetectorBackend
 import io.kitware.shitspotter.core.applySettings
 import io.kitware.shitspotter.core.toSettings
 import io.kitware.shitspotter.ui.AppRootTheme
 import io.kitware.shitspotter.ui.AppScreen
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.datetime.Clock
 
 class MainActivity : ComponentActivity() {
@@ -44,7 +46,7 @@ class MainActivity : ComponentActivity() {
     private val state = AppState()
     private lateinit var failureStore: AndroidFailureCaseStore
     private lateinit var settingsStore: SettingsStore
-    private var backend: DetectorBackend = StubDetectorBackend()
+    private lateinit var backendManager: AndroidBackendManager
     private var paused by mutableStateOf(false)
     private var androidSurface: AndroidCameraSurface? = null
 
@@ -60,7 +62,9 @@ class MainActivity : ComponentActivity() {
         failureStore = AndroidFailureCaseStore(this)
         settingsStore = AndroidSettingsStore(this)
         state.applySettings(settingsStore.load())
-        backend = chooseBackend(this)
+        backendManager = AndroidBackendManager(this)
+        // Resolve whatever the user last selected (or the default stub).
+        backendManager.setActive(state.activeModelId)
 
         val have = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
             PackageManager.PERMISSION_GRANTED
@@ -74,12 +78,28 @@ class MainActivity : ComponentActivity() {
                         cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                     })
                 } else {
+                    // Watch state.activeModelId for chip-row changes; swap
+                    // the backend live so the chip-tap actually does
+                    // something instead of being cosmetic. ONNX init can
+                    // take a second or two so the actual setActive call
+                    // runs on Dispatchers.IO via .flowOn.
+                    LaunchedEffect(Unit) {
+                        snapshotFlow { state.activeModelId }
+                            .distinctUntilChanged()
+                            .flowOn(Dispatchers.IO)
+                            .collect { id ->
+                                kotlinx.coroutines.withContext(Dispatchers.IO) {
+                                    backendManager.setActive(id)
+                                }
+                            }
+                    }
+
                     val surface = remember {
                         AndroidCameraSurface(
                             context = this@MainActivity,
                             lifecycleOwner = this@MainActivity,
                             state = state,
-                            backendProvider = { backend },
+                            backendProvider = { backendManager.current },
                         ).also { androidSurface = it }
                     }
                     AppScreen(
@@ -91,6 +111,7 @@ class MainActivity : ComponentActivity() {
                             androidSurface?.setPaused(paused)
                         },
                         isPaused = paused,
+                        canSaveFailureCase = androidSurface?.hasAnalyzedFrame() ?: false,
                     )
                 }
             }
@@ -98,6 +119,16 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun saveFailureCase(type: FailureType, note: String?) {
+        val surface = androidSurface
+        val backend = backendManager.current
+        if (surface == null || !surface.hasAnalyzedFrame()) {
+            PrintlnLogger.warn(
+                "ShitSpotter.Failure",
+                "save-failure tapped before first frame; nothing to write",
+            )
+            state.setError("no frame yet; wait for the camera to start")
+            return
+        }
         val tele = state.lastTelemetry
         val now = Clock.System.now().toString()
         val md = FailureCaseMetadata(
@@ -111,7 +142,7 @@ class MainActivity : ComponentActivity() {
             delegate = backend.delegate,
             inputWidth = backend.spec.inputWidth,
             inputHeight = backend.spec.inputHeight,
-            scoreThreshold = backend.spec.scoreThreshold,
+            scoreThreshold = state.scoreThreshold,
             iouThreshold = backend.spec.iouThreshold,
             latencyMs = tele?.totalMs ?: 0.0,
             fpsRecent = tele?.fpsRecent ?: 0.0,
@@ -119,15 +150,18 @@ class MainActivity : ComponentActivity() {
             userNote = note,
             detections = state.lastDetections,
         )
-        val jpegBytes = androidSurface?.encodeLastFrameAsJpeg() ?: ByteArray(0)
+        val jpegBytes = surface.encodeLastFrameAsJpeg()
+        if (jpegBytes.isEmpty()) {
+            PrintlnLogger.warn(
+                "ShitSpotter.Failure",
+                "encodeLastFrameAsJpeg returned 0 bytes; skipping save",
+            )
+            state.setError("frame encode failed; not saving")
+            return
+        }
         val path = failureStore.save(jpegBytes, md)
         state.failureCasesSavedCount = state.failureCasesSavedCount + 1
         PrintlnLogger.info("ShitSpotter.Failure", "saved → $path")
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        try { backend.close() } catch (_: Throwable) {}
     }
 
     override fun onPause() {
@@ -135,25 +169,10 @@ class MainActivity : ComponentActivity() {
         try { settingsStore.save(state.toSettings()) } catch (_: Throwable) {}
     }
 
-    private fun chooseBackend(ctx: android.content.Context): DetectorBackend {
-        val candidate: ModelSpec = ModelSpec.YOLOX_NANO_POOP
-        val loader = AndroidModelLoader(ctx)
-        val file = loader.resolveOrCopy(candidate) ?: run {
-            PrintlnLogger.warn(
-                "ShitSpotter.MainActivity",
-                "no ${candidate.modelFile} found in external/cache/assets — using stub detector",
-            )
-            return StubDetectorBackend()
-        }
-        return try {
-            val hash = try { loader.sha256(file).take(16) } catch (_: Throwable) { null }
-            val resolved = candidate.copy(modelHash = hash)
-            OnnxRuntimeAndroidBackend(resolved, file.absolutePath, tryNnapi = true)
-                .also { it.warmup() }
-        } catch (t: Throwable) {
-            PrintlnLogger.error("ShitSpotter.MainActivity", "ONNX init failed; falling back to stub", t)
-            StubDetectorBackend()
-        }
+    override fun onDestroy() {
+        super.onDestroy()
+        try { androidSurface?.close() } catch (_: Throwable) {}
+        try { backendManager.close() } catch (_: Throwable) {}
     }
 }
 
