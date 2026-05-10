@@ -69,8 +69,37 @@ at the time of this journal:
     regression. JSON report archived at
     `dev/journals/2026-05-10_phone_app_compare_dog_jpg.json`.
 
-- **Milestone 3 (backend comparison)** — kicked off, see Compare CLI above.
-  Pending pieces are documented in `tpl/shitspotter-phone-app/docs/003_known_limitations.md`.
+- **Milestone 3 (backend comparison)** — kicked off and demonstrably useful.
+  - `BackendComparison` (commonMain) drives N backends back-to-back.
+  - CompareCli accepts repeated `--model=<path>`, `--no-stub`,
+    `--score-threshold=<f>`, `--out=<json>`, `--help`. Real run
+    against three models in one go committed at
+    `dev/journals/2026-05-10_phone_app_compare_3_models_dog.json`.
+  - `describe --model=<path>` subcommand dumps the ONNX file's
+    input/output names + shapes + dtypes for spec-tuning.
+  - Pending pieces are documented in `tpl/shitspotter-phone-app/docs/003_known_limitations.md`.
+
+- **Python reference parity** — `scripts/python_reference_compare.py`
+  re-implements the same letterbox + YOLOX postprocess in NumPy. Result
+  on `dog.jpg`: top score 0.7463 (Python pre-NMS) vs 0.757 (Kotlin
+  post-NMS). Within the precision drift expected from Pillow vs
+  java.awt.image; the boxes are degenerate/off-image, which is a real
+  out-of-distribution model failure documented in `docs/004_kotlin_python_parity.md`.
+
+- **APK size** — 29 MB (was 82 MB) after filtering native ABIs to
+  arm64-v8a only. Pixel 5 is arm64. Future agent: add x86_64 if
+  emulator-testing.
+
+- **TFLite backend stub** — `TfliteBackendStub` (commonMain) throws
+  NotImplementedError with a pointer to GOAL.md §LiteRT. Lets a future
+  ModelSpec switch to `format = TFLITE` and immediately fail loud.
+
+- **Build commit visible** — HUD now shows `build <commit> | dropped <n>`
+  so the user can verify which APK is on the device.
+
+- **Failure-case sync** — `scripts/sync_failure_cases.sh` pulls
+  `/sdcard/Android/data/io.kitware.shitspotter/files/failure_cases/`
+  off a connected Pixel 5. Workstation script; never runs from this VM.
 
 - **Live score-threshold slider** + `List<Detection>.filterByScore`. The user
   can move the threshold on the phone without rebuilding; both the
@@ -78,7 +107,7 @@ at the time of this journal:
   re-filter post-backend. Verified: at `--score-threshold=0.8` the
   dog.jpg test goes 3 dets → 0.
 
-- **Test count**: 39 tests across 11 files, all green:
+- **Test count**: 55 tests across 16 files, all green:
   - `GeometryTest` (8) — bbox intersect, IoU, NMS, letterbox round-trip,
     YOLOX postprocess
   - `PreprocessingTest` (4) — pad colour, NCHW, NHWC, BGR swap
@@ -89,7 +118,15 @@ at the time of this journal:
   - `AppStateTest` (3) — pushFrame, setError clear, default fallback
   - `FilterByScoreTest` (3) — zero, mid, above-max
   - `SerializationTest` (3) — failure case, model spec, comparison report
+  - `BoundingBoxRotationTest` (8) — 0/90/180/270, normalisation,
+    must-be-multiple-of-90, double-rotation = identity, four-quarter = identity
+  - `YoloxRawStridesTest` (4) — unit-stride identity, multi-stride
+    decode, mismatched-predictions assertion, mismatched-grid/strides
+    assertion
+  - `TfliteBackendStubTest` (3) — rejects non-TFLite spec, warmup +
+    analyze throw NotImplementedError
   - `OnnxBackendSmokeTest` (1, conditional) — real ONNX model
+  - `OnnxShapeValidationTest` (1, conditional) — rejects mismatched spec
   - `FrameDirectorySourceTest` (3) — order, empty, non-dir
 
 The build succeeds on the Linux VM. The APK has not been installed on
