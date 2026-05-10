@@ -30,6 +30,24 @@ class SettingsTest {
     }
 
     @Test
+    fun decode_ignores_unknown_fields() {
+        // A future settings file with extra fields should still decode
+        // cleanly into the current schema (forward-compat).
+        val text = """
+        {
+            "activeModelId": "stub-fake-detector",
+            "scoreThreshold": 0.0,
+            "showFps": true,
+            "showOverlay": true,
+            "useFrontCamera": false,
+            "futureFieldThatDoesNotExistYet": "ignored"
+        }
+        """.trimIndent()
+        val s = SettingsSerialization.decode(text)
+        assertEquals("stub-fake-detector", s.activeModelId)
+    }
+
+    @Test
     fun decode_falls_back_to_defaults_for_missing_fields() {
         // Older settings JSON (before useFrontCamera was added) should
         // still decode by picking up the default for the missing field.
