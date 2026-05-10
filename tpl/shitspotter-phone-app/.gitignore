@@ -31,8 +31,10 @@ target/
 *.aar
 *.so
 
-# Captured failure cases — local only
-failure_cases/
+# Captured failure cases — local only (but keep the README that
+# explains what lives here at runtime)
+failure_cases/*
+!failure_cases/README.md
 
 # Generated benchmark JSON reports (re-generate via scripts/bench_desktop.sh).
 # .keep below preserves the dir.
