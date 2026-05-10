@@ -54,16 +54,22 @@ Five categories of subtle failure that surfaced during the run:
 1. Added `validateInputShape()` to both ONNX backends that reads
    `session.inputInfo[name].info` and asserts H/W match the spec,
    with a Kotlin-side error referencing the `modelId`.
+   **Fix SHA:** `21a3b43` (pre-error at `92edfe4`).
 2. Added `OverlayScaleMode` enum + `CameraSurface.overlayScaleMode`
    property. Android surface declares `FILL_CENTER`, desktop still-
    image declares `FIT_CENTER`.
+   **Fix SHA:** `1eba4b8` (pre-error at `40197ac`).
 3. Added pure-Kotlin `BoundingBox.rotated(degrees, w, h)` and rotated
    every detection plus the frame W/H before pushing into AppState.
+   **Fix SHA:** `feca293` (pre-error at `e82ccc3`).
 4. Documented the OOD behaviour in `ModelSpec.notes` and in
    `docs/004_kotlin_python_parity.md`. Did not change the detection
    pipeline.
+   **Fix SHAs:** `fe1b1c8` (docs) + `eb85008` (ModelSpec.notes)
+   (pre-error at `92edfe4`).
 5. Set `ndk.abiFilters = setOf("arm64-v8a")` for Pixel 5. APK shrank
    82 MB → 29 MB.
+   **Fix SHA:** `8e4f892` (pre-error at `e82ccc3`).
 
 ### Durable lesson
 

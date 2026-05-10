@@ -4,6 +4,27 @@ Hard-problem invariants discovered during the v2 phone-app scaffold
 (2026-05-10). Each entry follows the format from
 [`../AGENT_BENCHMARK_DISCIPLINE.md`](../AGENT_BENCHMARK_DISCIPLINE.md).
 
+## How to reproduce the pre-error state
+
+Every candidate names a **"pre-error SHA"** and a **"fix SHA"**. To
+recreate the bug in a worktree:
+
+```bash
+# Land on the pre-error commit (read-only worktree, leaves main alone):
+git worktree add /tmp/ssp-bench <pre-error-sha>
+cd /tmp/ssp-bench/tpl/shitspotter-phone-app
+source /data/tmp/shitspotter-app-toolchain/env.sh
+
+# Inspect the diff that fixed it:
+git -C /home/joncrall/code/shitspotter show <fix-sha> -- tpl/shitspotter-phone-app/
+
+# After investigating, clean up:
+git worktree remove /tmp/ssp-bench
+```
+
+All SHAs in this file are short (7-char) refs into the `main` branch
+of `Erotemic/shitspotter` as of 2026-05-10.
+
 ---
 
 ## ONNX shape mismatch fails at session.run, not at load
@@ -13,6 +34,8 @@ Level: A
 Tags: preprocessing-parity, onnx-export-parity, model-spec, fail-fast
 Requires full dataset: no
 Requires trained weights: yes (just the small YOLOX-nano poop ONNX)
+Pre-error SHA: 92edfe4 (real-model end-to-end + backend comparison harness)
+Fix SHA:       21a3b43 (ONNX shape-mismatch validation + describe-model CLI)
 
 ### Source context
 
@@ -110,6 +133,9 @@ Level: B
 Tags: phone-deployment, overlay-coordinate-system, scale-type-parity
 Requires full dataset: no
 Requires trained weights: no
+Pre-error SHA: 40197ac (Milestone 0 stack decision + KMP+Compose scaffold —
+               DetectionOverlay defaulted to min-scale letterbox)
+Fix SHA:       1eba4b8 (align DetectionOverlay scaling with PreviewView FILL_CENTER)
 
 ### Source context
 
@@ -199,6 +225,9 @@ Level: B
 Tags: phone-deployment, exif-orientation, coordinate-transform
 Requires full dataset: no
 Requires trained weights: no
+Pre-error SHA: e82ccc3 (Milestone 2 ONNX backends + Android APK builds —
+               CameraAnalysisLoop ignored ImageProxy.rotationDegrees)
+Fix SHA:       feca293 (rotate detection boxes into display orientation)
 
 ### Source context
 
@@ -312,6 +341,10 @@ Level: A
 Tags: phone-deployment, model-export, ood-behaviour, preprocessing-parity
 Requires full dataset: no
 Requires trained weights: yes
+Pre-error SHA: 92edfe4 (real-model end-to-end + backend comparison harness —
+               model was wired before the OOD note was added)
+Fix SHA:       fe1b1c8 (docs/004_kotlin_python_parity.md captures the
+               degenerate-box behaviour; ModelSpec.notes updated in eb85008)
 
 ### Source context
 
@@ -403,6 +436,9 @@ Level: A
 Tags: phone-deployment, packaging, native-libraries, release-engineering
 Requires full dataset: no
 Requires trained weights: no
+Pre-error SHA: e82ccc3 (Milestone 2 ONNX backends + Android APK builds —
+               first 82 MB debug APK landed here)
+Fix SHA:       8e4f892 (29 MB arm64-v8a APK + raw-strides decode tests)
 
 ### Source context
 
