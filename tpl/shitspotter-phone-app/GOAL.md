@@ -803,8 +803,31 @@ $HOME/.gradle/
 $HOME/.konan/
 $HOME/.cargo/
 $HOME/.pub-cache/
+/data/tmp/                       (large spinning disk, ~2 TiB free)
 project-local Gradle wrapper
 ```
+
+### Filesystem note: `/data/tmp/` vs the repo / `$HOME`
+
+The pre-installed toolchain currently lives at
+`/data/tmp/shitspotter-app-toolchain/` because that is the VM's large spinning
+disk. **Do not move it.** For new work, prefer this priority order:
+
+1. **Default — write under the repo or `$HOME`.** The shitspotter repo
+   directory and `$HOME` are on regular local storage and are the right
+   home for build outputs, scaffolds, scratch files, and small caches. Keep
+   work here unless you have a specific reason not to.
+2. **Use `/data/tmp/` only when you genuinely need the space** — multi-GB
+   downloads, the toolchain, big experimental caches, large image/video
+   corpora, etc. Document anything you put there.
+
+`/data/tmp/` is mounted differently than the repo and can hit `EMFILE` /
+"Too many open files" / EIO storms when the host side is under pressure.
+**If `/data/tmp/` starts erroring this way, do not work around it with
+suppressions or copying files around — fall back to the repo dir or `$HOME`,
+note it in the report, and ask the user to reset the mount.** The repo
+directory is not on the same problematic mount, so simple build work can
+continue while the user investigates.
 
 Allowed dependencies include, when appropriate:
 

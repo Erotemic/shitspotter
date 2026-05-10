@@ -55,6 +55,16 @@ The toolchain root defaults to `/data/tmp/shitspotter-app-toolchain` (the VM
 has 2+ TiB free there; only ~18 GiB on `/`). Override with
 `TOOLCHAIN_ROOT=/some/path bash ./install_toolchain.sh`.
 
+> **Filesystem note.** `/data/tmp/` is the large spinning disk and can hit
+> `EMFILE`/EIO storms when the host is under pressure. For *new* work, prefer
+> writing under the repo directory or `$HOME` — those are on regular local
+> storage and are not on the problematic mount. Use `/data/tmp/` only when
+> you actually need the space (the toolchain qualifies; small build outputs
+> do not). If `/data/tmp/` starts erroring, fall back to the repo dir, note
+> it in the report, and ask the user to reset the mount — don't paper over
+> the errors. See **GOAL.md → Dependency and VM environment policy** for
+> the full rule.
+
 ---
 
 ## 1. First model artifact
