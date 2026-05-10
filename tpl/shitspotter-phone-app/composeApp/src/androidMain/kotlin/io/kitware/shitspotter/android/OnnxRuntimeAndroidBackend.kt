@@ -111,12 +111,13 @@ class OnnxRuntimeAndroidBackend(
 
         val preStart = nowMonoMs()
         val rgb = frame.toRgb888()
-        val (lbBytes, lbParams) = if (spec.resizePolicy == ResizePolicy.LETTERBOX) {
-            Preprocessing.letterboxRgb(rgb, frame.width, frame.height, spec.inputWidth, spec.inputHeight)
-        } else {
-            // STRETCH: drop the letterbox, just resize-stretch (cheap nearest neighbor).
-            val stretched = stretchRgb(rgb, frame.width, frame.height, spec.inputWidth, spec.inputHeight)
-            stretched to LetterboxParams.compute(frame.width, frame.height, spec.inputWidth, spec.inputHeight)
+        val (lbBytes, lbParams) = when (spec.resizePolicy) {
+            ResizePolicy.LETTERBOX ->
+                Preprocessing.letterboxRgb(rgb, frame.width, frame.height, spec.inputWidth, spec.inputHeight)
+            ResizePolicy.STRETCH ->
+                Preprocessing.stretchRgb(rgb, frame.width, frame.height, spec.inputWidth, spec.inputHeight)
+            ResizePolicy.CENTER_CROP ->
+                Preprocessing.centerCropRgb(rgb, frame.width, frame.height, spec.inputWidth, spec.inputHeight)
         }
         val tensorData = Preprocessing.toFloatTensor(
             rgb = lbBytes,
@@ -194,25 +195,6 @@ class OnnxRuntimeAndroidBackend(
         try { session?.close() } catch (_: Throwable) {}
         session = null
         env = null
-    }
-
-    private fun stretchRgb(rgb: ByteArray, srcW: Int, srcH: Int, dstW: Int, dstH: Int): ByteArray {
-        val out = ByteArray(dstW * dstH * 3)
-        val sx = srcW.toFloat() / dstW
-        val sy = srcH.toFloat() / dstH
-        var dst = 0
-        for (y in 0 until dstH) {
-            val sYi = (y * sy).toInt().coerceIn(0, srcH - 1)
-            for (x in 0 until dstW) {
-                val sXi = (x * sx).toInt().coerceIn(0, srcW - 1)
-                val srcOff = (sYi * srcW + sXi) * 3
-                out[dst] = rgb[srcOff]
-                out[dst + 1] = rgb[srcOff + 1]
-                out[dst + 2] = rgb[srcOff + 2]
-                dst += 3
-            }
-        }
-        return out
     }
 
     private fun flattenOutput(v: Any?): FloatArray {
