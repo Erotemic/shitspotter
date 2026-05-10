@@ -25,6 +25,18 @@ kotlin {
         }
     }
 
+    // iOS targets are declared so the KMP source set layout is correct,
+    // but they only build on a macOS host with Xcode. From Linux these
+    // targets show up as "configured but not buildable" in Gradle, which
+    // is the right behaviour — `iosMain/` source set still gets type-
+    // checked against commonMain.
+    val isLinux = System.getProperty("os.name")?.lowercase()?.contains("linux") == true
+    if (!isLinux || providers.gradleProperty("ssp.enableIosTargets").orNull == "true") {
+        iosArm64()
+        iosX64()
+        iosSimulatorArm64()
+    }
+
     targets.all {
         compilations.all {
             kotlinOptions {
