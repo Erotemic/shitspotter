@@ -272,6 +272,58 @@ highlights:
 
 Each of those is a small focused PR.
 
+## Dependencies / where they live
+
+Per GOAL.md "Dependency and VM environment policy", everything is
+user-local. Nothing was installed via `sudo apt`.
+
+```text
+JDK 17.0.12+7 Eclipse Temurin   /data/tmp/shitspotter-app-toolchain/jdk
+Android SDK cmdline-tools 12.0  /data/tmp/shitspotter-app-toolchain/android-sdk/cmdline-tools/latest
+Android platform-tools 37.0.0   /data/tmp/shitspotter-app-toolchain/android-sdk/platform-tools (incl. adb)
+Android platforms;android-34    /data/tmp/shitspotter-app-toolchain/android-sdk/platforms
+Android build-tools;34.0.0      /data/tmp/shitspotter-app-toolchain/android-sdk/build-tools
+Android NDK 26.3.11579264       /data/tmp/shitspotter-app-toolchain/android-sdk/ndk
+Flutter SDK 3.24.5 (unused)     /data/tmp/shitspotter-app-toolchain/flutter
+Rust + Cargo (unused)           /data/tmp/shitspotter-app-toolchain/rust
+
+Gradle wrapper 8.10.2           tpl/shitspotter-phone-app/gradle/wrapper/
+Maven artifacts                 ~/.gradle/caches/modules-2/  (multi-GB on first build)
+```
+
+The Gradle wrapper jar is committed (per project README convention).
+The wrapper distribution and Maven artifacts are *not* committed and
+re-download on first build.
+
+The new Maven artifacts pulled by this run (transitive deps elided):
+
+```text
+com.android.tools.build:gradle 8.5.2
+org.jetbrains.kotlin:kotlin-multiplatform-gradle-plugin 2.0.21
+org.jetbrains.compose:compose-gradle-plugin 1.7.0
+androidx.activity:activity-compose 1.9.2
+androidx.core:core-ktx 1.13.1
+androidx.lifecycle:lifecycle-runtime-ktx 2.8.6
+androidx.lifecycle:lifecycle-viewmodel-compose 2.8.6
+androidx.camera:camera-core / camera-camera2 / camera-lifecycle / camera-view 1.4.0
+org.jetbrains.kotlinx:kotlinx-coroutines-core 1.9.0
+org.jetbrains.kotlinx:kotlinx-coroutines-android 1.9.0
+org.jetbrains.kotlinx:kotlinx-serialization-json 1.7.3
+org.jetbrains.kotlinx:kotlinx-datetime 0.6.1
+com.microsoft.onnxruntime:onnxruntime-android 1.19.2
+com.microsoft.onnxruntime:onnxruntime 1.19.2
+junit:junit 4.13.2
+```
+
+A python venv used only by `scripts/python_reference_compare.py`:
+
+```text
+/tmp/onnx_venv/  — onnx, onnxruntime, numpy, pillow
+```
+
+Recreating that is a single `python3 -m venv /tmp/onnx_venv && pip
+install onnx onnxruntime numpy pillow`.
+
 ## Build commands cheat sheet (full version: `docs/001_build_run_validate.md`)
 
 ```bash
