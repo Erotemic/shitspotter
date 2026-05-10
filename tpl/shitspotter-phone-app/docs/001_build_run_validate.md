@@ -75,9 +75,23 @@ If the build succeeds, the APK is at:
 composeApp/build/outputs/apk/debug/composeApp-debug.apk
 ```
 
-The first build downloads multi-GB of Android Gradle Plugin, AndroidX,
-Compose, CameraX, and ONNX Runtime artifacts into `~/.gradle/caches/`.
-Subsequent builds reuse them.
+Roughly 29 MB on the current configuration (arm64-v8a only, ONNX
+Runtime native libs included). The first build downloads multi-GB of
+Android Gradle Plugin, AndroidX, Compose, CameraX, and ONNX Runtime
+artifacts into `~/.gradle/caches/`. Subsequent builds reuse them.
+
+For a smaller APK (~20 MB) with R8 minification and resource shrinking,
+build the release variant:
+
+```bash
+./gradlew :composeApp:assembleRelease
+# → composeApp/build/outputs/apk/release/composeApp-release.apk
+```
+
+The current release config reuses the debug signing key — fine for
+sideloading but **not** suitable for Play Store distribution. Replace
+the signingConfig with a real keystore + secret-managed credentials
+before any public release; see [`docs/003_known_limitations.md`](003_known_limitations.md) #5.
 
 ---
 

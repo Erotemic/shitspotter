@@ -221,9 +221,14 @@ scripts/run_all_desktop_validation.sh
    --model=../poop_models/yolox_nano_poop_cropped_only_best.onnx \
    --runs=10 --warmup=2 --out=/tmp/compare.json"
 
-# Android debug APK (~82 MB; ONNX Runtime native libs included):
+# Android debug APK (~29 MB; arm64-v8a + ONNX Runtime native libs):
 ./gradlew :composeApp:assembleDebug
 # → composeApp/build/outputs/apk/debug/composeApp-debug.apk
+
+# Release APK with R8 minification + resource shrinking (~20 MB):
+./gradlew :composeApp:assembleRelease
+# → composeApp/build/outputs/apk/release/composeApp-release.apk
+# (uses debug signing for now; replace with a real keystore before Play Store)
 
 # On a workstation with a Pixel 5 plugged in (NOT this VM):
 adb install -r composeApp/build/outputs/apk/debug/composeApp-debug.apk
