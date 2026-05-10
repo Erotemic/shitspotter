@@ -32,7 +32,10 @@ import io.kitware.shitspotter.core.FailureType
 import io.kitware.shitspotter.core.ModelRegistry
 import io.kitware.shitspotter.core.ModelSpec
 import io.kitware.shitspotter.core.PrintlnLogger
+import io.kitware.shitspotter.core.SettingsStore
 import io.kitware.shitspotter.core.StubDetectorBackend
+import io.kitware.shitspotter.core.applySettings
+import io.kitware.shitspotter.core.toSettings
 import io.kitware.shitspotter.ui.AppRootTheme
 import io.kitware.shitspotter.ui.AppScreen
 import kotlinx.datetime.Clock
@@ -41,6 +44,7 @@ class MainActivity : ComponentActivity() {
 
     private val state = AppState()
     private lateinit var failureStore: AndroidFailureCaseStore
+    private lateinit var settingsStore: SettingsStore
     private var backend: DetectorBackend = StubDetectorBackend()
     private var paused by mutableStateOf(false)
     private var androidSurface: AndroidCameraSurface? = null
@@ -55,6 +59,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         failureStore = AndroidFailureCaseStore(this)
+        settingsStore = AndroidSettingsStore(this)
+        state.applySettings(settingsStore.load())
         backend = chooseBackend(this)
 
         val have = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
@@ -123,6 +129,11 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         try { backend.close() } catch (_: Throwable) {}
+    }
+
+    override fun onPause() {
+        super.onPause()
+        try { settingsStore.save(state.toSettings()) } catch (_: Throwable) {}
     }
 
     private fun chooseBackend(ctx: android.content.Context): DetectorBackend {

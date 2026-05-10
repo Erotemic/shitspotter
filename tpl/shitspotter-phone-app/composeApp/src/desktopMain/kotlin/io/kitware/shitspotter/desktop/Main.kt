@@ -20,6 +20,8 @@ import io.kitware.shitspotter.core.ModelRegistry
 import io.kitware.shitspotter.core.ModelSpec
 import io.kitware.shitspotter.core.PrintlnLogger
 import io.kitware.shitspotter.core.StubDetectorBackend
+import io.kitware.shitspotter.core.applySettings
+import io.kitware.shitspotter.core.toSettings
 import io.kitware.shitspotter.ui.AppRootTheme
 import io.kitware.shitspotter.ui.AppScreen
 import kotlinx.datetime.Clock
@@ -65,6 +67,8 @@ fun main(args: Array<String>) {
     if (runDescribeIfRequested(args)) return
 
     val state = AppState()
+    val settingsStore = FileSettingsStore()
+    state.applySettings(settingsStore.load())
     val backend: DetectorBackend = chooseDesktopBackend(args)
     val imageFile = loadStillImageFromArgs(args)
     val frameDir = argValue(args, "--frames")?.let { File(it) }
@@ -77,7 +81,10 @@ fun main(args: Array<String>) {
 
     application {
         Window(
-            onCloseRequest = ::exitApplication,
+            onCloseRequest = {
+                try { settingsStore.save(state.toSettings()) } catch (_: Throwable) {}
+                exitApplication()
+            },
             title = "ShitSpotter (desktop harness)",
         ) {
             val scope = rememberCoroutineScope()
