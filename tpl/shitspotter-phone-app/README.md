@@ -227,3 +227,48 @@ adb logcat -s "ShitSpotter.AnalysisLoop:V" "ShitSpotter.Failure:V"
 
 Full operator checklist in [`docs/001_build_run_validate.md`](docs/001_build_run_validate.md).
 Benchmark report schema in [`docs/002_benchmarks_template.md`](docs/002_benchmarks_template.md).
+
+---
+
+## 7. UI layout (Pixel 5, portrait)
+
+The app is single-screen. Live camera preview fills the background.
+Detection boxes are drawn on top in red. The HUD sits in the top-left,
+the model/threshold controls follow it, and the failure-case + pause
+buttons sit at the bottom.
+
+```text
+┌─────────────────────────────────────────────────┐
+│ ┌────────────────────────────┐                  │
+│ │ FPS 12.3   dets 1          │   ┌──────────┐   │
+│ │ inf 65.2 ms  pre 8.4 post 2│   │          │   │
+│ │ onnxruntime-android | NNAPI│   │  RED     │   │
+│ │ model yolox-nano-poop-…    │   │  BOX     │   │
+│ │ build 1bedbbe | dropped 0  │   │          │   │
+│ └────────────────────────────┘   └──────────┘   │
+│ [● YOLOX-nano poop] [Custom v5] [Custom v2]     │
+│ ┌────────────────────────────┐                  │
+│ │ score ≥ 25%                │                  │
+│ │ ──────●────────────────    │                  │
+│ └────────────────────────────┘                  │
+│                                                 │
+│              ( camera preview )                 │
+│                                                 │
+│                                                 │
+│  ┌─────────────────────────┐ ┌─────────────┐   │
+│  │ Save failure (3)        │ │ Pause       │   │
+│  └─────────────────────────┘ └─────────────┘   │
+└─────────────────────────────────────────────────┘
+```
+
+Tapping `Save failure` brings up a column of failure-type buttons
+(`FALSE_POSITIVE` / `FALSE_NEGATIVE` / `BAD_LOCALIZATION` / `LAG` /
+`CRASH` / `UNCERTAIN` / `OTHER`); pick one and the current frame's
+JPEG plus the full `FailureCaseMetadata` JSON lands at
+`/sdcard/Android/data/io.kitware.shitspotter/files/failure_cases/<ts>/`.
+
+The HUD numbers are computed in
+[`composeApp/src/androidMain/.../CameraAnalysisLoop.kt`](composeApp/src/androidMain/kotlin/io/kitware/shitspotter/android/CameraAnalysisLoop.kt)
+and pushed into the shared
+[`AppState`](composeApp/src/commonMain/kotlin/io/kitware/shitspotter/core/AppState.kt)
+on every analyzed frame. `dropped` increments while `Pause` is active.
