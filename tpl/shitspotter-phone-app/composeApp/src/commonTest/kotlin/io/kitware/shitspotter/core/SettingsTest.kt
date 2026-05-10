@@ -22,10 +22,29 @@ class SettingsTest {
             scoreThreshold = 0.42f,
             showFps = false,
             showOverlay = true,
+            useFrontCamera = true,
         )
         val text = SettingsSerialization.encode(s)
         val back = SettingsSerialization.decode(text)
         assertEquals(s, back)
+    }
+
+    @Test
+    fun decode_falls_back_to_defaults_for_missing_fields() {
+        // Older settings JSON (before useFrontCamera was added) should
+        // still decode by picking up the default for the missing field.
+        val text = """
+        {
+            "activeModelId": "stub-fake-detector",
+            "scoreThreshold": 0.0,
+            "showFps": true,
+            "showOverlay": true
+        }
+        """.trimIndent()
+        val s = SettingsSerialization.decode(text)
+        assertEquals("stub-fake-detector", s.activeModelId)
+        // Default for the missing field.
+        assertEquals(false, s.useFrontCamera)
     }
 
     @Test
