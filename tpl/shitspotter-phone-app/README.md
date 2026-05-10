@@ -101,13 +101,31 @@ tpl/shitspotter-phone-app/
   README.md                    # this file
   GOAL.md                      # full goal + milestones
   install_toolchain.sh         # toolchain installer (already run)
+  build.gradle.kts             # root Gradle build
+  settings.gradle.kts
+  gradle/                      # version catalog + wrapper (jar IS committed)
+  gradlew, gradlew.bat
   docs/
-    000_stack_decision.md      # Milestone 0 — write this first
+    000_stack_decision.md      # Milestone 0 — picked KMP + Compose Multiplatform
+    001_build_run_validate.md  # operator checklist (build / sideload / pull)
+    002_benchmarks_template.md # benchmark report schema + Pixel 5 stub
   composeApp/
-    src/commonMain/            # shared UI state, model registry, result types
-    src/androidMain/           # CameraX, NNAPI/CoreML execution providers, etc.
-    src/desktopMain/           # Linux still-image/video harness
-    src/iosMain/               # scaffolding only — cannot build from this VM
+    build.gradle.kts           # Android + JVM target wiring
+    src/commonMain/            # shared UI state, model registry, result types,
+                               # YOLOX postprocess, NMS, telemetry,
+                               # backend-comparison harness
+    src/commonTest/            # 30 JUnit-style tests (geometry, NMS,
+                               # letterbox, YOLOX, preprocess, FPS, model
+                               # registry, AppState, BackendComparison)
+    src/androidMain/           # CameraX KEEP_ONLY_LATEST analysis loop,
+                               # ONNX Runtime Android backend with NNAPI EP,
+                               # AndroidModelLoader (external/cache/assets),
+                               # AndroidFailureCaseStore, MainActivity
+    src/desktopMain/           # Compose for Desktop main, ONNX Runtime JVM
+                               # backend, still-image harness, CompareCli
+    src/desktopTest/           # ONNX smoke test (loads real model when
+                               # available, skips cleanly otherwise)
+    src/iosMain/               # actuals only — needs a macOS host to build
   failure_cases/               # gitignored — runtime-captured user reports
   .gitignore                   # build/, .gradle/, local.properties, *.onnx, ...
 ```
@@ -177,3 +195,35 @@ flutter --version       # only if you'll use Flutter
 cargo --version         # only if you'll use Rust
 df -h /data/tmp /home   # confirm there's room before a big build
 ```
+
+---
+
+## 6. Quick-start (after the scaffold has been built)
+
+```bash
+source /data/tmp/shitspotter-app-toolchain/env.sh
+cd tpl/shitspotter-phone-app
+
+# 30 unit tests for the shared core (~5 s after first build):
+./gradlew :composeApp:desktopTest
+
+# Compose for Desktop GUI (still-image harness, stub detector):
+./gradlew :composeApp:run --args="--image=/path/to/test.jpg"
+
+# Backend-comparison CLI (stub vs ONNX Runtime CPU on the same image):
+./gradlew :composeApp:run --args="compare \
+   --image=/path/to/test.jpg \
+   --model=../poop_models/yolox_nano_poop_cropped_only_best.onnx \
+   --runs=10 --warmup=2 --out=/tmp/compare.json"
+
+# Android debug APK (~82 MB; ONNX Runtime native libs included):
+./gradlew :composeApp:assembleDebug
+# → composeApp/build/outputs/apk/debug/composeApp-debug.apk
+
+# On a workstation with a Pixel 5 plugged in (NOT this VM):
+adb install -r composeApp/build/outputs/apk/debug/composeApp-debug.apk
+adb logcat -s "ShitSpotter.AnalysisLoop:V" "ShitSpotter.Failure:V"
+```
+
+Full operator checklist in [`docs/001_build_run_validate.md`](docs/001_build_run_validate.md).
+Benchmark report schema in [`docs/002_benchmarks_template.md`](docs/002_benchmarks_template.md).

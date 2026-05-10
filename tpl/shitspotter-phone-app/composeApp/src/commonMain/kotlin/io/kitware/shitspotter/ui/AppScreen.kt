@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.kitware.shitspotter.core.AppState
 import io.kitware.shitspotter.core.FailureType
+import io.kitware.shitspotter.core.ModelRegistry
 
 interface CameraSurface {
     @Composable
@@ -74,6 +75,11 @@ fun AppScreen(
                         detectionCount = state.lastDetections.size,
                     )
                 }
+                Spacer(Modifier.height(6.dp))
+                ModelChipsRow(
+                    activeId = state.activeModelId,
+                    onSelect = { state.activeModelId = it },
+                )
                 state.lastError?.let { err ->
                     Spacer(Modifier.height(8.dp))
                     Text(
@@ -131,6 +137,35 @@ private fun ControlBar(
                 Button(onClick = it) {
                     Text(if (isPaused) "Resume" else "Pause")
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Tiny chip-style model selector. The active model is bolded; tapping a
+ * non-active chip writes the new id into [AppState.activeModelId]. The
+ * actual backend swap is done lazily by the host (Android MainActivity
+ * or desktop Main) the next time it picks up the registry id — this
+ * composable does not own backend lifecycle.
+ */
+@Composable
+private fun ModelChipsRow(
+    activeId: String,
+    onSelect: (String) -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        ModelRegistry.all.forEach { spec ->
+            val active = spec.modelId == activeId
+            Button(
+                onClick = { if (!active) onSelect(spec.modelId) },
+            ) {
+                Text(
+                    text = if (active) "● ${spec.displayName}" else spec.displayName,
+                    color = Color.White,
+                )
             }
         }
     }
