@@ -4,6 +4,18 @@
 > `GOAL.md`. The points below are short-term breadcrumbs (toolchain location,
 > first model, in-tree convention) that aren't part of the long-form goal.
 
+## Milestone status (as of 2026-05-10)
+
+| Milestone | Status | Notes |
+|-----------|--------|-------|
+| 0 — stack decision | ✓ done | [`docs/000_stack_decision.md`](docs/000_stack_decision.md) — KMP + Compose Multiplatform |
+| 1 — skeleton app  | ✓ done | CameraX + Compose UI + stub detector + failure-case capture; 29 MB debug APK |
+| 2 — first real model backend | ✓ done (VM-side) | ONNX Runtime Android (NNAPI/CPU) + JVM; YOLOX-nano-poop loads end-to-end; Python parity at [`docs/004_kotlin_python_parity.md`](docs/004_kotlin_python_parity.md). **Pixel 5 sideload is the only remaining step.** |
+| 3 — runtime/backend comparison | partial | `compare`/`describe` desktop CLI runs multi-model + JSON; per-device NNAPI vs CPU comparison waits on Pixel 5 access |
+
+117 unit tests across 28 files, all green. Run
+`scripts/run_all_desktop_validation.sh` to reproduce.
+
 This directory is the new **Android-first, locally-developed** replacement for
 the .NET MAUI app at `tpl/poopdetector/`. The full goal, milestones, and
 constraints are in [GOAL.md](GOAL.md). Read it next.
