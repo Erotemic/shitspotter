@@ -38,13 +38,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     the same letterbox + YOLOX postprocess in NumPy; full comparison
     archived at
     `tpl/shitspotter-phone-app/docs/004_kotlin_python_parity.md`.
-  - 55 commonTest + desktopTest cases all green. Operator checklist at
+  - 109 commonTest + desktopTest cases all green. Operator checklist at
     `tpl/shitspotter-phone-app/docs/001_build_run_validate.md`,
     benchmark schema at
     `tpl/shitspotter-phone-app/docs/002_benchmarks_template.md`,
     next-agent backlog at
-    `tpl/shitspotter-phone-app/docs/003_known_limitations.md`. Run
+    `tpl/shitspotter-phone-app/docs/003_known_limitations.md`,
+    Python-vs-Kotlin parity at
+    `tpl/shitspotter-phone-app/docs/004_kotlin_python_parity.md`,
+    runtime architecture at
+    `tpl/shitspotter-phone-app/docs/005_runtime_architecture.md`. Run
     journal at `dev/journals/2026-05-10_phone_app_kmp_scaffold.md`.
+    APKs: 29 MB debug, 20 MB release (R8 + arm64-v8a).
 
 ### Fixed:
 
