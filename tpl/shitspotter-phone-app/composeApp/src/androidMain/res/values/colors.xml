@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Adaptive-icon background. The shitspotter icon's own green grass
+         fills most of the foreground PNG; this colour shows through the
+         masked corners on Android 8+ launchers that crop to a circle /
+         squircle / etc. Picked to roughly match the icon's grass-green
+         so the whole shape feels continuous. -->
+    <color name="ic_launcher_background">#7BC23F</color>
+</resources>
