@@ -122,7 +122,33 @@ The desktop harness uses ONNX Runtime JVM (CPU only).
 
 ---
 
-## 6. Sideload to a Pixel 5
+## 6. iOS path (macOS host only)
+
+iOS is **unvalidated** from this Linux VM. The KMP source set + actuals
+exist; the Gradle target wiring activates automatically when the build
+detects a macOS host.
+
+On a macOS host with Xcode installed:
+
+```bash
+cd tpl/shitspotter-phone-app
+./gradlew :composeApp:linkDebugFrameworkIosArm64        # framework only
+./gradlew :composeApp:embedAndSignAppleFrameworkForXcode # for Xcode
+open iosApp/iosApp.xcodeproj    # NOT YET CREATED — see docs/003 #7
+```
+
+To force iOS target configuration on Linux (e.g. to type-check
+`iosMain/`), pass `-Pssp.enableIosTargets=true`. This will trigger
+Kotlin/Native toolchain download and is not part of the normal Linux
+dev cycle.
+
+The actual iOS app shell (Xcode project, AVFoundation camera bridge,
+Core ML / ORT-CoreML inference path) is **not** scaffolded — see
+`docs/003_known_limitations.md` items #7 and #11.
+
+---
+
+## 7. Sideload to a Pixel 5
 
 The VM has no USB passthrough. Run these from your workstation:
 
@@ -148,7 +174,7 @@ adb pull /sdcard/Android/data/io.kitware.shitspotter/files/failure_cases/ \
 
 ---
 
-## 7. What the user should report back
+## 8. What the user should report back
 
 After running on a Pixel 5, please share:
 
@@ -163,7 +189,7 @@ After running on a Pixel 5, please share:
 
 ---
 
-## 8. Known limitations on this VM
+## 9. Known limitations on this VM
 
 - No webcam → no live camera test for the desktop harness; still images only.
 - No USB passthrough → no on-device APK install from the VM.
