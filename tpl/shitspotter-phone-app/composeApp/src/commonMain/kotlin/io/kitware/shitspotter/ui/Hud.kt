@@ -71,6 +71,11 @@ fun TelemetryHud(
             color = Color(0xFFCCCCCC),
             fontSize = 10.sp,
         )
+        Text(
+            "build ${telemetry.appCommit} | dropped ${telemetry.droppedFrames}",
+            color = Color(0xFF888888),
+            fontSize = 9.sp,
+        )
     }
 }
 
