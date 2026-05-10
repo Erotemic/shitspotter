@@ -7,7 +7,10 @@ Scope: `tpl/shitspotter-phone-app/`
 ## What this run produced
 
 A working Kotlin Multiplatform + Compose Multiplatform skeleton for the
-ShitSpotter v2 phone app. End state at the time of this journal:
+ShitSpotter v2 phone app **plus** a real-model end-to-end smoke test
+on the desktop, **plus** a backend-comparison harness, **plus** a live
+score-threshold slider and a frame-directory replay source. End state
+at the time of this journal:
 
 - **Milestone 0 (decision record)** — done.
   See [`tpl/shitspotter-phone-app/docs/000_stack_decision.md`](../../tpl/shitspotter-phone-app/docs/000_stack_decision.md).
@@ -32,7 +35,8 @@ ShitSpotter v2 phone app. End state at the time of this journal:
     swap. **All pass on `:composeApp:desktopTest`.**
   - **Android debug APK builds.** `:composeApp:assembleDebug` produced
     `composeApp/build/outputs/apk/debug/composeApp-debug.apk` (~82 MB).
-- **Milestone 2 (real model backend)** — wired but not yet validated end-to-end.
+- **Milestone 2 (real model backend)** — wired AND validated end-to-end on the
+  desktop side.
   - `OnnxRuntimeAndroidBackend` (uses NNAPI EP w/ FP16, falls back to CPU).
   - `OnnxRuntimeJvmBackend` for desktop CPU testing.
   - `AndroidModelLoader` that resolves a `ModelSpec` to an absolute file:
@@ -43,6 +47,50 @@ ShitSpotter v2 phone app. End state at the time of this journal:
     `yolox_nano_poop_cropped_only_best.onnx` artifact; falls back to
     `StubDetectorBackend()` when missing (which is the case in the
     plain APK because we deliberately don't commit weights).
+  - **Smoke test** at `composeApp/src/desktopTest/.../OnnxBackendSmokeTest.kt`
+    really loads the YOLOX-nano model from `tpl/poop_models/`, runs
+    inference on a synthetic 480x640 grey frame, and asserts that
+    pre/inf/post timings are non-negative. Skips cleanly if the model
+    file is absent. **Real measured numbers (Linux JVM CPU):**
+    `pre=30 ms`, `inf=16 ms`, `post=8 ms`.
+  - **Compare CLI** at `composeApp/src/desktopMain/.../CompareCli.kt` runs
+    multiple backends back-to-back over the same image. Real run
+    against `tpl/YOLOX/assets/dog.jpg`:
+
+    ```
+    backend                | delegate |  pre(ms) |  inf(ms) | post(ms) | dets |     top
+    --------------------------------------------------------------------------------
+    stub-1.0               | —        |     1.05 |     0.00 |     0.00 |    1 |   0.880
+    onnxruntime-jvm-1.19   | CPU      |     4.54 |     9.91 |     2.82 |    3 |   0.757
+    ```
+
+    The dog produces a 0.757-score false positive at the YOLOX-nano
+    default threshold — this is a known (and useful) drift, not a
+    regression. JSON report archived at
+    `dev/journals/2026-05-10_phone_app_compare_dog_jpg.json`.
+
+- **Milestone 3 (backend comparison)** — kicked off, see Compare CLI above.
+  Pending pieces are documented in `tpl/shitspotter-phone-app/docs/003_known_limitations.md`.
+
+- **Live score-threshold slider** + `List<Detection>.filterByScore`. The user
+  can move the threshold on the phone without rebuilding; both the
+  Android `CameraAnalysisLoop` and the desktop `DesktopHarness`
+  re-filter post-backend. Verified: at `--score-threshold=0.8` the
+  dog.jpg test goes 3 dets → 0.
+
+- **Test count**: 39 tests across 11 files, all green:
+  - `GeometryTest` (8) — bbox intersect, IoU, NMS, letterbox round-trip,
+    YOLOX postprocess
+  - `PreprocessingTest` (4) — pad colour, NCHW, NHWC, BGR swap
+  - `BackendComparisonTest` (3) — empty, multi-backend, table format
+  - `FpsCounterTest` (3) — empty, steady-state, stale-window prune
+  - `LatencyAccumulatorTest` (4) — empty, mean, window cap, percentile
+  - `ModelRegistryTest` (4) — default, lookup hit/miss, unique ids
+  - `AppStateTest` (3) — pushFrame, setError clear, default fallback
+  - `FilterByScoreTest` (3) — zero, mid, above-max
+  - `SerializationTest` (3) — failure case, model spec, comparison report
+  - `OnnxBackendSmokeTest` (1, conditional) — real ONNX model
+  - `FrameDirectorySourceTest` (3) — order, empty, non-dir
 
 The build succeeds on the Linux VM. The APK has not been installed on
 a Pixel 5 (no USB passthrough from this VM).
@@ -110,21 +158,28 @@ remain named fallbacks; nothing about this scaffold blocks switching.
 
 ## What the next agent should pick up
 
-The first three are easy follow-ups; the fourth is the fun one.
+Items #1-#3 from the original plan have all landed in this same run
+(JPEG capture is real, model chip row is wired, Milestone-3 compare CLI
+runs end-to-end). The remaining backlog is in
+`tpl/shitspotter-phone-app/docs/003_known_limitations.md` — the
+highlights:
 
-1. **Validate on Pixel 5** with a real model file. Record FPS / latency /
-   delegate / dropped-frame counts and append to a Milestone-2 results
-   table in `docs/`.
-2. **Capture last frame as JPEG** in the failure-case path (currently
-   `lastFrameJpegBytes` is a 0-byte placeholder on Android — encode the
-   last analyzed `ImageProxy` as JPEG before writing the metadata).
-3. **Wire model selection UI**: there's a `ModelRegistry` and a settings
-   slot on `AppState.activeModelId`, but nothing in the UI lets the user
-   switch backends. Should be a small Compose chip row.
-4. **Optional Milestone 3**: backend comparison hook — run the same
-   frame through ORT-CPU and ORT-NNAPI back-to-back, log both
-   `FrameTelemetry`, write a side-by-side report. This is the foundation
-   for evaluating LiteRT/ExecuTorch when those models exist.
+1. **Validate on Pixel 5** — the only remaining Milestone 2 step. APK is
+   built; user must `adb install -r` and report HUD numbers.
+2. **Overlay rotation handling** — current `DetectionOverlay` ignores
+   the `rotationDegrees` reported by `ImageProxyFrame`, which is fine in
+   portrait-locked mode but visibly off in edge cases.
+3. **ONNX raw-stride decoder** — `Yolox.decodeRawStrides` exists but is
+   not wired; only models with embedded YOLOX decode work right now.
+4. **CompareCli on the device** — currently desktop-only. Adding an
+   Android app-mode "compare" launches the CLI variant of the comparison
+   harness on the phone with the real NNAPI delegate, which is the real
+   Milestone 3 deliverable.
+5. **Android instrumented tests** — none yet. CameraX + an emulator + a
+   fake frame source would close the only big gap left in the test
+   pyramid.
+
+Each of those is a small focused PR.
 
 ## Build commands cheat sheet (full version: `docs/001_build_run_validate.md`)
 
