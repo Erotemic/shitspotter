@@ -19,16 +19,16 @@ set -euo pipefail
 
 usage() {
     cat >&2 <<'USAGE'
-usage: install_to_phone.sh [run|debug|release|launch|logcat] [debug|release]
+usage: install_to_phone.sh [run|debug|release|launch|logcat] [debug|release] [--run]
 
   run [variant]   — build + install + launch + tail   (default)
-  debug           — build debug APK + install
-  release         — build release APK + install
+  debug [--run]   — build debug APK + install; with --run also launch + tail
+  release [--run] — build release APK + install; with --run also launch + tail
   launch          — launch already-installed app + tail
   logcat          — tail ShitSpotter.* logs without restarting
 
-The first argument is the action; the optional second argument
-overrides the APK variant (only meaningful for `run`).
+For run, the optional second argument overrides the APK variant.
+For debug/release, --run extends the install with launch + tail.
 USAGE
 }
 
@@ -115,9 +115,21 @@ do_tail() {
     exec adb logcat "${TAIL_FILTER[@]}"
 }
 
+# Check the rest of argv for a --run flag so debug/release can opt into
+# the launch+tail tail without spelling out the longer `run release` form.
+run_after_install=0
+for arg in "${@:2}"; do
+    case "$arg" in
+        --run|--launch) run_after_install=1 ;;
+    esac
+done
+
 case "${1:-run}" in
     run)
-        do_build "${2:-debug}"
+        # Variant defaults to "debug"; skip --run since it's the implicit mode.
+        variant="${2:-debug}"
+        case "$variant" in --run|--launch) variant=debug ;; esac
+        do_build "$variant"
         do_install
         do_launch
         do_tail
@@ -125,14 +137,24 @@ case "${1:-run}" in
     debug)
         do_build debug
         do_install
-        echo
-        echo "→ done. To launch + tail: $0 launch"
+        if [ "$run_after_install" -eq 1 ]; then
+            do_launch
+            do_tail
+        else
+            echo
+            echo "→ done. To launch + tail: $0 launch  (or re-run with --run)"
+        fi
         ;;
     release)
         do_build release
         do_install
-        echo
-        echo "→ done. To launch + tail: $0 launch"
+        if [ "$run_after_install" -eq 1 ]; then
+            do_launch
+            do_tail
+        else
+            echo
+            echo "→ done. To launch + tail: $0 launch  (or re-run with --run)"
+        fi
         ;;
     launch)
         do_launch
