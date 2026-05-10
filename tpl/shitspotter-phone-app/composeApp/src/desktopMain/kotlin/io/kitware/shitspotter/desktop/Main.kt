@@ -66,7 +66,9 @@ fun main(args: Array<String>) {
     val state = AppState()
     val backend: DetectorBackend = chooseDesktopBackend(args)
     val imageFile = loadStillImageFromArgs(args)
+    val frameDir = argValue(args, "--frames")?.let { File(it) }
     val frame = imageFile?.takeIf { it.isFile }?.let { StillImageFrameSource.fromFile(it) }
+    val frameDirSource = frameDir?.takeIf { it.isDirectory }?.let { FrameDirectorySource(it) }
     val backgroundImage = imageFile?.takeIf { it.isFile }?.let { javax.imageio.ImageIO.read(it) }
     val failureStore = DesktopFailureCaseStore(File("failure_cases"))
 
@@ -79,14 +81,28 @@ fun main(args: Array<String>) {
         ) {
             val scope = rememberCoroutineScope()
             LaunchedEffect(Unit) {
-                if (frame != null) {
-                    PrintlnLogger.info("ShitSpotter.Desktop", "looping over still image ${frame.width}x${frame.height}")
-                    harness.runLoop(scope, frame)
-                } else {
-                    PrintlnLogger.warn(
-                        "ShitSpotter.Desktop",
-                        "no input image; pass --image=<path> or set SHITSPOTTER_DESKTOP_IMAGE",
-                    )
+                when {
+                    frameDirSource != null -> {
+                        PrintlnLogger.info(
+                            "ShitSpotter.Desktop",
+                            "looping over ${frameDirSource.frameCount} frames in ${frameDir!!.absolutePath}",
+                        )
+                        harness.runDirectoryLoop(scope, frameDirSource)
+                    }
+                    frame != null -> {
+                        PrintlnLogger.info(
+                            "ShitSpotter.Desktop",
+                            "looping over still image ${frame.width}x${frame.height}",
+                        )
+                        harness.runLoop(scope, frame)
+                    }
+                    else -> {
+                        PrintlnLogger.warn(
+                            "ShitSpotter.Desktop",
+                            "no input; pass --image=<path>, --frames=<dir>, " +
+                                "or set SHITSPOTTER_DESKTOP_IMAGE",
+                        )
+                    }
                 }
             }
             AppRootTheme {

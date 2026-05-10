@@ -7,6 +7,7 @@ import io.kitware.shitspotter.core.FpsCounter
 import io.kitware.shitspotter.core.FrameSource
 import io.kitware.shitspotter.core.FrameTelemetry
 import io.kitware.shitspotter.core.LatencyAccumulator
+import io.kitware.shitspotter.core.filterByScore
 import io.kitware.shitspotter.core.PrintlnLogger
 import io.kitware.shitspotter.core.nowMonoMs
 import kotlinx.coroutines.CoroutineScope
@@ -38,6 +39,7 @@ class DesktopHarness(
         val nowMs = System.currentTimeMillis()
         val fps = fpsCounter.mark(nowMs)
 
+        val filtered = r.detections.filterByScore(state.scoreThreshold)
         val tele = FrameTelemetry(
             deviceModel = BuildInfo.deviceModel,
             osVersion = BuildInfo.osVersion,
@@ -54,13 +56,13 @@ class DesktopHarness(
             postprocessMs = r.postprocessMs,
             overlayMs = 0.0,
             fpsRecent = fps,
-            detectionCount = r.detections.size,
+            detectionCount = filtered.size,
             droppedFrames = 0L,
         )
-        state.pushFrame(r.detections, tele, frame.width, frame.height)
+        state.pushFrame(filtered, tele, frame.width, frame.height)
         PrintlnLogger.info(
             "ShitSpotter.Harness",
-            "frame ${frame.width}x${frame.height} → ${r.detections.size} dets " +
+            "frame ${frame.width}x${frame.height} → ${filtered.size}/${r.detections.size} dets " +
                 "inf=${"%.1f".format(r.inferenceMs)}ms backend=${r.backendName}",
         )
     }
@@ -71,6 +73,17 @@ class DesktopHarness(
         job = scope.launch(Dispatchers.Default) {
             while (isActive()) {
                 runOnce(frame)
+                delay(periodMs)
+            }
+        }
+    }
+
+    /** Replay a directory of frames as a synthetic 30 FPS feed. */
+    fun runDirectoryLoop(scope: CoroutineScope, source: FrameDirectorySource, periodMs: Long = 33L) {
+        job?.cancel()
+        job = scope.launch(Dispatchers.Default) {
+            while (isActive()) {
+                runOnce(source.next())
                 delay(periodMs)
             }
         }

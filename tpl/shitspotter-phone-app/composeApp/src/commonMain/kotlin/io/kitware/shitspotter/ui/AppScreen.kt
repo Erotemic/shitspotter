@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material3.Slider
 import io.kitware.shitspotter.core.AppState
 import io.kitware.shitspotter.core.FailureType
 import io.kitware.shitspotter.core.ModelRegistry
@@ -80,6 +81,8 @@ fun AppScreen(
                     activeId = state.activeModelId,
                     onSelect = { state.activeModelId = it },
                 )
+                Spacer(Modifier.height(4.dp))
+                ScoreThresholdControl(state)
                 state.lastError?.let { err ->
                     Spacer(Modifier.height(8.dp))
                     Text(
@@ -168,6 +171,26 @@ private fun ModelChipsRow(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ScoreThresholdControl(state: AppState) {
+    Column(
+        modifier = Modifier
+            .background(Color(0x88000000))
+            .padding(8.dp),
+    ) {
+        val rounded = (state.scoreThreshold * 100f).toInt() / 100f
+        Text(
+            "score ≥ ${(rounded * 100).toInt()}%",
+            color = Color.White,
+        )
+        Slider(
+            value = state.scoreThreshold,
+            onValueChange = { state.scoreThreshold = it.coerceIn(0f, 1f) },
+            valueRange = 0f..1f,
+        )
     }
 }
 

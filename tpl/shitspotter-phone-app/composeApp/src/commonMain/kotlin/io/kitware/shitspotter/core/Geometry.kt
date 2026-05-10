@@ -59,6 +59,11 @@ object Nms {
     }
 }
 
+/** Cheap post-backend filter so the UI can move the score threshold
+ *  without re-running inference. */
+fun List<Detection>.filterByScore(min: Float): List<Detection> =
+    if (min <= 0f) this else filter { it.score >= min }
+
 data class LetterboxParams(
     val scale: Float,
     val padX: Float,

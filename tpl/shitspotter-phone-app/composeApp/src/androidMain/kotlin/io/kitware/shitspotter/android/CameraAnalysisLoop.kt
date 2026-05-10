@@ -20,6 +20,7 @@ import io.kitware.shitspotter.core.FpsCounter
 import io.kitware.shitspotter.core.FrameSource
 import io.kitware.shitspotter.core.FrameTelemetry
 import io.kitware.shitspotter.core.LatencyAccumulator
+import io.kitware.shitspotter.core.filterByScore
 import io.kitware.shitspotter.core.PrintlnLogger
 import io.kitware.shitspotter.core.nowMonoMs
 import java.util.concurrent.Executor
@@ -117,6 +118,7 @@ class CameraAnalysisLoop(
             val overlayMs = nowMonoMs() - overlayStart
             overlayLat.record(overlayMs)
 
+            val filtered = result.detections.filterByScore(state.scoreThreshold)
             val telemetry = FrameTelemetry(
                 deviceModel = BuildInfo.deviceModel,
                 osVersion = BuildInfo.osVersion,
@@ -133,10 +135,10 @@ class CameraAnalysisLoop(
                 postprocessMs = result.postprocessMs,
                 overlayMs = overlayMs,
                 fpsRecent = fps,
-                detectionCount = result.detections.size,
+                detectionCount = filtered.size,
                 droppedFrames = droppedFrames.get(),
             )
-            state.pushFrame(result.detections, telemetry, frame.width, frame.height)
+            state.pushFrame(filtered, telemetry, frame.width, frame.height)
         } catch (t: Throwable) {
             logger.error(TAG, "frame analysis failed", t)
             state.setError(t.message ?: t::class.simpleName ?: "unknown")

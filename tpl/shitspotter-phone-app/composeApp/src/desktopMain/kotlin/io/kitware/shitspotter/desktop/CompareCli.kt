@@ -44,13 +44,15 @@ object CompareCli {
         val runs = argValue(args, "--runs")?.toIntOrNull() ?: 5
         val warmup = argValue(args, "--warmup")?.toIntOrNull() ?: 1
         val outFile = argValue(args, "--out")?.let { File(it) }
+        val thresholdOverride = argValue(args, "--score-threshold")?.toFloatOrNull()
 
         val frame = StillImageFrameSource.fromFile(image)
         val backends = mutableListOf<DetectorBackend>()
         backends += StubDetectorBackend()  // sanity baseline
 
         if (modelPath != null && modelPath.isFile) {
-            val spec: ModelSpec = ModelRegistry.byId(modelId) ?: ModelRegistry.default
+            val baseSpec: ModelSpec = ModelRegistry.byId(modelId) ?: ModelRegistry.default
+            val spec = if (thresholdOverride != null) baseSpec.copy(scoreThreshold = thresholdOverride) else baseSpec
             try {
                 backends += OnnxRuntimeJvmBackend(spec, modelPath.absolutePath)
             } catch (t: Throwable) {
