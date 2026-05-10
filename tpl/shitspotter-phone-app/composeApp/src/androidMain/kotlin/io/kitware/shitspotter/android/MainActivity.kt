@@ -29,7 +29,6 @@ import io.kitware.shitspotter.core.BuildInfo
 import io.kitware.shitspotter.core.DetectorBackend
 import io.kitware.shitspotter.core.FailureCaseMetadata
 import io.kitware.shitspotter.core.FailureType
-import io.kitware.shitspotter.core.ModelRegistry
 import io.kitware.shitspotter.core.ModelSpec
 import io.kitware.shitspotter.core.PrintlnLogger
 import io.kitware.shitspotter.core.SettingsStore
