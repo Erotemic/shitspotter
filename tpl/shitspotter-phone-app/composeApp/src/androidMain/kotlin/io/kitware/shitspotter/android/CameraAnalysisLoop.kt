@@ -43,6 +43,8 @@ class CameraAnalysisLoop(
 ) {
     @Volatile var isPaused: Boolean = false
     @Volatile private var droppedFrames: AtomicLong = AtomicLong(0L)
+    private var lastSelectorWasFront: Boolean = false
+    private var rebindFn: (() -> Unit)? = null
 
     private val analyzerExecutor: Executor = Executors.newSingleThreadExecutor { r ->
         Thread(r, "shitspotter-analyzer").apply { priority = Thread.NORM_PRIORITY + 1 }
@@ -61,29 +63,42 @@ class CameraAnalysisLoop(
         future.addListener({
             try {
                 val provider = future.get()
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(previewSurfaceProvider)
-                }
-                val analysis = ImageAnalysis.Builder()
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
-                    .setResolutionSelector(
-                        ResolutionSelector.Builder()
-                            .setResolutionStrategy(
-                                ResolutionStrategy(
-                                    targetAnalysisSize,
-                                    ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
-                                ),
-                            )
-                            .build(),
-                    )
-                    .build()
-                analysis.setAnalyzer(analyzerExecutor) { proxy -> handleFrame(proxy) }
+                val rebind: () -> Unit = {
+                    val preview = Preview.Builder().build().also {
+                        it.setSurfaceProvider(previewSurfaceProvider)
+                    }
+                    val analysis = ImageAnalysis.Builder()
+                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                        .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+                        .setResolutionSelector(
+                            ResolutionSelector.Builder()
+                                .setResolutionStrategy(
+                                    ResolutionStrategy(
+                                        targetAnalysisSize,
+                                        ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER,
+                                    ),
+                                )
+                                .build(),
+                        )
+                        .build()
+                    analysis.setAnalyzer(analyzerExecutor) { proxy -> handleFrame(proxy) }
 
-                val selector = CameraSelector.DEFAULT_BACK_CAMERA
-                provider.unbindAll()
-                provider.bindToLifecycle(lifecycleOwner, selector, preview, analysis)
-                logger.info(TAG, "CameraX bound; analysis target=$targetAnalysisSize")
+                    val selector = if (state.useFrontCamera) {
+                        CameraSelector.DEFAULT_FRONT_CAMERA
+                    } else {
+                        CameraSelector.DEFAULT_BACK_CAMERA
+                    }
+                    provider.unbindAll()
+                    provider.bindToLifecycle(lifecycleOwner, selector, preview, analysis)
+                    lastSelectorWasFront = state.useFrontCamera
+                    logger.info(
+                        TAG,
+                        "CameraX bound; analysis target=$targetAnalysisSize selector=" +
+                            if (state.useFrontCamera) "front" else "back",
+                    )
+                }
+                rebindFn = rebind
+                rebind()
             } catch (t: Throwable) {
                 logger.error(TAG, "CameraX bind failed", t)
                 state.setError("Camera bind failed: ${t.message}")
@@ -92,11 +107,26 @@ class CameraAnalysisLoop(
         return future
     }
 
+    /** Rebind CameraX with the current `state.useFrontCamera` value if it
+     *  has changed since the last bind. Safe to call from the main thread
+     *  on every frame; no-op when nothing changed. */
+    fun rebindIfCameraChanged() {
+        if (state.useFrontCamera != lastSelectorWasFront) {
+            ContextCompatExecutors.main(context).execute {
+                rebindFn?.invoke()
+            }
+        }
+    }
+
     @Volatile var lastAnalyzedFrame: ImageProxyFrame? = null
         private set
 
     private fun handleFrame(proxy: ImageProxy) {
         try {
+            // Detect a state-driven camera switch and re-bind on the
+            // main thread before the next frame arrives. Cheap when
+            // there's no change.
+            rebindIfCameraChanged()
             if (isPaused) {
                 droppedFrames.incrementAndGet()
                 return

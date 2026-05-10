@@ -15,6 +15,7 @@ data class AppSettings(
     val scoreThreshold: Float = ModelRegistry.default.scoreThreshold,
     val showFps: Boolean = true,
     val showOverlay: Boolean = true,
+    val useFrontCamera: Boolean = false,
 )
 
 interface SettingsStore {
@@ -52,6 +53,7 @@ fun AppState.applySettings(s: AppSettings) {
     scoreThreshold = s.scoreThreshold
     showFps = s.showFps
     showOverlay = s.showOverlay
+    useFrontCamera = s.useFrontCamera
 }
 
 fun AppState.toSettings(): AppSettings = AppSettings(
@@ -59,4 +61,5 @@ fun AppState.toSettings(): AppSettings = AppSettings(
     scoreThreshold = scoreThreshold,
     showFps = showFps,
     showOverlay = showOverlay,
+    useFrontCamera = useFrontCamera,
 )

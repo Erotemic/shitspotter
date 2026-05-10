@@ -25,6 +25,9 @@ class AppState {
     var lastError: String? by mutableStateOf(null)
         private set
     var failureCasesSavedCount: Int by mutableStateOf(0)
+    /** Which physical camera to use on Android — back is the default
+     *  because shitspotter is a "look at the ground" app. */
+    var useFrontCamera: Boolean by mutableStateOf(false)
 
     fun pushFrame(detections: List<Detection>, telemetry: FrameTelemetry, frameW: Int, frameH: Int) {
         lastDetections = detections

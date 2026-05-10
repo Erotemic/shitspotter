@@ -197,6 +197,11 @@ private fun ToggleRow(state: AppState) {
             checked = state.showOverlay,
             onCheckedChange = { state.showOverlay = it },
         )
+        Text("front", color = Color.White)
+        Switch(
+            checked = state.useFrontCamera,
+            onCheckedChange = { state.useFrontCamera = it },
+        )
     }
 }
 
