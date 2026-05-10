@@ -1,8 +1,8 @@
 # ShitSpotter Phone App Agent Goal
 
-This file is for an agent starting work on a replacement ShitSpotter phone app.
+This document is for an implementation agent starting work on a replacement ShitSpotter phone app.
 
-The current .NET MAUI app is useful as a reference, but the goal of this effort is to move away from .NET MAUI and build toward an Android-first, local-inference, battery-conscious app that can also be developed and tested natively from Linux.
+The current `.NET MAUI` app is useful as a reference, but the goal of this effort is to move away from MAUI and build toward an Android-first, local-inference, battery-conscious app that can be developed and tested from Linux, with a plausible path to iOS.
 
 Recommended location:
 
@@ -10,7 +10,7 @@ Recommended location:
 dev/PHONE_APP_AGENT_GOAL.md
 ```
 
-or, if the app prototype begins immediately:
+If the app prototype begins immediately, also copy or symlink this goal into:
 
 ```text
 tpl/shitspotter-phone-app/AGENT_GOAL.md
@@ -20,23 +20,58 @@ tpl/shitspotter-phone-app/AGENT_GOAL.md
 
 ## Executive summary
 
-Build a new ShitSpotter mobile-app prototype that performs **live local poop detection** on Android first, with a Linux-native development/test path and a plausible path to iOS later.
+Build a new ShitSpotter mobile-app prototype that performs **live local poop detection** on Android first.
 
-Do not focus on finding or training the best model. That task is still open and belongs elsewhere. The app should make it easy to plug in better and faster models later.
+The prototype should:
+
+- run on a Pixel 5;
+- work fully offline;
+- use local on-device inference;
+- support live detection overlays;
+- expose timing and FPS telemetry;
+- save failure cases for future dataset/model improvement;
+- build as much as possible from a Linux VM;
+- include a Linux-native still-image/video test path;
+- preserve a plausible future iOS path;
+- avoid unnecessary Android/iOS code duplication;
+- make it easy to plug in faster or better models later.
+
+Do **not** focus on finding, training, or optimizing the best detection model. That task is open and belongs elsewhere. This app should provide the infrastructure needed to use current models and later swap in better ones.
 
 Primary target:
 
 ```text
 Android phone: Pixel 5
-Current acceptable floor: 1 FPS
-Desired: 10 FPS
-Excellent: 15-30 FPS
+Minimum acceptable live detection rate: 1 FPS
+Desired live detection rate: 10 FPS
+Excellent live detection rate: 15-30 FPS
 Inference mode: local-only, offline
 Distribution now: sideload/dev builds
 Future: do not block eventual app-store release
 ```
 
-The current .NET MAUI app should be treated as a reference implementation for behavior and assets, not as the preferred foundation.
+The current MAUI app should be treated as a reference implementation for behavior, assets, and lessons learned, not as the preferred foundation.
+
+---
+
+## Operating mode for the first implementation pass
+
+Treat the first implementation pass as a **large autonomous session**.
+
+Do not stop after writing a decision memo unless there is a genuine blocker. The desired behavior is:
+
+1. inspect the repo and current app;
+2. write the stack decision record;
+3. choose the best practical stack;
+4. install required user-local toolchain dependencies;
+5. scaffold the prototype;
+6. build as much as the VM can support;
+7. run all feasible local validation;
+8. leave exact commands for physical Android and future iOS validation.
+
+The first deliverable is still the stack decision record, but it is not the only expected deliverable.
+
+Do not ask for confirmation before ordinary dependency installation, project scaffolding, build execution, or local validation if the action is consistent with this document and does not require privileged system mutation.
 
 ---
 
@@ -44,7 +79,7 @@ The current .NET MAUI app should be treated as a reference implementation for be
 
 The user wants:
 
-- abandon .NET MAUI;
+- to abandon `.NET MAUI`;
 - no dependency on Windows;
 - Android first because the current phone is a Pixel 5;
 - local on-device inference as the default and primary mode;
@@ -53,8 +88,10 @@ The user wants:
 - eventual app-store feasibility, but not app-store polish now;
 - Linux-native development and testing where possible;
 - a path to iOS if it does not compromise Android performance and project quality;
-- the ability to use existing models now and more efficient/better-trained models later;
-- a way to capture/save model failure cases to improve future training data.
+- use of existing models now and more efficient/better-trained models later;
+- a way to capture/save model failure cases to improve future training data;
+- an elegant, extensible design;
+- minimal Android/iOS code branching.
 
 The user is willing to accept tradeoffs if full Linux + Android + iOS parity conflicts with efficient Android/iOS runtime behavior.
 
@@ -96,6 +133,40 @@ This app is known to sort of work, but live model throughput is laggy, around 3 
 
 ---
 
+## Repo placement
+
+Prototype the new app in-tree at:
+
+```text
+tpl/shitspotter-phone-app/
+```
+
+This is a temporary exception to the existing `tpl/*` submodule convention. The app may later be split into its own repository, likely:
+
+```text
+Erotemic/shitspotter-phone-app
+```
+
+Do not require that split for the first prototype.
+
+The stack decision document should explicitly note this temporary placement and the eventual split-out intention.
+
+The new app should not commit build products, local caches, local model binaries, or captured failure cases.
+
+Add or update ignore rules as needed for paths such as:
+
+```text
+tpl/shitspotter-phone-app/.gradle/
+tpl/shitspotter-phone-app/build/
+tpl/shitspotter-phone-app/**/build/
+tpl/shitspotter-phone-app/local_models/
+tpl/shitspotter-phone-app/failure_cases/
+```
+
+Use equivalent ignore rules if the chosen framework creates different generated directories.
+
+---
+
 ## Non-goals
 
 Do not spend this app effort on:
@@ -112,6 +183,78 @@ Do not spend this app effort on:
 - requiring the full ShitSpotter dataset to test the app.
 
 The app should expose enough runtime/model metadata and benchmarking hooks to support future model work, but model search is a separate project.
+
+---
+
+## Architecture principle: shared core, thin adapters
+
+Minimize Android/iOS code branching.
+
+Do not interpret this as “force everything through the lowest-common-denominator API.” Instead, use a shared-core architecture where almost all domain logic is common and only unavoidable device/platform integration lives in thin adapters.
+
+The design target is:
+
+```text
+one app architecture
+one model registry
+one detector interface
+one overlay/result model
+one failure-case format
+one telemetry format
+thin Android/iOS/Linux adapters
+```
+
+Shared cross-platform code should own:
+
+- model registry and model metadata;
+- detector backend interface;
+- app state machine;
+- thresholds and settings;
+- detection-result types;
+- preprocessing/postprocessing semantics;
+- postprocessing implementation where practical;
+- coordinate transforms and overlay geometry;
+- telemetry schema;
+- failure-case capture schema;
+- benchmark/result data structures;
+- test fixtures and reference outputs.
+
+Thin platform adapters may own:
+
+- camera frame acquisition;
+- permissions;
+- file-system quirks;
+- model file loading quirks;
+- hardware runtime bindings;
+- zero-copy or low-copy frame/tensor bridges;
+- accelerator/delegate discovery and selection;
+- app packaging;
+- platform-specific profiling hooks.
+
+Avoid:
+
+```text
+separate Android and iOS apps with duplicated logic
+platform-specific model metadata
+platform-specific overlay math
+platform-specific postprocessing unless required
+platform-specific failure-case formats
+copying full camera frames through common code just to reduce branching
+```
+
+Efficiency still wins on the hot path. Shared code should define semantics and interfaces, but platform adapters may keep camera buffers and inference tensors native when copying would hurt latency, battery life, or hardware acceleration.
+
+Important design rule:
+
+```text
+Minimize branching above the hot path.
+Allow branching inside thin adapters where it preserves zero-copy frame handling,
+native accelerator access, battery efficiency, or app-store-compatible packaging.
+```
+
+This means Android and iOS should share the same `DetectorBackend` interface and model registry, but Android may implement it with CameraX + NNAPI/GPU/ONNX/LiteRT and iOS may implement it with AVFoundation + Core ML / CoreML delegate / GPU delegate. The rest of the app should not care which platform backend produced the detections.
+
+Desktop parity should not force the Android camera/inference path into an inefficient abstraction. If necessary, desktop should test the same model metadata, preprocessing, postprocessing, overlay logic, and telemetry using still images or video files, while Android uses a native CameraX pipeline.
 
 ---
 
@@ -155,7 +298,10 @@ Use shared code for:
 - detection-result types;
 - overlay geometry;
 - failure-case metadata schema;
-- preprocessing/postprocessing if practical.
+- benchmark telemetry schema;
+- detector backend interfaces;
+- preprocessing/postprocessing semantics;
+- preprocessing/postprocessing implementation when it does not create avoidable frame copies or block hardware acceleration.
 
 Use platform code for:
 
@@ -164,11 +310,9 @@ Use platform code for:
 - model file loading;
 - permissions;
 - app packaging;
-- hardware profilers.
-
-Important tradeoff:
-
-Desktop parity should not force the Android camera/inference path into an inefficient abstraction. If necessary, desktop should test the same model metadata, preprocessing, postprocessing, and overlay logic using still images or video files, while Android uses a native CameraX pipeline.
+- hardware profilers;
+- zero-copy or low-copy frame/tensor bridges;
+- accelerator/delegate discovery and selection.
 
 ### 2. Flutter
 
@@ -380,6 +524,27 @@ Risk:
 
 ---
 
+## Model artifact policy
+
+Do not commit model binaries to the new app.
+
+Milestone 1 may use fake detections or a stub detector.
+
+For Milestone 2, the first real model should be the YOLOX-nano poop ONNX artifact if available. Prefer referencing it from an existing model submodule or from an ignored local model directory.
+
+Likely paths:
+
+```text
+tpl/poop_models/yolox_nano_poop_cropped_only_best.onnx
+tpl/shitspotter-phone-app/local_models/yolox_nano_poop_cropped_only_best.onnx
+```
+
+The app should use a configurable model registry so later ONNX, LiteRT/TFLite, ExecuTorch, or Core ML artifacts can be added without redesigning the app.
+
+The app-building agent should not search for, train, or optimize the best model. That is a separate task.
+
+---
+
 ## Pixel 5 hardware note
 
 The initial Android target is Pixel 5. It uses a Qualcomm Snapdragon 765G, Adreno 620 GPU, and 8 GB LPDDR4x RAM.
@@ -390,6 +555,18 @@ Implication:
 - test CPU, NNAPI, and GPU/delegate paths explicitly;
 - record which delegate/backend actually ran;
 - newer phones may substantially change the best backend choice, so the benchmark harness must record device model and runtime backend.
+
+The VM is not expected to have access to the user's Pixel 5. Physical Android validation is the user's job unless a remote ADB path is explicitly provided later.
+
+The agent should produce:
+
+- APK/build artifact if possible;
+- exact `adb install` command;
+- exact launch/logcat/benchmark commands;
+- expected outputs;
+- a short checklist for what the user should report back.
+
+Do not block on lack of physical phone access.
 
 ---
 
@@ -432,7 +609,7 @@ The latest frame is preferred over stale queued frames.
 
 The first prototype should provide:
 
-1. Android app builds on Linux and installs on Pixel 5.
+1. Android app builds on Linux and can be installed on Pixel 5 by the user.
 
 2. Live camera preview.
 
@@ -488,7 +665,7 @@ The first prototype should provide:
 
 ### Milestone 0: decision record
 
-Before implementing, write:
+Before implementing code, write:
 
 ```text
 tpl/shitspotter-phone-app/docs/000_stack_decision.md
@@ -507,7 +684,7 @@ It must answer:
 - What performance instrumentation exists?
 - What risks remain?
 
-Do not spend more than a focused pass on this. The goal is to choose a practical path and proceed.
+Do not stop at Milestone 0 unless there is a genuine blocker. This document records the decision before implementation proceeds.
 
 ### Milestone 1: skeleton app
 
@@ -515,11 +692,12 @@ Build:
 
 - Android target;
 - Linux desktop target or companion harness;
-- simple camera preview on Android;
+- simple camera preview on Android, or a clearly marked placeholder if camera setup blocks;
 - placeholder detector that returns fake boxes;
 - overlay rendering;
 - FPS counter;
-- failure-case save button that writes metadata.
+- failure-case save button that writes metadata;
+- build/run documentation.
 
 Validation:
 
@@ -545,7 +723,8 @@ Add:
 
 Validation:
 
-- run on Pixel 5;
+- build locally;
+- run on Pixel 5 when the user can test;
 - record FPS and latency breakdown;
 - run Linux still-image/video test;
 - compare at least one known input against a Python/reference output if available.
@@ -560,6 +739,154 @@ Add the ability to compare:
 - Pixel 5 vs newer Android phone if available.
 
 Do not optimize the model itself. Only make the app capable of measuring and using models.
+
+---
+
+## Expected autonomous stopping point
+
+Continue until reaching the strongest feasible local result.
+
+Preferred stopping point:
+
+```text
+- stack decision written;
+- project scaffold created;
+- user-local dependencies installed;
+- Android debug build succeeds, if Android SDK setup is possible;
+- Linux desktop/still-image harness builds or runs, if supported by chosen stack;
+- fake detector or stub detector is wired to overlay/result/telemetry path;
+- failure-case capture format is implemented or scaffolded;
+- build/run/adb instructions are documented.
+```
+
+Acceptable fallback stopping point:
+
+```text
+- stack decision written;
+- project scaffold created;
+- dependency setup attempted and documented;
+- blocker clearly identified;
+- exact next commands provided.
+```
+
+Do not stop merely because the VM initially lacks Java, Gradle, Kotlin, Flutter, Android SDK, or similar tools. Install user-local tooling and proceed as far as practical.
+
+---
+
+## Dependency and VM environment policy
+
+The implementation agent is allowed and encouraged to download, install, and cache dependencies needed to evaluate frameworks, build prototypes, run tests, and benchmark the app.
+
+Installs should be user-local and documented. Do not use `sudo apt` or mutate the VM globally unless explicitly instructed later.
+
+Allowed install locations include:
+
+```text
+$HOME/.sdkman/
+$HOME/.local/
+$HOME/.local/bin/
+$HOME/.local/opt/
+$HOME/Android/Sdk/
+$HOME/.gradle/
+$HOME/.konan/
+$HOME/.cargo/
+$HOME/.pub-cache/
+project-local Gradle wrapper
+```
+
+Allowed dependencies include, when appropriate:
+
+- JDK 17+;
+- Android SDK / command-line tools;
+- Android build tools;
+- Android platform packages;
+- Gradle / Gradle wrapper;
+- Kotlin / Compose Multiplatform dependencies;
+- Flutter SDK and packages, if Flutter is chosen or evaluated;
+- Rust / Cargo dependencies, if Rust tooling is chosen or evaluated;
+- Qt / CMake / Ninja dependencies, if Qt is chosen or evaluated;
+- ONNX Runtime / LiteRT / ExecuTorch packages;
+- model runtime binaries;
+- small public sample models or test assets;
+- emulator, profiling, and benchmarking tools.
+
+If a dependency is large or slow to install, note it in the final report. Do not stop solely because it is large unless it is clearly unreasonable for the VM or requires privileged installation.
+
+Prefer reproducible setup:
+
+```text
+project-local wrapper > user-local SDK/toolchain > undocumented global install
+```
+
+The VM may not have:
+
+- USB access to a physical phone;
+- Android emulator hardware acceleration;
+- camera hardware;
+- webcam passthrough;
+- GPU/NPU delegates;
+- realistic battery or thermal behavior;
+- macOS;
+- Xcode;
+- iOS signing credentials.
+
+These limitations should not prevent useful progress.
+
+Distinguish clearly between:
+
+```text
+VM validation:
+  - dependency resolution
+  - project generation
+  - static checks
+  - unit tests
+  - desktop still-image/video harness
+  - model metadata parsing
+  - preprocessing/postprocessing tests
+  - Android APK build, if SDK/tooling is available
+
+Physical Android validation:
+  - install on Pixel 5
+  - live camera preview
+  - live local detection overlay
+  - real FPS and latency
+  - battery/thermal behavior
+  - runtime delegate behavior
+  - failure-case capture from camera
+
+Physical iOS validation:
+  - iOS build/signing
+  - camera integration
+  - Core ML / delegate behavior
+  - app-store-relevant platform constraints
+```
+
+When a required hardware feature is unavailable in the VM, do not stop. Instead:
+
+1. document the limitation;
+2. complete the closest useful local validation;
+3. provide the exact command that should be run on the host or device;
+4. keep the prototype structured so device validation can be performed later.
+
+---
+
+## iOS validation
+
+Do not attempt to build or sign iOS artifacts from this VM unless macOS/Xcode tooling is explicitly available.
+
+It is acceptable to include iOS source-set scaffolding or design notes, but mark iOS as unvalidated unless it is actually built and run on Apple tooling.
+
+On iOS, the framework should be treated as the app shell and shared-logic host, not necessarily the inference engine. The camera and inference hot path should use native iOS mechanisms where needed:
+
+```text
+Compose Multiplatform UI / shared state
+  -> iosMain native bridge
+  -> AVFoundation frame acquisition
+  -> Core ML / ONNX Runtime CoreML EP / LiteRT delegate / ExecuTorch backend
+  -> compact detection results back to shared UI state
+```
+
+Do not route full camera frames through common Kotlin code solely to reduce branching if benchmarking shows that this hurts latency, battery, or accelerator access.
 
 ---
 
@@ -670,17 +997,42 @@ When starting work:
 
 9. Keep model-pluggability as a hard requirement.
 
-10. Build the smallest prototype that proves the hot path.
+10. Minimize Android/iOS branching above the detector backend interface.
 
-11. Avoid large rewrites of unrelated ShitSpotter code.
+11. Build the smallest prototype that proves the hot path.
 
-12. Do not require the full ShitSpotter dataset.
+12. Install required dependencies user-locally and document them.
 
-13. Do not train or search for models.
+13. Avoid large rewrites of unrelated ShitSpotter code.
 
-14. Document validation honestly.
+14. Do not require the full ShitSpotter dataset.
 
-15. Update this file or add a `dev/benchmark-candidates/` entry if you discover a hard invariant future agents should preserve.
+15. Do not train or search for models.
+
+16. Document validation honestly.
+
+17. Update this file or add a `dev/benchmark-candidates/` entry if you discover a hard invariant future agents should preserve.
+
+---
+
+## Final report requirements
+
+Every implementation report should explicitly state:
+
+```text
+What was built:
+What ran inside the VM:
+What could not run inside the VM:
+What requires a physical Android device:
+What requires macOS / iOS tooling:
+What dependencies were downloaded or added:
+Where dependencies were installed:
+What validation commands were run:
+What is stubbed or fake:
+What artifact or APK was produced:
+What command should the user run on Pixel 5:
+What the next recommended step is:
+```
 
 ---
 
@@ -706,25 +1058,35 @@ Multiplatform is preferred, Flutter is the main cross-platform fallback, and
 native Android Kotlin is the efficiency fallback. Verify current docs before
 committing.
 
-Then scaffold the smallest prototype:
-- Android camera preview or placeholder if camera setup blocks;
-- live detection overlay path, initially fake boxes if needed;
-- FPS/latency display;
-- model registry schema;
-- local failure-case capture;
-- Linux desktop still-image/video test path;
-- clear build/run docs.
+Then continue autonomously as far as practical:
+- install user-local dependencies;
+- scaffold the prototype under `tpl/shitspotter-phone-app/`;
+- build Android and Linux targets where possible;
+- create a live detection overlay path, initially fake boxes if needed;
+- add FPS/latency display;
+- add model registry schema;
+- add local failure-case capture;
+- add Linux desktop still-image/video test path;
+- document clear build/run/adb commands.
 
 Prioritize the hot path:
 CameraX ImageAnalysis on Android, latest-frame-only behavior, no unbounded
 frame queue, no required internet, no cloud inference, and honest performance
 instrumentation.
 
+Minimize Android/iOS branching above the detector backend interface. Keep shared
+model metadata, result types, overlay geometry, telemetry, and failure-case
+formats common. Allow thin platform adapters for camera acquisition, permissions,
+runtime bindings, and accelerator/delegate selection.
+
 At the end, report:
 - chosen stack and why;
 - exact commands run;
+- dependencies installed and where;
 - what works on Linux;
-- what works on Pixel 5 / Android;
+- what works in the VM;
+- what requires Pixel 5 validation;
+- what requires macOS/iOS tooling;
 - what remains stubbed;
 - validation results;
 - next risks.
