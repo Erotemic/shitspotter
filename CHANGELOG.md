@@ -38,7 +38,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
     the same letterbox + YOLOX postprocess in NumPy; full comparison
     archived at
     `tpl/shitspotter-phone-app/docs/004_kotlin_python_parity.md`.
-  - 119 commonTest + desktopTest cases all green. Operator checklist at
+  - 120 commonTest + desktopTest cases all green. Operator checklist at
     `tpl/shitspotter-phone-app/docs/001_build_run_validate.md`,
     benchmark schema at
     `tpl/shitspotter-phone-app/docs/002_benchmarks_template.md`,
