@@ -100,11 +100,16 @@ object CompareCli {
         return 0
     }
 
-    private fun argValue(args: Array<String>, key: String): String? {
+    /** Visible-for-test argument splitter. */
+    internal fun argValue(args: Array<String>, key: String): String? {
         val prefix = "$key="
         args.forEach { if (it.startsWith(prefix)) return it.removePrefix(prefix) }
         return null
     }
+
+    /** Visible-for-test repeated-argument collector. */
+    internal fun argValues(args: Array<String>, key: String): List<String> =
+        args.filter { it.startsWith("$key=") }.map { it.removePrefix("$key=") }
 
     private fun printHelp() {
         println(
@@ -137,8 +142,8 @@ object CompareCli {
 
     /** Best-effort match of a known ModelRegistry id from a file name, so
      *  the caller can drop the bare ONNX path and still get the right
-     *  preprocessing/postprocessing config. */
-    private fun guessModelIdFromPath(fileName: String): String? {
+     *  preprocessing/postprocessing config. Visible for test. */
+    internal fun guessModelIdFromPath(fileName: String): String? {
         val lower = fileName.lowercase()
         return ModelRegistry.all.firstOrNull { spec ->
             val mfLower = spec.modelFile.lowercase()
