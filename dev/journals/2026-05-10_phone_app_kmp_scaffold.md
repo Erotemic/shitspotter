@@ -123,6 +123,14 @@ at the time of this journal:
   `Fmt.ms2` / `Fmt.score` so the HUD and the CompareCli table use the
   same bit-exact rendering on both Android and JVM.
 
+- **Hard-invariant write-up** —
+  `dev/benchmark-candidates/app-deployment-questions.md` captures
+  five invariants that are easy to re-discover the wrong way:
+  ONNX shape mismatch deferral, PreviewView/overlay scale mismatch,
+  ignored rotationDegrees, YOLOX-nano cropped-only OOD behaviour,
+  and the 50 MB ABI overhead. Each entry says where the fix lives
+  in the scaffold so the next agent can find the lock.
+
 - **Front-camera toggle** — `state.useFrontCamera` plus a "front"
   switch in the toggle row. CameraAnalysisLoop captures the bind
   closure and re-binds CameraX on the main thread when the state
