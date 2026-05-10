@@ -70,6 +70,11 @@ fun main(args: Array<String>) {
     val settingsStore = FileSettingsStore()
     state.applySettings(settingsStore.load())
     val backend: DetectorBackend = chooseDesktopBackend(args)
+    PrintlnLogger.info(
+        "ShitSpotter.Desktop",
+        "active model = ${state.activeModelId} | backend = ${backend.backendName}" +
+            " | delegate = ${backend.delegate ?: "—"} | threshold = ${state.scoreThreshold}",
+    )
     val imageFile = loadStillImageFromArgs(args)
     val frameDir = argValue(args, "--frames")?.let { File(it) }
     val frame = imageFile?.takeIf { it.isFile }?.let { StillImageFrameSource.fromFile(it) }
