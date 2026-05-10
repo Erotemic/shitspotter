@@ -142,7 +142,8 @@ at the time of this journal:
   re-filter post-backend. Verified: at `--score-threshold=0.8` the
   dog.jpg test goes 3 dets → 0.
 
-- **Test count**: 117 tests across 24 files, all green. The remainder of
+- **Test count**: 117 tests across 28 files, all green (19 commonTest +
+  9 desktopTest). The remainder of
   this section enumerates them by file:
   - `GeometryTest` (8) — bbox intersect, IoU, NMS, letterbox round-trip,
     YOLOX postprocess
