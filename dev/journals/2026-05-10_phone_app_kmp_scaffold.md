@@ -324,6 +324,30 @@ A python venv used only by `scripts/python_reference_compare.py`:
 Recreating that is a single `python3 -m venv /tmp/onnx_venv && pip
 install onnx onnxruntime numpy pillow`.
 
+## What is stubbed or fake (per GOAL.md "Final report requirements")
+
+These are intentional and called out in the codebase / docs:
+
+- `StubDetectorBackend` — deterministic 1-box jitter, used as the
+  fallback when no model file is reachable and as the regression
+  fixture for UI/overlay/HUD tests. Stays in the codebase forever.
+- `TfliteBackendStub` — `NotImplementedError` with a pointer to
+  GOAL.md §LiteRT. Kicks in only if a future ModelSpec is flipped to
+  `format = TFLITE`.
+- `iosMain/IosActuals.kt` — minimal `nowMonoMs` + `BuildInfo` actuals
+  for the iOS target. The iOS targets themselves are gated behind
+  `-Pssp.enableIosTargets=true` because they need macOS / Xcode.
+- Release APK signing — reuses the AGP debug signing config. **NOT**
+  suitable for Play Store; replace with a real keystore + secret-managed
+  credentials before any public release.
+- App launcher icon — manifest removed `android:icon` so the Android
+  system default is used. A real icon is a docs/003 follow-up.
+- `composeApp/src/androidInstrumentedTest/` — the source set exists
+  but contains a heavily-commented placeholder, no real tests.
+- `iosApp/iosApp.xcodeproj` — does not exist. iOS app shell is
+  `iosMain/` actuals only; building requires Xcode and a real Xcode
+  project the next agent has to scaffold.
+
 ## Build commands cheat sheet (full version: `docs/001_build_run_validate.md`)
 
 ```bash
