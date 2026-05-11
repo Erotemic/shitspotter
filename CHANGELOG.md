@@ -8,6 +8,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added:
 
+* (2026-05-11): scaffolded the `experiments/mobile_app_training_v4/`
+  workflow targeting Pixel-5 live detection. Trains DEIMv2-N (primary
+  candidate), DEIMv2-Pico (speed fallback), and DEIMv2-S (DINOv3-backed
+  quality reference / future teacher) on a tile-augmented version of
+  the v9 split (`train_imgs10671_b277c63d` + 2x2 overlapping tiles per
+  source image). Includes ONNX export with a `*.modelspec.json` sidecar,
+  v9-canonical simplified-GT eval re-using `cli_predict_boxes`, a
+  torch↔ONNX parity guard, a desktop CPU latency benchmark, and a
+  prescriptive `07_register_in_phone_app.md` describing the
+  `PostprocessType.DEIMV2` change required on the phone-app side. The
+  v4 pipeline does NOT modify `shitspotter/algo_foundation_v3/` or the
+  in-tree phone app — it is self-contained and stages every artifact
+  under `$V4_ROOT` (default `$HOME/data/shitspotter_v4`). Journal entry:
+  `dev/journals/2026-05-11_mobile_app_training_v4.md`.
+
 * (2026-05-10): scaffolded the v2 phone app under
   `tpl/shitspotter-phone-app/` (Kotlin Multiplatform + Compose
   Multiplatform, Android-first). Milestone 0/1/2 are functionally
