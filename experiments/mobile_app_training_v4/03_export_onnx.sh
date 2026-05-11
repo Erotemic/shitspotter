@@ -164,16 +164,43 @@ mkdir -p "$STAGING_DPATH"
 STAGING_CKPT="$STAGING_DPATH/${EXPORT_BASENAME}.pth"
 ln -sf "$CKPT_FPATH" "$STAGING_CKPT"
 
+V4_ONNX_OPSET="${V4_ONNX_OPSET:-18}"
+V4_ONNX_SIMPLIFY="${V4_ONNX_SIMPLIFY:-True}"
+
+# torch >= 2.5's dynamo exporter targets opset 18 internally and
+# can't fully back-convert (Pad op has no opset-17 adapter), so we
+# default to 18. Override with V4_ONNX_OPSET=17 if the phone-app side
+# needs the older opset for compatibility.
+#
+# --simplify uses onnxsim, which is optional. If onnxsim isn't
+# installed we skip it; the unsimplified .onnx is still valid and
+# usable. 00_setup.sh tries to install onnxsim along with the rest
+# of the ONNX trio.
+EXPORT_ARGS=( --config "$GENERATED_CFG_FPATH" --resume "$STAGING_CKPT" --opset "$V4_ONNX_OPSET" --check )
+if v4_is_truthy "$V4_ONNX_SIMPLIFY" \
+    && "$PYTHON_BIN" - <<'PY' >/dev/null 2>&1
+import importlib.util, sys
+sys.exit(0 if importlib.util.find_spec('onnxsim') is not None else 1)
+PY
+then
+    EXPORT_ARGS+=( --simplify )
+elif v4_is_truthy "$V4_ONNX_SIMPLIFY"; then
+    echo "  WARNING: onnxsim not installed; skipping --simplify (unsimplified ONNX is still valid)" >&2
+    echo "    install with: $PYTHON_BIN -m pip install onnxsim" >&2
+fi
+
 (
     cd "$SHITSPOTTER_DEIMV2_REPO_DPATH"
-    "$PYTHON_BIN" tools/deployment/export_onnx.py \
-        --config "$GENERATED_CFG_FPATH" \
-        --resume "$STAGING_CKPT" \
-        --opset 17 \
-        --check \
-        --simplify
+    "$PYTHON_BIN" tools/deployment/export_onnx.py "${EXPORT_ARGS[@]}"
 )
 
+# If the upstream exporter died DURING --simplify (the .onnx file was
+# already written and onnx.checker passed, but onnxsim crashed), the
+# .onnx is on disk in the staging dir. Promote it out either way.
+if [ ! -f "$STAGING_DPATH/${EXPORT_BASENAME}.onnx" ]; then
+    echo "ERROR: ONNX file missing after export — $STAGING_DPATH/${EXPORT_BASENAME}.onnx" >&2
+    exit 1
+fi
 mv "$STAGING_DPATH/${EXPORT_BASENAME}.onnx" "$EXPORT_ONNX_FPATH"
 rm -rf "$STAGING_DPATH"
 

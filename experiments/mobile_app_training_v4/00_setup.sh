@@ -132,7 +132,10 @@ fi
 #                 06_benchmark_onnx_desktop.py
 if v4_is_truthy "$INSTALL_ONNX_DEPS"; then
     _v4_missing_onnx_pkgs=()
-    for pkg in onnxscript onnx onnxruntime; do
+    # onnxsim is used by DEIMv2's tools/deployment/export_onnx.py's
+    # --simplify step; without it the export wrapper skips simplify
+    # with a warning but the unsimplified .onnx is still produced.
+    for pkg in onnxscript onnx onnxruntime onnxsim; do
         if ! v4_have_pymodule "$pkg"; then
             _v4_missing_onnx_pkgs+=( "$pkg" )
         fi
