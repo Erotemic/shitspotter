@@ -97,34 +97,97 @@ echo "=== Simplify (v9-style cluster-level merge) ==="
 # `.simplified.kwcoco.zip`. Set V4_FORCE_SIMPLIFY=1 to make the
 # simplify failure fatal; the host-side prod env should always have
 # geowatch.
+#
+# Per-call status is recorded into the build manifest so downstream
+# steps (and the eligibility manifest) can tell whether each split
+# was actually simplified or silently copied. simplify_status values:
+#   simplified       - real simplify_kwcoco run succeeded
+#   reused           - existing simplified file on disk, not regenerated
+#   copied_fallback  - simplify failed, fell back to a straight cp
+#   failed           - simplify failed AND V4_FORCE_SIMPLIFY=1 -> abort
+TILE_BUILD_MANIFEST="$DATA_DPATH/tile_build_manifest.json"
+declare -A V4_SIMPLIFY_STATUS=()
+declare -A V4_SIMPLIFY_ERROR=()
+
 _v4_simplify_or_copy() {
-    local src="$1" dst="$2"
+    local split="$1" src="$2" dst="$3"
+    local err_log
+    err_log=$(mktemp)
     if "$PYTHON_BIN" -m shitspotter.cli.simplify_kwcoco \
             --src "$src" --dst "$dst" \
-            --minimum_instances "$V4_SIMPLIFY_MIN_INSTANCES"; then
+            --minimum_instances "$V4_SIMPLIFY_MIN_INSTANCES" 2> >(tee "$err_log" >&2); then
+        V4_SIMPLIFY_STATUS[$split]="simplified"
+        rm -f "$err_log"
         return 0
     fi
+    local err_msg
+    err_msg=$(tail -3 "$err_log" | tr '\n' ' ' | sed 's/[[:space:]]\+/ /g')
+    rm -f "$err_log"
     if v4_is_truthy "${V4_FORCE_SIMPLIFY:-0}"; then
         echo "  ERROR: simplify failed and V4_FORCE_SIMPLIFY=1" >&2
+        V4_SIMPLIFY_STATUS[$split]="failed"
+        V4_SIMPLIFY_ERROR[$split]="$err_msg"
         return 1
     fi
     echo "  WARNING: simplify_kwcoco failed (likely missing geowatch dep);" >&2
     echo "           falling back to a straight copy. Pass V4_FORCE_SIMPLIFY=1" >&2
     echo "           to make this fatal." >&2
     cp "$src" "$dst"
+    V4_SIMPLIFY_STATUS[$split]="copied_fallback"
+    V4_SIMPLIFY_ERROR[$split]="$err_msg"
 }
 
 if v4_is_truthy "$FORCE_TILE_REBUILD" || [ ! -f "$TRAIN_SIMPLIFIED_FPATH" ]; then
-    _v4_simplify_or_copy "$TRAIN_TILE_FPATH" "$TRAIN_SIMPLIFIED_FPATH"
+    _v4_simplify_or_copy train "$TRAIN_TILE_FPATH" "$TRAIN_SIMPLIFIED_FPATH"
 else
     echo "  reusing $TRAIN_SIMPLIFIED_FPATH"
+    V4_SIMPLIFY_STATUS[train]="reused"
 fi
 
 if v4_is_truthy "$FORCE_TILE_REBUILD" || [ ! -f "$VALI_SIMPLIFIED_FPATH" ]; then
-    _v4_simplify_or_copy "$VALI_TILE_FPATH" "$VALI_SIMPLIFIED_FPATH"
+    _v4_simplify_or_copy vali "$VALI_TILE_FPATH" "$VALI_SIMPLIFIED_FPATH"
 else
     echo "  reusing $VALI_SIMPLIFIED_FPATH"
+    V4_SIMPLIFY_STATUS[vali]="reused"
 fi
+
+# Write the manifest. Stable JSON layout so the eligibility step
+# (and tests) can read it back without inspecting filesystem state.
+"$PYTHON_BIN" - <<PY > "$TILE_BUILD_MANIFEST"
+import json, datetime
+manifest = {
+    "created_at": datetime.datetime.utcnow().isoformat() + "Z",
+    "v4_force_simplify": "${V4_FORCE_SIMPLIFY:-0}",
+    "minimum_instances": int("$V4_SIMPLIFY_MIN_INSTANCES"),
+    "tile_grid": int("$V4_TILE_GRID"),
+    "tile_overlap": float("$V4_TILE_OVERLAP"),
+    "tile_output_dim": int("$V4_TILE_OUTPUT_DIM"),
+    "splits": {
+        "train": {
+            "source_kwcoco": "$V4_TRAIN_FPATH",
+            "tile_kwcoco": "$TRAIN_TILE_FPATH",
+            "simplified_kwcoco": "$TRAIN_SIMPLIFIED_FPATH",
+            "simplify_status": "${V4_SIMPLIFY_STATUS[train]:-unknown}",
+            "simplify_required": True,
+            "simplify_error": "${V4_SIMPLIFY_ERROR[train]:-}",
+        },
+        "vali": {
+            "source_kwcoco": "$V4_VALI_FPATH",
+            "tile_kwcoco": "$VALI_TILE_FPATH",
+            "simplified_kwcoco": "$VALI_SIMPLIFIED_FPATH",
+            "simplify_status": "${V4_SIMPLIFY_STATUS[vali]:-unknown}",
+            "simplify_required": True,
+            "simplify_error": "${V4_SIMPLIFY_ERROR[vali]:-}",
+        },
+    },
+}
+print(json.dumps(manifest, indent=2))
+PY
+
+echo "  tile build manifest -> $TILE_BUILD_MANIFEST"
+for split in train vali; do
+    printf '    %-6s simplify_status=%s\n' "$split" "${V4_SIMPLIFY_STATUS[$split]}"
+done
 
 echo
 echo "=== Export MSCOCO json for DEIMv2 train.py ==="
