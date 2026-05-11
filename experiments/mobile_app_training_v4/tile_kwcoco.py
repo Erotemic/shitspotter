@@ -148,13 +148,20 @@ def _resize_with_long_side(image, max_dim):
 
 
 def _imwrite(fpath, image, ext, jpeg_quality):
+    # kwimage.imwrite forwards **kwargs straight to cv2.imwrite. cv2's
+    # JPEG-quality knob is a flat params list of (FLAG, value) ints,
+    # not a name=value kwarg. The previous code passed
+    # `imwrite_params=[('JPEG_QUALITY', q)]` which neither kwimage nor
+    # cv2 recognised, blowing up at the first imwrite call.
     import kwimage
-    kwargs = {}
     if ext.lower() in ('.jpg', '.jpeg'):
-        kwargs['imwrite_params'] = [
-            ('JPEG_QUALITY', int(jpeg_quality)),
-        ]
-    kwimage.imwrite(str(fpath), image, **kwargs)
+        import cv2
+        kwimage.imwrite(
+            str(fpath), image,
+            params=[int(cv2.IMWRITE_JPEG_QUALITY), int(jpeg_quality)],
+        )
+    else:
+        kwimage.imwrite(str(fpath), image)
 
 
 def run(config):

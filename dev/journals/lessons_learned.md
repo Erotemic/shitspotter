@@ -7,6 +7,113 @@ candidate.
 
 ---
 
+## 2026-05-11: mobile_app_training_v4 — four cross-library API failures the agent could not have caught
+
+### Trigger
+
+Scaffolded `experiments/mobile_app_training_v4/` from a VM with no GPU and
+no shitspotter Python env on PATH. All design + syntax + import-check
+work passed in the VM. The user then ran `run_all.sh` on the host and
+hit four runtime failures in sequence — each one a wrapper-API misuse
+that compiled fine and parsed fine but exploded at first invocation.
+
+### Symptoms
+
+1. `gdown --fuzzy` →
+   `__main__.py: error: unrecognized arguments: --fuzzy`
+2. `kwimage.imresize(image, (W, H), interpolation='area')` →
+   `cv2.error: Failed to allocate 44947419955200 bytes` on the first
+   image. The (W, H) tuple was interpreted as the *scale* parameter,
+   not `dsize`.
+3. `kwimage.imwrite(fpath, image, imwrite_params=[('JPEG_QUALITY', 90)])` →
+   `cv2.error: imwrite() got an unexpected keyword argument 'imwrite_params'`.
+   kwimage forwards `**kwargs` straight to `cv2.imwrite`, which expects
+   a flat `params=[INT_FLAG, INT_VALUE, ...]` list, not a name=value
+   kwarg, and definitely not whatever the kwimage-specific name was.
+4. `gdown` failure-mode caching: when Drive returned an HTML "quota
+   exceeded" stub, the saved `.pth` was a few KB. The next run's
+   `if [ -f "$dst" ]` short-circuit happily reused the bogus file as
+   "downloaded".
+
+### Root cause
+
+All four are the same shape: **shelling out to or wrapping a
+third-party API without verifying the call signature in the version
+actually installed.** The agent had no way to test against the real
+runtime — a hosted VM with no GPU and no shitspotter env can't
+exercise gdown, kwimage, or DEIMv2 — so every API call became a
+bet against an assumed signature.
+
+The specific assumptions that broke:
+
+* `gdown --fuzzy` was canonical in 4.x/5.x; gdown 6.0.0 (released
+  2026) dropped it because the URL parser now handles every form
+  natively. Old example commands transplanted into v4 docs without
+  re-checking the upstream changelog.
+* `kwimage.imresize`'s second positional is `scale`, not `dsize`.
+  The call read like English ("imresize this image to (1280, 960)")
+  and the misuse wasn't a type error — it was a value semantics error
+  that compiled fine and only surfaced as a multi-TB allocation.
+* `kwimage.imwrite` forwards `**kwargs` to `cv2.imwrite`. The
+  documentation for the friendly knob (JPEG quality) lives in cv2's
+  C++ docs. The pythonic-looking `imwrite_params=[('NAME', value)]`
+  form was hallucination, neither kwimage's API nor cv2's.
+* `gdown` writes whatever Drive returns to the destination path,
+  including HTML error pages, with exit code 0. The "did the file
+  download?" question is *not* answered by `[ -f "$dst" ]`.
+
+### Fix
+
+* `00_setup.sh`: drop `--fuzzy`, pass the bare file ID (works in
+  every gdown version), and require the saved file to be ≥ 1 MiB
+  before treating it as cached. SHA `8e905fb`.
+* `tile_kwcoco.py:_resize_with_long_side`: pass `dsize=` explicitly
+  to `kwimage.imresize`. SHA `985b5d6`.
+* `tile_kwcoco.py:_imwrite`: drop the spurious `imwrite_params`
+  kwarg; build the cv2-style flat `params=[cv2.IMWRITE_JPEG_QUALITY,
+  q]` list when JPEG, fall through to defaults otherwise. SHA below.
+
+### Durable lesson
+
+When writing wrapper code from inside an environment that cannot
+run the wrapped library, **the call site is at risk for every
+positional, every kwarg name, every CLI flag**. Mitigations, in
+descending order of value:
+
+1. **Prefer keyword arguments at every wrapper call site, even when
+   the positional form looks self-explanatory.** `kwimage.imresize(
+   img, dsize=(W, H))` makes the next bug-of-its-kind a `TypeError`
+   instead of a 45 TB allocation.
+2. **Treat external-CLI defaults as version-bound.** Pin the version
+   in setup, or re-read the upstream `--help` before quoting flags
+   from memory. `--fuzzy` was load-bearing for two years; that's how
+   long the agent's mental model can be wrong.
+3. **Never trust file-presence as success for a downloaded artifact.**
+   Min-size guard (this fix), or a hash check (better), or both.
+4. **The first run on the real host is the test suite.** Plan for it.
+   The four bugs above are exactly what a 5-minute smoke run would
+   have caught — the v4 `V4_RUN_ALL_SMOKE=1` mode now exists for
+   that reason. Use it before the full sweep.
+
+### Candidate follow-up
+
+* If a similar wrapper cluster appears again, promote
+  "wrapper API misuse" to a benchmark candidate in
+  `dev/benchmark-candidates/`. For now the four examples above are
+  variations on the same theme; one entry covers it.
+* The kwimage-imresize footgun in particular is generic — any agent
+  writing wrappers around kwimage should default to `dsize=` /
+  `scale=` keyword form rather than the positional shortcut.
+
+### Validation status
+
+After all four fixes, `run_all.sh` re-run by the user.
+Step 0 reused the (real, > 1 MiB) DEIMv2 weights and step 1
+proceeded past the first image without crashing. Subsequent steps
+were not yet exercised at the time of writing this entry.
+
+---
+
 ## 2026-05-10: Phone-app v2 scaffold — five hard invariants in one run
 
 ### Trigger
