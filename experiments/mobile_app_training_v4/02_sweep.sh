@@ -143,13 +143,19 @@ run_cell() {
     echo "=========================================================="
 
     # ---- 1. train ---------------------------------------------------------
+    # Dispatch on variant prefix: v4_mock_* uses the tiny torch trainer;
+    # everything else uses the DEIMv2 trainer.
+    case "$variant" in
+        v4_mock*) trainer="_train_v4_mock_variant.sh" ;;
+        *)        trainer="_train_deimv2_variant.sh" ;;
+    esac
     (
         set -o pipefail
         V4_VARIANT="$variant" \
         V4_INPUT_HW="$h $w" \
         V4_TRAIN_POLICY="$policy" \
         V4_RUN_TAG="$run_tag" \
-        bash "$V4_DEV_DPATH/_train_deimv2_variant.sh" 2>&1 | tee -a "$cell_log"
+        bash "$V4_DEV_DPATH/$trainer" 2>&1 | tee -a "$cell_log"
     )
     if [ "$?" -ne 0 ]; then
         stage_status="fail_train"; fail_stage="train"

@@ -143,7 +143,15 @@ def _resize_with_long_side(image, max_dim):
     # (img, scale=...), NOT (img, dsize=...) — passing the (W, H)
     # tuple positionally is interpreted as a scale factor, which on a
     # 4032x3024 phone image asks OpenCV to allocate a multi-TB buffer.
-    resized = kwimage.imresize(image, dsize=(new_w, new_h), interpolation='area')
+    #
+    # Interpolation: 'area' is the standard correct choice for
+    # downsampling, but kwimage's skimage backend (used when cv2 is
+    # missing) raises NotImplementedError on it. Fall back to 'linear'
+    # if that happens — slightly worse aliasing, still correct.
+    try:
+        resized = kwimage.imresize(image, dsize=(new_w, new_h), interpolation='area')
+    except NotImplementedError:
+        resized = kwimage.imresize(image, dsize=(new_w, new_h), interpolation='linear')
     return resized, scale
 
 

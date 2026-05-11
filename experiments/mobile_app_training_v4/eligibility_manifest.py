@@ -223,8 +223,25 @@ def _find_onnx_and_modelspec(workdir: Path) -> tuple:
     return str(onnx), (str(modelspec) if modelspec.exists() else '')
 
 
-def _find_eval_ap(v4_root: Path, candidate_id: str) -> Optional[float]:
+def _find_eval_ap(v4_root: Path, candidate_id: str,
+                  workdir: Optional[Path] = None) -> Optional[float]:
+    """Locate detect_metrics.json for a candidate.
+
+    Tries (in order):
+      1. <v4_root>/eval/<candidate_id>/eval/detect_metrics.json   (canonical)
+      2. <workdir>/../../eval/<candidate_id>/eval/detect_metrics.json
+         (when v4_root differs from the workdir's grandparent — e.g.
+         the manifest is invoked without --v4_root or V4_ROOT set,
+         and we need to infer the root from the sweep index's
+         workdir column).
+    """
     metrics_fpath = v4_root / 'eval' / candidate_id / 'eval' / 'detect_metrics.json'
+    if not metrics_fpath.exists() and workdir is not None:
+        # workdir is $V4_ROOT/runs/<candidate_id>; eval is $V4_ROOT/eval/<...>
+        inferred_root = workdir.parent.parent
+        cand = inferred_root / 'eval' / candidate_id / 'eval' / 'detect_metrics.json'
+        if cand.exists():
+            metrics_fpath = cand
     if not metrics_fpath.exists():
         return None
     try:
@@ -340,7 +357,7 @@ def run(config):
 
         ckpt = _find_checkpoint(workdir)
         onnx, modelspec = _find_onnx_and_modelspec(workdir)
-        ap = _find_eval_ap(v4_root, candidate_id)
+        ap = _find_eval_ap(v4_root, candidate_id, workdir=workdir)
         bench = _find_bench_metrics(workdir)
 
         scales = policy.get('effective_train_scales', [])

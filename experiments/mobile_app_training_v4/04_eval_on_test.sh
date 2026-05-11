@@ -39,6 +39,32 @@ GENERATED_CFG_FPATH="$WORKDIR/generated_configs/train.yml"
 v4_require_path "$WORKDIR"
 v4_require_path "$GENERATED_CFG_FPATH"
 
+# Dispatch v4_mock_* through the in-tree mock evaluator. Same on-disk
+# layout as the DEIMv2 path so eligibility_manifest reads it uniformly.
+case "$V4_VARIANT" in
+    v4_mock*)
+        EVAL_DPATH="$V4_ROOT/eval/${V4_VARIANT}_${V4_RUN_TAG}_${INPUT_H}x${INPUT_W}"
+        mkdir -p "$EVAL_DPATH/eval"
+        # Mock dispatcher always uses the V4_TEST_FPATH as-is — the
+        # mock is for plumbing tests, so we don't try to share v9's
+        # simplified test GT (which may have annotations missing bbox
+        # fields that crash kwcoco eval). Override with
+        # V4_MOCK_TEST_KWCOCO if you want a different test set.
+        SIMPLIFIED_TEST_FPATH="${V4_MOCK_TEST_KWCOCO:-$V4_TEST_FPATH}"
+        echo "=== mobile_app_training_v4 / 04 eval (mock dispatcher) ==="
+        printf '  %-32s %s\n' "WORKDIR"               "$WORKDIR"
+        printf '  %-32s %s\n' "EVAL_DPATH"            "$EVAL_DPATH"
+        printf '  %-32s %s\n' "SIMPLIFIED_TEST_FPATH" "$SIMPLIFIED_TEST_FPATH"
+        "$PYTHON_BIN" "$V4_DEV_DPATH/v4_mock.py" evaluate \
+            --workdir "$WORKDIR" \
+            --test_kwcoco "$SIMPLIFIED_TEST_FPATH" \
+            --out_dir "$EVAL_DPATH/eval" \
+            --score_thresh 0.05 \
+            --input_h "$INPUT_H" --input_w "$INPUT_W"
+        exit 0
+        ;;
+esac
+
 # Pick the best checkpoint (same selection rule as 03_export_onnx.sh)
 CKPT_FPATH=""
 for cand in best_stg2.pth best_stg1.pth last.pth; do

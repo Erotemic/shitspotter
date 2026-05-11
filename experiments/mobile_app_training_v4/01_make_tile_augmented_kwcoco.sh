@@ -90,20 +90,38 @@ fi
 
 echo
 echo "=== Simplify (v9-style cluster-level merge) ==="
+# simplify_kwcoco currently has a hidden runtime dep on geowatch
+# (`from geowatch.utils.util_kwimage import find_low_overlap_covering_boxes`).
+# When geowatch isn't installed (e.g. lean smoke envs), fall back to a
+# straight copy of the tile bundle so downstream stages still find a
+# `.simplified.kwcoco.zip`. Set V4_FORCE_SIMPLIFY=1 to make the
+# simplify failure fatal; the host-side prod env should always have
+# geowatch.
+_v4_simplify_or_copy() {
+    local src="$1" dst="$2"
+    if "$PYTHON_BIN" -m shitspotter.cli.simplify_kwcoco \
+            --src "$src" --dst "$dst" \
+            --minimum_instances "$V4_SIMPLIFY_MIN_INSTANCES"; then
+        return 0
+    fi
+    if v4_is_truthy "${V4_FORCE_SIMPLIFY:-0}"; then
+        echo "  ERROR: simplify failed and V4_FORCE_SIMPLIFY=1" >&2
+        return 1
+    fi
+    echo "  WARNING: simplify_kwcoco failed (likely missing geowatch dep);" >&2
+    echo "           falling back to a straight copy. Pass V4_FORCE_SIMPLIFY=1" >&2
+    echo "           to make this fatal." >&2
+    cp "$src" "$dst"
+}
+
 if v4_is_truthy "$FORCE_TILE_REBUILD" || [ ! -f "$TRAIN_SIMPLIFIED_FPATH" ]; then
-    "$PYTHON_BIN" -m shitspotter.cli.simplify_kwcoco \
-        --src "$TRAIN_TILE_FPATH" \
-        --dst "$TRAIN_SIMPLIFIED_FPATH" \
-        --minimum_instances "$V4_SIMPLIFY_MIN_INSTANCES"
+    _v4_simplify_or_copy "$TRAIN_TILE_FPATH" "$TRAIN_SIMPLIFIED_FPATH"
 else
     echo "  reusing $TRAIN_SIMPLIFIED_FPATH"
 fi
 
 if v4_is_truthy "$FORCE_TILE_REBUILD" || [ ! -f "$VALI_SIMPLIFIED_FPATH" ]; then
-    "$PYTHON_BIN" -m shitspotter.cli.simplify_kwcoco \
-        --src "$VALI_TILE_FPATH" \
-        --dst "$VALI_SIMPLIFIED_FPATH" \
-        --minimum_instances "$V4_SIMPLIFY_MIN_INSTANCES"
+    _v4_simplify_or_copy "$VALI_TILE_FPATH" "$VALI_SIMPLIFIED_FPATH"
 else
     echo "  reusing $VALI_SIMPLIFIED_FPATH"
 fi

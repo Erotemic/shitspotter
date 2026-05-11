@@ -49,6 +49,79 @@ GENERATED_CFG_FPATH="$WORKDIR/generated_configs/train.yml"
 v4_require_path "$WORKDIR"
 v4_require_path "$GENERATED_CFG_FPATH"
 
+# Dispatch v4_mock_* to the in-tree mock exporter and short-circuit
+# the DEIMv2 path. The mock writes to the same on-disk layout
+# (workdir/export/<name>.onnx + .modelspec.json) so the rest of the
+# pipeline doesn't care.
+case "$V4_VARIANT" in
+    v4_mock*)
+        EXPORT_DPATH="$WORKDIR/export"
+        mkdir -p "$EXPORT_DPATH"
+        EXPORT_BASENAME="${V4_VARIANT}_h${INPUT_H}_w${INPUT_W}"
+        EXPORT_ONNX_FPATH="$EXPORT_DPATH/${EXPORT_BASENAME}.onnx"
+        EXPORT_MODELSPEC_FPATH="$EXPORT_DPATH/${EXPORT_BASENAME}.modelspec.json"
+        echo "=== mobile_app_training_v4 / 03 ONNX export (mock dispatcher) ==="
+        printf '  %-32s %s\n' "VARIANT"           "$V4_VARIANT"
+        printf '  %-32s %s\n' "WORKDIR"           "$WORKDIR"
+        printf '  %-32s %s\n' "EXPORT_ONNX_FPATH" "$EXPORT_ONNX_FPATH"
+        "$PYTHON_BIN" "$V4_DEV_DPATH/v4_mock.py" export \
+            --workdir "$WORKDIR" \
+            --export_h "$INPUT_H" --export_w "$INPUT_W" \
+            --out "$EXPORT_ONNX_FPATH"
+        # Generate the same modelspec.json sidecar the DEIMv2 export emits,
+        # using policy.json as the source of truth for candidate identity.
+        POLICY_JSON_FPATH="$WORKDIR/policy.json"
+        v4_require_path "$POLICY_JSON_FPATH"
+        "$PYTHON_BIN" - <<PY > "$EXPORT_MODELSPEC_FPATH"
+import json, pathlib
+policy = json.loads(pathlib.Path("$POLICY_JSON_FPATH").read_text())
+variant   = policy.get("variant", "${V4_VARIANT}")
+exp_h     = int(policy.get("export_input_h", ${INPUT_H}))
+exp_w     = int(policy.get("export_input_w", ${INPUT_W}))
+train_pol = policy.get("train_resolution_policy", "")
+tile_pol  = policy.get("tile_training_policy", "")
+scales    = policy.get("effective_train_scales", [])
+phone_model_id = f"shitspotter-{variant}-h{exp_h}w{exp_w}-{train_pol}"
+spec = {
+    "modelId": phone_model_id,
+    "candidateId": policy.get("candidate_id", phone_model_id),
+    "phoneModelId": phone_model_id,
+    "displayName": f"ShitSpotter {variant} {exp_h}x{exp_w} ({train_pol})",
+    "modelFile": "${EXPORT_BASENAME}.onnx",
+    "format": "ONNX",
+    "inputWidth": exp_w,
+    "inputHeight": exp_h,
+    "inputLayout": "NCHW",
+    "colorOrder": "RGB",
+    "normalization": {"mean": [0.0, 0.0, 0.0], "std": [1.0, 1.0, 1.0],
+                       "scale": 0.00392156862745098},
+    "resizePolicy": "LETTERBOX",
+    "postprocessType": "DEIMV2",
+    "classNames": ["poop"],
+    "scoreThreshold": 0.30,
+    "iouThreshold": 0.45,
+    "trainResolutionPolicy": train_pol,
+    "effectiveTrainScales": scales,
+    "tileTrainingPolicy": tile_pol,
+    "trainingDatasetHint": f"v4_mock_smoke + {tile_pol}",
+    "v4PolicyJson": "$POLICY_JSON_FPATH",
+    "deimv2Schema": {
+        "inputNames":  ["images", "orig_target_sizes"],
+        "outputNames": ["labels", "boxes", "scores"],
+        "boxFormat":   "xyxy_pixels",
+        "passOrigSize": True,
+    },
+    "notes": "v4_mock — tiny torch detector for pipeline smoke tests; not a real detector.",
+}
+print(json.dumps(spec, indent=2))
+PY
+        ONNX_SIZE=$(du -h "$EXPORT_ONNX_FPATH" | awk '{print $1}')
+        printf '  %-32s %s\n' "ONNX size" "$ONNX_SIZE"
+        echo "Next: bash $V4_DEV_DPATH/04_eval_on_test.sh $V4_VARIANT $V4_RUN_TAG $INPUT_H $INPUT_W"
+        exit 0
+        ;;
+esac
+
 # Pick the best-available checkpoint
 CKPT_FPATH=""
 for cand in best_stg2.pth best_stg1.pth last.pth; do
