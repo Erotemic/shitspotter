@@ -69,6 +69,29 @@ PY
         "$PYTHON_BIN" -m pip install gdown
     fi
 
+    # Min size guard: Drive serves a tiny HTML "quota exceeded" / "needs
+    # confirmation" page on failure. Without this guard the next run
+    # would short-circuit and skip the redownload because a file exists.
+    # 1 MiB threshold is well below the smallest real DEIMv2 detector
+    # checkpoint (~5 MiB for Pico) and well above any error page.
+    _v4_min_download_bytes=$(( 1024 * 1024 ))
+
+    _v4_have_real_download() {
+        local p="$1"
+        [ -f "$p" ] || return 1
+        local sz
+        sz=$(stat -c '%s' "$p" 2>/dev/null || stat -f '%z' "$p" 2>/dev/null || echo 0)
+        [ "$sz" -ge "$_v4_min_download_bytes" ]
+    }
+
+    # gdown 6.x dropped --fuzzy (the URL parser now accepts every form
+    # natively). Pass the bare file ID, which has worked in every gdown
+    # version. For 6.x compatibility we don't pass --fuzzy.
+    _v4_gdown() {
+        local gid="$1" dst="$2"
+        "$PYTHON_BIN" -m gdown "$gid" -O "$dst"
+    }
+
     for variant in $V4_DEFAULT_VARIANTS; do
         gid="$(v4_variant_init_ckpt_url "$variant" || true)"
         if [ -z "$gid" ]; then
@@ -76,13 +99,21 @@ PY
             continue
         fi
         dst="$PRETRAINED_DPATH/${variant}_coco.pth"
-        if [ -f "$dst" ]; then
+        if _v4_have_real_download "$dst"; then
             echo "  reusing $dst"
         else
+            if [ -f "$dst" ]; then
+                echo "  $dst exists but is too small ($(stat -c '%s' "$dst" 2>/dev/null) bytes) — re-downloading"
+                rm -f "$dst"
+            fi
             echo "  downloading $variant pretrained -> $dst"
-            "$PYTHON_BIN" -m gdown --fuzzy \
-                "https://drive.google.com/file/d/${gid}/view?usp=sharing" \
-                -O "$dst"
+            _v4_gdown "$gid" "$dst"
+            if ! _v4_have_real_download "$dst"; then
+                echo "  ERROR: download of $variant looks bogus (under 1 MiB)" >&2
+                echo "  Drive may be throttling. Retry, or download manually:" >&2
+                echo "    https://drive.google.com/file/d/${gid}/view" >&2
+                exit 1
+            fi
         fi
     done
 
@@ -96,13 +127,21 @@ PY
             gid="${entry% *}"
             name="${entry##* }"
             dst="$DEIMV2_CKPTS_DPATH/$name"
-            if [ -f "$dst" ]; then
+            if _v4_have_real_download "$dst"; then
                 echo "  reusing $dst"
             else
+                if [ -f "$dst" ]; then
+                    echo "  $dst exists but is too small — re-downloading"
+                    rm -f "$dst"
+                fi
                 echo "  downloading backbone init -> $dst"
-                "$PYTHON_BIN" -m gdown --fuzzy \
-                    "https://drive.google.com/file/d/${gid}/view?usp=sharing" \
-                    -O "$dst"
+                _v4_gdown "$gid" "$dst"
+                if ! _v4_have_real_download "$dst"; then
+                    echo "  ERROR: download of $name looks bogus (under 1 MiB)" >&2
+                    echo "  Retry, or download manually:" >&2
+                    echo "    https://drive.google.com/file/d/${gid}/view" >&2
+                    exit 1
+                fi
             fi
         done
     fi
