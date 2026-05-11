@@ -139,7 +139,11 @@ def _resize_with_long_side(image, max_dim):
     scale = max_dim / float(long_side)
     new_w = max(1, int(round(w * scale)))
     new_h = max(1, int(round(h * scale)))
-    resized = kwimage.imresize(image, (new_w, new_h), interpolation='area')
+    # Pass dsize= explicitly. kwimage.imresize's positional API is
+    # (img, scale=...), NOT (img, dsize=...) — passing the (W, H)
+    # tuple positionally is interpreted as a scale factor, which on a
+    # 4032x3024 phone image asks OpenCV to allocate a multi-TB buffer.
+    resized = kwimage.imresize(image, dsize=(new_w, new_h), interpolation='area')
     return resized, scale
 
 
