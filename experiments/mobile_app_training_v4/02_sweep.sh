@@ -90,6 +90,14 @@ V4_SWEEP_BENCH_ITERS="${V4_SWEEP_BENCH_ITERS:-50}"
 V4_SWEEP_KEEP_GOING="${V4_SWEEP_KEEP_GOING:-0}"
 V4_BENCH_IMAGE="${V4_BENCH_IMAGE:-$SHITSPOTTER_DPATH/tpl/YOLOX/assets/dog.jpg}"
 
+# Raise FD limit for the whole sweep — see _train_deimv2_variant.sh
+# for the rationale. Doing it here too means bench/eval subprocesses
+# inherit the higher limit, not just the trainer.
+V4_FD_LIMIT="${V4_FD_LIMIT:-65536}"
+if [ "$(ulimit -n 2>/dev/null || echo 0)" -lt "$V4_FD_LIMIT" ] 2>/dev/null; then
+    ulimit -n "$V4_FD_LIMIT" 2>/dev/null || true
+fi
+
 SWEEP_LOG_DPATH="$V4_ROOT/sweeps/$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$SWEEP_LOG_DPATH"
 SWEEP_INDEX_FPATH="$SWEEP_LOG_DPATH/index.tsv"

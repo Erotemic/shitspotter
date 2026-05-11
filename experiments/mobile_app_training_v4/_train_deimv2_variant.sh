@@ -477,6 +477,54 @@ fi
 export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}"
 export TORCH_NCCL_ASYNC_ERROR_HANDLING="${TORCH_NCCL_ASYNC_ERROR_HANDLING:-1}"
 
+# Raise per-process file-descriptor limit before launching the torch
+# trainer. The default 1024 is too low for typical (workers x batch x
+# shared-tensor) IPC traffic — torch.multiprocessing.reduce_storage
+# opens a unix-domain socket per shared tensor, and we'd hit
+# `OSError: [Errno 24] Too many open files` deep inside DupFd a few
+# iterations into training. 65536 is well below the kernel default
+# hard limit (~1M on modern Linux) and well above what even an
+# 8-worker heavy-tensor loader needs.
+#
+# Override with V4_FD_LIMIT in env if your kernel has a lower cap.
+V4_FD_LIMIT="${V4_FD_LIMIT:-65536}"
+_v4_current_nofile=$(ulimit -n 2>/dev/null || echo 0)
+if [ "$_v4_current_nofile" -lt "$V4_FD_LIMIT" ] 2>/dev/null; then
+    if ulimit -n "$V4_FD_LIMIT" 2>/dev/null; then
+        echo "  raised RLIMIT_NOFILE: $_v4_current_nofile -> $(ulimit -n)"
+    else
+        echo "  WARNING: failed to raise RLIMIT_NOFILE from $_v4_current_nofile to $V4_FD_LIMIT" >&2
+        echo "    your shell hard-limit may be lower; check 'ulimit -Hn'" >&2
+    fi
+fi
+
+# Optional second-line defense: switch torch.multiprocessing's tensor
+# sharing from `file_descriptor` (one FD per shared tensor) to
+# `file_system` (uses /tmp shared memory, no FD per tensor). Slower
+# but FD-bounded. Enable with V4_TORCH_MP_SHARING=file_system if even
+# 65536 FDs isn't enough for your batch x worker config.
+#
+# We inject this via PYTHONSTARTUP because DEIMv2's train.py doesn't
+# expose the knob directly. PYTHONSTARTUP runs in interactive shells
+# only; for scripts we use -c to prepend the set call. Easiest: a
+# wrapper module via PYTHONPATH + sitecustomize.
+V4_TORCH_MP_SHARING="${V4_TORCH_MP_SHARING:-}"
+if [ -n "$V4_TORCH_MP_SHARING" ]; then
+    _v4_sitecust_dpath="$WORKDIR/_v4_sitecustomize"
+    mkdir -p "$_v4_sitecust_dpath"
+    cat > "$_v4_sitecust_dpath/sitecustomize.py" <<PY
+"""Auto-injected by mobile_app_training_v4: set torch IPC sharing
+strategy before any user code imports torch."""
+try:
+    import torch.multiprocessing as _v4_mp
+    _v4_mp.set_sharing_strategy("$V4_TORCH_MP_SHARING")
+except Exception:
+    pass
+PY
+    export PYTHONPATH="$_v4_sitecust_dpath${PYTHONPATH:+:$PYTHONPATH}"
+    echo "  torch.multiprocessing sharing strategy = $V4_TORCH_MP_SHARING"
+fi
+
 TRAIN_ARGS=( "$SHITSPOTTER_DEIMV2_REPO_DPATH/train.py" -c "$GENERATED_CFG_FPATH" )
 if [ -n "$V4_DEIMV2_INIT_CKPT" ]; then
     TRAIN_ARGS+=( -t "$V4_DEIMV2_INIT_CKPT" )
