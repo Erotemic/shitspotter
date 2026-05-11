@@ -98,6 +98,92 @@ EOF
 V4_LR="${V4_LR:-$DEFAULT_MAIN_LR}"
 V4_BACKBONE_LR="${V4_BACKBONE_LR:-$DEFAULT_BACKBONE_LR}"
 
+# ---------------------------------------------------------------------------
+# Training resolution policy (separate from the EXPORT resolution)
+#
+# Two axes of resolution to track per candidate:
+#
+#   export resolution: the fixed HxW the ONNX is exported at and the
+#       phone benchmarks against. Comes from V4_INPUT_HW.
+#
+#   train resolution policy: how the trainer samples scales during
+#       fine-tuning. Drives DEIMv2's BatchImageCollateFunction. Either:
+#         fixed                  — single scale, equals export size
+#         multiscale             — ±25% band around base_size=max(H,W)
+#                                  at 32-px granularity (the natural
+#                                  DEIMv2 generate_scales output)
+#         multiscale_<lo>_<hi>   — band whose floor/ceiling targets
+#                                  <lo>..<hi> pixels (e.g. multiscale_320_512)
+#         multiscale_<S>         — band centered on <S>
+#
+# The export resolution and the train policy are recorded separately in
+# the per-run manifest so the eligibility step can compare apples-to-
+# apples.
+#
+# DEIMv2 internals (see tpl/DEIMv2/engine/data/dataloader.py:generate_scales):
+#   scales = [.75*B step 32 ... B repeat=N ... 1.25*B step 32 down to B]
+# so multi-scale always produces a ±25% band at 32-px granularity.
+# ---------------------------------------------------------------------------
+V4_TRAIN_POLICY="${V4_TRAIN_POLICY:-multiscale}"
+V4_MULTISCALE_REPEAT="${V4_MULTISCALE_REPEAT:-12}"
+_V4_DEFAULT_MS_STOP=$(( V4_NUM_EPOCHS - 4 ))
+if [ "$_V4_DEFAULT_MS_STOP" -lt 1 ]; then _V4_DEFAULT_MS_STOP=$V4_NUM_EPOCHS; fi
+V4_MULTISCALE_STOP_EPOCH="${V4_MULTISCALE_STOP_EPOCH:-$_V4_DEFAULT_MS_STOP}"
+
+# Translate the policy string into (multiscale_repeat, base_size) for
+# the BatchImageCollateFunction override. Compute the actual scale list
+# so we can record it in the manifest.
+_V4_EXPORT_LONG=$(( INPUT_H > INPUT_W ? INPUT_H : INPUT_W ))
+case "$V4_TRAIN_POLICY" in
+    fixed)
+        MS_REPEAT=0
+        MS_BASE="$_V4_EXPORT_LONG"
+        ;;
+    multiscale)
+        MS_REPEAT="$V4_MULTISCALE_REPEAT"
+        MS_BASE="$_V4_EXPORT_LONG"
+        ;;
+    multiscale_*_*)
+        MS_LO="${V4_TRAIN_POLICY#multiscale_}"
+        MS_HI="${MS_LO#*_}"
+        MS_LO="${MS_LO%_*}"
+        # Pick base so that 0.75*base = lo and 1.25*base = hi when
+        # possible; default to (lo+hi)/2 rounded to 32.
+        MS_BASE=$(( (MS_LO + MS_HI) / 2 ))
+        MS_BASE=$(( ((MS_BASE + 16) / 32) * 32 ))
+        MS_REPEAT="$V4_MULTISCALE_REPEAT"
+        ;;
+    multiscale_*)
+        MS_BASE="${V4_TRAIN_POLICY#multiscale_}"
+        MS_REPEAT="$V4_MULTISCALE_REPEAT"
+        ;;
+    *)
+        echo "Unsupported V4_TRAIN_POLICY=$V4_TRAIN_POLICY" >&2
+        echo "  expected: fixed | multiscale | multiscale_<S> | multiscale_<lo>_<hi>" >&2
+        exit 1
+        ;;
+esac
+
+if [ "$MS_REPEAT" -gt 0 ]; then
+    MULTISCALE_BLOCK=$(cat <<EOF
+    collate_fn:
+      type: BatchImageCollateFunction
+      base_size: ${MS_BASE}
+      base_size_repeat: ${MS_REPEAT}
+      stop_epoch: ${V4_MULTISCALE_STOP_EPOCH}
+EOF
+)
+else
+    MULTISCALE_BLOCK=$(cat <<EOF
+    collate_fn:
+      type: BatchImageCollateFunction
+      base_size: ${MS_BASE}
+      base_size_repeat: ~
+      stop_epoch: 1
+EOF
+)
+fi
+
 # Optimizer block depends on backbone family (HGNetv2 vs DINOv3)
 case "$V4_VARIANT" in
     deimv2_atto|deimv2_femto|deimv2_pico|deimv2_n)
@@ -168,6 +254,7 @@ train_dataloader:
     img_folder: /
     ann_file: $TRAIN_MSCOCO_FPATH
     return_masks: false
+$MULTISCALE_BLOCK
 
 val_dataloader:
   total_batch_size: $V4_VAL_BATCH
@@ -182,6 +269,72 @@ epoches: $V4_NUM_EPOCHS
 $OPTIMIZER_BLOCK
 EOF
 
+# ---------------------------------------------------------------------------
+# Dump per-run policy manifest + resolved effective config so the
+# eligibility manifest can read everything back without guessing what
+# DEIMv2's __include__ chain actually produced. This is the answer to
+# "do not just set eval_spatial_size and assume training uses it".
+# ---------------------------------------------------------------------------
+POLICY_FPATH="$WORKDIR/policy.json"
+RESOLVED_CFG_FPATH="$WORKDIR/resolved_effective_config.yml"
+
+"$PYTHON_BIN" - <<PY > "$POLICY_FPATH"
+import json
+policy = {
+    "candidate_id": "${V4_VARIANT}_${V4_RUN_TAG}_${V4_INPUT_HW// /x}",
+    "variant": "${V4_VARIANT}",
+    "run_tag": "${V4_RUN_TAG}",
+    "export_input_h": ${INPUT_H},
+    "export_input_w": ${INPUT_W},
+    "train_resolution_policy": "${V4_TRAIN_POLICY}",
+    "multiscale_base_size": ${MS_BASE},
+    "multiscale_repeat": ${MS_REPEAT},
+    "multiscale_stop_epoch": ${V4_MULTISCALE_STOP_EPOCH},
+    "tile_training_policy": "tile_g${V4_TILE_GRID}_overlap${V4_TILE_OVERLAP}_out${V4_TILE_OUTPUT_DIM}",
+    "tile_grid": ${V4_TILE_GRID},
+    "tile_overlap": ${V4_TILE_OVERLAP},
+    "tile_output_dim": ${V4_TILE_OUTPUT_DIM},
+    "train_batch": ${V4_TRAIN_BATCH},
+    "val_batch": ${V4_VAL_BATCH},
+    "num_epochs": ${V4_NUM_EPOCHS},
+    "lr": ${V4_LR},
+    "backbone_lr": ${V4_BACKBONE_LR},
+    "use_amp": "${V4_USE_AMP}",
+    "init_ckpt": "${V4_DEIMV2_INIT_CKPT}",
+    "generated_train_cfg": "${GENERATED_CFG_FPATH}",
+}
+
+# Compute the actual scale list the trainer will see, mirroring
+# tpl/DEIMv2/engine/data/dataloader.py:generate_scales.
+def generate_scales(base_size, base_size_repeat):
+    if not base_size_repeat:
+        return [int(base_size)]
+    scale_repeat = (base_size - int(base_size * 0.75 / 32) * 32) // 32
+    scales  = [int(base_size * 0.75 / 32) * 32 + i * 32 for i in range(scale_repeat)]
+    scales += [base_size] * base_size_repeat
+    scales += [int(base_size * 1.25 / 32) * 32 - i * 32 for i in range(scale_repeat)]
+    return scales
+
+scales = generate_scales(int(${MS_BASE}), int(${MS_REPEAT}) or None)
+policy["effective_train_scales"] = sorted(set(scales))
+policy["effective_train_scale_min"] = min(scales)
+policy["effective_train_scale_max"] = max(scales)
+print(json.dumps(policy, indent=2))
+PY
+
+# Dump the fully-resolved DEIMv2 config (with __include__ expansion) so
+# we can see what train transforms / collate actually got. This catches
+# the "I set eval_spatial_size but did the train pipeline actually
+# resize there?" class of confusion.
+"$PYTHON_BIN" - <<PY > "$RESOLVED_CFG_FPATH" 2>/dev/null || \
+    echo "  (could not import engine.core.YAMLConfig; resolved config dump skipped)"
+import os, sys, yaml
+sys.path.insert(0, os.environ['SHITSPOTTER_DEIMV2_REPO_DPATH'])
+from engine.core import YAMLConfig
+cfg = YAMLConfig("$GENERATED_CFG_FPATH")
+print(yaml.safe_dump(cfg.yaml_cfg, sort_keys=False))
+PY
+
 echo "=== mobile_app_training_v4 / 02 train $V4_VARIANT ==="
 v4_print_env
 printf '  %-32s %s\n' "WORKDIR"             "$WORKDIR"
@@ -189,7 +342,10 @@ printf '  %-32s %s\n' "UPSTREAM_CFG_FPATH"  "$UPSTREAM_CFG_FPATH"
 printf '  %-32s %s\n' "GENERATED_CFG_FPATH" "$GENERATED_CFG_FPATH"
 printf '  %-32s %s\n' "TRAIN_MSCOCO"        "$TRAIN_MSCOCO_FPATH"
 printf '  %-32s %s\n' "VALI_MSCOCO"         "$VALI_MSCOCO_FPATH"
-printf '  %-32s %s\n' "INPUT_HW"            "$V4_INPUT_HW"
+printf '  %-32s %s\n' "EXPORT_INPUT_HW"     "$V4_INPUT_HW"
+printf '  %-32s %s\n' "TRAIN_POLICY"        "$V4_TRAIN_POLICY  (base=$MS_BASE, repeat=$MS_REPEAT, stop_epoch=$V4_MULTISCALE_STOP_EPOCH)"
+printf '  %-32s %s\n' "POLICY_FPATH"        "$POLICY_FPATH"
+printf '  %-32s %s\n' "RESOLVED_CFG_FPATH"  "$RESOLVED_CFG_FPATH"
 printf '  %-32s %s\n' "TRAIN_BATCH"         "$V4_TRAIN_BATCH"
 printf '  %-32s %s\n' "VAL_BATCH"           "$V4_VAL_BATCH"
 printf '  %-32s %s\n' "NUM_EPOCHS"          "$V4_NUM_EPOCHS"

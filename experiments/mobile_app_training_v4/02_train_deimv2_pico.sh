@@ -15,6 +15,7 @@ fi
 
 export V4_VARIANT="deimv2_pico"
 export V4_INPUT_HW="${V4_INPUT_HW:-320 320}"
+export V4_TRAIN_POLICY="${V4_TRAIN_POLICY:-multiscale_256_416}"
 export V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-128}"
 export V4_VAL_BATCH="${V4_VAL_BATCH:-256}"
 export V4_NUM_EPOCHS="${V4_NUM_EPOCHS:-80}"

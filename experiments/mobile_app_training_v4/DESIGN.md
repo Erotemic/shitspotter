@@ -3,14 +3,54 @@
 This is the longer-form rationale for why v4 looks the way it does.
 Pair it with the operational [README.md](README.md).
 
-## Problem statement
+## Problem statement (constrained optimization)
 
-> Build a poop detector that runs at **≥ 10 FPS** live on a Pixel 5,
-> while staying competitive in accuracy with the v9 OpenGroundingDINO
-> teacher (AP = 0.766 on simplified test GT) and supporting the new
-> KMP+Compose phone app's coarse-to-fine inference modes.
+```text
+maximize:  detection quality on the v9 simplified test GT
+subject to:
+  Pixel 5 live detection >= 10 FPS in the intended mode
+  exportable to ONNX / mobile runtime (fixed-shape first; dynamic later)
+  local-only inference
+  app preview remains responsive
+  failure-case capture still works
+  supports full-frame and ROI/tiled inference modes
+```
 
-Three axes are in tension:
+We train and evaluate a **Pareto frontier over both architecture and
+input resolution.** Resolution is a first-class axis, not just a
+hyperparameter.
+
+Each deployable model has a **fixed export resolution** for phone
+benchmarking, but **training may use bounded multi-resolution
+augmentation** to improve scale robustness within a band around the
+deploy size.
+
+A model is not selected because it is smallest or fastest. It is
+selected because it is the highest-quality candidate that satisfies the
+Pixel 5 deployment gates.
+
+### Eligibility rule (mechanical)
+
+```text
+A candidate is eligible only if it:
+  1. trains successfully;
+  2. exports to ONNX (fixed-shape);
+  3. passes PyTorch <-> ONNX parity;
+  4. runs in the phone app;
+  5. reaches >= 10 FPS on Pixel 5 in its intended mode;
+  6. keeps preview responsive;
+  7. preserves failure-case capture.
+
+Among eligible candidates, choose the one with the best AP on the v9
+simplified test GT (IoU=0.5).
+```
+
+Gates 1–3 are checked by the v4 scaffold itself (training, export,
+parity scripts). Gate 4–7 must be filled in by the host-side phone-app
+step. The desktop CPU latency benchmark (`06_benchmark_onnx_desktop.py`)
+is a *proxy* for gate 5 — it cannot replace it.
+
+### Three axes in tension
 
 1. **Latency budget** — 100 ms/frame total includes camera I/O, color
    conversion, model forward, postprocess, and overlay update. The
@@ -21,6 +61,11 @@ Three axes are in tension:
    10 671 / 1 258 / 121 train/vali/test images.
 3. **Deploy ergonomics** — ONNX-first, single-ABI APK, must-not-bloat
    the existing 29 MB debug build.
+
+The scaffold optimizes (1) jointly with (2) by sweeping
+(architecture × export resolution × train resolution policy) and
+recording per-cell quality + desktop latency + (eventually) on-device
+latency in a single eligibility manifest.
 
 ## Lessons we are *not* relearning
 
@@ -47,6 +92,76 @@ and the canonical-metric note in
 * **APK ABI explosion.** Stays at one ABI (arm64-v8a) — that's a
   property of the phone-app gradle config, not of v4, but step 7
   reminds us not to break it.
+
+## Candidate identity
+
+A "candidate" in v4 is uniquely identified by:
+
+```text
+variant                  e.g. deimv2_n, deimv2_pico, deimv2_s
+export_input_h           fixed export H (pixels)
+export_input_w           fixed export W (pixels)
+train_resolution_policy  e.g. fixed | multiscale | multiscale_320_512
+tile_training_policy     e.g. tile_g2_overlap0.20_out640
+```
+
+Each unique 5-tuple produces:
+
+* its own training workdir under `$V4_ROOT/runs/`,
+* its own ONNX export under `<workdir>/export/*.onnx`,
+* its own modelspec sidecar (`*.modelspec.json`),
+* its own eval row in the eligibility manifest, and
+* its own `ModelSpec` entry in the phone app.
+
+The phone app should be able to choose between candidates at runtime
+the same way it currently picks between YOLOX-nano-poop, custom-v5,
+and simple-v3.
+
+The default sweep covers:
+
+```text
+deimv2_n     320 × 320   multiscale_256_416
+deimv2_n     416 × 416   multiscale_320_512
+deimv2_pico  320 × 320   multiscale_256_416
+deimv2_pico  416 × 416   multiscale_320_512
+deimv2_n     512 × 512   multiscale_384_640
+deimv2_pico  512 × 512   multiscale_384_640
+deimv2_n     640 × 640   multiscale_512_768
+deimv2_s     640 × 640   multiscale_512_768
+```
+
+Cells are ordered cheapest-first so a sweep that hits the FPS gate
+early can be stopped before training the heavier rows.
+
+## Train vs. export resolution
+
+These two are deliberately separate fields on every candidate:
+
+```text
+export resolution         fixed, explicit, benchmarked, exported to ONNX
+train resolution policy   may include random multi-scale resize augmentation
+```
+
+DEIMv2's `BatchImageCollateFunction` already supports stochastic per-
+batch resizing centered on `base_size` with `base_size_repeat`
+controlling how many times each scale is repeated before switching
+(see `tpl/DEIMv2/engine/data/dataloader.py:generate_scales`). The
+policy strings map to that mechanism:
+
+```text
+fixed                    base_size_repeat=None — single scale
+multiscale               band of ±25% around base_size = max(H,W),
+                         32-px granularity, base_size repeated 12 times
+multiscale_<S>           ±25% band around <S>
+multiscale_<lo>_<hi>     band sized to target [lo, hi]; base picked as
+                         (lo+hi)/2 rounded to 32
+```
+
+The trainer dumps the *resolved effective config* and the *exact scale
+list it will sample from* to `<workdir>/policy.json` and
+`<workdir>/resolved_effective_config.yml` so we can verify what DEIMv2
+actually does — not just what we asked for. This is the answer to
+"don't just set `eval_spatial_size` and assume training uses it."
 
 ## Why DEIMv2 over alternatives
 

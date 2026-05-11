@@ -1,8 +1,17 @@
-# Step 7 — Register a v4 DEIMv2 model in the Pixel 5 phone app
+# Step 7 — Register v4 DEIMv2 candidates in the Pixel 5 phone app
 
 This document is **prescriptive** for the next agent (or you). It does
 NOT need to run on the VM — it's the changeset to apply on the host
 machine where the phone app is built and the Pixel 5 is sideloaded.
+
+Each v4 sweep cell becomes its **own** `ModelSpec` in the registry.
+There is no "one DEIMv2 model" — `deimv2_n_320`, `deimv2_n_416`,
+`deimv2_pico_416`, etc. are distinct entries because the winner of the
+Pareto sweep is resolution-dependent (e.g. `deimv2_pico_512` may beat
+`deimv2_n_320` on quality while still passing the FPS gate).
+
+The eligibility manifest tells you which entries to register and which
+to skip — `phone_model_id` and `pixel5_eligible` are the keys.
 
 ## Why this is its own step
 
@@ -15,6 +24,9 @@ parser. DEIMv2 is structurally different:
   coordinates** with respect to `orig_target_sizes`, not in grid units.
 * No anchors, no DFL distribution, no objectness — `scores` is the
   per-query confidence after the built-in postprocessor.
+* **Fixed input shape per export.** Each `(variant, export_h, export_w)`
+  produces its own ONNX. Dynamic-shape ONNX is a future step; for now
+  every registered entry has explicit `inputWidth`/`inputHeight`.
 
 That means the existing YOLO parsers will mis-decode DEIMv2 outputs.
 Add a new `PostprocessType.DEIMV2` so the model registry can dispatch
@@ -60,16 +72,21 @@ data class Deimv2Schema(
 val deimv2Schema: Deimv2Schema? = null,
 ```
 
-### 2. Add a registry entry
+### 2. Add one registry entry per eligible candidate
 
-Add a static `ModelSpec` companion entry whose values come straight from
-the `*.modelspec.json` sidecar that `03_export_onnx.sh` wrote next to
-the ONNX file. Example for `deimv2_n` at 320x320:
+The eligibility manifest emits one `phone_model_id` per row, e.g.
+`shitspotter-deimv2_n-h320w320-multiscale_256_416`. Add one
+`ModelSpec` per row whose `pixel5_eligible` is `yes` (or `TODO` if
+you're sideloading to *measure* it). Most of the fields come straight
+from the `*.modelspec.json` sidecar that `03_export_onnx.sh` wrote
+next to the ONNX file.
+
+Example for the `deimv2_n` 320x320 cell:
 
 ```kotlin
-val DEIMV2_N_TILE_G2_320 = ModelSpec(
-    modelId = "shitspotter-deimv2_n-tile_g2-h320w320",
-    displayName = "DEIMv2-N tile_g2 (320x320)",
+val DEIMV2_N_320 = ModelSpec(
+    modelId = "shitspotter-deimv2_n-h320w320-multiscale_256_416",
+    displayName = "DEIMv2-N 320x320 (multiscale 256-416)",
     modelFile = "deimv2_n_h320_w320.onnx",
     format = ModelFormat.ONNX,
     inputWidth = 320,
@@ -83,14 +100,18 @@ val DEIMV2_N_TILE_G2_320 = ModelSpec(
     scoreThreshold = 0.30f,
     iouThreshold = 0.45f,
     deimv2Schema = Deimv2Schema(),
-    notes = "v4 mobile_app_training_v4. DINOv3 teacher v9 — student DEIMv2-N. " +
-            "Two inputs (images, orig_target_sizes); three outputs in pixel coords. " +
-            "First Pixel 5 candidate for >=10 FPS.",
+    notes = "v4 sweep cell. Two inputs (images, orig_target_sizes); " +
+            "three outputs in pixel coords. Trained at multi-scale " +
+            "(256..416) so the same checkpoint is robust around 320 input.",
 )
 ```
 
-Add it to `ModelRegistry.all`. Keep STUB at index 0 so the app's default
-remains the safe one until the user picks the new model.
+Repeat for each eligible cell — `_416`, `_512`, etc. — and for the
+`deimv2_pico_*` family. Consider grouping them in the chip row so the
+user sees them as a family of choices, not a single entry.
+
+Add each to `ModelRegistry.all`. Keep STUB at index 0 so the app's
+default remains the safe one until the user picks a real model.
 
 ### 3. Implement the DEIMv2 backend path
 
@@ -133,16 +154,30 @@ the phone. The parity test catches the same "shape / output-name" class
 of bug that bit the YOLOX side at deploy time
 (`dev/journals/lessons_learned.md` §1).
 
-### 5. Add the model file to the sideload bundle
+### 5. Add the model files to the sideload bundle
 
 The phone app reads models from `tpl/poop_models/` (a separate
 submodule). The `*.onnx` artifacts in that folder are gitignored — copy
-the v4 export there manually, or via the existing
-`scripts/install_to_phone.sh` flow.
+each eligible v4 export there manually, or via the existing
+`scripts/install_to_phone.sh` flow. The eligibility manifest's
+`onnx_path` column tells you which files to copy.
 
 ```bash
-cp $V4_ROOT/runs/deimv2_n_tile_g2_320x320/export/deimv2_n_h320_w320.onnx \
-   $SHITSPOTTER_DPATH/tpl/poop_models/
+# All eligible exports in one go (filter the manifest however you like)
+"$PYTHON_BIN" - <<'PY'
+import csv, shutil, os
+from pathlib import Path
+manifest = Path(os.environ['V4_ROOT']) / 'manifest.tsv'
+dst = Path(os.environ['SHITSPOTTER_DPATH']) / 'tpl/poop_models'
+with manifest.open() as f:
+    for row in csv.DictReader(f, delimiter='\t'):
+        if row.get('pixel5_eligible') == 'no':
+            continue
+        onnx = row.get('onnx_path')
+        if onnx and Path(onnx).exists():
+            print('cp', onnx)
+            shutil.copy2(onnx, dst)
+PY
 ```
 
 ### 6. Run on-device benchmark
@@ -167,8 +202,31 @@ Pixel 5 live camera, FAST_FULL_FRAME mode:
   failure-case capture still works
 ```
 
-If DEIMv2-N misses the bar, fall back to DEIMv2-Pico (drop in via the
-same six steps, swapping the ONNX file and the registry entry).
+If a candidate misses the bar, drop the next-cheapest cell from the
+sweep into the registry the same way. The eligibility manifest is the
+single source of truth for which entries belong on the phone.
+
+After running the on-device benchmark, write a TSV like:
+
+```text
+candidate_id	latency_ms	fps
+shitspotter-deimv2_n-h320w320-multiscale_256_416	58.2	17.2
+shitspotter-deimv2_n-h416w416-multiscale_320_512	102.5	9.8
+```
+
+…and feed it back into the manifest:
+
+```bash
+"$PYTHON_BIN" experiments/mobile_app_training_v4/eligibility_manifest.py \
+    --auto \
+    --pixel5_index "$V4_ROOT/pixel5_bench.tsv" \
+    --max_desktop_ms 80 \
+    --min_pixel5_fps 10 \
+    --out "$V4_ROOT/manifest.tsv"
+```
+
+The script then prints the eligible winner — the highest-AP candidate
+that passes both gates.
 
 ---
 

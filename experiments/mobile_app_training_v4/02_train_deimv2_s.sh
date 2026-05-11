@@ -19,6 +19,7 @@ fi
 
 export V4_VARIANT="deimv2_s"
 export V4_INPUT_HW="${V4_INPUT_HW:-640 640}"
+export V4_TRAIN_POLICY="${V4_TRAIN_POLICY:-multiscale_512_768}"
 export V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-32}"
 export V4_VAL_BATCH="${V4_VAL_BATCH:-64}"
 # DEIMv2-S converges much faster than the upstream 132 epoch config when
