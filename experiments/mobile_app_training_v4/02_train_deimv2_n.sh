@@ -22,8 +22,8 @@ export V4_INPUT_HW="${V4_INPUT_HW:-320 320}"
 # HGNetv2 hybrid encoder doesn't support per-batch resize — see
 # _train_deimv2_variant.sh's per-variant default block. Keep at fixed.
 export V4_TRAIN_POLICY="${V4_TRAIN_POLICY:-fixed}"
-export V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-128}"
-export V4_VAL_BATCH="${V4_VAL_BATCH:-256}"
+export V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-32}"
+export V4_VAL_BATCH="${V4_VAL_BATCH:-64}"
 # 60 epochs is enough to fine-tune from COCO weights; the upstream config
 # defaults to 160 from a cold start.
 export V4_NUM_EPOCHS="${V4_NUM_EPOCHS:-60}"

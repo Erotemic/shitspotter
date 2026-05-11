@@ -17,8 +17,8 @@ export V4_VARIANT="deimv2_pico"
 export V4_INPUT_HW="${V4_INPUT_HW:-320 320}"
 # HGNetv2 hybrid encoder doesn't support per-batch resize.
 export V4_TRAIN_POLICY="${V4_TRAIN_POLICY:-fixed}"
-export V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-128}"
-export V4_VAL_BATCH="${V4_VAL_BATCH:-256}"
+export V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-64}"
+export V4_VAL_BATCH="${V4_VAL_BATCH:-128}"
 export V4_NUM_EPOCHS="${V4_NUM_EPOCHS:-80}"
 
 bash "$_v4_script_dpath/_train_deimv2_variant.sh"

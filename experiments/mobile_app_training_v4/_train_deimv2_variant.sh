@@ -41,26 +41,37 @@ unset _v4_source _v4_script_dpath
 # 02_train_*.sh entrypoints export these explicitly; the sweep
 # (02_sweep.sh) calls this trainer library directly without going
 # through them, so the defaults below are what the sweep uses unless
-# the user overrides via env. Tuned for a single 24 GB GPU.
+# the user overrides via env.
+#
+# Tuned for a SINGLE 24 GB GPU at the smallest sweep cell. Upstream's
+# total_batch_size assumes 8-GPU training (per-GPU 4 for N inheriting
+# the base dataloader); we pick batches that comfortably fit on one
+# 3090 with the deformable-attention sampling-locations allocation
+# headroom. If you have multiple GPUs, set V4_NUM_GPUS=N (the trainer
+# launches torch.distributed.run for N>1) and the per-GPU batch is
+# V4_TRAIN_BATCH / N.
+#
+# If you OOM, halve V4_TRAIN_BATCH:
+#   V4_TRAIN_BATCH=16 bash run_all.sh
 case "$V4_VARIANT" in
     deimv2_n)
-        V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-128}"
-        V4_VAL_BATCH="${V4_VAL_BATCH:-256}"
+        V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-32}"
+        V4_VAL_BATCH="${V4_VAL_BATCH:-64}"
         V4_NUM_EPOCHS="${V4_NUM_EPOCHS:-60}"
         ;;
     deimv2_pico)
-        V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-128}"
-        V4_VAL_BATCH="${V4_VAL_BATCH:-256}"
+        V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-64}"
+        V4_VAL_BATCH="${V4_VAL_BATCH:-128}"
         V4_NUM_EPOCHS="${V4_NUM_EPOCHS:-80}"
         ;;
     deimv2_s)
-        V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-32}"
-        V4_VAL_BATCH="${V4_VAL_BATCH:-64}"
+        V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-16}"
+        V4_VAL_BATCH="${V4_VAL_BATCH:-32}"
         V4_NUM_EPOCHS="${V4_NUM_EPOCHS:-30}"
         ;;
     deimv2_m|deimv2_l|deimv2_x)
-        V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-16}"
-        V4_VAL_BATCH="${V4_VAL_BATCH:-32}"
+        V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-8}"
+        V4_VAL_BATCH="${V4_VAL_BATCH:-16}"
         V4_NUM_EPOCHS="${V4_NUM_EPOCHS:-30}"
         ;;
     *)
@@ -536,13 +547,31 @@ if v4_is_truthy "$V4_USE_AMP"; then
     TRAIN_ARGS+=( --use-amp )
 fi
 
+_v4_train_failed() {
+    cat <<EOF >&2
+
+[v4 trainer] DEIMv2 train.py exited non-zero. Common causes & fixes:
+
+  - CUDA OOM:  retry with V4_TRAIN_BATCH=$((V4_TRAIN_BATCH / 2)) (half the current batch)
+              or V4_NUM_GPUS=N for multi-GPU.
+  - 'collate_fn' TypeError:  generated train.yml has wrong YAML indent
+                              (rare since the indent fix; check $GENERATED_CFG_FPATH).
+  - 'pos_embed' shape mismatch:  HGNetv2 encoder doesn't support multi-scale;
+                                  set V4_TRAIN_POLICY=fixed.
+  - 'Too many open files':  raise V4_FD_LIMIT or set V4_TORCH_MP_SHARING=file_system.
+
+Logs:  $WORKDIR/  +  generated cfg at $GENERATED_CFG_FPATH
+EOF
+    return 1
+}
+
 if [ "$V4_NUM_GPUS" -gt 1 ]; then
     "$PYTHON_BIN" -m torch.distributed.run \
         --master_port "${V4_MASTER_PORT:-29500}" \
         --nproc_per_node "$V4_NUM_GPUS" \
-        "${TRAIN_ARGS[@]}"
+        "${TRAIN_ARGS[@]}" || _v4_train_failed
 else
-    "$PYTHON_BIN" "${TRAIN_ARGS[@]}"
+    "$PYTHON_BIN" "${TRAIN_ARGS[@]}" || _v4_train_failed
 fi
 
 echo

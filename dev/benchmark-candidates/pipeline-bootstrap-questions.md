@@ -254,6 +254,90 @@ that encode architectural constraints.
 
 ---
 
+## Q4 — RLIMIT_NOFILE for torch dataloader IPC
+
+Status: draft
+Level: B
+Tags: env-bootstrap, torch-multiprocessing, fail-late, pipeline-orchestration
+Requires full dataset: no
+Requires trained weights: yes (any trained DEIMv2 cell + tile bundle)
+Pre-error SHA: `819a27a` (the day's bootstrap fixes done; trainer
+                          starts but dies a few iterations in)
+Fix SHA:       `aec1b82` (raise RLIMIT_NOFILE in sweep + trainer
+                          wrappers; optional file_system sharing
+                          strategy as a fallback)
+
+### Source context
+
+torch dataloader workers pass tensors back to the main process via
+`torch.multiprocessing.reduce_storage`, which opens a unix-domain
+socket per shared tensor (the `file_descriptor` sharing strategy).
+With 4 workers × batch=128 × O(many) shared tensors per batch, FD
+usage climbs past the default 1024 soft limit a few iterations into
+training:
+
+```text
+OSError: [Errno 24] Too many open files
+  File ".../torch/multiprocessing/reductions.py", line 616, in reduce_storage
+  File ".../multiprocessing/reduction.py", line 198, in DupFd
+```
+
+The crash happens *deep inside multiprocessing*, not where the
+trainer lives. Stack trace points to `DupFd` rather than to anything
+the user's code touches, so the root cause is non-obvious.
+
+### The hard question
+
+> Which torch-runtime-level resource limits (FDs, shared-memory
+> bytes, NCCL timeouts, CUDA allocator behaviour) are the trainer's
+> wrapper script responsible for setting before launching the
+> framework? Which are the framework's job?
+
+### Invariant to preserve
+
+Any v4 sweep cell launched on a fresh shell must not crash with
+`OSError: [Errno 24]` from inside torch.multiprocessing. The wrapper
+script must raise `RLIMIT_NOFILE` to a value safe for the
+configured (workers × batch × tensor count) at the upper end of the
+sweep matrix.
+
+### Acceptance criteria
+
+A pytest fixture that:
+
+1. Captures the soft FD limit before invoking
+   `_train_deimv2_variant.sh` in a subshell.
+2. Confirms that the script raises the soft limit to ≥ V4_FD_LIMIT
+   before the trainer subprocess is spawned.
+3. Does so silently when the limit is already ≥ V4_FD_LIMIT.
+4. Falls back gracefully (with a clear warning, no abort) when the
+   shell hard limit is below V4_FD_LIMIT.
+
+Bonus: smoke-train a v4_mock cell with `num_workers=8, batch=64` to
+verify no FD storm under the configured limit.
+
+### Why this is a benchmark question
+
+A future agent could:
+
+* Add a new sweep cell with bigger batch / more workers and not
+  re-check the FD math.
+* Refactor the wrapper scripts and forget to re-raise the limit.
+* Move the trainer launch into a helper that doesn't inherit the
+  ulimit -n call.
+
+Each regression silently produces a "trains for a few iterations
+then dies in DupFd" failure mode that's expensive to debug from the
+stack trace alone. The lesson: **treat RLIMIT_NOFILE as a contract
+between the wrapper script and the framework**, declared once near
+the launcher and never assumed to come from the user's shell.
+
+The fallback knob (`V4_TORCH_MP_SHARING=file_system`) is a useful
+escape valve for genuinely huge batch × worker configs where even
+65536 isn't enough — but it costs throughput, so default off.
+
+---
+
 ## Composition note
 
 Q1, Q2, Q3 chain: an agent who skips the pre-flight (Q2) won't
