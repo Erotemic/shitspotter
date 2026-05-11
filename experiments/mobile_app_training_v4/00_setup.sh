@@ -1,10 +1,18 @@
 #!/bin/bash
 # Sanity-check the v4 environment: print resolved paths, verify required
 # inputs exist, optionally download pretrained DEIMv2 detector checkpoints,
-# and report GPU availability.
+# install missing python deps, and report GPU availability.
 #
-# This script is safe to re-run. It is read-mostly and only writes into
+# This script is safe to re-run. Read-mostly; only writes into
 # $V4_ROOT/pretrained when downloading.
+#
+# Knobs:
+#   DOWNLOAD_PRETRAINED=True/False  (default True) — fetch the DEIMv2
+#       pretrained .pth files via gdown.
+#   INSTALL_ONNX_DEPS=True/False    (default True) — install onnxscript +
+#       onnx + onnxruntime when missing.
+#   INSTALL_DEIMV2_DEPS=True/False  (default True) — install everything in
+#       tpl/DEIMv2/requirements.txt that isn't already importable.
 
 set -euo pipefail
 
@@ -19,9 +27,51 @@ source "$_v4_script_dpath/common.sh"
 unset _v4_source _v4_script_dpath
 
 DOWNLOAD_PRETRAINED="${DOWNLOAD_PRETRAINED:-True}"
+INSTALL_ONNX_DEPS="${INSTALL_ONNX_DEPS:-True}"
+INSTALL_DEIMV2_DEPS="${INSTALL_DEIMV2_DEPS:-True}"
 PRETRAINED_DPATH="$V4_ROOT/pretrained/deimv2"
 DEIMV2_CKPTS_DPATH="$SHITSPOTTER_DEIMV2_REPO_DPATH/ckpts"
 mkdir -p "$PRETRAINED_DPATH" "$DEIMV2_CKPTS_DPATH"
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+# Returns 0 if the named Python module is importable, 1 otherwise.
+# Module name is the importable name (foo.bar style), not the PyPI dist name.
+v4_have_pymodule() {
+    local mod="$1"
+    "$PYTHON_BIN" - <<PY 2>/dev/null
+import importlib.util
+import sys
+sys.exit(0 if importlib.util.find_spec("$mod") is not None else 1)
+PY
+}
+
+# Min-size guard: gdown silently writes Drive's "quota exceeded" HTML
+# stub when a download fails. Threshold (1 MiB) is below the smallest
+# real DEIMv2 detector checkpoint (~5 MiB for Pico) and well above any
+# error page.
+_v4_min_download_bytes=$(( 1024 * 1024 ))
+
+v4_have_real_download() {
+    local p="$1"
+    [ -f "$p" ] || return 1
+    local sz
+    sz=$(stat -c '%s' "$p" 2>/dev/null || stat -f '%z' "$p" 2>/dev/null || echo 0)
+    [ "$sz" -ge "$_v4_min_download_bytes" ]
+}
+
+# gdown 6.x dropped --fuzzy. Pass the bare file ID, which works in
+# every gdown version we've tested.
+v4_gdown() {
+    local gid="$1" dst="$2"
+    "$PYTHON_BIN" -m gdown "$gid" -O "$dst"
+}
+
+# ---------------------------------------------------------------------------
+# Banner + path checks
+# ---------------------------------------------------------------------------
 
 echo "=== mobile_app_training_v4 environment ==="
 v4_print_env
@@ -53,72 +103,90 @@ if [ -e "$V9_SELECTED_MANIFEST_FPATH" ]; then
     echo "  manifest: $V9_SELECTED_MANIFEST_FPATH"
 fi
 
+# ---------------------------------------------------------------------------
+# gdown + ONNX trio + DEIMv2 runtime deps
+#
+# These are all "what does the host need installed before the pipeline
+# can run" — handled here so the first sweep cell doesn't crash 30s
+# into a fresh setup with `ModuleNotFoundError`. Each block is
+# independent and only invokes pip when something is actually missing.
+# ---------------------------------------------------------------------------
+
 echo
-echo "=== Pretrained DEIMv2 detector checkpoints ==="
+echo "=== Python deps ==="
+
+# gdown: needed for the pretrained-checkpoint downloads below.
 if v4_is_truthy "$DOWNLOAD_PRETRAINED"; then
-    # The `if ! "$PYTHON_BIN" - <<PY` form is the only one that survives
-    # `set -euo pipefail`. The earlier `$?`-check pattern aborted the
-    # script before reaching the install branch when gdown was missing.
-    if ! "$PYTHON_BIN" - <<'PY'
-import importlib.util
-import sys
-sys.exit(0 if importlib.util.find_spec('gdown') is not None else 1)
-PY
-    then
-        echo "  installing gdown into the active Python env"
+    if ! v4_have_pymodule gdown; then
+        echo "  installing gdown"
         "$PYTHON_BIN" -m pip install gdown
     fi
+fi
 
-    # ONNX trio:
-    #   onnxscript    required by torch.onnx.export on torch >= 2.5
-    #                 (the import happens inside torch.onnx.__init__,
-    #                 even when dynamo=False)
-    #   onnx          required at export time to actually serialise
-    #                 the graph
-    #   onnxruntime   required by 05_desktop_onnx_parity.py and
-    #                 06_benchmark_onnx_desktop.py
-    #
-    # Install whichever is missing — pip install is a no-op when
-    # already present.
+# ONNX trio:
+#   onnxscript    required by torch.onnx.export on torch >= 2.5 (the
+#                 import happens inside torch.onnx.__init__, even when
+#                 dynamo=False)
+#   onnx          required at export time to actually serialise the graph
+#   onnxruntime   required by 05_desktop_onnx_parity.py and
+#                 06_benchmark_onnx_desktop.py
+if v4_is_truthy "$INSTALL_ONNX_DEPS"; then
     _v4_missing_onnx_pkgs=()
     for pkg in onnxscript onnx onnxruntime; do
-        if ! "$PYTHON_BIN" - <<PY
-import importlib.util
-import sys
-sys.exit(0 if importlib.util.find_spec("$pkg") is not None else 1)
-PY
-        then
+        if ! v4_have_pymodule "$pkg"; then
             _v4_missing_onnx_pkgs+=( "$pkg" )
         fi
     done
     if [ "${#_v4_missing_onnx_pkgs[@]}" -gt 0 ]; then
         echo "  installing ONNX deps: ${_v4_missing_onnx_pkgs[*]}"
         "$PYTHON_BIN" -m pip install "${_v4_missing_onnx_pkgs[@]}"
+    else
+        echo "  ONNX deps already present"
     fi
+fi
 
-    # Min size guard: Drive serves a tiny HTML "quota exceeded" / "needs
-    # confirmation" page on failure. Without this guard the next run
-    # would short-circuit and skip the redownload because a file exists.
-    # 1 MiB threshold is well below the smallest real DEIMv2 detector
-    # checkpoint (~5 MiB for Pico) and well above any error page.
-    _v4_min_download_bytes=$(( 1024 * 1024 ))
+# DEIMv2 runtime deps from tpl/DEIMv2/requirements.txt (faster_coco_eval,
+# calflops, transformers, tensorboard, scipy, PyYAML, ...). These aren't
+# shitspotter deps; declaring them here means the sweep's first DEIMv2
+# cell doesn't crash with ModuleNotFoundError partway through training.
+if v4_is_truthy "$INSTALL_DEIMV2_DEPS"; then
+    DEIMV2_REQ_FPATH="$SHITSPOTTER_DEIMV2_REPO_DPATH/requirements.txt"
+    if [ ! -f "$DEIMV2_REQ_FPATH" ]; then
+        echo "  WARNING: $DEIMV2_REQ_FPATH not found — DEIMv2 submodule not initialised?"
+    else
+        _v4_missing_deimv2_pkgs=()
+        # Probe each declared package; only invoke pip if any are missing.
+        # Map PyPI dist name -> Python module name where they differ
+        # (faster-coco-eval -> faster_coco_eval, PyYAML -> yaml, etc).
+        while IFS= read -r line; do
+            line="${line%%#*}"
+            pkg=$(echo "$line" | sed -E 's/[[:space:]]+//g; s/[><=!~].*$//')
+            [ -z "$pkg" ] && continue
+            case "$pkg" in
+                PyYAML) mod=yaml ;;
+                *)      mod=$(echo "$pkg" | tr '[:upper:]-' '[:lower:]_') ;;
+            esac
+            if ! v4_have_pymodule "$mod"; then
+                _v4_missing_deimv2_pkgs+=( "$line" )
+            fi
+        done < "$DEIMV2_REQ_FPATH"
 
-    _v4_have_real_download() {
-        local p="$1"
-        [ -f "$p" ] || return 1
-        local sz
-        sz=$(stat -c '%s' "$p" 2>/dev/null || stat -f '%z' "$p" 2>/dev/null || echo 0)
-        [ "$sz" -ge "$_v4_min_download_bytes" ]
-    }
+        if [ "${#_v4_missing_deimv2_pkgs[@]}" -gt 0 ]; then
+            echo "  installing DEIMv2 deps: ${_v4_missing_deimv2_pkgs[*]}"
+            "$PYTHON_BIN" -m pip install "${_v4_missing_deimv2_pkgs[@]}"
+        else
+            echo "  DEIMv2 deps already present"
+        fi
+    fi
+fi
 
-    # gdown 6.x dropped --fuzzy (the URL parser now accepts every form
-    # natively). Pass the bare file ID, which has worked in every gdown
-    # version. For 6.x compatibility we don't pass --fuzzy.
-    _v4_gdown() {
-        local gid="$1" dst="$2"
-        "$PYTHON_BIN" -m gdown "$gid" -O "$dst"
-    }
+# ---------------------------------------------------------------------------
+# Pretrained DEIMv2 detector checkpoints
+# ---------------------------------------------------------------------------
 
+echo
+echo "=== Pretrained DEIMv2 detector checkpoints ==="
+if v4_is_truthy "$DOWNLOAD_PRETRAINED"; then
     for variant in $V4_DEFAULT_VARIANTS; do
         gid="$(v4_variant_init_ckpt_url "$variant" || true)"
         if [ -z "$gid" ]; then
@@ -126,7 +194,7 @@ PY
             continue
         fi
         dst="$PRETRAINED_DPATH/${variant}_coco.pth"
-        if _v4_have_real_download "$dst"; then
+        if v4_have_real_download "$dst"; then
             echo "  reusing $dst"
         else
             if [ -f "$dst" ]; then
@@ -134,8 +202,8 @@ PY
                 rm -f "$dst"
             fi
             echo "  downloading $variant pretrained -> $dst"
-            _v4_gdown "$gid" "$dst"
-            if ! _v4_have_real_download "$dst"; then
+            v4_gdown "$gid" "$dst"
+            if ! v4_have_real_download "$dst"; then
                 echo "  ERROR: download of $variant looks bogus (under 1 MiB)" >&2
                 echo "  Drive may be throttling. Retry, or download manually:" >&2
                 echo "    https://drive.google.com/file/d/${gid}/view" >&2
@@ -154,7 +222,7 @@ PY
             gid="${entry% *}"
             name="${entry##* }"
             dst="$DEIMV2_CKPTS_DPATH/$name"
-            if _v4_have_real_download "$dst"; then
+            if v4_have_real_download "$dst"; then
                 echo "  reusing $dst"
             else
                 if [ -f "$dst" ]; then
@@ -162,8 +230,8 @@ PY
                     rm -f "$dst"
                 fi
                 echo "  downloading backbone init -> $dst"
-                _v4_gdown "$gid" "$dst"
-                if ! _v4_have_real_download "$dst"; then
+                v4_gdown "$gid" "$dst"
+                if ! v4_have_real_download "$dst"; then
                     echo "  ERROR: download of $name looks bogus (under 1 MiB)" >&2
                     echo "  Retry, or download manually:" >&2
                     echo "    https://drive.google.com/file/d/${gid}/view" >&2
@@ -175,6 +243,10 @@ PY
 else
     echo "  DOWNLOAD_PRETRAINED=False — skipping pretrained download"
 fi
+
+# ---------------------------------------------------------------------------
+# GPU report
+# ---------------------------------------------------------------------------
 
 echo
 echo "=== GPU report ==="
@@ -195,6 +267,8 @@ fi
 echo
 echo "Setup complete. Next steps:"
 echo "  1. bash $V4_DEV_DPATH/01_make_tile_augmented_kwcoco.sh"
-echo "  2. bash $V4_DEV_DPATH/02_train_deimv2_n.sh           # primary phone candidate"
-echo "  3. bash $V4_DEV_DPATH/02_train_deimv2_pico.sh        # speed fallback"
-echo "  4. bash $V4_DEV_DPATH/02_train_deimv2_s.sh           # quality reference"
+echo "  2. bash $V4_DEV_DPATH/02_sweep.sh                       # full Pareto sweep"
+echo "    or:"
+echo "     bash $V4_DEV_DPATH/02_train_deimv2_n.sh              # primary phone candidate"
+echo "     bash $V4_DEV_DPATH/02_train_deimv2_pico.sh           # speed fallback"
+echo "     bash $V4_DEV_DPATH/02_train_deimv2_s.sh              # quality reference"

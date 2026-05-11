@@ -246,22 +246,27 @@ fi
 echo "  ---------------------------------"
 echo
 
+# IMPORTANT: 2-space outer indent so collate_fn is a sibling of
+# dataset under train_dataloader. With 4 spaces YAML reads collate_fn
+# as a child of dataset, which makes DEIMv2's workspace.create() pass
+# it as a kwarg to CocoDetection.__init__ — and CocoDetection has no
+# `collate_fn` parameter, so the trainer dies with TypeError.
 if [ "$MS_REPEAT" -gt 0 ]; then
     MULTISCALE_BLOCK=$(cat <<EOF
-    collate_fn:
-      type: BatchImageCollateFunction
-      base_size: ${MS_BASE}
-      base_size_repeat: ${MS_REPEAT}
-      stop_epoch: ${V4_MULTISCALE_STOP_EPOCH}
+  collate_fn:
+    type: BatchImageCollateFunction
+    base_size: ${MS_BASE}
+    base_size_repeat: ${MS_REPEAT}
+    stop_epoch: ${V4_MULTISCALE_STOP_EPOCH}
 EOF
 )
 else
     MULTISCALE_BLOCK=$(cat <<EOF
-    collate_fn:
-      type: BatchImageCollateFunction
-      base_size: ${MS_BASE}
-      base_size_repeat: ~
-      stop_epoch: 1
+  collate_fn:
+    type: BatchImageCollateFunction
+    base_size: ${MS_BASE}
+    base_size_repeat: ~
+    stop_epoch: 1
 EOF
 )
 fi
