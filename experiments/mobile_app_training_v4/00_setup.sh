@@ -69,19 +69,31 @@ PY
         "$PYTHON_BIN" -m pip install gdown
     fi
 
-    # onnxscript is required by torch.onnx.export on torch >= 2.5 even
-    # when the user passes dynamo=False — the import happens at
-    # function-call time inside torch.onnx.__init__. Block here so
-    # both the v4_mock export AND the DEIMv2 tools/deployment/
-    # export_onnx.py paths just work later in the sweep.
-    if ! "$PYTHON_BIN" - <<'PY'
+    # ONNX trio:
+    #   onnxscript    required by torch.onnx.export on torch >= 2.5
+    #                 (the import happens inside torch.onnx.__init__,
+    #                 even when dynamo=False)
+    #   onnx          required at export time to actually serialise
+    #                 the graph
+    #   onnxruntime   required by 05_desktop_onnx_parity.py and
+    #                 06_benchmark_onnx_desktop.py
+    #
+    # Install whichever is missing — pip install is a no-op when
+    # already present.
+    _v4_missing_onnx_pkgs=()
+    for pkg in onnxscript onnx onnxruntime; do
+        if ! "$PYTHON_BIN" - <<PY
 import importlib.util
 import sys
-sys.exit(0 if importlib.util.find_spec('onnxscript') is not None else 1)
+sys.exit(0 if importlib.util.find_spec("$pkg") is not None else 1)
 PY
-    then
-        echo "  installing onnxscript (required by torch.onnx.export on torch>=2.5)"
-        "$PYTHON_BIN" -m pip install onnxscript
+        then
+            _v4_missing_onnx_pkgs+=( "$pkg" )
+        fi
+    done
+    if [ "${#_v4_missing_onnx_pkgs[@]}" -gt 0 ]; then
+        echo "  installing ONNX deps: ${_v4_missing_onnx_pkgs[*]}"
+        "$PYTHON_BIN" -m pip install "${_v4_missing_onnx_pkgs[@]}"
     fi
 
     # Min size guard: Drive serves a tiny HTML "quota exceeded" / "needs
