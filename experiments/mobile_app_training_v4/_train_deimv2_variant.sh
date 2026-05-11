@@ -37,45 +37,81 @@ unset _v4_source _v4_script_dpath
 : "${V4_VARIANT:?V4_VARIANT must be set by the caller}"
 : "${V4_INPUT_HW:?V4_INPUT_HW must be set by the caller (e.g. \"320 320\")}"
 
-# Variant-keyed defaults for the batch/epoch knobs. The per-variant
-# 02_train_*.sh entrypoints export these explicitly; the sweep
-# (02_sweep.sh) calls this trainer library directly without going
-# through them, so the defaults below are what the sweep uses unless
-# the user overrides via env.
+# Parse INPUT_H/W early — the variant-keyed batch defaults below scale
+# by input size. (We re-do the parse later for the YAML overrides;
+# both run on the same V4_INPUT_HW.)
+INPUT_H="${V4_INPUT_HW% *}"
+INPUT_W="${V4_INPUT_HW#* }"
+
+# Variant + input-size keyed defaults for batch / epochs.
 #
-# Tuned for a SINGLE 24 GB GPU at the smallest sweep cell. Upstream's
-# total_batch_size assumes 8-GPU training (per-GPU 4 for N inheriting
-# the base dataloader); we pick batches that comfortably fit on one
-# 3090 with the deformable-attention sampling-locations allocation
-# headroom. If you have multiple GPUs, set V4_NUM_GPUS=N (the trainer
-# launches torch.distributed.run for N>1) and the per-GPU batch is
-# V4_TRAIN_BATCH / N.
+# Tuned for a SINGLE 24 GB GPU using a measured datapoint:
+#   deimv2_n @ 320x320 batch=32 -> 8.1 GB training footprint
+#   (nvidia-smi 2026-05-11)
 #
-# If you OOM, halve V4_TRAIN_BATCH:
-#   V4_TRAIN_BATCH=16 bash run_all.sh
+# Per-sample cost ~ 0.25 GB at 320 reference; scales ~linearly with
+# batch and ~quadratically with input area. The defaults below
+# target ~16-20 GB of training memory across cells so there's
+# headroom for the deformable-attention sampling_locations spike
+# without OOMing.
+#
+# Upstream's total_batch_size assumes 8-GPU training (per-GPU 4 for
+# N inheriting the base dataloader); we pick larger per-GPU batches
+# because we have one 24 GB GPU instead of eight smaller ones.
+#
+# Override per cell: V4_TRAIN_BATCH=N bash 02_train_deimv2_n.sh
+#
+# Multi-GPU (V4_NUM_GPUS=N) only helps with bandwidth-MATCHED GPUs;
+# host's GPU 1 is on a 2x PCIe link so single-GPU on GPU 0 wins.
+INPUT_LONG=$(( INPUT_H > INPUT_W ? INPUT_H : INPUT_W ))
+
 case "$V4_VARIANT" in
     deimv2_n)
-        V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-32}"
-        V4_VAL_BATCH="${V4_VAL_BATCH:-64}"
         V4_NUM_EPOCHS="${V4_NUM_EPOCHS:-60}"
+        if [ "$INPUT_LONG" -le 320 ]; then
+            V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-32}";  V4_VAL_BATCH="${V4_VAL_BATCH:-64}"
+        elif [ "$INPUT_LONG" -le 416 ]; then
+            V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-32}";  V4_VAL_BATCH="${V4_VAL_BATCH:-48}"
+        elif [ "$INPUT_LONG" -le 512 ]; then
+            V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-24}";  V4_VAL_BATCH="${V4_VAL_BATCH:-32}"
+        else
+            V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-16}";  V4_VAL_BATCH="${V4_VAL_BATCH:-24}"
+        fi
         ;;
     deimv2_pico)
-        V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-64}"
-        V4_VAL_BATCH="${V4_VAL_BATCH:-128}"
         V4_NUM_EPOCHS="${V4_NUM_EPOCHS:-80}"
+        # Pico is ~2x cheaper per sample than N (1.5M vs 3.6M params).
+        if [ "$INPUT_LONG" -le 320 ]; then
+            V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-64}";  V4_VAL_BATCH="${V4_VAL_BATCH:-128}"
+        elif [ "$INPUT_LONG" -le 416 ]; then
+            V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-48}";  V4_VAL_BATCH="${V4_VAL_BATCH:-96}"
+        elif [ "$INPUT_LONG" -le 512 ]; then
+            V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-32}";  V4_VAL_BATCH="${V4_VAL_BATCH:-64}"
+        else
+            V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-24}";  V4_VAL_BATCH="${V4_VAL_BATCH:-48}"
+        fi
         ;;
     deimv2_s)
-        V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-16}"
-        V4_VAL_BATCH="${V4_VAL_BATCH:-32}"
         V4_NUM_EPOCHS="${V4_NUM_EPOCHS:-30}"
+        # DINOv3 backbone is heavier per sample. No measured datapoint
+        # yet; conservative defaults.
+        if [ "$INPUT_LONG" -le 416 ]; then
+            V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-16}";  V4_VAL_BATCH="${V4_VAL_BATCH:-32}"
+        elif [ "$INPUT_LONG" -le 640 ]; then
+            V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-8}";   V4_VAL_BATCH="${V4_VAL_BATCH:-16}"
+        else
+            V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-4}";   V4_VAL_BATCH="${V4_VAL_BATCH:-8}"
+        fi
         ;;
     deimv2_m|deimv2_l|deimv2_x)
-        V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-8}"
-        V4_VAL_BATCH="${V4_VAL_BATCH:-16}"
         V4_NUM_EPOCHS="${V4_NUM_EPOCHS:-30}"
+        if [ "$INPUT_LONG" -le 640 ]; then
+            V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-4}";   V4_VAL_BATCH="${V4_VAL_BATCH:-8}"
+        else
+            V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-2}";   V4_VAL_BATCH="${V4_VAL_BATCH:-4}"
+        fi
         ;;
     *)
-        # Unknown variants must still set explicit values.
         : "${V4_TRAIN_BATCH:?V4_TRAIN_BATCH must be set for variant $V4_VARIANT}"
         : "${V4_VAL_BATCH:?V4_VAL_BATCH must be set for variant $V4_VARIANT}"
         : "${V4_NUM_EPOCHS:?V4_NUM_EPOCHS must be set for variant $V4_VARIANT}"
