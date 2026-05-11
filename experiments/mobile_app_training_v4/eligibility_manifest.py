@@ -8,19 +8,35 @@ This is the explicit selection rule the v4 design calls for: a model is
 not chosen because it is smallest or fastest. It is chosen because it
 is the highest-quality candidate that meets the Pixel 5 gate.
 
-Three eligibility classes (no candidate is "deploy-eligible" until
+Four eligibility classes (no candidate is "deploy-eligible" until
 Pixel 5 data is supplied):
 
-  HOST_PROMISING    passes host-side gates: training, ONNX export, kwcoco
-                    eval, AND desktop CPU latency <= --max_desktop_ms.
+  NOT_READY         host pipeline incomplete: missing checkpoint, ONNX,
+                    eval metrics, OR no desktop benchmark JSON. By
+                    default a missing benchmark also lands here — a
+                    candidate that has not been *measured* against the
+                    desktop CPU proxy gate has not, by definition,
+                    *passed* it. Override with --allow_missing_desktop_bench.
+
+  HOST_PROMISING    passes host gates: training, ONNX export, eval AP,
+                    AND a measured desktop CPU mean <= --max_desktop_ms.
                     Worth flashing onto a phone for real measurement.
 
   PHONE_ELIGIBLE    HOST_PROMISING AND --pixel5_index supplied AND
                     pixel5_fps >= --min_pixel5_fps. Only this class is
                     safe to call "eligible to deploy."
 
-  PHONE_INELIGIBLE  --pixel5_index supplied and pixel5_fps below the
-                    gate, OR a host-side gate failed.
+  PHONE_INELIGIBLE  desktop mean > --max_desktop_ms, OR --pixel5_index
+                    supplied and pixel5_fps below the gate.
+
+State transitions (the canonical reference):
+
+  train/export/eval missing                -> NOT_READY
+  bench missing (and not --allow_missing)  -> NOT_READY
+  desktop mean > max_desktop_ms            -> PHONE_INELIGIBLE
+  desktop pass + pixel5 fps < gate         -> PHONE_INELIGIBLE
+  desktop pass + pixel5 fps >= gate        -> PHONE_ELIGIBLE
+  desktop pass + no pixel5 data            -> HOST_PROMISING
 
 When --pixel5_index is missing, no candidate is PHONE_ELIGIBLE — the
 script prints a "host-promising winner" and explicitly says no deploy-
@@ -132,6 +148,10 @@ class ManifestCLI(scfg.DataConfig):
     max_desktop_ms = scfg.Value(80.0, help='desktop CPU mean ms gate (proxy for the on-device gate)')
     min_pixel5_fps = scfg.Value(10.0, help='Pixel 5 FPS gate (only enforced when --pixel5_index is given)')
     pixel5_index = scfg.Value(None, help='optional TSV with columns candidate_id\\tlatency_ms\\tfps')
+    allow_missing_desktop_bench = scfg.Value(False, isflag=True,
+        help=('treat candidates without a desktop bench as HOST_PROMISING '
+              'instead of NOT_READY. Off by default — HOST_PROMISING '
+              'requires the desktop CPU proxy gate to actually have run.'))
     print_winner = scfg.Value(True, isflag=True, help='print the eligible winner to stdout')
 
     @classmethod
@@ -358,10 +378,19 @@ def run(config):
         else:
             row.status = 'ok'
 
-        # Desktop proxy gate (latency)
+        # Desktop proxy gate (latency). Three outcomes:
+        #   yes      — measured and under the gate
+        #   no       — measured and over the gate
+        #   missing  — no bench JSON found. By default this disqualifies
+        #              the candidate from HOST_PROMISING (a row that
+        #              hasn't been measured against the proxy gate has
+        #              not, by definition, passed it). Override with
+        #              --allow_missing_desktop_bench to opt back in to
+        #              the old behavior.
         mean_ms = row.desktop_latency_ms_mean
         if mean_ms is None:
-            row.desktop_eligible = ''
+            row.desktop_eligible = 'missing'
+            reasons.append('no desktop benchmark')
         elif mean_ms <= float(config.max_desktop_ms):
             row.desktop_eligible = 'yes'
         else:
@@ -381,19 +410,31 @@ def run(config):
         else:
             row.pixel5_eligible = 'TODO'
 
-        # Three-class eligibility — never call anything PHONE_ELIGIBLE
-        # without on-device data. NOT_READY = host pipeline broken.
-        # HOST_PROMISING = passes host gates, awaiting phone validation.
+        # Eligibility state machine — never call anything PHONE_ELIGIBLE
+        # without on-device data. HOST_PROMISING strictly requires the
+        # desktop CPU proxy gate to have actually been measured AND
+        # passed, otherwise we have no evidence the candidate is worth
+        # flashing. The transitions below mirror the spec:
+        #
+        #   train/export/eval missing                -> NOT_READY
+        #   bench missing (and not --allow_missing)  -> NOT_READY
+        #   desktop mean > max_desktop_ms            -> PHONE_INELIGIBLE
+        #   desktop pass + pixel5 fps < gate         -> PHONE_INELIGIBLE
+        #   desktop pass + pixel5 fps >= gate        -> PHONE_ELIGIBLE
+        #   desktop pass + no pixel5 data            -> HOST_PROMISING
         if row.status != 'ok':
             row.eligibility_class = 'NOT_READY'
+        elif row.desktop_eligible == 'missing' and not bool(config.allow_missing_desktop_bench):
+            row.eligibility_class = 'NOT_READY'
         elif row.desktop_eligible == 'no':
-            row.eligibility_class = 'PHONE_INELIGIBLE'  # desktop proxy already says no
+            row.eligibility_class = 'PHONE_INELIGIBLE'
         elif row.pixel5_eligible == 'no':
             row.eligibility_class = 'PHONE_INELIGIBLE'
         elif row.pixel5_eligible == 'yes':
             row.eligibility_class = 'PHONE_ELIGIBLE'
         else:
-            # status ok, desktop proxy ok-or-blank, pixel5 untested
+            # status ok, desktop proxy passed (or override allows
+            # missing), pixel5 untested
             row.eligibility_class = 'HOST_PROMISING'
 
         row.reasons = reasons
