@@ -1,0 +1,269 @@
+# Benchmark candidates — pipeline bootstrap
+
+Hard-problem invariants discovered during the v4 mobile-app training
+pipeline build (2026-05-11). Per [`../AGENT_BENCHMARK_DISCIPLINE.md`](../AGENT_BENCHMARK_DISCIPLINE.md),
+each candidate is the distillation of a *real* failure into a
+question a future agent could plausibly mis-answer.
+
+The thread tying these together: a v4 sweep cell costs minutes of
+GPU time *just to surface the next missing dep*. Front-loading the
+discovery into a 30-second `00_setup.sh` pre-flight and a
+CPU-only smoke test changes the iteration cost from "next sweep
+restart" to "next probe call."
+
+---
+
+## Q1 — YAML composition by bash heredoc + indent arithmetic
+
+Status: draft
+Level: B
+Tags: config-generation, yaml, parser-divergence, train-eval-export-parity
+Requires full dataset: no
+Requires trained weights: no
+Pre-error SHA: `03708dc` (the v4_mock dispatcher already worked, so we
+                          thought the YAML composition was fine)
+Fix SHA:       `f5d96aa` (dedent MULTISCALE_BLOCK from 4 to 2 spaces)
+
+### Source context
+
+`experiments/mobile_app_training_v4/_train_deimv2_variant.sh` builds
+the per-cell DEIMv2 train.yml by interpolating `$MULTISCALE_BLOCK`
+into a larger heredoc. The block had 4-space indent intended to land
+the `collate_fn:` key as a sibling of `dataset:` under
+`train_dataloader:`. With 4 spaces of indent in the inner heredoc and
+2 spaces of indent on its surroundings, YAML actually parsed
+`collate_fn` as a *child* of `dataset` — and DEIMv2's
+`workspace.create()` then forwarded `collate_fn` as a kwarg to
+`CocoDetection.__init__`, which has no such parameter:
+
+```text
+TypeError: CocoDetection.__init__() got an unexpected keyword argument 'collate_fn'
+```
+
+The trainer survived `bash -n`, survived `yaml.safe_load` (the
+document was *valid* YAML — just wrong), and only failed deep inside
+`engine/core/workspace.py` at module-build time.
+
+### The hard question
+
+> When generating structured config files (YAML, JSON, TOML) by string
+> interpolation, what is the cheapest way to verify the *parsed
+> structure* matches the intent — not just that the file parses?
+
+### Invariant to preserve
+
+For `train_dataloader` in v4-generated DEIMv2 configs:
+
+```python
+yaml.safe_load(open('train.yml'))['train_dataloader'].keys()
+# must include {'total_batch_size', 'num_workers', 'dataset', 'collate_fn'}
+# and dataset.keys() must NOT include 'collate_fn'
+```
+
+### Acceptance criteria
+
+A pytest fixture that:
+
+1. Invokes `_train_deimv2_variant.sh` end-to-end (or its config-build
+   stage in isolation) with a full sweep of `(variant, train_policy,
+   input_size)` combinations.
+2. `yaml.safe_load`s the resulting `train.yml`.
+3. Asserts the structural invariant above.
+4. Plus: invokes DEIMv2's `engine.core.YAMLConfig` to load the same
+   file and reach the model-build step without raising.
+
+The test should fail clearly when an interpolation indent is wrong,
+*before* the trainer is ever launched on a GPU.
+
+### Why this is a benchmark question
+
+A capable agent could:
+
+* Get the YAML wrong by `s/2/4/g` somewhere.
+* Get it wrong by writing a sibling key inside `dataset:` but visually
+  thinking it's under `train_dataloader:`.
+* Add a new heredoc-interpolated block in a future patch and reproduce
+  the same indent confusion.
+
+Catching it requires either (a) testing the parsed structure, not just
+the byte stream, or (b) running through the framework that consumes it.
+Both are easy; neither is reflex behaviour.
+
+---
+
+## Q2 — Cross-library transitive runtime deps
+
+Status: draft
+Level: A
+Tags: env-bootstrap, undeclared-deps, fail-fast, pipeline-orchestration
+Requires full dataset: no
+Requires trained weights: no
+Pre-error SHA: `03708dc` (sweep would crash on first cell with
+                          ModuleNotFoundError 30 s in)
+Fix SHA:       `f5d96aa` (00_setup.sh installs all of DEIMv2's
+                          requirements.txt + onnx trio + gdown)
+
+### Source context
+
+The v4 pipeline composes 6+ third-party libraries (DEIMv2, kwimage,
+kwcoco, geowatch, torch, gdown). Each has its own undeclared / lazy
+runtime deps:
+
+* `gdown 6.x` dropped `--fuzzy` (CLI surface change)
+* `torch.onnx.export` on torch ≥ 2.5 imports `onnxscript` at
+  function-call time, even when `dynamo=False`
+* `geowatch.__init__` hard-imports `osgeo` (GDAL python bindings)
+  at package init, blocking lazy users
+* `shitspotter.cli.simplify_kwcoco` hard-imports
+  `geowatch.utils.util_kwimage` at top of `main()`
+* `kwimage.imresize(interp='area')` only works with cv2; skimage
+  fallback raises NotImplementedError
+* DEIMv2's `tpl/DEIMv2/requirements.txt` (faster_coco_eval,
+  calflops, transformers, tensorboard, scipy) is not declared
+  by the wrapping shitspotter package
+
+Each missing piece killed a sweep cell ~30 s in, after model
+construction but before any meaningful work. Each fix surfaced the
+next.
+
+### The hard question
+
+> When orchestrating a pipeline that spans N third-party packages,
+> what is the right place + shape for a pre-flight environment audit
+> that catches all O(N) categories of missing-dep bugs *before* the
+> first GPU minute is spent?
+
+### Invariant to preserve
+
+For any clean host that has the v4 sweep's *direct* deps installed,
+running `bash 00_setup.sh && bash 02_sweep.sh` to completion should
+not surface any `ModuleNotFoundError` from any *transitive* library
+the pipeline composes.
+
+### Acceptance criteria
+
+A pre-flight check that, given a fresh host with only the
+shitspotter package + DEIMv2 submodule installed:
+
+1. Probes for each of: gdown, onnxscript, onnx, onnxruntime, every
+   line of `tpl/DEIMv2/requirements.txt`.
+2. Triggers the following imports inside a subprocess and reports
+   each as "OK" or "missing X":
+   - `from shitspotter.cli.simplify_kwcoco import *`
+   - `from torch.onnx import export`
+   - `import faster_coco_eval`
+   - `from osgeo import gdal`
+3. Loops with `pip install` for each missing module that has a
+   declared install path.
+4. Exits non-zero if any required dep can't be acquired automatically,
+   and prints the manual install command.
+
+A pytest equivalent:
+
+```python
+def test_v4_sweep_pre_flight():
+    assert importlib.util.find_spec('gdown') is not None
+    assert importlib.util.find_spec('onnxscript') is not None
+    assert importlib.util.find_spec('faster_coco_eval') is not None
+    # ... etc — fail loud if any are missing
+```
+
+### Why this is a benchmark question
+
+Adding a new cell to the v4 sweep, or a new third-party submodule,
+trivially regresses this. A capable agent will land the new code,
+ship a setup script that installs *its own* deps, and not realise the
+new module's runtime imports pull in packages the rest of the
+pipeline didn't already need. The fix is mechanical (`pip install`),
+the discovery is wasteful (one whole sweep iteration per missing
+dep). Front-loading it into the audit is the lesson.
+
+---
+
+## Q3 — Upstream architectural constraints leak through config
+
+Status: draft
+Level: B
+Tags: model-architecture, config-defaults, train-eval-export-parity
+Requires full dataset: no
+Requires trained weights: yes (DEIMv2 N pretrained ckpt + tile bundle)
+Pre-error SHA: `f5d96aa` (variant-keyed defaults but multiscale by default)
+Fix SHA:       (to be assigned after this commit)
+
+### Source context
+
+v4's per-cell config generator defaults `V4_TRAIN_POLICY=multiscale`
+across all variants. For the DINOv3-backed family (deimv2_s/m/l/x)
+this is fine — the encoder dynamically interpolates positional
+embeddings per batch. For the HGNetv2 hybrid encoder (Atto/Femto/
+Pico/N) it's a hard architectural mismatch: pos_embed is pre-baked
+at `eval_spatial_size` and doesn't interpolate, so a multi-scale
+collate produces:
+
+```text
+RuntimeError: The size of tensor a (121) must match the size of
+tensor b (100) at non-singleton dimension 1
+```
+
+mid-encoder, at first batch.
+
+Upstream DEIMv2 knows this — every HGNetv2 variant ships with
+`base_size_repeat: ~` in its config. Multi-scale is opt-in only for
+DINOv3-backed variants (`base_size_repeat: 20`). I overrode this
+without checking why.
+
+### The hard question
+
+> When `__include__`-ing or programmatically extending an upstream
+> framework config, which fields encode *architectural* constraints
+> (must not be changed without code work) vs *training hyper-
+> parameters* (free to tune)?
+
+### Invariant to preserve
+
+For any v4 sweep cell using an HGNetv2-backed variant
+(`deimv2_atto`, `_femto`, `_pico`, `_n`), the generated train.yml
+must set `base_size_repeat: ~` (i.e. `V4_TRAIN_POLICY=fixed`). For
+DINOv3-backed variants (`deimv2_s`, `_m`, `_l`, `_x`), multi-scale
+is permitted.
+
+### Acceptance criteria
+
+A pytest fixture that:
+
+1. Generates a per-cell config for every (variant, train_policy)
+   pair in `02_sweep.sh`'s default matrix.
+2. Asserts `base_size_repeat == None` for HGNetv2 variants regardless
+   of requested train policy.
+3. Asserts the train policy override is honoured for DINOv3-backed
+   variants.
+
+Bonus: launch each generated config through `engine.core.YAMLConfig`
++ `cfg.model.deploy()` on CPU with a tiny dummy batch to confirm
+the encoder accepts the configured shape. This catches the same
+class of bug for *any* future architectural mismatch, not just this
+specific one.
+
+### Why this is a benchmark question
+
+Adding a new variant family (e.g. a future `deimv2_v3_x` with a
+totally different encoder) trivially reintroduces this. The lesson
+is *always check upstream configs for which fields are non-default
+in the upstream's own per-variant overrides* — those are the fields
+that encode architectural constraints.
+
+---
+
+## Composition note
+
+Q1, Q2, Q3 chain: an agent who skips the pre-flight (Q2) won't
+discover the YAML structural bug (Q1) until the trainer dies inside
+the framework — at which point they may *also* trip the architectural
+constraint (Q3) because they're rapidly iterating on the wrong
+hypothesis. The cheapest defense is to run all three checks before
+the first GPU minute.
+
+The v4 audit pass put a pytest suite in place
+(`tests/mobile_app_training_v4/`, 31 tests) that covers Q2's probes
+and Q1's structural assertions. Q3 is not yet covered by tests —
+adding it is the natural next step.

@@ -7,6 +7,157 @@ candidate.
 
 ---
 
+## 2026-05-11 (afternoon): mobile_app_training_v4 — pipeline-bootstrap deps cluster
+
+### Trigger
+
+Continued v4 sweep on the host (torch 2.11+cu130, python 3.13.13,
+geowatch+gdal installed). The morning's audit fixed the obvious
+wrapper-API bugs. The afternoon surfaced a *second* category: the
+ten-or-so undeclared / version-incompatible deps the v4 sweep needs
+present on the host before any DEIMv2 cell can finish its first
+forward pass. They cascade — fixing one reveals the next, each
+consuming a sweep restart.
+
+### Symptoms (in the order they hit)
+
+| # | error | what was missing |
+|---|-------|------------------|
+| 1 | `gdown: unrecognized arguments: --fuzzy` | gdown 6.x dropped `--fuzzy` |
+| 2 | `cv2.error: Failed to allocate 44947419955200 bytes` | kwimage.imresize positional 2 is `scale`, not `dsize` |
+| 3 | `cv2.error: imwrite() got an unexpected keyword argument 'imwrite_params'` | kwimage.imwrite forwards \*\*kwargs to cv2 |
+| 4 | `gdown` writes 4 KB HTML stub on Drive throttle, cached as success | min-size guard missing |
+| 5 | `kwimage NotImplementedError('area')` | skimage backend doesn't support area interp |
+| 6 | `from osgeo import gdal: No module named 'osgeo'` | geowatch hard-imports osgeo at `__init__` |
+| 7 | `pip ... does not provide upload-time metadata` | pip 25+ rejects girder index (PEP 700) |
+| 8 | `RuntimeError: operator torchvision::nms does not exist` | torch/torchvision ABI mismatch (env-local) |
+| 9 | `ModuleNotFoundError: 'onnxscript'` | torch.onnx.export imports it at function-call time |
+| 10 | `ModuleNotFoundError: 'faster_coco_eval'` | DEIMv2's requirements.txt isn't installed transitively |
+| 11 | `ModuleNotFoundError: 'tensorboard'` | same — next item in DEIMv2 deps |
+| 12 | `_train_deimv2_variant.sh: V4_TRAIN_BATCH must be set by the caller` | sweep dispatch dropped the per-variant defaults |
+| 13 | `TypeError: CocoDetection.__init__() got an unexpected keyword argument 'collate_fn'` | YAML 4-space indent put `collate_fn` under `dataset` instead of as its sibling |
+
+### Root cause — common to most of the cluster
+
+The v4 pipeline composes ~6 third-party libraries (DEIMv2, kwimage,
+kwcoco, geowatch, torch, gdown), each with its own undeclared / lazy
+runtime deps and version-bound API. A "fresh host" runs the pipeline
+through O(10) thin layers before reaching the work — and any one
+missing piece kills it. Worse, fixing one and restarting reveals the
+next, so each iteration costs a full sweep restart unless you
+front-load the audit.
+
+### Fix — front-loaded environment audit
+
+`00_setup.sh` is now responsible for *all three* dep families:
+
+* gdown (used by step 0)
+* onnxscript / onnx / onnxruntime (used by export + bench + parity)
+* the entire `tpl/DEIMv2/requirements.txt` (used by every DEIMv2 cell)
+
+Each is a probe-then-install loop that's a no-op when present. With
+this in place, **all 13 errors above happen at `00_setup.sh`** if at
+all, not 30 seconds into the first GPU cell of an 8-cell sweep.
+
+The non-dep bugs (12, 13) get caught by the new pytest suite + the
+end-to-end smoke run via `V4_RUN_ALL_SMOKE=1`. Both should run before
+any long sweep on a fresh host.
+
+### Durable lesson
+
+There are two distinct error-shapes in cross-library pipelines:
+
+1. **Wrapper-API misuse** (yesterday's lesson — wrong kwarg name,
+   removed CLI flag, positional-vs-keyword confusion). Solution:
+   pin keyword args at every wrapper call site. Already in place.
+2. **Undeclared transitive runtime deps** (today's lesson — geowatch
+   needs osgeo, DEIMv2 needs faster_coco_eval, torch.onnx needs
+   onnxscript, etc.). Solution: a probe-everything `00_setup.sh`
+   that walks every transitive `requirements.txt` it knows about
+   and fails loud + early if anything is missing.
+
+Both classes share a meta-lesson: **the cost of one bug is "next
+sweep iteration"** — i.e. minutes-to-hours of wasted GPU time.
+Front-load the discovery into a 30-second pre-flight and treat the
+pre-flight as part of the deliverable, not a developer afterthought.
+
+### Late finding (#14): HGNetv2 hybrid encoder doesn't support multi-scale
+
+After all twelve cluster bugs landed and the trainer survived past
+config build, the first DEIMv2-N cell crashed inside the encoder:
+
+```text
+RuntimeError: The size of tensor a (121) must match the size of
+tensor b (100) at non-singleton dimension 1
+```
+
+121 = 11×11 (input 352, stride 32); 100 = 10×10 (input 320, stride
+32). The encoder pre-bakes positional embeddings at
+`eval_spatial_size` (we set 320) and doesn't dynamically interpolate
+per batch. Multi-scale collate jittered the input to 352, the
+pre-baked pos_embed didn't match, → tensor mismatch deep in the
+encoder's `with_pos_embed`.
+
+Confirmed by reading upstream configs:
+
+* `deimv2_hgnetv2_n_coco.yml`, `deimv2_hgnetv2_pico_coco.yml` —
+  `base_size_repeat: ~` (multiscale disabled)
+* `deimv2_dinov3_s_coco.yml` — `base_size_repeat: 20` (multiscale on)
+
+Upstream knows. The HGNetv2 hybrid encoder is fixed-size; only the
+DINOv3-backed variants support per-batch resize.
+
+**Fix:** per-variant default in `_train_deimv2_variant.sh` —
+HGNetv2 (Atto/Femto/Pico/N) defaults to `V4_TRAIN_POLICY=fixed`,
+DINOv3 (S/M/L/X) defaults to `multiscale`. The sweep matrix updated
+to match. **Multi-resolution coverage for HGNetv2 cells comes from
+the SWEEP** (multiple cells at different fixed sizes) **+ the tile
+augmentation** (which already mixes 320..1280 px content per
+training image). This is closer to what the user originally asked
+for anyway: "different deployable models at different fixed
+resolutions".
+
+Lesson: **upstream model configs encode hard architectural
+constraints** (here, "this encoder needs a fixed input size"). When
+generating configs programmatically, mirror the upstream defaults
+unless you understand why you're departing. We departed and ate a
+sweep restart for it.
+
+### YAML-indent bug (#13) deserves separate mention
+
+`MULTISCALE_BLOCK` was a `cat <<EOF` heredoc inserted into a larger
+heredoc via `$MULTISCALE_BLOCK`. The inner block had 4-space indent
+intending to land at "child of `train_dataloader`" (2 spaces in YAML)
++ "sibling of `dataset`" (which is 2 spaces). Got the math wrong —
+4-space indent landed it as a child of `dataset` instead. DEIMv2's
+`workspace.create()` then forwarded `collate_fn` as a CocoDetection
+constructor kwarg, which has no such parameter, → TypeError.
+
+The fix is one digit (`s/4 spaces/2 spaces/`). The deeper lesson:
+**bash heredoc + indented-YAML composition is fragile**. Going
+forward, any v4 config generation we extend should validate the
+output by parsing it through PyYAML before invoking the trainer.
+This is now a benchmark candidate
+(`dev/benchmark-candidates/pipeline-bootstrap-questions.md` §1).
+
+### Validation status
+
+After all 13 fixes:
+
+* `tests/mobile_app_training_v4/` — 31 tests pass on torch 2.4 (VM)
+  and torch 2.11 (host); the ONNX-roundtrip test self-skips when
+  onnxscript is missing.
+* `bash 00_setup.sh` — installs the full dep set on a clean env in
+  ~minutes; on an env that already has them, ~seconds.
+* `kwcoco subset --gids ... + tile_kwcoco.py + simplify_kwcoco
+  + v4_mock train + export + ORT inference` — runs end-to-end on
+  CPU in ~10 s on the smoke fixture.
+* DEIMv2-N first sweep cell trainer — survives past config build,
+  past data load, into the actual training loop on the host. Long
+  GPU runs not yet confirmed at the time of writing.
+
+---
+
 ## 2026-05-11: mobile_app_training_v4 — four cross-library API failures the agent could not have caught
 
 ### Trigger

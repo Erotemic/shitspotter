@@ -155,7 +155,21 @@ V4_BACKBONE_LR="${V4_BACKBONE_LR:-$DEFAULT_BACKBONE_LR}"
 #   scales = [.75*B step 32 ... B repeat=N ... 1.25*B step 32 down to B]
 # so multi-scale always produces a ±25% band at 32-px granularity.
 # ---------------------------------------------------------------------------
-V4_TRAIN_POLICY="${V4_TRAIN_POLICY:-multiscale}"
+# Per-variant default. The HGNetv2 hybrid encoder (Atto/Femto/Pico/N)
+# pre-bakes positional embeddings at eval_spatial_size and does not
+# dynamically interpolate per batch — multi-scale collate produces
+# tensor-size mismatches deep inside the encoder. Upstream's HGNetv2
+# configs all set `base_size_repeat: ~` (multiscale disabled) for the
+# same reason. The DINOv3-backed variants (S/M/L/X) DO support
+# multi-scale (upstream sets base_size_repeat=20).
+case "$V4_VARIANT" in
+    deimv2_atto|deimv2_femto|deimv2_pico|deimv2_n)
+        V4_TRAIN_POLICY="${V4_TRAIN_POLICY:-fixed}"
+        ;;
+    *)
+        V4_TRAIN_POLICY="${V4_TRAIN_POLICY:-multiscale}"
+        ;;
+esac
 V4_MULTISCALE_REPEAT="${V4_MULTISCALE_REPEAT:-12}"
 _V4_DEFAULT_MS_STOP=$(( V4_NUM_EPOCHS - 4 ))
 if [ "$_V4_DEFAULT_MS_STOP" -lt 1 ]; then _V4_DEFAULT_MS_STOP=$V4_NUM_EPOCHS; fi

@@ -66,13 +66,19 @@ unset _v4_source _v4_script_dpath
 # Lines starting with # are ignored.
 DEFAULT_CELLS="
 # variant      export_h export_w  train_policy
-deimv2_n       320 320  multiscale_256_416
-deimv2_n       416 416  multiscale_320_512
-deimv2_pico    320 320  multiscale_256_416
-deimv2_pico    416 416  multiscale_320_512
-deimv2_n       512 512  multiscale_384_640
-deimv2_pico    512 512  multiscale_384_640
-deimv2_n       640 640  multiscale_512_768
+# HGNetv2 variants (deimv2_n/pico) — encoder requires fixed input
+# size, so each cell trains at its export resolution. Multi-resolution
+# coverage for these comes from training across multiple cells, plus
+# the tile augmentation that mixes 320..1280 px content per image.
+deimv2_n       320 320  fixed
+deimv2_n       416 416  fixed
+deimv2_pico    320 320  fixed
+deimv2_pico    416 416  fixed
+deimv2_n       512 512  fixed
+deimv2_pico    512 512  fixed
+deimv2_n       640 640  fixed
+# DINOv3-backed variants (deimv2_s/m/l/x) — encoder supports per-batch
+# resize, so multi-scale jitter around the export size is fair game.
 deimv2_s       640 640  multiscale_512_768
 "
 
