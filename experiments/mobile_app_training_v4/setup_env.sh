@@ -77,6 +77,14 @@ export PYTHONPATH="$SHITSPOTTER_DPATH${PYTHONPATH:+:$PYTHONPATH}"
 export PYTHONPATH="$SHITSPOTTER_DEIMV2_REPO_DPATH:$PYTHONPATH"
 export TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD="${TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD:-1}"
 
+# Pin to GPU 0 by default. The host has 2x 3090s but GPU 1 sits on a
+# 2x PCIe link, so multi-GPU all-reduce gets bottlenecked by the slow
+# peer and ends up slower than single-GPU on GPU 0. Override with
+# CUDA_VISIBLE_DEVICES=0,1 (and V4_NUM_GPUS=2) only if you have a
+# bandwidth-matched setup. Override with CUDA_VISIBLE_DEVICES=1 to
+# move the single-GPU run to the other card.
+export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
+
 mkdir -p "$V4_ROOT"
 
 # Print a concise summary so the user can confirm what got set.

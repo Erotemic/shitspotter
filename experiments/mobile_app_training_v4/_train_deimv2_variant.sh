@@ -552,8 +552,10 @@ _v4_train_failed() {
 
 [v4 trainer] DEIMv2 train.py exited non-zero. Common causes & fixes:
 
-  - CUDA OOM:  retry with V4_TRAIN_BATCH=$((V4_TRAIN_BATCH / 2)) (half the current batch)
-              or V4_NUM_GPUS=N for multi-GPU.
+  - CUDA OOM:  retry with V4_TRAIN_BATCH=$((V4_TRAIN_BATCH / 2)) (half the current batch).
+              Multi-GPU (V4_NUM_GPUS=N) only helps when the GPUs have matched
+              PCIe bandwidth — gradient all-reduce runs at the slowest peer,
+              and a 2x-PCIe second GPU will tank throughput vs single-GPU.
   - 'collate_fn' TypeError:  generated train.yml has wrong YAML indent
                               (rare since the indent fix; check $GENERATED_CFG_FPATH).
   - 'pos_embed' shape mismatch:  HGNetv2 encoder doesn't support multi-scale;
