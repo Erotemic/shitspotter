@@ -1,18 +1,24 @@
 #!/bin/bash
 # Shared environment + helpers for the mobile_app_training_v4 workflow.
 #
-# All scripts source this file. It is cwd-independent: it derives the v4
-# directory from BASH_SOURCE when possible, and falls back to
-# $HOME/code/shitspotter/experiments/mobile_app_training_v4 when pasted into an
-# interactive bash shell.
+# This file is sourced by every 0X_*.sh script. It enables `set -euo
+# pipefail` (which is appropriate inside a script but NOT inside an
+# interactive shell), then sources `setup_env.sh` to populate every env
+# var the rest of the pipeline reads.
 #
-# Stage every derived artifact under $V4_ROOT (read-write). The DVC roots
-# under /data/joncrall/dvc-repos/* are read-only — never write there.
+# If you want to set up the env vars in your own interactive shell
+# *without* turning on pipefail, source `setup_env.sh` directly:
+#
+#     source experiments/mobile_app_training_v4/setup_env.sh
+#
+# Stage every derived artifact under $V4_ROOT (read-write). The DVC
+# roots under /data/joncrall/dvc-repos/* are read-only — never write
+# there.
 
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
-# Locate this script and the shitspotter repo
+# Locate this script and load the canonical env exports
 # ---------------------------------------------------------------------------
 _v4_source="${BASH_SOURCE[0]-}"
 if [ -n "$_v4_source" ] && [ "$_v4_source" != "bash" ] && [ "$_v4_source" != "-bash" ]; then
@@ -22,72 +28,9 @@ else
 fi
 unset _v4_source
 
-export SHITSPOTTER_DPATH="${SHITSPOTTER_DPATH:-$(cd "$_v4_script_dpath/../.." && pwd)}"
-export V4_DEV_DPATH="$_v4_script_dpath"
+# shellcheck source=experiments/mobile_app_training_v4/setup_env.sh
+source "$_v4_script_dpath/setup_env.sh" >/dev/null
 unset _v4_script_dpath
-
-# ---------------------------------------------------------------------------
-# Data + experiment roots
-#
-# The DVC roots are read-only. All v4-generated artifacts live under
-# $V4_ROOT, which defaults to a writable scratch location off the user
-# home so we never trigger DVC writes.
-# ---------------------------------------------------------------------------
-export DVC_DATA_DPATH="${DVC_DATA_DPATH:-/data/joncrall/dvc-repos/shitspotter_dvc}"
-export DVC_EXPT_DPATH_RO="${DVC_EXPT_DPATH_RO:-/data/joncrall/dvc-repos/shitspotter_expt_dvc}"
-
-# Writable workspace. Override with V4_ROOT if you have more disk elsewhere.
-export V4_ROOT="${V4_ROOT:-${HOME}/data/shitspotter_v4}"
-
-# Canonical splits — locked to the v9 split so results are directly
-# comparable to the v9 OpenGroundingDINO teacher.
-export V4_TRAIN_FPATH="${V4_TRAIN_FPATH:-$DVC_DATA_DPATH/train_imgs10671_b277c63d.kwcoco.zip}"
-export V4_VALI_FPATH="${V4_VALI_FPATH:-$DVC_DATA_DPATH/vali_imgs1258_577e331c.kwcoco.zip}"
-export V4_TEST_FPATH="${V4_TEST_FPATH:-$DVC_DATA_DPATH/test_imgs121_d39956b1.kwcoco.zip}"
-
-# ---------------------------------------------------------------------------
-# Upstream submodule paths
-# ---------------------------------------------------------------------------
-export SHITSPOTTER_DEIMV2_REPO_DPATH="${SHITSPOTTER_DEIMV2_REPO_DPATH:-$SHITSPOTTER_DPATH/tpl/DEIMv2}"
-export SHITSPOTTER_OPENGROUNDINGDINO_REPO_DPATH="${SHITSPOTTER_OPENGROUNDINGDINO_REPO_DPATH:-$SHITSPOTTER_DPATH/tpl/Open-GroundingDino}"
-
-# ---------------------------------------------------------------------------
-# Teacher (v9 OpenGroundingDINO + tuned SAM2)
-#
-# These are produced by experiments/foundation_detseg_v3/v9_*.sh. They are
-# read-only inputs to the v4 distillation step.
-# ---------------------------------------------------------------------------
-export V9_PACKAGE_FPATH="${V9_PACKAGE_FPATH:-$SHITSPOTTER_DPATH/experiments/foundation_detseg_v3/packages/v9_opengroundingdino_sam2_1_hiera_base_plus_tuned.yaml}"
-export V9_SELECTED_MANIFEST_FPATH="${V9_SELECTED_MANIFEST_FPATH:-$DVC_EXPT_DPATH_RO/foundation_detseg_v3/v9/selected_detector_checkpoint.yaml}"
-
-# ---------------------------------------------------------------------------
-# Common knobs
-#
-# RESIZE_MAX_DIM is the long-side max for the pre-resized training images.
-# 640 matches the existing foundation v3 path; 1280 if you want the tile
-# step to slice from full-resolution detail.
-# ---------------------------------------------------------------------------
-export V4_RESIZE_MAX_DIM="${V4_RESIZE_MAX_DIM:-1280}"
-export V4_RESIZE_OUTPUT_EXT="${V4_RESIZE_OUTPUT_EXT:-.jpg}"
-export V4_SIMPLIFY_MIN_INSTANCES="${V4_SIMPLIFY_MIN_INSTANCES:-100}"
-export V4_TILE_GRID="${V4_TILE_GRID:-2}"          # NxN grid of overlapping tiles
-export V4_TILE_OVERLAP="${V4_TILE_OVERLAP:-0.20}" # fraction overlap between adjacent tiles
-export V4_TILE_OUTPUT_DIM="${V4_TILE_OUTPUT_DIM:-640}"
-export V4_TILE_KEEP_FULL="${V4_TILE_KEEP_FULL:-1}" # keep the original full image too
-
-# Default short-list of variants to walk through. Override per-script.
-export V4_DEFAULT_VARIANTS="${V4_DEFAULT_VARIANTS:-deimv2_n deimv2_pico deimv2_s}"
-
-# ---------------------------------------------------------------------------
-# Python entrypoint
-# ---------------------------------------------------------------------------
-export PYTHON_BIN="${PYTHON_BIN:-python}"
-export PYTHONPATH="$SHITSPOTTER_DPATH${PYTHONPATH:+:$PYTHONPATH}"
-# DEIMv2 train.py needs to be importable
-export PYTHONPATH="$SHITSPOTTER_DEIMV2_REPO_DPATH:$PYTHONPATH"
-
-# Helpful for fine-tuning DEIMv2 backbone init files
-export TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD="${TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD:-1}"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -146,9 +89,6 @@ v4_variant_repo_config() {
 
 v4_variant_init_ckpt_url() {
     # Google-Drive ID for the per-variant pretrained COCO detector.
-    # Populated for the variants we ship in v4. The download script
-    # uses these to bring in pretrained weights so fine-tuning starts
-    # from a strong COCO baseline rather than random init.
     local variant="$1"
     case "$variant" in
         deimv2_atto)  echo "18sRJXX3FBUigmGJ1y5Oo_DPC5C3JCgYc" ;;
@@ -173,5 +113,3 @@ v4_print_env() {
     printf '  %-32s %s\n' "V9_PACKAGE_FPATH"  "$V9_PACKAGE_FPATH"
     printf '  %-32s %s\n' "DEIMV2_REPO"       "$SHITSPOTTER_DEIMV2_REPO_DPATH"
 }
-
-mkdir -p "$V4_ROOT"

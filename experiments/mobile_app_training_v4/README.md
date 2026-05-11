@@ -79,7 +79,13 @@ The whole pipeline assumes the `shitspotter` Python env is active and
 the DEIMv2 submodule is initialised.
 
 ```bash
-# 0. one-time setup: install pretrained COCO checkpoints, smoke-test env
+# 0a. once per shell: export every env var the v4 scripts read.
+#     Override anything by exporting it BEFORE the source line, e.g.
+#         V4_ROOT=/scratch/v4 PYTHON_BIN=python3 source ...setup_env.sh
+cd ~/code/shitspotter   # adjust to wherever you cloned the repo
+source experiments/mobile_app_training_v4/setup_env.sh
+
+# 0b. one-time setup: install pretrained COCO checkpoints, smoke-test env
 bash experiments/mobile_app_training_v4/00_setup.sh
 
 # 1. tile-augmented kwcoco (cheap, CPU only — runs fine in the VM)
