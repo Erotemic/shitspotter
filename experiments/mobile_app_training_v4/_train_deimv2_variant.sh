@@ -36,9 +36,40 @@ unset _v4_source _v4_script_dpath
 
 : "${V4_VARIANT:?V4_VARIANT must be set by the caller}"
 : "${V4_INPUT_HW:?V4_INPUT_HW must be set by the caller (e.g. \"320 320\")}"
-: "${V4_TRAIN_BATCH:?V4_TRAIN_BATCH must be set by the caller}"
-: "${V4_VAL_BATCH:?V4_VAL_BATCH must be set by the caller}"
-: "${V4_NUM_EPOCHS:?V4_NUM_EPOCHS must be set by the caller}"
+
+# Variant-keyed defaults for the batch/epoch knobs. The per-variant
+# 02_train_*.sh entrypoints export these explicitly; the sweep
+# (02_sweep.sh) calls this trainer library directly without going
+# through them, so the defaults below are what the sweep uses unless
+# the user overrides via env. Tuned for a single 24 GB GPU.
+case "$V4_VARIANT" in
+    deimv2_n)
+        V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-128}"
+        V4_VAL_BATCH="${V4_VAL_BATCH:-256}"
+        V4_NUM_EPOCHS="${V4_NUM_EPOCHS:-60}"
+        ;;
+    deimv2_pico)
+        V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-128}"
+        V4_VAL_BATCH="${V4_VAL_BATCH:-256}"
+        V4_NUM_EPOCHS="${V4_NUM_EPOCHS:-80}"
+        ;;
+    deimv2_s)
+        V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-32}"
+        V4_VAL_BATCH="${V4_VAL_BATCH:-64}"
+        V4_NUM_EPOCHS="${V4_NUM_EPOCHS:-30}"
+        ;;
+    deimv2_m|deimv2_l|deimv2_x)
+        V4_TRAIN_BATCH="${V4_TRAIN_BATCH:-16}"
+        V4_VAL_BATCH="${V4_VAL_BATCH:-32}"
+        V4_NUM_EPOCHS="${V4_NUM_EPOCHS:-30}"
+        ;;
+    *)
+        # Unknown variants must still set explicit values.
+        : "${V4_TRAIN_BATCH:?V4_TRAIN_BATCH must be set for variant $V4_VARIANT}"
+        : "${V4_VAL_BATCH:?V4_VAL_BATCH must be set for variant $V4_VARIANT}"
+        : "${V4_NUM_EPOCHS:?V4_NUM_EPOCHS must be set for variant $V4_VARIANT}"
+        ;;
+esac
 
 V4_USE_AMP="${V4_USE_AMP:-True}"
 V4_NUM_GPUS="${V4_NUM_GPUS:-1}"
