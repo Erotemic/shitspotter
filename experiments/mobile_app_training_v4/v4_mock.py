@@ -436,6 +436,11 @@ class train(scfg.DataConfig):
             'candidate_id': os.environ.get('V4_CANDIDATE_ID',
                 f'v4_mock_tiny_{int(config.input_h)}x{int(config.input_w)}'),
             'variant': os.environ.get('V4_VARIANT', 'v4_mock_tiny'),
+            # v4_mock is a smoke-test artifact — never a real deployable
+            # detector. Tagged so eligibility_manifest excludes it from
+            # the default winner-selection unless --include_smoke_models
+            # is given.
+            'candidate_kind': 'smoke',
             'run_tag': os.environ.get('V4_RUN_TAG', 'mock'),
             'export_input_h': int(config.input_h),
             'export_input_w': int(config.input_w),

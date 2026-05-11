@@ -73,8 +73,22 @@ export V4_DEFAULT_VARIANTS="${V4_DEFAULT_VARIANTS:-deimv2_n deimv2_pico deimv2_s
 # Python entrypoint
 # ---------------------------------------------------------------------------
 export PYTHON_BIN="${PYTHON_BIN:-python}"
-export PYTHONPATH="$SHITSPOTTER_DPATH${PYTHONPATH:+:$PYTHONPATH}"
-export PYTHONPATH="$SHITSPOTTER_DEIMV2_REPO_DPATH:$PYTHONPATH"
+
+# Idempotent PYTHONPATH prepend — safe to source this file repeatedly
+# without growing PYTHONPATH unboundedly. Without this, sourcing the
+# file twice doubled SHITSPOTTER_DPATH + DEIMV2_REPO entries; over a
+# long-running interactive session the PYTHONPATH could grow into the
+# hundreds of duplicate entries.
+_v4_prepend_pythonpath() {
+    case ":${PYTHONPATH:-}:" in
+        *":$1:"*) ;;
+        *) export PYTHONPATH="$1${PYTHONPATH:+:$PYTHONPATH}" ;;
+    esac
+}
+_v4_prepend_pythonpath "$SHITSPOTTER_DEIMV2_REPO_DPATH"
+_v4_prepend_pythonpath "$SHITSPOTTER_DPATH"
+unset -f _v4_prepend_pythonpath
+
 export TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD="${TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD:-1}"
 
 # Pin to GPU 0 by default. The host has 2x 3090s but GPU 1 sits on a

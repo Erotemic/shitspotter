@@ -82,6 +82,7 @@ import scriptconfig as scfg
 MANIFEST_FIELDS = [
     'candidate_id',
     'variant',
+    'candidate_kind',
     'export_input_h',
     'export_input_w',
     'train_resolution_policy',
@@ -109,10 +110,27 @@ MANIFEST_FIELDS = [
 ]
 
 
+def _infer_candidate_kind(policy: dict) -> str:
+    """Get the candidate_kind, falling back to inference from variant prefix.
+
+    `v4_mock*` variants are smoke-test artifacts. Anything else is a
+    real deployable detector. New `policy.json` files write the field
+    explicitly; older ones are inferred via this fallback.
+    """
+    kind = policy.get('candidate_kind')
+    if kind in ('smoke', 'real'):
+        return kind
+    variant = policy.get('variant', '')
+    if variant.startswith('v4_mock'):
+        return 'smoke'
+    return 'real'
+
+
 @dataclass
 class Row:
     candidate_id: str = ''
     variant: str = ''
+    candidate_kind: str = ''           # 'real' | 'smoke'
     export_input_h: Optional[int] = None
     export_input_w: Optional[int] = None
     train_resolution_policy: str = ''
@@ -152,6 +170,15 @@ class ManifestCLI(scfg.DataConfig):
         help=('treat candidates without a desktop bench as HOST_PROMISING '
               'instead of NOT_READY. Off by default — HOST_PROMISING '
               'requires the desktop CPU proxy gate to actually have run.'))
+    include_smoke_models = scfg.Value(False, isflag=True,
+        help=('include candidate_kind=smoke (v4_mock*) candidates in the '
+              'winner-selection pool alongside real detectors. Off by '
+              'default — smoke models are CI/plumbing artifacts and '
+              'should not accidentally win the real-detector sweep.'))
+    smoke_only = scfg.Value(False, isflag=True,
+        help=('restrict winner-selection to candidate_kind=smoke '
+              'candidates ONLY. Use to validate the smoke path on its '
+              'own (e.g. CI). Implies --include_smoke_models.'))
     print_winner = scfg.Value(True, isflag=True, help='print the eligible winner to stdout')
 
     @classmethod
@@ -364,6 +391,7 @@ def run(config):
         row = Row(
             candidate_id=candidate_id,
             variant=policy.get('variant', ''),
+            candidate_kind=_infer_candidate_kind(policy),
             export_input_h=policy.get('export_input_h'),
             export_input_w=policy.get('export_input_w'),
             train_resolution_policy=policy.get('train_resolution_policy', ''),
@@ -511,18 +539,45 @@ def run(config):
     #                           Only printed when --pixel5_index supplied
     #                           and at least one cell passes the FPS gate.
     has_pixel5 = bool(pixel5)
+
+    # Default winner-selection pool excludes smoke models. Override
+    # via --include_smoke_models (smoke + real) or --smoke_only
+    # (smoke only).
+    if bool(config.smoke_only):
+        kind_filter = lambda r: r.candidate_kind == 'smoke'
+        kind_label = 'SMOKE_ONLY'
+    elif bool(config.include_smoke_models):
+        kind_filter = lambda r: r.candidate_kind in ('real', 'smoke')
+        kind_label = 'real + smoke'
+    else:
+        kind_filter = lambda r: r.candidate_kind == 'real'
+        kind_label = 'real'
+
+    n_excluded_smoke = sum(
+        1 for r in rows
+        if r.candidate_kind == 'smoke' and not bool(config.include_smoke_models)
+        and not bool(config.smoke_only)
+    )
+    if n_excluded_smoke:
+        print(f'\nwinner pool: candidate_kind={kind_label} '
+              f'({n_excluded_smoke} smoke candidate(s) excluded; pass '
+              f'--include_smoke_models to include)')
+
     promising = [r for r in rows
                  if r.eligibility_class == 'HOST_PROMISING'
-                 and r.test_ap_simplified is not None]
+                 and r.test_ap_simplified is not None
+                 and kind_filter(r)]
     eligible = [r for r in rows
                 if r.eligibility_class == 'PHONE_ELIGIBLE'
-                and r.test_ap_simplified is not None]
+                and r.test_ap_simplified is not None
+                and kind_filter(r)]
 
     def _print_winner(label, row):
         print()
         print(f'=== {label} ===')
         print(f'  candidate_id          {row.candidate_id}')
         print(f'  variant               {row.variant}')
+        print(f'  candidate_kind        {row.candidate_kind}')
         print(f'  export size           {row.export_input_h} x {row.export_input_w}')
         print(f'  train policy          {row.train_resolution_policy}'
               f'  scales={row.train_resolution_min}..{row.train_resolution_max}')
@@ -539,13 +594,13 @@ def run(config):
     if promising:
         _print_winner('host-promising winner', max(promising, key=lambda r: r.test_ap_simplified))
     else:
-        print('\nno HOST_PROMISING candidate yet — fix the failing gates above')
+        print(f'\nno HOST_PROMISING candidate of kind={kind_label} yet — fix gates or include other kinds')
 
     if has_pixel5:
         if eligible:
             _print_winner('deploy-eligible winner', max(eligible, key=lambda r: r.test_ap_simplified))
         else:
-            print('\nno PHONE_ELIGIBLE candidate — every cell failed the Pixel 5 gate')
+            print(f'\nno PHONE_ELIGIBLE candidate of kind={kind_label} — every cell failed the Pixel 5 gate')
     else:
         print('\nno deploy-eligible winner can be selected without --pixel5_index;')
         print('run on-device benchmarks and supply a candidate_id\\tlatency_ms\\tfps TSV')

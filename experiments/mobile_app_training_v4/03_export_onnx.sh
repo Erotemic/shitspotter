@@ -85,6 +85,7 @@ phone_model_id = f"shitspotter-{variant}-h{exp_h}w{exp_w}-{train_pol}"
 spec = {
     "modelId": phone_model_id,
     "candidateId": policy.get("candidate_id", phone_model_id),
+    "candidateKind": policy.get("candidate_kind", "smoke"),
     "phoneModelId": phone_model_id,
     "displayName": f"ShitSpotter {variant} {exp_h}x{exp_w} ({train_pol})",
     "modelFile": "${EXPORT_BASENAME}.onnx",
@@ -208,10 +209,12 @@ scales    = policy.get("effective_train_scales", [])
 # *** must produce the same string from the same policy.json fields.
 phone_model_id = f"shitspotter-{variant}-h{exp_h}w{exp_w}-{train_pol}"
 candidate_id   = policy.get("candidate_id", phone_model_id)
+candidate_kind = policy.get("candidate_kind", "real")
 
 spec = {
     "modelId": phone_model_id,
     "candidateId": candidate_id,
+    "candidateKind": candidate_kind,
     "phoneModelId": phone_model_id,
     "displayName": f"ShitSpotter {variant} {exp_h}x{exp_w} ({train_pol})",
     "modelFile": "${EXPORT_BASENAME}.onnx",

@@ -376,6 +376,10 @@ EOF
         ;;
 esac
 
+# Mosaic output_size is conventionally INPUT/2; computed in shell scope
+# before the heredoc so the var is defined when interpolated.
+_V4_MOSAIC_OUT=$(( INPUT_H / 2 ))
+
 cat > "$GENERATED_CFG_FPATH" <<EOF
 __include__:
   - $UPSTREAM_CFG_FPATH
@@ -395,6 +399,18 @@ evaluator:
 
 eval_spatial_size: [$INPUT_H, $INPUT_W]
 
+# IMPORTANT: when overriding eval_spatial_size away from the upstream
+# default of 640, you MUST also override the train + val Resize ops
+# in the dataloaders. Otherwise the val dataloader inherits Resize=[640,640]
+# from base/dataloader.yml, the encoder pre-bakes pos_embed at
+# eval_spatial_size, and val crashes with a tensor-shape mismatch.
+# Mirrors the pattern in upstream's deimv2_hgnetv2_atto_coco.yml,
+# which is the only HGNetv2 variant that actually uses 320 input.
+#
+# We replicate the upstream-style transform list so every Mosaic /
+# Resize / SanitizeBoundingBoxes parameter is consistent with our
+# INPUT_H/W (_V4_MOSAIC_OUT computed above the heredoc).
+
 train_dataloader:
   total_batch_size: $V4_TRAIN_BATCH
   num_workers: 4
@@ -402,6 +418,24 @@ train_dataloader:
     img_folder: /
     ann_file: $TRAIN_MSCOCO_FPATH
     return_masks: false
+    transforms:
+      type: Compose
+      ops:
+        - {type: Mosaic, output_size: $_V4_MOSAIC_OUT, rotation_range: 10, translation_range: [0.1, 0.1], scaling_range: [0.5, 1.5], probability: 1.0, fill_value: 0, use_cache: True, max_cached_images: 50, random_pop: True}
+        - {type: RandomPhotometricDistort, p: 0.5}
+        - {type: RandomZoomOut, fill: 0}
+        - {type: RandomIoUCrop, p: 0.8}
+        - {type: SanitizeBoundingBoxes, min_size: 1}
+        - {type: RandomHorizontalFlip}
+        - {type: Resize, size: [$INPUT_H, $INPUT_W]}
+        - {type: SanitizeBoundingBoxes, min_size: 1}
+        - {type: ConvertPILImage, dtype: 'float32', scale: True}
+        - {type: ConvertBoxes, fmt: 'cxcywh', normalize: True}
+      policy:
+        name: stop_epoch
+        epoch: [4, 78, 148]
+        ops: [Mosaic, RandomPhotometricDistort, RandomZoomOut, RandomIoUCrop]
+      mosaic_prob: 0.5
 $MULTISCALE_BLOCK
 
 val_dataloader:
@@ -411,6 +445,11 @@ val_dataloader:
     img_folder: /
     ann_file: $VALI_MSCOCO_FPATH
     return_masks: false
+    transforms:
+      type: Compose
+      ops:
+        - {type: Resize, size: [$INPUT_H, $INPUT_W]}
+        - {type: ConvertPILImage, dtype: 'float32', scale: True}
 
 epoches: $V4_NUM_EPOCHS
 
@@ -431,6 +470,7 @@ import json
 policy = {
     "candidate_id": "${V4_VARIANT}_${V4_RUN_TAG}_${V4_INPUT_HW// /x}",
     "variant": "${V4_VARIANT}",
+    "candidate_kind": "real",
     "run_tag": "${V4_RUN_TAG}",
     "export_input_h": ${INPUT_H},
     "export_input_w": ${INPUT_W},
@@ -536,12 +576,28 @@ export TORCH_NCCL_ASYNC_ERROR_HANDLING="${TORCH_NCCL_ASYNC_ERROR_HANDLING:-1}"
 # Override with V4_FD_LIMIT in env if your kernel has a lower cap.
 V4_FD_LIMIT="${V4_FD_LIMIT:-65536}"
 _v4_current_nofile=$(ulimit -n 2>/dev/null || echo 0)
+_v4_hard_nofile=$(ulimit -Hn 2>/dev/null || echo 0)
 if [ "$_v4_current_nofile" -lt "$V4_FD_LIMIT" ] 2>/dev/null; then
-    if ulimit -n "$V4_FD_LIMIT" 2>/dev/null; then
-        echo "  raised RLIMIT_NOFILE: $_v4_current_nofile -> $(ulimit -n)"
+    # Clamp the requested limit to the shell's HARD cap. Non-root users
+    # can only raise the soft limit up to the hard limit, so trying to
+    # raise above hard fails with "Operation not permitted" — and our
+    # earlier `if ulimit -n ...; then` would print a confusing
+    # "WARNING" without actually setting anything safer. Clamp to hard
+    # and warn the user if even that's still too low for typical
+    # multi-worker dataloader IPC (~1024 is dangerously low).
+    _v4_target=$V4_FD_LIMIT
+    if [ "$_v4_hard_nofile" -gt 0 ] && [ "$_v4_target" -gt "$_v4_hard_nofile" ]; then
+        _v4_target=$_v4_hard_nofile
+    fi
+    if [ "$_v4_target" -gt "$_v4_current_nofile" ] && ulimit -n "$_v4_target" 2>/dev/null; then
+        echo "  raised RLIMIT_NOFILE: $_v4_current_nofile -> $(ulimit -n) (hard cap $_v4_hard_nofile)"
     else
-        echo "  WARNING: failed to raise RLIMIT_NOFILE from $_v4_current_nofile to $V4_FD_LIMIT" >&2
-        echo "    your shell hard-limit may be lower; check 'ulimit -Hn'" >&2
+        echo "  WARNING: RLIMIT_NOFILE stays at $_v4_current_nofile (hard cap $_v4_hard_nofile, requested $V4_FD_LIMIT)" >&2
+        if [ "$_v4_current_nofile" -lt 16384 ]; then
+            echo "    -> below 16384, dataloader IPC may OOM file descriptors mid-training." >&2
+            echo "    -> ask your sysadmin to raise the systemd / pam_limits hard cap, or run:" >&2
+            echo "         V4_TORCH_MP_SHARING=file_system  bash $0  # FD-bounded fallback" >&2
+        fi
     fi
 fi
 
