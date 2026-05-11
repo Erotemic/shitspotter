@@ -82,7 +82,7 @@ V4_SWEEP_DO_EVAL="${V4_SWEEP_DO_EVAL:-1}"
 V4_SWEEP_DO_BENCH="${V4_SWEEP_DO_BENCH:-1}"
 V4_SWEEP_BENCH_ITERS="${V4_SWEEP_BENCH_ITERS:-50}"
 V4_SWEEP_KEEP_GOING="${V4_SWEEP_KEEP_GOING:-0}"
-V4_BENCH_IMAGE="${V4_BENCH_IMAGE:-$SHITSPOTTER_DPATH/tpl/poop_models/dog.jpg}"
+V4_BENCH_IMAGE="${V4_BENCH_IMAGE:-$SHITSPOTTER_DPATH/tpl/YOLOX/assets/dog.jpg}"
 
 SWEEP_LOG_DPATH="$V4_ROOT/sweeps/$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir -p "$SWEEP_LOG_DPATH"
@@ -118,6 +118,12 @@ while read -r line; do
     VARIANTS+=( "$1" ); INPUT_HS+=( "$2" ); INPUT_WS+=( "$3" ); POLICIES+=( "$4" )
 done <<< "$V4_SWEEP_CELLS"
 
+# Make the printf-on-success path explicit — each stage records its own
+# exit code and status is the worst of the enabled stages, not "ok by
+# default". `set -o pipefail` (already on via common.sh) plus
+# PIPESTATUS lets us see through the `tee` shell.
+#
+# Returns 0 only when every enabled stage really passed.
 run_cell() {
     local variant="$1" h="$2" w="$3" policy="$4"
     local run_tag="tile_g${V4_TILE_GRID}_${policy}"
@@ -128,61 +134,101 @@ run_cell() {
     local eval_dpath="$V4_ROOT/eval/${candidate_id}"
     local policy_json="$workdir/policy.json"
     local bench_json=""
+    local stage_status="ok"
+    local fail_stage=""
 
     echo
     echo "=========================================================="
-    echo "  cell: $candidate_id  (policy=$policy, logs → $cell_log)"
+    echo "  cell: $candidate_id  (policy=$policy, logs -> $cell_log)"
     echo "=========================================================="
 
+    # ---- 1. train ---------------------------------------------------------
     (
+        set -o pipefail
         V4_VARIANT="$variant" \
         V4_INPUT_HW="$h $w" \
         V4_TRAIN_POLICY="$policy" \
         V4_RUN_TAG="$run_tag" \
         bash "$V4_DEV_DPATH/_train_deimv2_variant.sh" 2>&1 | tee -a "$cell_log"
     )
-
-    if v4_is_truthy "$V4_SWEEP_DO_EXPORT"; then
-        bash "$V4_DEV_DPATH/03_export_onnx.sh" "$variant" "$run_tag" "$h" "$w" \
-            2>&1 | tee -a "$cell_log"
+    if [ "$?" -ne 0 ]; then
+        stage_status="fail_train"; fail_stage="train"
     fi
 
-    if v4_is_truthy "$V4_SWEEP_DO_EVAL"; then
-        bash "$V4_DEV_DPATH/04_eval_on_test.sh" "$variant" "$run_tag" "$h" "$w" \
-            2>&1 | tee -a "$cell_log"
-    fi
-
-    if v4_is_truthy "$V4_SWEEP_DO_BENCH"; then
-        if [ ! -f "$onnx_fpath" ]; then
-            echo "  WARN: $onnx_fpath missing, skipping bench" | tee -a "$cell_log"
-        else
-            bench_json="$workdir/export/${variant}_h${h}_w${w}.bench.json"
-            "$PYTHON_BIN" "$V4_DEV_DPATH/06_benchmark_onnx_desktop.py" \
-                --onnx "$onnx_fpath" \
-                --image "$V4_BENCH_IMAGE" \
-                --warmup 5 --iters "$V4_SWEEP_BENCH_ITERS" \
-                --dump_json "$bench_json" \
+    # ---- 2. export --------------------------------------------------------
+    if [ "$stage_status" = "ok" ] && v4_is_truthy "$V4_SWEEP_DO_EXPORT"; then
+        (
+            set -o pipefail
+            bash "$V4_DEV_DPATH/03_export_onnx.sh" "$variant" "$run_tag" "$h" "$w" \
                 2>&1 | tee -a "$cell_log"
+        )
+        if [ "$?" -ne 0 ]; then
+            stage_status="fail_export"; fail_stage="export"
+        elif [ ! -f "$onnx_fpath" ]; then
+            stage_status="fail_export"; fail_stage="export(no .onnx produced)"
+        fi
+    fi
+
+    # ---- 3. eval ----------------------------------------------------------
+    if [ "$stage_status" = "ok" ] && v4_is_truthy "$V4_SWEEP_DO_EVAL"; then
+        (
+            set -o pipefail
+            bash "$V4_DEV_DPATH/04_eval_on_test.sh" "$variant" "$run_tag" "$h" "$w" \
+                2>&1 | tee -a "$cell_log"
+        )
+        if [ "$?" -ne 0 ]; then
+            stage_status="fail_eval"; fail_stage="eval"
+        elif [ ! -f "$eval_dpath/eval/detect_metrics.json" ]; then
+            stage_status="fail_eval"; fail_stage="eval(no metrics.json)"
+        fi
+    fi
+
+    # ---- 4. bench ---------------------------------------------------------
+    if [ "$stage_status" = "ok" ] && v4_is_truthy "$V4_SWEEP_DO_BENCH"; then
+        bench_json="$workdir/export/${variant}_h${h}_w${w}.bench.json"
+        if [ ! -f "$onnx_fpath" ]; then
+            echo "  bench skipped: $onnx_fpath missing" | tee -a "$cell_log"
+            bench_json=""
+        else
+            (
+                set -o pipefail
+                "$PYTHON_BIN" "$V4_DEV_DPATH/06_benchmark_onnx_desktop.py" \
+                    --onnx "$onnx_fpath" \
+                    --image "$V4_BENCH_IMAGE" \
+                    --warmup 5 --iters "$V4_SWEEP_BENCH_ITERS" \
+                    --dump_json "$bench_json" \
+                    2>&1 | tee -a "$cell_log"
+            )
+            if [ "$?" -ne 0 ]; then
+                stage_status="fail_bench"; fail_stage="bench"
+                bench_json=""
+            fi
         fi
     fi
 
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
         "$variant" "$h" "$w" "$policy" "$candidate_id" "$run_tag" \
         "$workdir" "$onnx_fpath" "$eval_dpath" "${bench_json:-}" \
-        "$policy_json" "ok" \
+        "$policy_json" "$stage_status" \
         >> "$SWEEP_INDEX_FPATH"
+
+    if [ "$stage_status" != "ok" ]; then
+        echo "  -> cell $candidate_id FAILED at: $fail_stage" | tee -a "$cell_log"
+        return 1
+    fi
+    return 0
 }
 
 failures=0
 for i in "${!VARIANTS[@]}"; do
-    if run_cell "${VARIANTS[$i]}" "${INPUT_HS[$i]}" "${INPUT_WS[$i]}" "${POLICIES[$i]}"; then
-        :
-    else
+    # Use a guarded form so a failing run_cell doesn't abort the parent
+    # under `set -e`. We've already recorded a non-ok row inside run_cell.
+    set +e
+    run_cell "${VARIANTS[$i]}" "${INPUT_HS[$i]}" "${INPUT_WS[$i]}" "${POLICIES[$i]}"
+    rc=$?
+    set -e
+    if [ "$rc" -ne 0 ]; then
         failures=$(( failures + 1 ))
-        printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
-            "${VARIANTS[$i]}" "${INPUT_HS[$i]}" "${INPUT_WS[$i]}" "${POLICIES[$i]}" \
-            "" "tile_g${V4_TILE_GRID}_${POLICIES[$i]}" "" "" "" "" "" "fail" \
-            >> "$SWEEP_INDEX_FPATH"
         if ! v4_is_truthy "$V4_SWEEP_KEEP_GOING"; then
             echo
             echo "Cell ${VARIANTS[$i]}@${INPUT_HS[$i]}x${INPUT_WS[$i]} (${POLICIES[$i]}) failed; aborting."

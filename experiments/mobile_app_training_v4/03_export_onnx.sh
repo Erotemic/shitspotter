@@ -107,33 +107,73 @@ rm -rf "$STAGING_DPATH"
 # Emit a modelspec.json sidecar so the phone-app side knows exactly how to
 # preprocess for this model. Mirrors the Kotlin ModelSpec record fields so
 # the data is round-trip compatible.
+#
+# The candidate identity (variant, export_h, export_w, train_resolution_policy,
+# tile_training_policy) is loaded from <workdir>/policy.json so the modelId
+# here matches the phone_model_id eligibility_manifest.py emits — there is
+# exactly one ID per candidate, and the model file can travel independently
+# because every identity field is duplicated into the sidecar.
 # ---------------------------------------------------------------------------
+POLICY_JSON_FPATH="$WORKDIR/policy.json"
+if [ ! -f "$POLICY_JSON_FPATH" ]; then
+    echo "Missing $POLICY_JSON_FPATH — was this trained with v4?" >&2
+    exit 1
+fi
+
 "$PYTHON_BIN" - <<PY > "$EXPORT_MODELSPEC_FPATH"
-import json
+import json, pathlib
+policy = json.loads(pathlib.Path("$POLICY_JSON_FPATH").read_text())
+
+variant   = policy.get("variant", "${V4_VARIANT}")
+exp_h     = int(policy.get("export_input_h", ${INPUT_H}))
+exp_w     = int(policy.get("export_input_w", ${INPUT_W}))
+train_pol = policy.get("train_resolution_policy", "")
+tile_pol  = policy.get("tile_training_policy", "")
+scales    = policy.get("effective_train_scales", [])
+
+# *** This is the canonical phone_model_id format. eligibility_manifest.py
+# *** must produce the same string from the same policy.json fields.
+phone_model_id = f"shitspotter-{variant}-h{exp_h}w{exp_w}-{train_pol}"
+candidate_id   = policy.get("candidate_id", phone_model_id)
+
 spec = {
-    "modelId": "shitspotter-${V4_VARIANT}-${V4_RUN_TAG}-h${INPUT_H}w${INPUT_W}",
-    "displayName": "ShitSpotter ${V4_VARIANT} ${V4_RUN_TAG} (${INPUT_H}x${INPUT_W})",
+    "modelId": phone_model_id,
+    "candidateId": candidate_id,
+    "phoneModelId": phone_model_id,
+    "displayName": f"ShitSpotter {variant} {exp_h}x{exp_w} ({train_pol})",
     "modelFile": "${EXPORT_BASENAME}.onnx",
     "format": "ONNX",
-    "inputWidth": ${INPUT_W},
-    "inputHeight": ${INPUT_H},
+    "inputWidth": exp_w,
+    "inputHeight": exp_h,
     "inputLayout": "NCHW",
     "colorOrder": "RGB",
     "normalization": {
         "mean": [0.0, 0.0, 0.0],
         "std":  [1.0, 1.0, 1.0],
-        "scale": ${V4_VARIANT_NORM_SCALE_DEFAULT:-0.00392156862745098}
+        "scale": ${V4_VARIANT_NORM_SCALE_DEFAULT:-0.00392156862745098},
     },
     "resizePolicy": "LETTERBOX",
     "postprocessType": "DEIMV2",
     "classNames": ["poop"],
     "scoreThreshold": 0.30,
     "iouThreshold": 0.45,
+
+    # Full candidate identity — answers "what is this file, exactly?"
+    # without needing to consult the eligibility manifest.
+    "trainResolutionPolicy": train_pol,
+    "effectiveTrainScales": scales,
+    "tileTrainingPolicy": tile_pol,
+    "trainingDatasetHint": (
+        f"v9_split_train_imgs10671_b277c63d "
+        f"+ {tile_pol}"
+    ),
+    "v4PolicyJson": "$POLICY_JSON_FPATH",
+
     "deimv2Schema": {
         "inputNames":  ["images", "orig_target_sizes"],
         "outputNames": ["labels", "boxes", "scores"],
         "boxFormat":   "xyxy_pixels",
-        "passOrigSize": True
+        "passOrigSize": True,
     },
     "notes": (
         "DEIMv2 export with built-in postprocessor. "
@@ -160,4 +200,4 @@ echo "  python $V4_DEV_DPATH/05_desktop_onnx_parity.py \\"
 echo "      --pth_ckpt $CKPT_FPATH \\"
 echo "      --pth_config $GENERATED_CFG_FPATH \\"
 echo "      --onnx $EXPORT_ONNX_FPATH \\"
-echo "      --image $SHITSPOTTER_DPATH/tpl/poop_models/dog.jpg"
+echo "      --image $SHITSPOTTER_DPATH/tpl/YOLOX/assets/dog.jpg"

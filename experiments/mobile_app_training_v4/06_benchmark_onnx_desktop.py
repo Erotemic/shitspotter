@@ -10,7 +10,7 @@ Usage::
 
     python 06_benchmark_onnx_desktop.py \\
         --onnx /…/runs/deimv2_n_tile_g2_320x320/export/deimv2_n_h320_w320.onnx \\
-        --image $SHITSPOTTER_DPATH/tpl/poop_models/dog.jpg \\
+        --image $SHITSPOTTER_DPATH/tpl/YOLOX/assets/dog.jpg \\
         --warmup 5 --iters 50
 
 Outputs a one-line summary plus a pXX latency table.

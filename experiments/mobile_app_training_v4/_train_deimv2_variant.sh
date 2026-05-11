@@ -132,16 +132,24 @@ V4_MULTISCALE_STOP_EPOCH="${V4_MULTISCALE_STOP_EPOCH:-$_V4_DEFAULT_MS_STOP}"
 
 # Translate the policy string into (multiscale_repeat, base_size) for
 # the BatchImageCollateFunction override. Compute the actual scale list
-# so we can record it in the manifest.
+# so we can record it in the manifest. We also remember what the user
+# requested so the loud "requested vs effective" banner can show both.
 _V4_EXPORT_LONG=$(( INPUT_H > INPUT_W ? INPUT_H : INPUT_W ))
+REQUESTED_MIN=""
+REQUESTED_MAX=""
 case "$V4_TRAIN_POLICY" in
     fixed)
         MS_REPEAT=0
         MS_BASE="$_V4_EXPORT_LONG"
+        REQUESTED_MIN="$_V4_EXPORT_LONG"
+        REQUESTED_MAX="$_V4_EXPORT_LONG"
         ;;
     multiscale)
         MS_REPEAT="$V4_MULTISCALE_REPEAT"
         MS_BASE="$_V4_EXPORT_LONG"
+        # ±25% band around base
+        REQUESTED_MIN=$(( (MS_BASE * 75) / 100 ))
+        REQUESTED_MAX=$(( (MS_BASE * 125) / 100 ))
         ;;
     multiscale_*_*)
         MS_LO="${V4_TRAIN_POLICY#multiscale_}"
@@ -152,10 +160,14 @@ case "$V4_TRAIN_POLICY" in
         MS_BASE=$(( (MS_LO + MS_HI) / 2 ))
         MS_BASE=$(( ((MS_BASE + 16) / 32) * 32 ))
         MS_REPEAT="$V4_MULTISCALE_REPEAT"
+        REQUESTED_MIN="$MS_LO"
+        REQUESTED_MAX="$MS_HI"
         ;;
     multiscale_*)
         MS_BASE="${V4_TRAIN_POLICY#multiscale_}"
         MS_REPEAT="$V4_MULTISCALE_REPEAT"
+        REQUESTED_MIN=$(( (MS_BASE * 75) / 100 ))
+        REQUESTED_MAX=$(( (MS_BASE * 125) / 100 ))
         ;;
     *)
         echo "Unsupported V4_TRAIN_POLICY=$V4_TRAIN_POLICY" >&2
@@ -163,6 +175,45 @@ case "$V4_TRAIN_POLICY" in
         exit 1
         ;;
 esac
+
+# Compute the actual scale list DEIMv2 will sample from — this is what
+# generate_scales(MS_BASE, MS_REPEAT) produces. Used both for the loud
+# log line below and for policy.json.
+read -r EFFECTIVE_MIN EFFECTIVE_MAX EFFECTIVE_LIST <<EOF
+$("$PYTHON_BIN" - <<PY
+def generate_scales(base_size, base_size_repeat):
+    if not base_size_repeat:
+        return [int(base_size)]
+    scale_repeat = (base_size - int(base_size * 0.75 / 32) * 32) // 32
+    scales  = [int(base_size * 0.75 / 32) * 32 + i * 32 for i in range(scale_repeat)]
+    scales += [base_size] * base_size_repeat
+    scales += [int(base_size * 1.25 / 32) * 32 - i * 32 for i in range(scale_repeat)]
+    return sorted(set(scales))
+scales = generate_scales(int($MS_BASE), int($MS_REPEAT) or None)
+print(min(scales), max(scales), ",".join(str(s) for s in scales))
+PY
+)
+EOF
+
+# Loud banner. The reviewer pointed out that policy *names* like
+# multiscale_320_512 don't necessarily mean the actual sampled scales
+# stay inside [320, 512] — DEIMv2 rounds to 32-px granularity around
+# base, so the band may overshoot or undershoot the request. Print
+# both so the divergence is impossible to miss.
+echo
+echo "  ---- TRAIN RESOLUTION POLICY ----"
+echo "    requested:    $V4_TRAIN_POLICY  (min=${REQUESTED_MIN}, max=${REQUESTED_MAX})"
+echo "    effective:    base=${MS_BASE}, repeat=${MS_REPEAT}"
+echo "                  scales=${EFFECTIVE_LIST}"
+echo "                  min=${EFFECTIVE_MIN}, max=${EFFECTIVE_MAX}"
+if [ -n "$REQUESTED_MIN" ] && [ "$EFFECTIVE_MIN" -lt "$REQUESTED_MIN" ]; then
+    echo "    *** WARNING: effective min (${EFFECTIVE_MIN}) is BELOW requested (${REQUESTED_MIN})"
+fi
+if [ -n "$REQUESTED_MAX" ] && [ "$EFFECTIVE_MAX" -gt "$REQUESTED_MAX" ]; then
+    echo "    *** WARNING: effective max (${EFFECTIVE_MAX}) is ABOVE requested (${REQUESTED_MAX})"
+fi
+echo "  ---------------------------------"
+echo
 
 if [ "$MS_REPEAT" -gt 0 ]; then
     MULTISCALE_BLOCK=$(cat <<EOF
@@ -287,6 +338,8 @@ policy = {
     "export_input_h": ${INPUT_H},
     "export_input_w": ${INPUT_W},
     "train_resolution_policy": "${V4_TRAIN_POLICY}",
+    "requested_train_resolution_min": ${REQUESTED_MIN:-null},
+    "requested_train_resolution_max": ${REQUESTED_MAX:-null},
     "multiscale_base_size": ${MS_BASE},
     "multiscale_repeat": ${MS_REPEAT},
     "multiscale_stop_epoch": ${V4_MULTISCALE_STOP_EPOCH},

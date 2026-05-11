@@ -8,19 +8,23 @@ This is the explicit selection rule the v4 design calls for: a model is
 not chosen because it is smallest or fastest. It is chosen because it
 is the highest-quality candidate that meets the Pixel 5 gate.
 
-Two gates are applied:
+Three eligibility classes (no candidate is "deploy-eligible" until
+Pixel 5 data is supplied):
 
-  desktop_proxy   the desktop CPU mean latency must be <= --max_desktop_ms.
-                  This is a *proxy* for the on-device gate, not a
-                  substitute. A model that fails the desktop proxy will
-                  almost certainly fail Pixel 5; a model that passes it
-                  is *worth* benchmarking on the phone.
+  HOST_PROMISING    passes host-side gates: training, ONNX export, kwcoco
+                    eval, AND desktop CPU latency <= --max_desktop_ms.
+                    Worth flashing onto a phone for real measurement.
 
-  pixel5_actual   if `--pixel5_index` is supplied (a TSV produced by the
-                  on-device benchmark step), require pixel5_fps >=
-                  --min_pixel5_fps for true eligibility. Otherwise this
-                  column is left blank and `pixel5_eligible` reads
-                  "TODO".
+  PHONE_ELIGIBLE    HOST_PROMISING AND --pixel5_index supplied AND
+                    pixel5_fps >= --min_pixel5_fps. Only this class is
+                    safe to call "eligible to deploy."
+
+  PHONE_INELIGIBLE  --pixel5_index supplied and pixel5_fps below the
+                    gate, OR a host-side gate failed.
+
+When --pixel5_index is missing, no candidate is PHONE_ELIGIBLE — the
+script prints a "host-promising winner" and explicitly says no deploy-
+eligible winner can be selected without on-device data.
 
 Per-candidate fields recorded:
 
@@ -65,6 +69,8 @@ MANIFEST_FIELDS = [
     'export_input_h',
     'export_input_w',
     'train_resolution_policy',
+    'requested_train_resolution_min',
+    'requested_train_resolution_max',
     'train_resolution_min',
     'train_resolution_max',
     'train_resolution_choices',
@@ -80,6 +86,7 @@ MANIFEST_FIELDS = [
     'pixel5_latency_ms',
     'pixel5_fps',
     'pixel5_eligible',
+    'eligibility_class',
     'phone_model_id',
     'status',
     'reasons',
@@ -93,6 +100,8 @@ class Row:
     export_input_h: Optional[int] = None
     export_input_w: Optional[int] = None
     train_resolution_policy: str = ''
+    requested_train_resolution_min: Optional[int] = None
+    requested_train_resolution_max: Optional[int] = None
     train_resolution_min: Optional[int] = None
     train_resolution_max: Optional[int] = None
     train_resolution_choices: str = ''
@@ -108,6 +117,7 @@ class Row:
     pixel5_latency_ms: Optional[float] = None
     pixel5_fps: Optional[float] = None
     pixel5_eligible: str = 'TODO'
+    eligibility_class: str = ''           # HOST_PROMISING | PHONE_ELIGIBLE | PHONE_INELIGIBLE | NOT_READY
     phone_model_id: str = ''
     status: str = ''
     reasons: list = field(default_factory=list)
@@ -148,9 +158,17 @@ def _iter_candidates_from_auto(v4_root):
     for sub in sorted(runs_root.iterdir()):
         if not sub.is_dir():
             continue
-        if not (sub / 'policy.json').exists():
+        policy_fpath = sub / 'policy.json'
+        if not policy_fpath.exists():
             continue
-        yield sub.name, sub
+        # Prefer the policy.json's own candidate_id (this is the same
+        # identity 03_export_onnx.sh embedded in the modelspec), so the
+        # eval/<candidate_id> directory lookup matches.
+        try:
+            cid = json.loads(policy_fpath.read_text()).get('candidate_id') or sub.name
+        except Exception:
+            cid = sub.name
+        yield cid, sub
 
 
 # ---------- per-candidate readers ------------------------------------------
@@ -239,6 +257,9 @@ def _find_bench_metrics(workdir: Path) -> dict:
 
 
 def _phone_model_id(policy: dict) -> str:
+    """Canonical phone-app model ID. Must stay in lock-step with the
+    same string built by 03_export_onnx.sh and written to the
+    .modelspec.json sidecar (`modelId` field)."""
     v = policy.get('variant', '')
     h = policy.get('export_input_h', '')
     w = policy.get('export_input_w', '')
@@ -309,6 +330,8 @@ def run(config):
             export_input_h=policy.get('export_input_h'),
             export_input_w=policy.get('export_input_w'),
             train_resolution_policy=policy.get('train_resolution_policy', ''),
+            requested_train_resolution_min=policy.get('requested_train_resolution_min'),
+            requested_train_resolution_max=policy.get('requested_train_resolution_max'),
             train_resolution_min=policy.get('effective_train_scale_min'),
             train_resolution_max=policy.get('effective_train_scale_max'),
             train_resolution_choices=','.join(str(s) for s in scales),
@@ -323,7 +346,8 @@ def run(config):
             phone_model_id=_phone_model_id(policy),
         )
 
-        # Eligibility gates
+        # Status gate (was the host-side pipeline able to produce something
+        # we can even consider?)
         reasons = []
         if not ckpt:
             row.status = 'no_checkpoint'; reasons.append('no .pth in workdir')
@@ -334,7 +358,7 @@ def run(config):
         else:
             row.status = 'ok'
 
-        # Desktop proxy gate
+        # Desktop proxy gate (latency)
         mean_ms = row.desktop_latency_ms_mean
         if mean_ms is None:
             row.desktop_eligible = ''
@@ -344,7 +368,7 @@ def run(config):
             row.desktop_eligible = 'no'
             reasons.append(f'desktop mean {mean_ms:.1f}ms > {config.max_desktop_ms}ms')
 
-        # On-device gate (only if pixel5 index supplied)
+        # On-device gate (only meaningful when --pixel5_index is supplied)
         p5 = pixel5.get(candidate_id)
         if p5 is not None:
             row.pixel5_latency_ms = p5.get('latency_ms')
@@ -356,6 +380,21 @@ def run(config):
                 reasons.append(f'pixel5 {row.pixel5_fps} fps < {config.min_pixel5_fps}')
         else:
             row.pixel5_eligible = 'TODO'
+
+        # Three-class eligibility — never call anything PHONE_ELIGIBLE
+        # without on-device data. NOT_READY = host pipeline broken.
+        # HOST_PROMISING = passes host gates, awaiting phone validation.
+        if row.status != 'ok':
+            row.eligibility_class = 'NOT_READY'
+        elif row.desktop_eligible == 'no':
+            row.eligibility_class = 'PHONE_INELIGIBLE'  # desktop proxy already says no
+        elif row.pixel5_eligible == 'no':
+            row.eligibility_class = 'PHONE_INELIGIBLE'
+        elif row.pixel5_eligible == 'yes':
+            row.eligibility_class = 'PHONE_ELIGIBLE'
+        else:
+            # status ok, desktop proxy ok-or-blank, pixel5 untested
+            row.eligibility_class = 'HOST_PROMISING'
 
         row.reasons = reasons
         rows.append(row)
@@ -377,7 +416,7 @@ def run(config):
         Path(str(config.out_json)).parent.mkdir(parents=True, exist_ok=True)
         Path(str(config.out_json)).write_text(json.dumps([asdict(r) for r in rows], indent=2))
 
-    # ---- print + select winner ------------------------------------------
+    # ---- print summary table -------------------------------------------
     print()
     print('candidate_id'.ljust(50),
           'AP'.rjust(7),
@@ -385,8 +424,9 @@ def run(config):
           'desk_ok'.rjust(8),
           'p5_fps'.rjust(7),
           'p5_ok'.rjust(6),
+          'class'.rjust(17),
           'status')
-    print('-' * 110)
+    print('-' * 130)
     for row in sorted(rows, key=lambda r: (r.test_ap_simplified or -1), reverse=True):
         ap = '-' if row.test_ap_simplified is None else f'{row.test_ap_simplified:.3f}'
         ms = '-' if row.desktop_latency_ms_mean is None else f'{row.desktop_latency_ms_mean:.1f}'
@@ -397,46 +437,60 @@ def run(config):
               row.desktop_eligible.rjust(8),
               fps.rjust(7),
               row.pixel5_eligible.rjust(6),
+              row.eligibility_class.rjust(17),
               row.status)
 
     if not config.print_winner:
         return
 
-    # Eligible = (status=='ok') AND desktop_eligible in ('yes', '')
-    # AND pixel5_eligible != 'no'
-    def eligible(r):
-        if r.status != 'ok':
-            return False
-        if r.desktop_eligible == 'no':
-            return False
-        if r.pixel5_eligible == 'no':
-            return False
-        return True
+    # ---- selection ------------------------------------------------------
+    # Two distinct concepts the reviewer flagged:
+    #
+    #   host-promising winner   highest AP among HOST_PROMISING — worth
+    #                           sideloading. Not deploy-eligible.
+    #
+    #   deploy-eligible winner  highest AP among PHONE_ELIGIBLE.
+    #                           Only printed when --pixel5_index supplied
+    #                           and at least one cell passes the FPS gate.
+    has_pixel5 = bool(pixel5)
+    promising = [r for r in rows
+                 if r.eligibility_class == 'HOST_PROMISING'
+                 and r.test_ap_simplified is not None]
+    eligible = [r for r in rows
+                if r.eligibility_class == 'PHONE_ELIGIBLE'
+                and r.test_ap_simplified is not None]
 
-    eligible_rows = [r for r in rows if eligible(r) and r.test_ap_simplified is not None]
-    if not eligible_rows:
-        print('\nno eligible candidate yet — fix the failing gates above')
-        return
+    def _print_winner(label, row):
+        print()
+        print(f'=== {label} ===')
+        print(f'  candidate_id          {row.candidate_id}')
+        print(f'  variant               {row.variant}')
+        print(f'  export size           {row.export_input_h} x {row.export_input_w}')
+        print(f'  train policy          {row.train_resolution_policy}'
+              f'  scales={row.train_resolution_min}..{row.train_resolution_max}')
+        print(f'  test AP (simplified)  {row.test_ap_simplified:.3f}'
+              f'   (v9 baseline = 0.766)')
+        if row.desktop_latency_ms_mean is not None:
+            print(f'  desktop CPU mean      {row.desktop_latency_ms_mean:.1f} ms')
+        if row.pixel5_fps is not None:
+            print(f'  Pixel 5 fps           {row.pixel5_fps:.1f}')
+        print(f'  phone_model_id        {row.phone_model_id}')
+        print(f'  onnx                  {row.onnx_path}')
+        print(f'  modelspec             {row.modelspec_path}')
 
-    winner = max(eligible_rows, key=lambda r: r.test_ap_simplified)
-    print()
-    print('=== eligible winner ===')
-    print(f'  candidate_id          {winner.candidate_id}')
-    print(f'  variant               {winner.variant}')
-    print(f'  export size           {winner.export_input_h} x {winner.export_input_w}')
-    print(f'  train policy          {winner.train_resolution_policy}'
-          f'  scales={winner.train_resolution_min}..{winner.train_resolution_max}')
-    print(f'  test AP (simplified)  {winner.test_ap_simplified:.3f}'
-          f'   (v9 baseline = 0.766)')
-    if winner.desktop_latency_ms_mean is not None:
-        print(f'  desktop CPU mean      {winner.desktop_latency_ms_mean:.1f} ms')
-    if winner.pixel5_fps is not None:
-        print(f'  Pixel 5 fps           {winner.pixel5_fps:.1f}')
+    if promising:
+        _print_winner('host-promising winner', max(promising, key=lambda r: r.test_ap_simplified))
     else:
-        print(f'  Pixel 5 fps           TODO — run on-device benchmark + supply --pixel5_index')
-    print(f'  phone_model_id        {winner.phone_model_id}')
-    print(f'  onnx                  {winner.onnx_path}')
-    print(f'  modelspec             {winner.modelspec_path}')
+        print('\nno HOST_PROMISING candidate yet — fix the failing gates above')
+
+    if has_pixel5:
+        if eligible:
+            _print_winner('deploy-eligible winner', max(eligible, key=lambda r: r.test_ap_simplified))
+        else:
+            print('\nno PHONE_ELIGIBLE candidate — every cell failed the Pixel 5 gate')
+    else:
+        print('\nno deploy-eligible winner can be selected without --pixel5_index;')
+        print('run on-device benchmarks and supply a candidate_id\\tlatency_ms\\tfps TSV')
 
 
 __cli__ = ManifestCLI

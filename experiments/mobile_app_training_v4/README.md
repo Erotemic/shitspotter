@@ -177,12 +177,12 @@ bash experiments/mobile_app_training_v4/04_eval_on_test.sh deimv2_n tile_g2_mult
     --pth_ckpt   "$V4_ROOT/runs/deimv2_n_tile_g2_multiscale_320_512_416x416/best_stg2.pth" \
     --pth_config "$V4_ROOT/runs/deimv2_n_tile_g2_multiscale_320_512_416x416/generated_configs/train.yml" \
     --onnx       "$V4_ROOT/runs/deimv2_n_tile_g2_multiscale_320_512_416x416/export/deimv2_n_h416_w416.onnx" \
-    --image      "$SHITSPOTTER_DPATH/tpl/poop_models/dog.jpg"
+    --image      "$SHITSPOTTER_DPATH/tpl/YOLOX/assets/dog.jpg"
 
 # Desktop CPU bench
 "$PYTHON_BIN" experiments/mobile_app_training_v4/06_benchmark_onnx_desktop.py \
     --onnx  "$V4_ROOT/runs/deimv2_n_tile_g2_multiscale_320_512_416x416/export/deimv2_n_h416_w416.onnx" \
-    --image "$SHITSPOTTER_DPATH/tpl/poop_models/dog.jpg" \
+    --image "$SHITSPOTTER_DPATH/tpl/YOLOX/assets/dog.jpg" \
     --warmup 5 --iters 50
 
 # Wire the export into the phone app — see 07_register_in_phone_app.md.

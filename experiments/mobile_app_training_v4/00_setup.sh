@@ -56,13 +56,15 @@ fi
 echo
 echo "=== Pretrained DEIMv2 detector checkpoints ==="
 if v4_is_truthy "$DOWNLOAD_PRETRAINED"; then
-    "$PYTHON_BIN" - <<'PY'
+    # The `if ! "$PYTHON_BIN" - <<PY` form is the only one that survives
+    # `set -euo pipefail`. The earlier `$?`-check pattern aborted the
+    # script before reaching the install branch when gdown was missing.
+    if ! "$PYTHON_BIN" - <<'PY'
 import importlib.util
 import sys
-have = importlib.util.find_spec('gdown') is not None
-sys.exit(0 if have else 1)
+sys.exit(0 if importlib.util.find_spec('gdown') is not None else 1)
 PY
-    if [ $? -ne 0 ]; then
+    then
         echo "  installing gdown into the active Python env"
         "$PYTHON_BIN" -m pip install gdown
     fi
