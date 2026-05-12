@@ -8,6 +8,22 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added:
 
+* (2026-05-12): `mobile_app_training_v4`: documented two new sweep
+  failure modes surfaced by the first long Pareto sweep
+  (`sweeps/20260511T134137Z`): (a) `num_top_queries=300 > num_queries
+  × num_classes` for the deimv2_pico variants on single-class
+  shitspotter (RuntimeError out of range in DEIMv2 postprocessor
+  topk), (b) `kwcoco coco_eval` `KeyError: 'bbox'` on the n@320
+  predictions when the predictor emits an ann without a `bbox`
+  field. Lessons added to `dev/journals/lessons_learned.md`
+  §2026-05-12; new benchmark candidates Q5 (`num_top_queries` clamp)
+  and Q6 (predict-side bbox invariant) added to
+  `dev/benchmark-candidates/pipeline-bootstrap-questions.md`. Dated
+  journal at
+  `dev/journals/2026-05-12_v4_sweep_pico_topk_and_eval_bbox.md`.
+  Scripts NOT YET updated to apply the fixes; the in-flight n@640
+  cell will finish first.
+
 * (2026-05-12): `mobile_app_training_v4`: added `08_status.sh` —
   scans `$V4_ROOT/{runs,eval,sweeps}` and prints one row per candidate
   (checkpoint present, ONNX size with stub flag, simplified-GT AP,

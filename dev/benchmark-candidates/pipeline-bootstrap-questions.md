@@ -338,6 +338,219 @@ escape valve for genuinely huge batch × worker configs where even
 
 ---
 
+## Q5 — Postprocessor `num_top_queries` vs `num_queries × num_classes`
+
+Status: draft
+Level: B
+Tags: config-generation, upstream-architectural-constraint, single-class-detector, train-eval-export-parity
+Requires full dataset: no
+Requires trained weights: no (the topk runs in the very first val pass)
+Pre-error SHA: `cbb2d9f` (per-(variant,input_size) batch defaults — sweep
+                          ran into this on first long sweep)
+Fix SHA:       _none yet_ (proposed in
+                          `dev/journals/lessons_learned.md`
+                          §2026-05-12)
+
+### Source context
+
+DEIMv2's postprocessor entry op is:
+
+```python
+# tpl/DEIMv2/engine/deim/postprocessor.py:59
+scores, index = torch.topk(scores.flatten(1), self.num_top_queries, dim=-1)
+```
+
+`scores.flatten(1)` has shape `(B, num_queries * num_classes)`. The
+default `num_top_queries=300` (from `base/dfine_hgnetv2.yml:76`) was
+calibrated for the upstream COCO experiments where
+`num_classes=80`, so `num_queries × 80` is always well above 300
+even for the smaller HGNetv2 variants:
+
+| variant | num_queries | × 80 (COCO) | × 1 (shitspotter) |
+|---------|-------------|-------------|--------------------|
+| atto    | 100         | 8000        | **100** |
+| femto   | 150         | 12000       | **150** |
+| pico    | 200         | 16000       | **200** |
+| n       | 300         | 24000       | 300    |
+| s/m/l/x | 300         | 24000       | 300    |
+
+For a **single-class** detector (shitspotter has `num_classes: 1`),
+any HGNetv2 variant smaller than `n` flips the inequality. The
+v4 generated train.yml hard-codes `num_classes: 1` but inherits
+`num_top_queries: 300` from upstream — and the first val pass of
+the first epoch dies in `torch.topk`.
+
+### The hard question
+
+> When a v4 generated config alters one upstream invariant
+> (`num_classes`, `eval_spatial_size`, etc.), which other upstream
+> defaults silently couple to it — and how do you catch the coupling
+> before the first GPU minute?
+
+The same shape of question covers `eval_spatial_size` ↔ encoder
+`pos_embed` (already documented as Q3), and now
+`num_classes` ↔ `num_top_queries`. The general invariant is:
+
+```python
+num_top_queries <= num_queries * num_classes
+```
+
+Failing this manifests as `RuntimeError: selected index k out of
+range` *deep inside* `torch.topk` — not as a config-build error.
+
+### Invariant to preserve
+
+For every v4 generated train.yml, after the postprocessor block is
+resolved:
+
+```python
+cfg['DEIMPostProcessor']['num_top_queries'] <= (
+    cfg.get('num_queries', 300) * cfg.get('num_classes', 80)
+)
+```
+
+The clamp is correct: emit
+`num_top_queries = min(upstream_value, num_queries * num_classes)`
+in the generated config when the inequality would otherwise be
+violated.
+
+### Acceptance criteria
+
+A pytest fixture that:
+
+1. For each `(variant, num_classes)` pair the sweep can emit, calls
+   the v4 trainer's config-build step (no GPU needed).
+2. Asserts the inequality above against the resolved YAML.
+3. Drives a CPU smoke run that exercises the postprocessor on a
+   synthetic batch with the resolved `num_queries × num_classes`
+   shape and confirms it completes without raising.
+
+Bonus: the v4 trainer's error-helper block (printed on non-zero
+trainer exit) explicitly names the `RuntimeError: selected index k
+out of range` symptom and points at the clamp fix.
+
+### Why this is a benchmark question
+
+A capable agent could:
+
+* Switch detector architectures without re-deriving the invariant
+  (the COCO defaults are always satisfied at 80 classes).
+* Generate the train.yml from a template that overrides only the
+  obvious knobs (`num_classes`, `output_dir`, `eval_spatial_size`)
+  and inherit the silently-coupled ones.
+* Read the postprocessor source, see `num_top_queries=300` as the
+  default, and forget that the input it operates on has shrunk.
+
+The lesson chains directly with Q3: **upstream model configs encode
+multi-knob invariants**, and changing any one knob without
+re-checking its partners produces a deep-stack error that costs a
+full sweep cell to surface.
+
+---
+
+## Q6 — kwcoco evaluator requires `bbox` on every coerced annotation (true + predicted)
+
+Status: draft
+Level: A
+Tags: kwcoco-eval, predict-eval-parity, single-class-detector, dataset-hygiene
+Requires full dataset: no
+Requires trained weights: a real detector run — the bug needs at least
+                          one zero-area / degenerate prediction
+Pre-error SHA: `cbb2d9f` (per-(variant,input_size) batch defaults — sweep
+                          surfaced this on the n@320 cell first)
+Fix SHA:       _none yet_ (proposed in
+                          `dev/journals/lessons_learned.md`
+                          §2026-05-12)
+
+### Source context
+
+`kwcoco.coco_evaluator.CocoEvaluator._coerce_dets` runs the same
+coercion against both the true GT and the predicted dataset:
+
+```python
+# kwcoco/coco_evaluator.py:510
+boxes=kwimage.Boxes([a['bbox'] for a in anns], 'xywh'),
+```
+
+It calls itself recursively, first on the predicted dataset, then on
+the true. The first invocation died for the v4 sweep's
+`deimv2_n_tile_g2_fixed_320x320` cell:
+
+```text
+KeyError: 'bbox'
+  -> cell deimv2_n_tile_g2_fixed_320x320 FAILED at: eval
+```
+
+after `cli_predict_boxes` cleanly wrote 118/118 prediction images.
+The same predictor at 416 and 512 produced eval AP fine
+(0.4056, 0.4765); only 320 tripped it. Strongest hypothesis: at
+320×320 input the model emits at least one prediction that
+degenerates to zero-area after rescale, and the kwcoco-side box
+serialisation stores the ann without a `bbox` key instead of
+filtering it.
+
+### The hard question
+
+> When a downstream tool (here `kwcoco coco_eval`) refuses
+> annotations with missing optional fields, where does the filter
+> belong — at the predictor (every emitted annotation has a `bbox`),
+> at the evaluator (skip-and-warn), or at the canonical
+> "predict-then-eval" wrapper in between?
+
+### Invariant to preserve
+
+For every kwcoco file written by `cli_predict_boxes` and consumed by
+`04_eval_on_test.sh`:
+
+```python
+import kwcoco
+d = kwcoco.CocoDataset(pred_boxes_fpath)
+missing = [a for a in d.anns.values() if 'bbox' not in a]
+assert not missing, f"{len(missing)} predicted anns are missing 'bbox'"
+```
+
+The predictor is the right place to enforce it: an ann with no box
+isn't a detection. Either drop the ann at emission time, or emit an
+explicit `bbox=[x,y,0,0]` and let the evaluator's IoU filter handle
+it.
+
+### Acceptance criteria
+
+A pytest fixture that:
+
+1. Runs `cli_predict_boxes` against a small kwcoco fixture using a
+   model whose first-cell predictions are *known* to include
+   degenerate boxes (e.g. a smoke-trained mock detector at very low
+   resolution).
+2. Loads the resulting pred kwcoco file with `kwcoco.CocoDataset`
+   and asserts every ann has a `bbox` field.
+3. Pipes the same file into `kwcoco coco_eval --true_dataset
+   <test> --pred_dataset <pred>` and asserts the call exits zero.
+
+Bonus: the v4 trainer's error-helper block extends to the eval
+script, so the next sweep run prints the fix hint inline.
+
+### Why this is a benchmark question
+
+A capable agent could:
+
+* Trust that "a kwcoco file written by our predictor" satisfies all
+  downstream tools' assumptions.
+* Filter degenerate boxes in the COCO `score` path but not in the
+  ann-write path.
+* Add a guard in the wrong layer (e.g. catching the `KeyError` in
+  the v4 eval script instead of fixing the predictor) and ship a
+  silent under-counting bug to the next agent who reads the AP
+  number.
+
+This chains with Q5: small variants at small input sizes are more
+likely to produce degenerate predictions, *and* are the same
+variants that trip Q5's topk inequality. Both bugs cluster on
+"smallest model + smallest input" — exactly the cell the sweep is
+ordered to run *first*.
+
+---
+
 ## Composition note
 
 Q1, Q2, Q3 chain: an agent who skips the pre-flight (Q2) won't
@@ -347,7 +560,18 @@ constraint (Q3) because they're rapidly iterating on the wrong
 hypothesis. The cheapest defense is to run all three checks before
 the first GPU minute.
 
+Q5, Q6 chain with Q3 along a different axis: **single-knob overrides
+on an upstream config silently break partner knobs**. Q3 is the
+spatial version (`eval_spatial_size` ↔ encoder `pos_embed`); Q5 is
+the head version (`num_classes` ↔ `num_top_queries`); Q6 is the
+output-contract version (predictor ↔ evaluator agreement on
+required ann fields). All three only surface mid-sweep on the
+specific (variant, input_size) cells that violate the partner
+invariant — never on the smoke test.
+
 The v4 audit pass put a pytest suite in place
 (`tests/mobile_app_training_v4/`, 31 tests) that covers Q2's probes
-and Q1's structural assertions. Q3 is not yet covered by tests —
-adding it is the natural next step.
+and Q1's structural assertions. Q3, Q5, and Q6 are not yet covered
+by tests — adding the three together is the natural next step,
+since the failure modes share a generative structure
+("upstream-knob coupling we forgot to mirror").

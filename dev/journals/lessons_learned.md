@@ -158,6 +158,115 @@ After all 13 fixes:
 
 ---
 
+## 2026-05-12: mobile_app_training_v4 — first long-sweep findings (pico topk + 320 eval bbox)
+
+### Trigger
+
+The first long Pareto sweep
+(`$V4_ROOT/sweeps/20260511T134137Z`) ran for ~26 h on the host and
+produced the first full per-cell signal. `08_status.sh` (added in
+`ba5a5a3`) summarised the state. Two distinct failure modes the
+upfront audit + 31-test pytest suite did *not* catch.
+
+### Symptoms (in failure order)
+
+| # | cell | stage | error |
+|---|------|-------|-------|
+| 1 | `deimv2_pico_*_fixed_{320,416,512}` (3 cells) | first val pass after epoch 0 | `RuntimeError: selected index k out of range` from `torch.topk(scores.flatten(1), num_top_queries, dim=-1)` in `tpl/DEIMv2/engine/deim/postprocessor.py:59` |
+| 2 | `deimv2_n_tile_g2_fixed_320x320` | eval | `KeyError: 'bbox'` from `kwcoco.coco_evaluator._coerce_dets` on the *predicted* dataset (118/118 images predicted cleanly, then evaluator coercion died) |
+
+The healthy outcomes (n@416 AP=0.4056 @20.3 ms, n@512 AP=0.4765
+@31.5 ms, n@640 still in flight) confirm the rest of the pipeline
+works end-to-end — these are two specific bugs, not a meltdown.
+
+### Root cause #1 — `num_top_queries > num_queries × num_classes`
+
+The DEIMv2 postprocessor's first op is
+`torch.topk(scores.flatten(1), num_top_queries, dim=-1)`. The flatten
+yields `B × (num_queries × num_classes)` elements.
+
+* Upstream default (`tpl/DEIMv2/configs/base/dfine_hgnetv2.yml:76`):
+  `num_top_queries: 300`.
+* Pico variant
+  (`tpl/DEIMv2/configs/deimv2/deimv2_hgnetv2_pico_coco.yml:44`):
+  `num_queries: 200`.
+* v4 generated train.yml hard-codes `num_classes: 1` (shitspotter is
+  a single-class detector).
+
+→ flatten size = 200 × 1 = **200**; k = 300; topk dies.
+
+n variant uses the default 300 queries — 300 × 1 = 300, k = 300, so
+it scrapes by. Same trap waits for `femto` (150 q) and `atto`
+(100 q) if anyone enables them.
+
+Generic invariant: `num_top_queries ≤ num_queries × num_classes`.
+Upstream's COCO configs (80 classes) make this trivially satisfied;
+single-class detectors break it.
+
+### Root cause #2 — kwcoco coco_eval requires `bbox` on every coerced annotation
+
+`CocoEvaluator._coerce_dets` does
+`kwimage.Boxes([a['bbox'] for a in anns], 'xywh')` on both the true
+and the predicted dataset. Any annotation without a `bbox` key
+raises `KeyError`.
+
+The cli_predict_boxes path for the 320×320 model evidently emitted
+at least one annotation without a `bbox`. The 416 and 512 cells did
+not — same predictor, same code, only the model output distribution
+differs. Best guess: at 320 input the model produced at least one
+prediction that degenerated to zero-area after rescale, and the
+downstream box-list build dropped the `bbox` field instead of
+filtering the annotation. Needs a one-line probe (`kwcoco stats
+pred_boxes.kwcoco.zip` + `[a for a in d.anns.values() if 'bbox' not
+in a]`) to confirm.
+
+This is a duplicate of a class of bug the 04 script already
+*anticipated* on the **true-side** (the simplified test GT had the
+same issue earlier — `04_eval_on_test.sh:50` calls it out for the
+mock dispatcher). The predicted side was not similarly guarded.
+
+### Fixes (proposed; not yet landed at the time of writing)
+
+1. In `_train_deimv2_variant.sh` generated train.yml, add
+   `postprocessor.num_top_queries: <clamp>` where
+   `clamp = min(upstream_num_top_queries, num_queries * num_classes)`.
+   For shitspotter (num_classes=1), that's just
+   `min(300, num_queries)`. Mirror the same override block we already
+   use for `eval_spatial_size`.
+2. Either (a) filter prediction anns without `bbox` in
+   `cli_predict_boxes` before writing the kwcoco file, or (b) tolerate
+   the missing field in the evaluator probe by adding
+   `--skip_invalid_anns` if `kwcoco coco_eval` grows one. (a) is the
+   cleaner fix — the box list is the deliverable; if there's no box,
+   there's no detection.
+3. Append both gotchas to `_train_deimv2_variant.sh`'s error-helper
+   "Common causes & fixes" block so the next sweep run prints the
+   fix hint inline with the traceback.
+
+### Durable lesson
+
+**The matrix-row failures the audit was supposed to prevent shift
+when the matrix shape shifts.** The earlier audit fronted dep
+problems, YAML composition, and the HGNetv2 fixed-size constraint —
+all *cross-variant* issues. These two new bugs are *intra-variant*:
+they only surface on a specific combination of (variant, dataset
+shape, evaluator backend). The matrix didn't include them because we
+had only run deimv2_n at one input size before the big sweep.
+
+Two follow-ups in `dev/benchmark-candidates/pipeline-bootstrap-questions.md`
+(Q5, Q6) capture the invariants in question form.
+
+### Validation status
+
+* `08_status.sh` (added `ba5a5a3`) — verifies on disk against the
+  real sweep dir.
+* The proposed fixes are *not* committed. The sweep is currently
+  on cell `deimv2_n@640 fixed` (epoch 17, COCO AP@.50 = 0.554) and
+  letting it finish before re-running with the fixes is cheaper than
+  killing it.
+
+---
+
 ## 2026-05-11: mobile_app_training_v4 — four cross-library API failures the agent could not have caught
 
 ### Trigger
