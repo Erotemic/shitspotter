@@ -8,6 +8,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added:
 
+* (2026-05-12): `mobile_app_training_v4`: added `08_status.sh` —
+  scans `$V4_ROOT/{runs,eval,sweeps}` and prints one row per candidate
+  (checkpoint present, ONNX size with stub flag, simplified-GT AP,
+  desktop bench mean, sweep status). Documents the canonical on-disk
+  layout in `README.md` under "Where am I in the sweep?" so a multi-
+  hour sweep's progress is visible without reading the trainer log.
+
 * (2026-05-11): scaffolded the `experiments/mobile_app_training_v4/`
   workflow targeting Pixel-5 live detection. Trains DEIMv2-N (primary
   candidate), DEIMv2-Pico (speed fallback), and DEIMv2-S (DINOv3-backed

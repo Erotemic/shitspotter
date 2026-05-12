@@ -270,6 +270,58 @@ is apples-to-apples.
 
 ---
 
+## Where am I in the sweep?
+
+A long sweep can leave the shell hours behind the last log line, so a
+clean per-cell status lives on disk. Run:
+
+```bash
+source experiments/mobile_app_training_v4/setup_env.sh
+bash   experiments/mobile_app_training_v4/08_status.sh
+```
+
+This scans `$V4_ROOT` (the latest sweep TSV plus the bare `runs/`
+tree) and prints one row per candidate: which checkpoint exists, the
+on-disk ONNX size (with a `!` suffix when an ONNX is suspiciously
+small — typical for the export-recovery path), the simplified-GT AP
+once eval has finished, and the desktop bench mean once it has been
+measured. It also prints the exact `eligibility_manifest.py` command
+to turn the per-cell state into a single manifest TSV.
+
+Canonical on-disk layout under `$V4_ROOT`:
+
+```text
+$V4_ROOT/
+├── runs/<candidate_id>/                 one workdir per cell
+│   ├── best_stg2.pth                    (or best_stg1 / last / checkpointN)
+│   ├── generated_configs/train.yml      effective resolved DEIMv2 config
+│   ├── policy.json                      resolved train-resolution policy
+│   ├── export/
+│   │   ├── <variant>_h<H>_w<W>.onnx     fixed-shape export for the phone
+│   │   ├── <variant>_h<H>_w<W>.modelspec.json   sidecar consumed by the app
+│   │   └── <variant>_h<H>_w<W>.bench.json       desktop CPU latency proxy
+│   └── simplify_status.json             onnxsim attempted/skipped/crashed
+├── eval/<candidate_id>/eval/
+│   └── detect_metrics.json              read via nocls_measures.ap
+├── sweeps/<UTC>/
+│   ├── index.tsv                        per-sweep manifest, one row per cell
+│   └── <candidate_id>.log               combined log for every stage in that cell
+└── manifest.tsv / manifest.json         aggregated eligibility manifest
+```
+
+`candidate_id` is always `<variant>_tile_g<V4_TILE_GRID>_<policy>_<H>x<W>` —
+the same string used for the workdir, the eval dir, the sweep log file,
+and the phone-app `ModelSpec.id`. Identical IDs across these locations
+mean a single cell, not a coincidence.
+
+If `08_status.sh` reports an ONNX size under 256K (`!` suffix), inspect
+`runs/<candidate_id>/simplify_status.json` and re-run `03_export_onnx.sh`
+for that cell — the simplify-crash recovery path (added in `6350b9a`)
+preserves the unsimplified ONNX, but a 0/512-byte stub means the
+export itself failed and was never recovered.
+
+---
+
 ## Coordination with other agents
 
 * The Codex agent also touches this repo. Updates to this directory
