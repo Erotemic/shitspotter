@@ -8,6 +8,36 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added:
 
+* (2026-05-12): `mobile_app_training_v4`: landed the two fixes for the
+  Q5/Q6 failure modes surfaced by sweep `20260511T134137Z`, and made
+  the sweep restart gracefully.
+  - `_train_deimv2_variant.sh` now emits a top-level `num_top_queries`
+    override in the generated `train.yml`, clamped to
+    `min(300, num_queries × num_classes)` per variant. Unblocks
+    `deimv2_pico/femto/atto` on single-class shitspotter. The trainer
+    error-helper block names the new symptom inline.
+  - `04_eval_on_test.sh` pre-filters both the v9 simplified test GT
+    and the predicted kwcoco file to drop annotations whose `bbox` is
+    missing, `None`, or not a length-4 sequence, then passes the
+    filtered files to `kwcoco eval`. Caches filtered outputs under
+    `$EVAL_DPATH/`.
+  - `02_sweep.sh`, `03_export_onnx.sh`, and `04_eval_on_test.sh` are
+    now idempotent — re-running the sweep on the same `V4_ROOT` skips
+    stages whose artifacts already exist (`best_stg2.pth`, ONNX
+    ≥ 256 KiB, `detect_metrics.json`, `*.bench.json`). A cell with
+    every enabled stage already complete is reported as
+    `ok_resumed`. Force-rerun per stage with
+    `V4_SWEEP_FORCE_{TRAIN,EXPORT,EVAL,BENCH}=1` (or the per-stage
+    `FORCE_RETRAIN`/`FORCE_REEXPORT`/`FORCE_REEVAL`/`FORCE_REBENCH`
+    flags individually).
+  - New `V4_SWEEP_RETRY_FAILED=<prior_index.tsv>` mode filters the
+    cell list to those whose prior status is not `ok`/`ok_resumed`
+    — exactly the right tool to re-run only the cells broken by a
+    just-fixed bug.
+  - New tests: `tests/mobile_app_training_v4/test_num_top_queries_clamp.py`
+    (9 parametrised cases) — locks the variant→`num_queries` table
+    and the clamp invariant `num_top_queries ≤ num_queries × num_classes`.
+
 * (2026-05-12): `mobile_app_training_v4`: documented two new sweep
   failure modes surfaced by the first long Pareto sweep
   (`sweeps/20260511T134137Z`): (a) `num_top_queries=300 > num_queries

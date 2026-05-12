@@ -190,9 +190,83 @@ else
 fi
 
 mkdir -p "$EVAL_DPATH/eval"
+
+# Skip if eval is already complete (sweep restart). Override with
+# FORCE_REEVAL=1.
+if [ -f "$EVAL_DPATH/eval/detect_metrics.json" ] && [ "${FORCE_REEVAL:-0}" != "1" ]; then
+    echo "  reusing existing $EVAL_DPATH/eval/detect_metrics.json"
+    echo "  set FORCE_REEVAL=1 to re-run kwcoco eval"
+    "$PYTHON_BIN" - <<PY
+import json
+fpath = "$EVAL_DPATH/eval/detect_metrics.json"
+with open(fpath) as f:
+    data = json.load(f)
+def find_ap(node):
+    if isinstance(node, dict):
+        if "nocls_measures" in node and isinstance(node["nocls_measures"], dict):
+            v = node["nocls_measures"].get("ap")
+            if v is not None: return v
+        for v in node.values():
+            r = find_ap(v)
+            if r is not None: return r
+    elif isinstance(node, list):
+        for v in node:
+            r = find_ap(v)
+            if r is not None: return r
+    return None
+ap = find_ap(data)
+print(f"\\nv4 ${V4_VARIANT} ${V4_RUN_TAG} ${INPUT_H}x${INPUT_W} test AP (simplified GT, IoU=0.5) = {ap}")
+print("(v9 OpenGroundingDINO baseline = 0.766)")
+PY
+    exit 0
+fi
+
+# Pre-filter both true GT and predictions so kwcoco eval doesn't trip on
+# annotations with bbox=None or no 'bbox' key — the v9 simplified test
+# GT carries "caption-only" negatives that look like that, and the
+# kwcoco coercer iterates them via [a['bbox'] for a in anns] which
+# raises KeyError. See Q6 in
+# dev/benchmark-candidates/pipeline-bootstrap-questions.md.
+TRUE_FILTERED_FPATH="$EVAL_DPATH/test.simplified.bbox_only.kwcoco.zip"
+PRED_FILTERED_FPATH="$EVAL_DPATH/pred_boxes.bbox_only.kwcoco.zip"
+"$PYTHON_BIN" - <<PY
+"""Drop anns where 'bbox' is missing/None or not a length-4 sequence.
+Caches the filtered output. Idempotent: re-running is a no-op when the
+output is already newer than the input."""
+import os, sys
+import kwcoco
+
+def _filter(src, dst):
+    if os.path.exists(dst) and os.path.getmtime(dst) >= os.path.getmtime(src):
+        print(f"  reusing filtered: {dst}")
+        return
+    d = kwcoco.CocoDataset(src)
+    keep, drop = 0, 0
+    drop_ids = []
+    for ann in list(d.anns.values()):
+        bbox = ann.get('bbox')
+        ok = (
+            isinstance(bbox, (list, tuple))
+            and len(bbox) == 4
+            and all(v is not None for v in bbox)
+        )
+        if ok:
+            keep += 1
+        else:
+            drop_ids.append(ann['id']); drop += 1
+    for aid in drop_ids:
+        d.remove_annotation(aid)
+    d._update_fpath(dst)
+    d.dump(newroot=os.path.dirname(dst) or '.')
+    print(f"  filtered {src} → {dst}  (kept={keep}, dropped={drop})")
+
+_filter("$SIMPLIFIED_TEST_FPATH", "$TRUE_FILTERED_FPATH")
+_filter("$PRED_BOXES_FPATH",      "$PRED_FILTERED_FPATH")
+PY
+
 "$PYTHON_BIN" -m kwcoco eval \
-    --true_dataset "$SIMPLIFIED_TEST_FPATH" \
-    --pred_dataset "$PRED_BOXES_FPATH" \
+    --true_dataset "$TRUE_FILTERED_FPATH" \
+    --pred_dataset "$PRED_FILTERED_FPATH" \
     --out_dpath "$EVAL_DPATH/eval" \
     --out_fpath "$EVAL_DPATH/eval/detect_metrics.json" \
     --confusion_fpath "$EVAL_DPATH/eval/confusion.kwcoco.zip" \

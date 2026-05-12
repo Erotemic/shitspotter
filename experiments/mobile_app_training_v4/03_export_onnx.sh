@@ -156,6 +156,19 @@ printf '  %-32s %s\n' "GENERATED_CFG"      "$GENERATED_CFG_FPATH"
 printf '  %-32s %s\n' "EXPORT_ONNX_FPATH"  "$EXPORT_ONNX_FPATH"
 printf '  %-32s %s\n' "EXPORT_MODELSPEC"   "$EXPORT_MODELSPEC_FPATH"
 
+# Skip if the ONNX already exists and is plausibly real (> 256K — a
+# 0/512-byte file would be a stub from the simplify-crash recovery
+# path). Override with FORCE_REEXPORT=1.
+if [ -f "$EXPORT_ONNX_FPATH" ] && [ "${FORCE_REEXPORT:-0}" != "1" ]; then
+    _v4_existing_bytes=$(stat -c '%s' "$EXPORT_ONNX_FPATH" 2>/dev/null || echo 0)
+    if [ "$_v4_existing_bytes" -ge 262144 ]; then
+        echo "  reusing existing $EXPORT_ONNX_FPATH ($((_v4_existing_bytes / 1024)) KiB)"
+        echo "  set FORCE_REEXPORT=1 to re-run the export"
+        exit 0
+    fi
+    echo "  existing ONNX is suspiciously small ($_v4_existing_bytes B); re-exporting"
+fi
+
 # DEIMv2's exporter writes alongside the resume checkpoint, deriving the
 # output path by replacing .pth with .onnx. We work in a temp staging
 # directory so we don't pollute the workdir, then copy the result out.

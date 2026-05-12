@@ -124,6 +124,35 @@ V4_RUN_TAG="${V4_RUN_TAG:-tile_g${V4_TILE_GRID}}"
 FORCE_RETRAIN="${FORCE_RETRAIN:-0}"
 
 # ---------------------------------------------------------------------------
+# Per-variant num_queries (matches the upstream config tables under
+# tpl/DEIMv2/configs/deimv2/). Used to clamp num_top_queries below so the
+# postprocessor topk doesn't index past the flatten(1) size on
+# single-class shitspotter — see Q5 in
+# dev/benchmark-candidates/pipeline-bootstrap-questions.md.
+# ---------------------------------------------------------------------------
+case "$V4_VARIANT" in
+    deimv2_atto)                                            V4_NUM_QUERIES=100 ;;
+    deimv2_femto)                                           V4_NUM_QUERIES=150 ;;
+    deimv2_pico)                                            V4_NUM_QUERIES=200 ;;
+    deimv2_n|deimv2_s|deimv2_m|deimv2_l|deimv2_x)           V4_NUM_QUERIES=300 ;;
+    *)                                                      V4_NUM_QUERIES=300 ;;
+esac
+
+# Clamp num_top_queries to min(upstream_default, num_queries × num_classes).
+# Upstream's PostProcessor block (base/dfine_hgnetv2.yml:76) hard-codes 300;
+# fine for COCO@80 classes (num_queries × 80 ≫ 300) but breaks for any
+# small HGNetv2 variant on a single-class detector — scores.flatten(1)
+# has only num_queries × 1 elements and torch.topk(k=300) raises
+# RuntimeError: selected index k out of range. Shitspotter is
+# single-class (num_classes=1), so the clamp simplifies to
+# min(300, num_queries).
+V4_NUM_CLASSES_FOR_CLAMP=1
+V4_NUM_TOP_QUERIES=$(( V4_NUM_QUERIES * V4_NUM_CLASSES_FOR_CLAMP ))
+if [ "$V4_NUM_TOP_QUERIES" -gt 300 ]; then
+    V4_NUM_TOP_QUERIES=300
+fi
+
+# ---------------------------------------------------------------------------
 # Resolve I/O paths
 # ---------------------------------------------------------------------------
 DATA_DPATH="$V4_ROOT/data"
@@ -392,6 +421,16 @@ use_amp: $V4_USE_AMP
 task: detection
 num_classes: 1
 remap_mscoco_category: false
+
+# Postprocessor topk clamp — see Q5 in
+# dev/benchmark-candidates/pipeline-bootstrap-questions.md. num_top_queries
+# is a __share__ key, so the top-level override beats the
+# PostProcessor: sub-block in the upstream base config. Without this,
+# any HGNetv2 variant smaller than deimv2_n (pico/femto/atto) crashes in
+# the first val pass with "RuntimeError: selected index k out of range"
+# because num_queries × num_classes < num_top_queries=300.
+num_top_queries: $V4_NUM_TOP_QUERIES
+
 evaluator:
   type: CocoEvaluator
   iou_types:
@@ -653,6 +692,12 @@ _v4_train_failed() {
   - 'pos_embed' shape mismatch:  HGNetv2 encoder doesn't support multi-scale;
                                   set V4_TRAIN_POLICY=fixed.
   - 'Too many open files':  raise V4_FD_LIMIT or set V4_TORCH_MP_SHARING=file_system.
+  - 'selected index k out of range' (in postprocessor.forward → torch.topk):
+        num_top_queries=$V4_NUM_TOP_QUERIES > num_queries × num_classes for
+        $V4_VARIANT (num_queries=$V4_NUM_QUERIES, num_classes=1). The
+        generated train.yml now clamps num_top_queries automatically; if
+        you see this on a fresh run, verify the top-level
+        'num_top_queries:' override is present in $GENERATED_CFG_FPATH.
 
 Logs:  $WORKDIR/  +  generated cfg at $GENERATED_CFG_FPATH
 EOF

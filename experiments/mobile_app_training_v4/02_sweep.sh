@@ -34,6 +34,18 @@
 #
 #     V4_SWEEP_KEEP_GOING=1 bash 02_sweep.sh
 #
+# Graceful restart — by default every stage skips when its output is
+# already on disk (best_stg2.pth / *.onnx / detect_metrics.json /
+# *.bench.json). A re-run of `bash 02_sweep.sh` on the same V4_ROOT
+# only does the missing work; cells that already finished get
+# status=ok_resumed in the new sweep TSV. Force a specific stage to
+# re-run with V4_SWEEP_FORCE_{TRAIN,EXPORT,EVAL,BENCH}=1.
+#
+# Retry only the cells that failed (or never ran) in a prior sweep:
+#
+#     V4_SWEEP_RETRY_FAILED=$V4_ROOT/sweeps/<UTC>/index.tsv \
+#         V4_SWEEP_KEEP_GOING=1 bash 02_sweep.sh
+#
 # Knobs you can override per-cell via env: V4_TRAIN_BATCH, V4_VAL_BATCH,
 # V4_NUM_EPOCHS, V4_NUM_GPUS, FORCE_RETRAIN, FORCE_REPRED.
 
@@ -90,6 +102,20 @@ V4_SWEEP_BENCH_ITERS="${V4_SWEEP_BENCH_ITERS:-50}"
 V4_SWEEP_KEEP_GOING="${V4_SWEEP_KEEP_GOING:-0}"
 V4_BENCH_IMAGE="${V4_BENCH_IMAGE:-$SHITSPOTTER_DPATH/tpl/YOLOX/assets/dog.jpg}"
 
+# Graceful-restart knobs. By default the sweep is idempotent — each
+# stage skips when its output already exists on disk. Flip these to 1
+# to force the sweep to re-run that stage.
+V4_SWEEP_FORCE_TRAIN="${V4_SWEEP_FORCE_TRAIN:-${FORCE_RETRAIN:-0}}"
+V4_SWEEP_FORCE_EXPORT="${V4_SWEEP_FORCE_EXPORT:-${FORCE_REEXPORT:-0}}"
+V4_SWEEP_FORCE_EVAL="${V4_SWEEP_FORCE_EVAL:-${FORCE_REEVAL:-0}}"
+V4_SWEEP_FORCE_BENCH="${V4_SWEEP_FORCE_BENCH:-${FORCE_REBENCH:-0}}"
+
+# Optional: drop cells already in `status=ok` (or `status=ok_resumed`)
+# in a prior sweep TSV from the work list. Useful when restarting after
+# fixing a bug that broke only some cells — pass the prior sweep's
+# index.tsv and only the non-ok cells get queued.
+V4_SWEEP_RETRY_FAILED="${V4_SWEEP_RETRY_FAILED:-}"
+
 # Raise FD limit for the whole sweep — see _train_deimv2_variant.sh
 # for the rationale. Doing it here too means bench/eval subprocesses
 # inherit the higher limit, not just the trainer.
@@ -109,6 +135,11 @@ printf '  %-32s %s\n' "DO_EXPORT"          "$V4_SWEEP_DO_EXPORT"
 printf '  %-32s %s\n' "DO_EVAL"            "$V4_SWEEP_DO_EVAL"
 printf '  %-32s %s\n' "DO_BENCH"           "$V4_SWEEP_DO_BENCH"
 printf '  %-32s %s\n' "KEEP_GOING"         "$V4_SWEEP_KEEP_GOING"
+printf '  %-32s %s\n' "FORCE_TRAIN"        "$V4_SWEEP_FORCE_TRAIN"
+printf '  %-32s %s\n' "FORCE_EXPORT"       "$V4_SWEEP_FORCE_EXPORT"
+printf '  %-32s %s\n' "FORCE_EVAL"         "$V4_SWEEP_FORCE_EVAL"
+printf '  %-32s %s\n' "FORCE_BENCH"        "$V4_SWEEP_FORCE_BENCH"
+printf '  %-32s %s\n' "RETRY_FAILED"       "${V4_SWEEP_RETRY_FAILED:-<all cells>}"
 echo
 echo "Cells:"
 echo "$V4_SWEEP_CELLS" | sed -e 's/^/    /'
@@ -132,6 +163,46 @@ while read -r line; do
     VARIANTS+=( "$1" ); INPUT_HS+=( "$2" ); INPUT_WS+=( "$3" ); POLICIES+=( "$4" )
 done <<< "$V4_SWEEP_CELLS"
 
+# Optional retry-only-failed filter: load a prior sweep's index.tsv and
+# remove from this run any cell whose prior status starts with `ok`.
+# Cells absent from the prior index are kept (they never ran).
+if [ -n "$V4_SWEEP_RETRY_FAILED" ]; then
+    if [ ! -f "$V4_SWEEP_RETRY_FAILED" ]; then
+        echo "  V4_SWEEP_RETRY_FAILED points at a missing file: $V4_SWEEP_RETRY_FAILED" >&2
+        exit 1
+    fi
+    # Read prior (candidate_id -> status) into env, then filter.
+    declare -A _PRIOR_STATUS=()
+    while IFS=$'\t' read -r v eh ew tp cid rt wd onnx ed bj pj status; do
+        [ "$v" = "variant" ] && continue
+        _PRIOR_STATUS["$cid"]="$status"
+    done < "$V4_SWEEP_RETRY_FAILED"
+
+    _NEW_V=(); _NEW_H=(); _NEW_W=(); _NEW_P=(); _SKIPPED_OK=0
+    for i in "${!VARIANTS[@]}"; do
+        v="${VARIANTS[$i]}"; h="${INPUT_HS[$i]}"; w="${INPUT_WS[$i]}"; p="${POLICIES[$i]}"
+        cid="${v}_tile_g${V4_TILE_GRID}_${p}_${h}x${w}"
+        st="${_PRIOR_STATUS[$cid]:-}"
+        case "$st" in
+            ok|ok_resumed)
+                _SKIPPED_OK=$(( _SKIPPED_OK + 1 ))
+                ;;
+            *)
+                _NEW_V+=( "$v" ); _NEW_H+=( "$h" ); _NEW_W+=( "$w" ); _NEW_P+=( "$p" )
+                ;;
+        esac
+    done
+    echo "  RETRY_FAILED: kept $((${#VARIANTS[@]} - _SKIPPED_OK)) of ${#VARIANTS[@]} cells from prior sweep"
+    echo "                (skipped $_SKIPPED_OK already-ok cells from $V4_SWEEP_RETRY_FAILED)"
+    VARIANTS=( "${_NEW_V[@]}" ); INPUT_HS=( "${_NEW_H[@]}" )
+    INPUT_WS=( "${_NEW_W[@]}" ); POLICIES=( "${_NEW_P[@]}" )
+    if [ "${#VARIANTS[@]}" -eq 0 ]; then
+        echo "  nothing left to do — every cell in the prior sweep is already ok."
+        echo "  Set V4_SWEEP_FORCE_<TRAIN|EXPORT|EVAL|BENCH>=1 to redo a stage anyway."
+        exit 0
+    fi
+fi
+
 # Make the printf-on-success path explicit — each stage records its own
 # exit code and status is the worst of the enabled stages, not "ok by
 # default". `set -o pipefail` (already on via common.sh) plus
@@ -147,9 +218,10 @@ run_cell() {
     local onnx_fpath="$workdir/export/${variant}_h${h}_w${w}.onnx"
     local eval_dpath="$V4_ROOT/eval/${candidate_id}"
     local policy_json="$workdir/policy.json"
-    local bench_json=""
+    local bench_json="$workdir/export/${variant}_h${h}_w${w}.bench.json"
     local stage_status="ok"
     local fail_stage=""
+    local _train_did=0 _export_did=0 _eval_did=0 _bench_did=0
 
     echo
     echo "=========================================================="
@@ -163,53 +235,76 @@ run_cell() {
         v4_mock*) trainer="_train_v4_mock_variant.sh" ;;
         *)        trainer="_train_deimv2_variant.sh" ;;
     esac
-    (
-        set -o pipefail
-        V4_VARIANT="$variant" \
-        V4_INPUT_HW="$h $w" \
-        V4_TRAIN_POLICY="$policy" \
-        V4_RUN_TAG="$run_tag" \
-        bash "$V4_DEV_DPATH/$trainer" 2>&1 | tee -a "$cell_log"
-    )
-    if [ "$?" -ne 0 ]; then
-        stage_status="fail_train"; fail_stage="train"
+    if [ -f "$workdir/best_stg2.pth" ] || [ -f "$workdir/best_stg1.pth" ] \
+        && ! v4_is_truthy "$V4_SWEEP_FORCE_TRAIN"; then
+        echo "  [skip train] $workdir already has a best_*.pth" | tee -a "$cell_log"
+    else
+        _train_did=1
+        (
+            set -o pipefail
+            V4_VARIANT="$variant" \
+            V4_INPUT_HW="$h $w" \
+            V4_TRAIN_POLICY="$policy" \
+            V4_RUN_TAG="$run_tag" \
+            FORCE_RETRAIN="$V4_SWEEP_FORCE_TRAIN" \
+            bash "$V4_DEV_DPATH/$trainer" 2>&1 | tee -a "$cell_log"
+        )
+        if [ "$?" -ne 0 ]; then
+            stage_status="fail_train"; fail_stage="train"
+        fi
     fi
 
     # ---- 2. export --------------------------------------------------------
     if [ "$stage_status" = "ok" ] && v4_is_truthy "$V4_SWEEP_DO_EXPORT"; then
-        (
-            set -o pipefail
-            bash "$V4_DEV_DPATH/03_export_onnx.sh" "$variant" "$run_tag" "$h" "$w" \
-                2>&1 | tee -a "$cell_log"
-        )
-        if [ "$?" -ne 0 ]; then
-            stage_status="fail_export"; fail_stage="export"
-        elif [ ! -f "$onnx_fpath" ]; then
-            stage_status="fail_export"; fail_stage="export(no .onnx produced)"
+        if [ -f "$onnx_fpath" ] && [ "$(stat -c %s "$onnx_fpath" 2>/dev/null || echo 0)" -ge 262144 ] \
+            && ! v4_is_truthy "$V4_SWEEP_FORCE_EXPORT"; then
+            echo "  [skip export] $onnx_fpath already present" | tee -a "$cell_log"
+        else
+            _export_did=1
+            (
+                set -o pipefail
+                FORCE_REEXPORT="$V4_SWEEP_FORCE_EXPORT" \
+                bash "$V4_DEV_DPATH/03_export_onnx.sh" "$variant" "$run_tag" "$h" "$w" \
+                    2>&1 | tee -a "$cell_log"
+            )
+            if [ "$?" -ne 0 ]; then
+                stage_status="fail_export"; fail_stage="export"
+            elif [ ! -f "$onnx_fpath" ]; then
+                stage_status="fail_export"; fail_stage="export(no .onnx produced)"
+            fi
         fi
     fi
 
     # ---- 3. eval ----------------------------------------------------------
     if [ "$stage_status" = "ok" ] && v4_is_truthy "$V4_SWEEP_DO_EVAL"; then
-        (
-            set -o pipefail
-            bash "$V4_DEV_DPATH/04_eval_on_test.sh" "$variant" "$run_tag" "$h" "$w" \
-                2>&1 | tee -a "$cell_log"
-        )
-        if [ "$?" -ne 0 ]; then
-            stage_status="fail_eval"; fail_stage="eval"
-        elif [ ! -f "$eval_dpath/eval/detect_metrics.json" ]; then
-            stage_status="fail_eval"; fail_stage="eval(no metrics.json)"
+        if [ -f "$eval_dpath/eval/detect_metrics.json" ] \
+            && ! v4_is_truthy "$V4_SWEEP_FORCE_EVAL"; then
+            echo "  [skip eval] $eval_dpath/eval/detect_metrics.json already present" | tee -a "$cell_log"
+        else
+            _eval_did=1
+            (
+                set -o pipefail
+                FORCE_REEVAL="$V4_SWEEP_FORCE_EVAL" \
+                bash "$V4_DEV_DPATH/04_eval_on_test.sh" "$variant" "$run_tag" "$h" "$w" \
+                    2>&1 | tee -a "$cell_log"
+            )
+            if [ "$?" -ne 0 ]; then
+                stage_status="fail_eval"; fail_stage="eval"
+            elif [ ! -f "$eval_dpath/eval/detect_metrics.json" ]; then
+                stage_status="fail_eval"; fail_stage="eval(no metrics.json)"
+            fi
         fi
     fi
 
     # ---- 4. bench ---------------------------------------------------------
     if [ "$stage_status" = "ok" ] && v4_is_truthy "$V4_SWEEP_DO_BENCH"; then
-        bench_json="$workdir/export/${variant}_h${h}_w${w}.bench.json"
         if [ ! -f "$onnx_fpath" ]; then
             echo "  bench skipped: $onnx_fpath missing" | tee -a "$cell_log"
             bench_json=""
+        elif [ -f "$bench_json" ] && ! v4_is_truthy "$V4_SWEEP_FORCE_BENCH"; then
+            echo "  [skip bench] $bench_json already present" | tee -a "$cell_log"
         else
+            _bench_did=1
             (
                 set -o pipefail
                 "$PYTHON_BIN" "$V4_DEV_DPATH/06_benchmark_onnx_desktop.py" \
@@ -226,17 +321,26 @@ run_cell() {
         fi
     fi
 
+    # If every enabled stage was a no-op (everything already on disk),
+    # mark the cell `ok_resumed` so retry-failed runs treat it the same
+    # as `ok` next time.
+    if [ "$stage_status" = "ok" ] \
+        && [ "$_train_did"  = "0" ] && [ "$_export_did" = "0" ] \
+        && [ "$_eval_did"   = "0" ] && [ "$_bench_did"  = "0" ]; then
+        stage_status="ok_resumed"
+    fi
+
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
         "$variant" "$h" "$w" "$policy" "$candidate_id" "$run_tag" \
         "$workdir" "$onnx_fpath" "$eval_dpath" "${bench_json:-}" \
         "$policy_json" "$stage_status" \
         >> "$SWEEP_INDEX_FPATH"
 
-    if [ "$stage_status" != "ok" ]; then
-        echo "  -> cell $candidate_id FAILED at: $fail_stage" | tee -a "$cell_log"
-        return 1
-    fi
-    return 0
+    case "$stage_status" in
+        ok|ok_resumed) return 0 ;;
+    esac
+    echo "  -> cell $candidate_id FAILED at: $fail_stage" | tee -a "$cell_log"
+    return 1
 }
 
 failures=0
