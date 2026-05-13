@@ -235,9 +235,16 @@ run_cell() {
         v4_mock*) trainer="_train_v4_mock_variant.sh" ;;
         *)        trainer="_train_deimv2_variant.sh" ;;
     esac
-    if [ -f "$workdir/best_stg2.pth" ] || [ -f "$workdir/best_stg1.pth" ] \
+    # Skip only when training is FULLY complete (best_stg2.pth = stage-2
+    # done). best_stg1.pth alone means stage 1 finished but stage 2 may
+    # still need to run — defer the decision to the trainer's own
+    # "already trained" check, which knows V4_NUM_EPOCHS and can spot
+    # the final-epoch checkpoint. Bash's && binds tighter than ||, so
+    # the old `best_stg2 || best_stg1 && !force` form was also wrong
+    # for FORCE_TRAIN.
+    if [ -f "$workdir/best_stg2.pth" ] \
         && ! v4_is_truthy "$V4_SWEEP_FORCE_TRAIN"; then
-        echo "  [skip train] $workdir already has a best_*.pth" | tee -a "$cell_log"
+        echo "  [skip train] $workdir already has best_stg2.pth" | tee -a "$cell_log"
     else
         _train_did=1
         (
