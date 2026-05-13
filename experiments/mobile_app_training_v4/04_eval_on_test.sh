@@ -227,38 +227,66 @@ fi
 # kwcoco coercer iterates them via [a['bbox'] for a in anns] which
 # raises KeyError. See Q6 in
 # dev/benchmark-candidates/pipeline-bootstrap-questions.md.
+#
+# We deliberately do NOT round-trip through kwcoco.CocoDataset.dump —
+# loading a .kwcoco.zip lazy-builds the index, and calling
+# `_update_fpath -> reroot` before any access to `imgs` then crashes
+# with `TypeError: object of type 'NoneType' has no len()`. The
+# dataset shape is unchanged except for the dropped anns, so editing
+# the inner JSON in place is both simpler and immune to kwcoco's
+# lazy-load behaviour.
 TRUE_FILTERED_FPATH="$EVAL_DPATH/test.simplified.bbox_only.kwcoco.zip"
 PRED_FILTERED_FPATH="$EVAL_DPATH/pred_boxes.bbox_only.kwcoco.zip"
 "$PYTHON_BIN" - <<PY
-"""Drop anns where 'bbox' is missing/None or not a length-4 sequence.
-Caches the filtered output. Idempotent: re-running is a no-op when the
-output is already newer than the input."""
-import os, sys
-import kwcoco
+"""Drop anns whose 'bbox' is missing, None, or not a length-4 sequence.
+Idempotent: re-running is a no-op when the output is already newer
+than the input."""
+import json, os, zipfile
+
+def _load_inner(src):
+    if src.endswith('.zip'):
+        with zipfile.ZipFile(src) as zf:
+            inner = next(n for n in zf.namelist() if n.endswith('.json'))
+            return inner, json.loads(zf.read(inner))
+    with open(src) as f:
+        return os.path.basename(src), json.load(f)
+
+def _dump_inner(dst, inner_name, payload):
+    tmp = dst + '.tmp'
+    if dst.endswith('.zip'):
+        with zipfile.ZipFile(tmp, 'w', zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr(inner_name, json.dumps(payload))
+    else:
+        with open(tmp, 'w') as f:
+            json.dump(payload, f)
+    os.replace(tmp, dst)
 
 def _filter(src, dst):
     if os.path.exists(dst) and os.path.getmtime(dst) >= os.path.getmtime(src):
         print(f"  reusing filtered: {dst}")
         return
-    d = kwcoco.CocoDataset(src)
-    keep, drop = 0, 0
-    drop_ids = []
-    for ann in list(d.anns.values()):
+    inner_name, data = _load_inner(src)
+    anns = data.get('annotations', [])
+    keep, drop = [], 0
+    for ann in anns:
         bbox = ann.get('bbox')
-        ok = (
-            isinstance(bbox, (list, tuple))
-            and len(bbox) == 4
-            and all(v is not None for v in bbox)
-        )
-        if ok:
-            keep += 1
+        if (isinstance(bbox, (list, tuple))
+                and len(bbox) == 4
+                and all(v is not None for v in bbox)):
+            keep.append(ann)
         else:
-            drop_ids.append(ann['id']); drop += 1
-    for aid in drop_ids:
-        d.remove_annotation(aid)
-    d._update_fpath(dst)
-    d.dump(newroot=os.path.dirname(dst) or '.')
-    print(f"  filtered {src} → {dst}  (kept={keep}, dropped={drop})")
+            drop += 1
+    data['annotations'] = keep
+    # Mirror the kwcoco zip convention: inner json named like the
+    # outer zip's stem (e.g. foo.kwcoco.zip -> foo.kwcoco.json) so
+    # kwcoco reloads it without surprises.
+    if dst.endswith('.zip'):
+        inner_name = os.path.basename(dst)[:-4]      # strip .zip
+        if not inner_name.endswith('.json'):
+            inner_name = inner_name + '.json'
+    os.makedirs(os.path.dirname(dst) or '.', exist_ok=True)
+    _dump_inner(dst, inner_name, data)
+    print(f"  filtered {src} → {dst}  (kept={len(keep)}, dropped={drop})")
 
 _filter("$SIMPLIFIED_TEST_FPATH", "$TRUE_FILTERED_FPATH")
 _filter("$PRED_BOXES_FPATH",      "$PRED_FILTERED_FPATH")
