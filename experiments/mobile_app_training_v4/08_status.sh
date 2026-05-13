@@ -121,13 +121,9 @@ if not candidates:
     print('No candidates found — nothing under $V4_ROOT/runs/ and no sweep index.')
     sys.exit(0)
 
-# One-line-per-cell report
-fmt = '{cid:<48}  {train:<5}  {onnx:<10}  {eval_ap:<12}  {bench:<14}  {sweep}'
-print(fmt.format(cid='candidate_id', train='train', onnx='onnx',
-                 eval_ap='eval_AP', bench='bench_mean_ms', sweep='sweep_status'))
-print('-' * 110)
-
-for c in candidates:
+# Collect per-candidate rows first; rendering is a separate concern so
+# the rich-vs-plain branch only differs at the very end.
+def _gather_row(c):
     cid = c['candidate_id']
     workdir = os.path.join(v4_root, 'runs', cid)
     export_d = os.path.join(workdir, 'export')
@@ -138,17 +134,19 @@ for c in candidates:
         if os.path.isfile(os.path.join(workdir, name)):
             train = name.replace('.pth', ''); break
     if train == '-':
-        for cp in sorted(glob.glob(os.path.join(workdir, 'checkpoint*.pth'))):
+        for _cp in sorted(glob.glob(os.path.join(workdir, 'checkpoint*.pth'))):
             train = 'last_ckpt'; break
 
     # ONNX: take the largest .onnx in export/
     onnx = '-'
+    onnx_stub = False
     onnx_paths = sorted(glob.glob(os.path.join(export_d, '*.onnx')))
     if onnx_paths:
         best = max(onnx_paths, key=lambda p: os.path.getsize(p))
-        onnx = human_bytes(os.path.getsize(best))
-        # Flag obviously stub / tiny exports.
-        if os.path.getsize(best) < 256 * 1024:
+        size = os.path.getsize(best)
+        onnx = human_bytes(size)
+        onnx_stub = size < 256 * 1024
+        if onnx_stub:
             onnx += '!'
 
     # Eval AP
@@ -165,20 +163,126 @@ for c in candidates:
     bench = '-'
     for bj in glob.glob(os.path.join(export_d, '*.bench.json')):
         try:
-            d = json.loads(open(bj).read())
-            v = d.get('mean_ms')
+            data = json.loads(open(bj).read())
+            v = data.get('mean_ms')
             if v is not None: bench = f'{float(v):.1f}'
             break
         except Exception:
             pass
 
-    print(fmt.format(cid=cid, train=train, onnx=onnx, eval_ap=eval_ap,
-                     bench=bench, sweep=c['sweep_status'] or '-'))
+    return {
+        'cid':      cid,
+        'train':    train,
+        'onnx':     onnx,
+        'onnx_stub': onnx_stub,
+        'eval_ap':  eval_ap,
+        'ap':       ap,
+        'bench':    bench,
+        'sweep':    c['sweep_status'] or '-',
+    }
 
-print()
-print('legend: train ∈ {best_stg2,best_stg1,last,last_ckpt,-}  '
-      'onnx size suffix ! = under 256K (probable stub)')
-print('eval_AP is the simplified-GT AP @ IoU=0.5 (v9 reference = 0.766)')
+rows = [_gather_row(c) for c in candidates]
+
+# Prefer rich if available — colourised + properly aligned table. Fall
+# back to a plain str.format table otherwise (pre-flight envs without
+# rich installed, CI, etc).
+try:
+    from rich.console import Console
+    from rich.table import Table
+    from rich import box
+    _have_rich = True
+except Exception:
+    _have_rich = False
+
+_STAGE_OK     = {'ok', 'ok_resumed'}
+_STAGE_FAIL_PREFIX = ('fail_',)
+
+def _sweep_style(status):
+    if status in _STAGE_OK:
+        return 'green'
+    if status.startswith(_STAGE_FAIL_PREFIX):
+        return 'red'
+    if status in ('', '-'):
+        return 'dim'
+    return 'yellow'
+
+if _have_rich:
+    # When stdout is not a TTY (piped to tee, redirected to a file, run
+    # under `column`), rich falls back to ~80 cols and wraps the long
+    # candidate_id. Compute a width that fits every cell and override
+    # the Console default if it would be too narrow.
+    _MIN_WIDTH = max(len(r['cid']) for r in rows) + 60  # +60 covers the other cols + padding
+    console = Console(width=max(_MIN_WIDTH, 100))
+    table = Table(
+        box=box.SIMPLE_HEAVY,
+        header_style='bold',
+        show_lines=False,
+        pad_edge=False,
+        title=f'v4 sweep status — {v4_root}',
+        title_justify='left',
+        title_style='bold cyan',
+    )
+    table.add_column('candidate_id', no_wrap=True)
+    table.add_column('train', justify='left',  no_wrap=True)
+    table.add_column('onnx',  justify='right', no_wrap=True)
+    table.add_column('eval_AP', justify='right', no_wrap=True)
+    table.add_column('bench_ms', justify='right', no_wrap=True)
+    table.add_column('sweep_status', no_wrap=True)
+    for r in rows:
+        train_style = 'dim' if r['train'] == '-' else (
+            'green' if r['train'].startswith('best_') else 'yellow'
+        )
+        onnx_style = 'dim' if r['onnx'] == '-' else (
+            'red'  if r['onnx_stub'] else 'green'
+        )
+        ap_style = 'dim' if r['ap'] is None else (
+            'green' if r['ap'] >= 0.4 else ('yellow' if r['ap'] >= 0.2 else 'red')
+        )
+        bench_style = 'dim' if r['bench'] == '-' else 'green'
+        table.add_row(
+            r['cid'],
+            f"[{train_style}]{r['train']}[/]",
+            f"[{onnx_style}]{r['onnx']}[/]",
+            f"[{ap_style}]{r['eval_ap']}[/]",
+            f"[{bench_style}]{r['bench']}[/]",
+            f"[{_sweep_style(r['sweep'])}]{r['sweep']}[/]",
+        )
+    console.print(table)
+    console.print(
+        '[dim]legend: train ∈ {best_stg2,best_stg1,last,last_ckpt,-}; '
+        'onnx size suffix [/][red]![/] [dim]= under 256K (probable stub); '
+        'eval_AP is simplified-GT AP @ IoU=0.5 (v9 reference = 0.766).[/]'
+    )
+else:
+    # Auto-size columns so a wide field (e.g. train="best_stg2") doesn't
+    # cause downstream columns to overflow its declared width — that was
+    # the bug in the previous fixed-width version.
+    cols = [
+        ('candidate_id', 'cid',     'left'),
+        ('train',        'train',   'left'),
+        ('onnx',         'onnx',    'right'),
+        ('eval_AP',      'eval_ap', 'right'),
+        ('bench_ms',     'bench',   'right'),
+        ('sweep_status', 'sweep',   'left'),
+    ]
+    widths = {}
+    for header, key, _just in cols:
+        widths[key] = max(len(header), max((len(str(r[key])) for r in rows), default=0))
+
+    def _fmt_cell(val, key, just):
+        s = str(val)
+        return s.rjust(widths[key]) if just == 'right' else s.ljust(widths[key])
+
+    sep = '  '
+    header_line = sep.join(_fmt_cell(h, k, j) for h, k, j in cols)
+    print(header_line)
+    print('-' * len(header_line))
+    for r in rows:
+        print(sep.join(_fmt_cell(r[k], k, j) for _, k, j in cols))
+    print()
+    print('legend: train ∈ {best_stg2,best_stg1,last,last_ckpt,-}  '
+          'onnx size suffix ! = under 256K (probable stub)')
+    print('eval_AP is the simplified-GT AP @ IoU=0.5 (v9 reference = 0.766)')
 PY
 
 echo
