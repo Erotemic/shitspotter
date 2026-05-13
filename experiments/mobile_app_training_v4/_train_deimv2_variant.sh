@@ -668,11 +668,18 @@ PY
 fi
 
 TRAIN_ARGS=( "$SHITSPOTTER_DEIMV2_REPO_DPATH/train.py" -c "$GENERATED_CFG_FPATH" )
-if [ -n "$V4_DEIMV2_INIT_CKPT" ]; then
-    TRAIN_ARGS+=( -t "$V4_DEIMV2_INIT_CKPT" )
-fi
+# DEIMv2's train.py asserts not all([tuning, resume]) — pass at most one.
+# Resume wins: the checkpoint already encodes whatever init the original
+# run started from, so re-passing -t INIT_CKPT alongside -r RESUME both
+# (a) crashes the trainer with AssertionError and (b) wouldn't be the
+# right semantics anyway.
 if [ -n "$V4_RESUME" ]; then
     TRAIN_ARGS+=( -r "$V4_RESUME" )
+    if [ -n "$V4_DEIMV2_INIT_CKPT" ]; then
+        echo "  [resume] ignoring V4_DEIMV2_INIT_CKPT — DEIMv2 forbids -t + -r together"
+    fi
+elif [ -n "$V4_DEIMV2_INIT_CKPT" ]; then
+    TRAIN_ARGS+=( -t "$V4_DEIMV2_INIT_CKPT" )
 fi
 if v4_is_truthy "$V4_USE_AMP"; then
     TRAIN_ARGS+=( --use-amp )
@@ -698,6 +705,11 @@ _v4_train_failed() {
         generated train.yml now clamps num_top_queries automatically; if
         you see this on a fresh run, verify the top-level
         'num_top_queries:' override is present in $GENERATED_CFG_FPATH.
+  - 'AssertionError: Only support from_scrach or resume or tuning at one time'
+        DEIMv2's train.py forbids -t INIT_CKPT and -r RESUME together. The
+        wrapper now drops -t when V4_RESUME is set; if you still see this,
+        you may have an old shell that pre-dates the fix, or you set both
+        V4_RESUME and V4_DEIMV2_INIT_CKPT explicitly somewhere downstream.
 
 Logs:  $WORKDIR/  +  generated cfg at $GENERATED_CFG_FPATH
 EOF
