@@ -3,8 +3,11 @@ package io.kitware.shitspotter.android
 import android.content.Context
 import android.graphics.ImageFormat
 import android.util.Size
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.core.resolutionselector.ResolutionSelector
@@ -46,6 +49,8 @@ class CameraAnalysisLoop(
     @Volatile private var droppedFrames: AtomicLong = AtomicLong(0L)
     private var lastSelectorWasFront: Boolean = false
     private var rebindFn: (() -> Unit)? = null
+    @Volatile private var cameraRef: Camera? = null
+    private var imageCaptureUseCase: ImageCapture? = null
 
     private val analyzerExecutor: ExecutorService = Executors.newSingleThreadExecutor { r ->
         Thread(r, "shitspotter-analyzer").apply { priority = Thread.NORM_PRIORITY + 1 }
@@ -91,13 +96,19 @@ class CameraAnalysisLoop(
                         .build()
                     analysis.setAnalyzer(analyzerExecutor) { proxy -> handleFrame(proxy) }
 
+                    val imgCap = ImageCapture.Builder()
+                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+                        .build()
+                    imageCaptureUseCase = imgCap
+
                     val selector = if (state.useFrontCamera) {
                         CameraSelector.DEFAULT_FRONT_CAMERA
                     } else {
                         CameraSelector.DEFAULT_BACK_CAMERA
                     }
                     provider.unbindAll()
-                    provider.bindToLifecycle(lifecycleOwner, selector, preview, analysis)
+                    val cam = provider.bindToLifecycle(lifecycleOwner, selector, preview, analysis, imgCap)
+                    cameraRef = cam
                     lastSelectorWasFront = state.useFrontCamera
                     logger.info(
                         TAG,
@@ -223,6 +234,27 @@ class CameraAnalysisLoop(
         } finally {
             proxy.close()
         }
+    }
+
+    fun setTorch(enabled: Boolean) {
+        cameraRef?.cameraControl?.enableTorch(enabled)
+    }
+
+    fun takePicture(
+        outputFile: java.io.File,
+        executor: java.util.concurrent.Executor,
+        onSuccess: (java.io.File) -> Unit,
+        onError: (Exception) -> Unit,
+    ) {
+        val cap = imageCaptureUseCase ?: run {
+            onError(IllegalStateException("camera not ready"))
+            return
+        }
+        val opts = ImageCapture.OutputFileOptions.Builder(outputFile).build()
+        cap.takePicture(opts, executor, object : ImageCapture.OnImageSavedCallback {
+            override fun onImageSaved(output: ImageCapture.OutputFileResults) = onSuccess(outputFile)
+            override fun onError(exc: ImageCaptureException) = onError(exc)
+        })
     }
 
     companion object {

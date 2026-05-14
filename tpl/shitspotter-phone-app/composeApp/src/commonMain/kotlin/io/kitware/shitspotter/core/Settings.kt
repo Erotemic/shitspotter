@@ -16,6 +16,7 @@ data class AppSettings(
     val showFps: Boolean = true,
     val showOverlay: Boolean = true,
     val useFrontCamera: Boolean = false,
+    val metadataMode: MetadataMode = MetadataMode.FULL,
 )
 
 interface SettingsStore {
@@ -54,6 +55,7 @@ fun AppState.applySettings(s: AppSettings) {
     showFps = s.showFps
     showOverlay = s.showOverlay
     useFrontCamera = s.useFrontCamera
+    metadataMode = s.metadataMode
 }
 
 fun AppState.toSettings(): AppSettings = AppSettings(
@@ -62,4 +64,5 @@ fun AppState.toSettings(): AppSettings = AppSettings(
     showFps = showFps,
     showOverlay = showOverlay,
     useFrontCamera = useFrontCamera,
+    metadataMode = metadataMode,
 )

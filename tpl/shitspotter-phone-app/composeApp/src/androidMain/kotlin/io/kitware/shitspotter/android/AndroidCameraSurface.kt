@@ -23,6 +23,19 @@ class AndroidCameraSurface(
         loop?.isPaused = paused
     }
 
+    fun setTorch(enabled: Boolean) {
+        loop?.setTorch(enabled)
+    }
+
+    fun takePicture(
+        outputFile: java.io.File,
+        executor: java.util.concurrent.Executor,
+        onSuccess: (java.io.File) -> Unit,
+        onError: (Exception) -> Unit,
+    ) {
+        loop?.takePicture(outputFile, executor, onSuccess, onError)
+    }
+
     /** True iff at least one camera frame has been received and wrapped. */
     fun hasAnalyzedFrame(): Boolean = loop?.lastAnalyzedFrame != null
 

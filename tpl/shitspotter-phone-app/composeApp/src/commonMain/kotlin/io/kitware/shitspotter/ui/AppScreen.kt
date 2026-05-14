@@ -13,13 +13,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -41,14 +44,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.kitware.shitspotter.core.AppState
+import io.kitware.shitspotter.core.CaptureLabel
 import io.kitware.shitspotter.core.FailureType
+import io.kitware.shitspotter.core.MetadataMode
 import io.kitware.shitspotter.core.ModelRegistry
 import io.kitware.shitspotter.core.ModelSpec
 
 interface CameraSurface {
-    /** How this surface scales its preview. The DetectionOverlay uses
-     *  this to keep boxes aligned with what the user actually sees on
-     *  screen. */
     val overlayScaleMode: OverlayScaleMode get() = OverlayScaleMode.FILL_CENTER
 
     @Composable
@@ -72,6 +74,9 @@ fun AppScreen(
     onTogglePause: (() -> Unit)? = null,
     isPaused: Boolean = false,
     canSaveFailureCase: Boolean = true,
+    onTakePhoto: ((CaptureLabel, String?) -> Unit)? = null,
+    onToggleTorch: (() -> Unit)? = null,
+    torchOn: Boolean = false,
 ) {
     AppRootTheme {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -87,16 +92,11 @@ fun AppScreen(
                 )
             }
 
-            // Top control stack — uses systemBarsPadding so it sits below
-            // the status bar / camera cutout on Pixel 5 portrait.
             Column(
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .systemBarsPadding()
                     .padding(8.dp)
-                    // Cap height so this stack can't push the bottom
-                    // controls off-screen on a short phone; users scroll
-                    // it if their model labels are long.
                     .heightIn(max = 360.dp)
                     .verticalScroll(rememberScrollState()),
             ) {
@@ -147,16 +147,15 @@ fun AppScreen(
                 }
             }
 
-            // Bottom control bar — also system-bars-padded so the
-            // navigation pill on Pixel 5 doesn't eat the buttons. The
-            // failure-type picker is a Dialog overlay, so it does not
-            // contribute to this bar's height any more.
-            ControlBar(
+            CameraControlBar(
                 state = state,
                 onSaveFailureCase = onSaveFailureCase,
                 onTogglePause = onTogglePause,
                 isPaused = isPaused,
                 canSaveFailureCase = canSaveFailureCase,
+                onTakePhoto = onTakePhoto,
+                onToggleTorch = onToggleTorch,
+                torchOn = torchOn,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
@@ -168,15 +167,20 @@ fun AppScreen(
 }
 
 @Composable
-private fun ControlBar(
+private fun CameraControlBar(
     state: AppState,
     onSaveFailureCase: (FailureType, String?) -> Unit,
     onTogglePause: (() -> Unit)?,
     isPaused: Boolean,
     canSaveFailureCase: Boolean,
+    onTakePhoto: ((CaptureLabel, String?) -> Unit)?,
+    onToggleTorch: (() -> Unit)?,
+    torchOn: Boolean,
     modifier: Modifier = Modifier,
 ) {
     var showFailureDialog by remember { mutableStateOf(false) }
+    var showPhotoDialog by remember { mutableStateOf(false) }
+
     if (showFailureDialog) {
         FailureTypeDialog(
             onPick = { type, note ->
@@ -186,33 +190,125 @@ private fun ControlBar(
             onDismiss = { showFailureDialog = false },
         )
     }
+    if (showPhotoDialog) {
+        PhotoCaptureDialog(
+            detectionCount = state.lastDetections.size,
+            onCapture = { label, note ->
+                showPhotoDialog = false
+                onTakePhoto?.invoke(label, note)
+            },
+            onDismiss = { showPhotoDialog = false },
+        )
+    }
+
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Button(
-            onClick = { showFailureDialog = true },
-            enabled = canSaveFailureCase,
+        // Left side: pause + legacy failure save
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                if (canSaveFailureCase) "Save failure (${state.failureCasesSavedCount})"
-                else "waiting for frame…",
-            )
-        }
-        onTogglePause?.let {
-            Button(onClick = it) {
-                Text(if (isPaused) "Resume" else "Pause")
+            onTogglePause?.let {
+                Button(onClick = it) {
+                    Text(if (isPaused) "Resume" else "Pause")
+                }
             }
+            Button(
+                onClick = { showFailureDialog = true },
+                enabled = canSaveFailureCase,
+            ) {
+                Text(
+                    if (canSaveFailureCase) "Failure (${state.failureCasesSavedCount})"
+                    else "…",
+                )
+            }
+        }
+
+        // Center: large photo capture FAB (only when onTakePhoto is wired)
+        if (onTakePhoto != null) {
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .background(Color(0xFFFFFFFF), CircleShape)
+                    .clickable { showPhotoDialog = true },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = if (state.photosSavedCount > 0) "${state.photosSavedCount}" else "📷",
+                    fontSize = 22.sp,
+                    color = Color.Black,
+                )
+            }
+        } else {
+            Spacer(Modifier.width(72.dp))
+        }
+
+        // Right side: torch toggle (Android-only, shown only when lambda is non-null)
+        if (onToggleTorch != null) {
+            IconButton(
+                onClick = onToggleTorch,
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(
+                        if (torchOn) Color(0xFFFFDD44) else Color(0x55FFFFFF),
+                        CircleShape,
+                    ),
+            ) {
+                Text(
+                    text = if (torchOn) "🔦" else "🔦",
+                    fontSize = 20.sp,
+                    color = if (torchOn) Color.Black else Color(0xCCFFFFFF),
+                )
+            }
+        } else {
+            Spacer(Modifier.width(48.dp))
         }
     }
 }
 
-/**
- * A compact button showing the active model name. Tapping it opens
- * [ModelPickerDialog] which lists all models with their AP and FPS
- * metadata so the user can make an informed choice without the chip
- * row consuming horizontal space on the live-camera screen.
- */
+@Composable
+private fun PhotoCaptureDialog(
+    detectionCount: Int,
+    onCapture: (CaptureLabel, String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var note by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Save photo (${detectionCount} detection${if (detectionCount == 1) "" else "s"})") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                TextField(
+                    value = note,
+                    onValueChange = { note = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("note (optional)") },
+                    singleLine = false,
+                )
+                CaptureLabel.values().forEach { label ->
+                    Button(
+                        onClick = { onCapture(label, note.trim().ifEmpty { null }) },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(label.name)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) { Text("cancel") }
+        },
+    )
+}
+
 @Composable
 private fun ModelSelectorButton(
     activeId: String,
@@ -255,7 +351,6 @@ private fun ModelPickerDialog(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
             ) {
-                // Header row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -347,6 +442,29 @@ private fun ToggleRow(state: AppState) {
             checked = state.useFrontCamera,
             onCheckedChange = { state.useFrontCamera = it },
         )
+        Spacer(Modifier.width(4.dp))
+        MetadataModeSelector(state)
+    }
+}
+
+@Composable
+private fun MetadataModeSelector(state: AppState) {
+    val label = when (state.metadataMode) {
+        MetadataMode.FULL -> "GPS:on"
+        MetadataMode.NO_GPS -> "GPS:off"
+        MetadataMode.NONE -> "meta:none"
+    }
+    TextButton(
+        onClick = {
+            state.metadataMode = when (state.metadataMode) {
+                MetadataMode.FULL -> MetadataMode.NO_GPS
+                MetadataMode.NO_GPS -> MetadataMode.NONE
+                MetadataMode.NONE -> MetadataMode.FULL
+            }
+        },
+        modifier = Modifier.background(Color(0x44FFFFFF)),
+    ) {
+        Text(label, color = Color.White, fontSize = 12.sp)
     }
 }
 
@@ -370,13 +488,6 @@ private fun ScoreThresholdControl(state: AppState) {
     }
 }
 
-/**
- * Failure-type picker rendered as an AlertDialog. The previous
- * implementation stacked the picker above the bottom control bar in
- * a Column that grew past the screen on short phones; the dialog
- * floats over the camera preview and handles its own scrolling and
- * system-bar insets.
- */
 @Composable
 private fun FailureTypeDialog(
     onPick: (FailureType, String?) -> Unit,

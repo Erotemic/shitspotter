@@ -77,6 +77,7 @@ kotlin {
                 implementation(libs.androidx.camera.view)
                 implementation(libs.kotlinx.coroutines.android)
                 implementation(libs.onnxruntime.android)
+                implementation(libs.androidx.exifinterface)
             }
         }
         val desktopMain by getting {

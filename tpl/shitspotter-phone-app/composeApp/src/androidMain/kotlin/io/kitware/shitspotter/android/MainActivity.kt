@@ -1,7 +1,9 @@
 package io.kitware.shitspotter.android
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -28,8 +30,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import io.kitware.shitspotter.core.AppState
 import io.kitware.shitspotter.core.BuildInfo
+import io.kitware.shitspotter.core.CaptureLabel
+import io.kitware.shitspotter.core.CaptureMetadata
 import io.kitware.shitspotter.core.FailureCaseMetadata
 import io.kitware.shitspotter.core.FailureType
+import io.kitware.shitspotter.core.MetadataMode
 import io.kitware.shitspotter.core.PrintlnLogger
 import io.kitware.shitspotter.core.SettingsStore
 import io.kitware.shitspotter.core.applySettings
@@ -40,6 +45,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
+import java.io.File
 
 class MainActivity : ComponentActivity() {
 
@@ -47,14 +53,22 @@ class MainActivity : ComponentActivity() {
     private lateinit var failureStore: AndroidFailureCaseStore
     private lateinit var settingsStore: SettingsStore
     private lateinit var backendManager: AndroidBackendManager
+    private lateinit var photoStore: PhotoStore
+    private val captureExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
     private var paused by mutableStateOf(false)
+    private var torchOn by mutableStateOf(false)
     private var androidSurface: AndroidCameraSurface? = null
+    private var lastLocation: android.location.Location? = null
 
     private val cameraPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
         cameraPermissionGranted.value = granted
+        if (granted) requestLocationPermission()
     }
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { _ -> }
     private val cameraPermissionGranted = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,13 +77,17 @@ class MainActivity : ComponentActivity() {
         settingsStore = AndroidSettingsStore(this)
         state.applySettings(settingsStore.load())
         backendManager = AndroidBackendManager(this)
-        // Resolve whatever the user last selected (or the default stub).
         backendManager.setActive(state.activeModelId)
+        photoStore = PhotoStore(File(getExternalFilesDir("pictures") ?: filesDir, "shitspotter"))
 
         val have = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
             PackageManager.PERMISSION_GRANTED
         cameraPermissionGranted.value = have
-        if (!have) cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        if (!have) {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        } else {
+            requestLocationPermission()
+        }
 
         setContent {
             AppRootTheme {
@@ -78,11 +96,6 @@ class MainActivity : ComponentActivity() {
                         cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                     })
                 } else {
-                    // Watch state.activeModelId for chip-row changes; swap
-                    // the backend live so the chip-tap actually does
-                    // something instead of being cosmetic. ONNX init can
-                    // take a second or two so the actual setActive call
-                    // runs on Dispatchers.IO inside the collector.
                     LaunchedEffect(Unit) {
                         snapshotFlow { state.activeModelId }
                             .distinctUntilChanged()
@@ -111,17 +124,98 @@ class MainActivity : ComponentActivity() {
                         },
                         isPaused = paused,
                         canSaveFailureCase = androidSurface?.hasAnalyzedFrame() ?: false,
+                        onTakePhoto = { label, note -> savePhoto(label, note) },
+                        onToggleTorch = {
+                            torchOn = !torchOn
+                            androidSurface?.setTorch(torchOn)
+                        },
+                        torchOn = torchOn,
                     )
                 }
             }
         }
     }
 
+    override fun onStop() {
+        super.onStop()
+        androidSurface?.setPaused(true)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        androidSurface?.setPaused(false)
+    }
+
+    private fun requestLocationPermission() {
+        val fineGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        val coarseGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        if (!fineGranted || !coarseGranted) {
+            locationPermissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                ),
+            )
+        }
+    }
+
+    private fun getLastLocation(): android.location.Location? {
+        val hasFine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        if (!hasFine && !hasCoarse) return null
+        val lm = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val providers = lm.getProviders(true)
+        var best: android.location.Location? = null
+        for (provider in providers) {
+            try {
+                val loc = lm.getLastKnownLocation(provider) ?: continue
+                if (best == null || loc.accuracy < best.accuracy) best = loc
+            } catch (_: SecurityException) {}
+        }
+        lastLocation = best ?: lastLocation
+        return lastLocation
+    }
+
+    private fun savePhoto(label: CaptureLabel, note: String?) {
+        val surface = androidSurface ?: return
+        val now = Clock.System.now().toString()
+        val outputFile = photoStore.newCaptureFile(now)
+        val backendSnap = backendManager.snapshot()
+        val loc = if (state.metadataMode == MetadataMode.FULL) getLastLocation() else null
+        surface.takePicture(
+            outputFile = outputFile,
+            executor = captureExecutor,
+            onSuccess = { file ->
+                val metadata = CaptureMetadata(
+                    timestamp = now,
+                    label = label,
+                    modelId = backendSnap.spec.modelId,
+                    modelHash = backendSnap.spec.modelHash,
+                    appCommit = BuildInfo.appCommit,
+                    buildDate = BuildInfo.buildDate,
+                    deviceModel = BuildInfo.deviceModel,
+                    scoreThreshold = state.scoreThreshold,
+                    detections = state.lastDetections,
+                    latitude = loc?.latitude,
+                    longitude = loc?.longitude,
+                    userNote = note,
+                )
+                photoStore.addMetadataAndSave(file, metadata, state.metadataMode, loc)
+                state.photosSavedCount++
+                PrintlnLogger.info("MainActivity", "photo saved → $file")
+            },
+            onError = { e ->
+                state.setError("Photo capture failed: ${e.message}")
+            },
+        )
+    }
+
     private fun saveFailureCase(type: FailureType, note: String?) {
         val surface = androidSurface
-        // Snapshot the active backend's spec under the manager's lock so a
-        // concurrent setActive can't swap mid-save and leave us writing a
-        // FailureCaseMetadata whose modelId disagrees with the on-disk JPEG.
         val backendSnap = backendManager.snapshot()
         if (surface == null || !surface.hasAnalyzedFrame()) {
             PrintlnLogger.warn(
@@ -173,6 +267,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        try { captureExecutor.shutdown() } catch (_: Throwable) {}
         try { androidSurface?.close() } catch (_: Throwable) {}
         try { backendManager.close() } catch (_: Throwable) {}
     }
