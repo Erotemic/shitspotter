@@ -30,8 +30,11 @@ class AppState {
      *  because shitspotter is a "look at the ground" app. */
     var useFrontCamera: Boolean by mutableStateOf(false)
     var metadataMode: MetadataMode by mutableStateOf(MetadataMode.FULL)
+    var showScoreSlider: Boolean by mutableStateOf(true)
+    var recipientEmail: String by mutableStateOf("crall.vision@gmail.com")
     var reviewMode: Boolean by mutableStateOf(false)
     var capturedPhotos: List<CaptureReviewEntry> by mutableStateOf(emptyList())
+    var viewingPhotoPath: String? by mutableStateOf(null)
 
     fun pushFrame(detections: List<Detection>, telemetry: FrameTelemetry, frameW: Int, frameH: Int) {
         lastDetections = detections

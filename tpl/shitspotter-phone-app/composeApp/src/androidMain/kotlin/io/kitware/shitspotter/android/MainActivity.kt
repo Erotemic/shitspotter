@@ -1,10 +1,13 @@
 package io.kitware.shitspotter.android
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.media.MediaActionSound
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -26,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import io.kitware.shitspotter.core.AppState
 import io.kitware.shitspotter.core.BuildInfo
@@ -123,6 +127,8 @@ class MainActivity : ComponentActivity() {
                         torchOn = torchState.value,
                         onReviewPhotos = ::openReview,
                         onUpdatePhotoLabel = ::updatePhotoLabel,
+                        onSharePhoto = ::sharePhoto,
+                        onShareAllPhotos = ::shareAllPhotos,
                     )
                 }
             }
@@ -223,6 +229,66 @@ class MainActivity : ComponentActivity() {
             }
             state.capturedPhotos = entries
             state.reviewMode = true
+        }
+    }
+
+    private fun sharePhoto(filePath: String) {
+        val jpegFile = File(filePath)
+        val jsonFile = File(jpegFile.parent, jpegFile.nameWithoutExtension + ".json")
+        val files = buildList {
+            add(jpegFile)
+            if (jsonFile.exists()) add(jsonFile)
+        }
+        sendFilesViaEmail(files, "ShitSpotter — 1 photo")
+    }
+
+    private fun shareAllPhotos() {
+        lifecycleScope.launch {
+            val entries = withContext(Dispatchers.IO) { photoStore.listAll() }
+            if (entries.isEmpty()) {
+                state.setError("No photos to send")
+                return@launch
+            }
+            val files = buildList {
+                for ((jpegFile, _) in entries) {
+                    add(jpegFile)
+                    val jsonFile = File(jpegFile.parent, jpegFile.nameWithoutExtension + ".json")
+                    if (jsonFile.exists()) add(jsonFile)
+                }
+            }
+            sendFilesViaEmail(files, "ShitSpotter — ${entries.size} photo(s)")
+        }
+    }
+
+    private fun sendFilesViaEmail(files: List<File>, subject: String) {
+        val uris = ArrayList<Uri>()
+        for (file in files) {
+            try {
+                uris.add(FileProvider.getUriForFile(this, "$packageName.fileprovider", file))
+            } catch (e: Throwable) {
+                PrintlnLogger.warn("MainActivity", "FileProvider skipped ${file.name}: ${e.message}")
+            }
+        }
+        if (uris.isEmpty()) {
+            state.setError("Could not prepare files for sharing")
+            return
+        }
+        val recipient = state.recipientEmail.trim()
+        val intent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+            type = "*/*"
+            if (recipient.isNotEmpty()) putExtra(Intent.EXTRA_EMAIL, arrayOf(recipient))
+            putExtra(Intent.EXTRA_SUBJECT, subject)
+            putExtra(
+                Intent.EXTRA_TEXT,
+                "ShitSpotter capture data. See attached JPEG + JSON metadata.",
+            )
+            putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        try {
+            startActivity(Intent.createChooser(intent, "Send via email"))
+        } catch (_: ActivityNotFoundException) {
+            state.setError("No app found to handle email sharing")
         }
     }
 

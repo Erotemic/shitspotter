@@ -18,9 +18,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.foundation.Image
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,7 +43,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,7 +56,9 @@ import io.kitware.shitspotter.core.CaptureReviewEntry
 import io.kitware.shitspotter.core.MetadataMode
 import io.kitware.shitspotter.core.ModelRegistry
 import io.kitware.shitspotter.core.ModelSpec
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 interface CameraSurface {
     val overlayScaleMode: OverlayScaleMode get() = OverlayScaleMode.FILL_CENTER
@@ -77,6 +85,8 @@ fun AppScreen(
     torchOn: Boolean = false,
     onReviewPhotos: (() -> Unit)? = null,
     onUpdatePhotoLabel: ((filePath: String, label: CaptureLabel, note: String?) -> Unit)? = null,
+    onSharePhoto: ((filePath: String) -> Unit)? = null,
+    onShareAllPhotos: (() -> Unit)? = null,
 ) {
     var flashTick by remember { mutableStateOf(0) }
     var flashVisible by remember { mutableStateOf(false) }
@@ -106,35 +116,8 @@ fun AppScreen(
                 Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.75f)))
             }
 
-            // Top-left: HUD + score slider + errors
-            Column(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .systemBarsPadding()
-                    .padding(8.dp)
-                    .heightIn(max = 400.dp)
-                    .verticalScroll(rememberScrollState()),
-            ) {
-                if (state.showFps) {
-                    TelemetryHud(
-                        telemetry = state.lastTelemetry,
-                        detectionCount = state.lastDetections.size,
-                    )
-                    Spacer(Modifier.height(4.dp))
-                }
-                ScoreThresholdControl(state)
-                state.lastError?.let { err ->
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        "ERROR: $err",
-                        color = Color(0xFFFF8080),
-                        fontSize = 12.sp,
-                        modifier = Modifier.background(Color(0x88000000)).padding(8.dp),
-                    )
-                }
-            }
-
-            // Top-right: compact model picker + settings gear
+            // Top area: left column (HUD + slider) + right column (icons)
+            // Using a Row so the slider never extends under the icon buttons.
             val activeBackendName = state.lastTelemetry?.runtimeBackend
             val activeIsStubFallback =
                 state.activeModelId != "stub-fake-detector" &&
@@ -142,32 +125,65 @@ fun AppScreen(
                     activeBackendName.startsWith("stub-")
             Row(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
+                    .align(Alignment.TopStart)
+                    .fillMaxWidth()
                     .systemBarsPadding()
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                    .padding(start = 8.dp, end = 8.dp, top = 8.dp),
+                verticalAlignment = Alignment.Top,
             ) {
-                ModelIconButton(
-                    activeId = state.activeModelId,
-                    activeIsStubFallback = activeIsStubFallback,
-                    onSelect = { state.activeModelId = it },
-                )
-                SettingsIconButton(state)
-            }
-
-            if (activeIsStubFallback) {
-                Text(
-                    text = "⚠ model not on device — push .onnx to models/ and retap",
-                    color = Color(0xFFFFCC66),
-                    fontSize = 11.sp,
+                Column(
                     modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .systemBarsPadding()
-                        .padding(top = 52.dp)
-                        .background(Color(0xAA000000))
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                )
+                        .weight(1f)
+                        .heightIn(max = 400.dp)
+                        .verticalScroll(rememberScrollState()),
+                ) {
+                    if (state.showFps) {
+                        TelemetryHud(
+                            telemetry = state.lastTelemetry,
+                            detectionCount = state.lastDetections.size,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                    }
+                    if (state.showScoreSlider) {
+                        ScoreThresholdControl(state)
+                    }
+                    if (activeIsStubFallback) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = "⚠ model not on device — push .onnx to models/ and retap",
+                            color = Color(0xFFFFCC66),
+                            fontSize = 11.sp,
+                            modifier = Modifier
+                                .background(Color(0xAA000000))
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                        )
+                    }
+                    state.lastError?.let { err ->
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "ERROR: $err",
+                            color = Color(0xFFFF8080),
+                            fontSize = 12.sp,
+                            modifier = Modifier
+                                .background(Color(0x88000000))
+                                .padding(8.dp),
+                        )
+                    }
+                }
+
+                // Right icon column — stacked vertically, never overlaps slider
+                Column(
+                    modifier = Modifier.padding(start = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    horizontalAlignment = Alignment.End,
+                ) {
+                    ModelIconButton(
+                        activeId = state.activeModelId,
+                        activeIsStubFallback = activeIsStubFallback,
+                        onSelect = { state.activeModelId = it },
+                    )
+                    SettingsIconButton(state)
+                }
             }
 
             // Bottom control bar
@@ -192,8 +208,13 @@ fun AppScreen(
             if (state.reviewMode) {
                 ReviewScreen(
                     photos = state.capturedPhotos,
+                    viewingPhotoPath = state.viewingPhotoPath,
                     onClose = { state.reviewMode = false },
+                    onViewPhoto = { state.viewingPhotoPath = it },
+                    onCloseViewer = { state.viewingPhotoPath = null },
                     onUpdateLabel = onUpdatePhotoLabel,
+                    onSharePhoto = onSharePhoto,
+                    onShareAllPhotos = onShareAllPhotos,
                 )
             }
         }
@@ -213,7 +234,6 @@ private fun CameraControlBar(
         modifier = modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center,
     ) {
-        // Left: review button
         Box(modifier = Modifier.align(Alignment.CenterStart)) {
             if (onReviewPhotos != null) {
                 IconButton(
@@ -232,7 +252,6 @@ private fun CameraControlBar(
             }
         }
 
-        // Center: shutter FAB
         if (onCapture != null) {
             Box(
                 modifier = Modifier
@@ -252,7 +271,6 @@ private fun CameraControlBar(
             Spacer(Modifier.size(80.dp))
         }
 
-        // Right: torch
         Box(modifier = Modifier.align(Alignment.CenterEnd)) {
             if (onToggleTorch != null) {
                 IconButton(
@@ -331,11 +349,14 @@ private fun SettingsDialog(state: AppState, onDismiss: () -> Unit) {
         title = { Text("Settings") },
         text = {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 ToggleItem("Show telemetry HUD", state.showFps) { state.showFps = it }
                 ToggleItem("Show detection boxes", state.showOverlay) { state.showOverlay = it }
+                ToggleItem("Show score slider", state.showScoreSlider) { state.showScoreSlider = it }
                 ToggleItem("Use front camera", state.useFrontCamera) { state.useFrontCamera = it }
                 HorizontalDivider()
                 Row(
@@ -346,6 +367,15 @@ private fun SettingsDialog(state: AppState, onDismiss: () -> Unit) {
                     Text("Photo metadata", color = Color.White, fontSize = 14.sp)
                     MetadataModeSelector(state)
                 }
+                HorizontalDivider()
+                TextField(
+                    value = state.recipientEmail,
+                    onValueChange = { state.recipientEmail = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Send photos to (email)") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                )
             }
         },
         confirmButton = {
@@ -490,11 +520,18 @@ private fun ModelPickerRow(spec: ModelSpec, isActive: Boolean, onClick: () -> Un
     }
 }
 
+// ── Review screen ────────────────────────────────────────────────────────────
+
 @Composable
 private fun ReviewScreen(
     photos: List<CaptureReviewEntry>,
+    viewingPhotoPath: String?,
     onClose: () -> Unit,
+    onViewPhoto: (String) -> Unit,
+    onCloseViewer: () -> Unit,
     onUpdateLabel: ((String, CaptureLabel, String?) -> Unit)?,
+    onSharePhoto: ((String) -> Unit)?,
+    onShareAllPhotos: (() -> Unit)?,
 ) {
     Box(modifier = Modifier.fillMaxSize().background(Color(0xEE101010))) {
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
@@ -511,6 +548,11 @@ private fun ReviewScreen(
                     fontSize = 18.sp,
                     modifier = Modifier.weight(1f),
                 )
+                if (onShareAllPhotos != null && photos.isNotEmpty()) {
+                    TextButton(onClick = onShareAllPhotos) {
+                        Text("✉ Send all", color = Color(0xFF88CCFF))
+                    }
+                }
                 TextButton(onClick = onClose) { Text("Close", color = Color.White) }
             }
             HorizontalDivider()
@@ -521,11 +563,32 @@ private fun ReviewScreen(
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(photos, key = { it.filePath }) { entry ->
-                        ReviewPhotoRow(entry = entry, onUpdateLabel = onUpdateLabel)
+                        ReviewPhotoRow(
+                            entry = entry,
+                            onViewPhoto = { onViewPhoto(entry.filePath) },
+                            onUpdateLabel = onUpdateLabel,
+                        )
                         HorizontalDivider(color = Color(0x33FFFFFF))
                     }
                 }
             }
+        }
+
+        // Full-screen photo viewer layered on top of the list
+        if (viewingPhotoPath != null) {
+            PhotoViewer(
+                filePath = viewingPhotoPath,
+                currentLabel = photos.firstOrNull { it.filePath == viewingPhotoPath }?.label
+                    ?: CaptureLabel.UNCERTAIN,
+                onClose = onCloseViewer,
+                onUpdateLabel = { label, note ->
+                    onUpdateLabel?.invoke(viewingPhotoPath, label, note)
+                    onCloseViewer()
+                },
+                onShare = if (onSharePhoto != null) {
+                    { onSharePhoto(viewingPhotoPath) }
+                } else null,
+            )
         }
     }
 }
@@ -533,23 +596,24 @@ private fun ReviewScreen(
 @Composable
 private fun ReviewPhotoRow(
     entry: CaptureReviewEntry,
+    onViewPhoto: () -> Unit,
     onUpdateLabel: ((String, CaptureLabel, String?) -> Unit)?,
 ) {
-    var showPicker by remember { mutableStateOf(false) }
-    if (showPicker) {
+    var showAnnotatePicker by remember { mutableStateOf(false) }
+    if (showAnnotatePicker) {
         LabelPickerDialog(
             current = entry.label,
             onPick = { label, note ->
-                showPicker = false
+                showAnnotatePicker = false
                 onUpdateLabel?.invoke(entry.filePath, label, note)
             },
-            onDismiss = { showPicker = false },
+            onDismiss = { showAnnotatePicker = false },
         )
     }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = onUpdateLabel != null) { showPicker = true }
+            .clickable(onClick = onViewPhoto)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -565,18 +629,125 @@ private fun ReviewPhotoRow(
                 fontSize = 11.sp,
             )
             entry.note?.let {
-                Text(it, color = Color(0xFFBBBBBB), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    it,
+                    color = Color(0xFFBBBBBB),
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
-        Text(
-            text = labelDisplayText(entry.label),
-            color = labelDisplayColor(entry.label),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
+        // Tapping the label chip opens the annotation picker independently of viewing
+        Box(
             modifier = Modifier
+                .clickable(enabled = onUpdateLabel != null) { showAnnotatePicker = true }
                 .background(Color(0x44FFFFFF))
                 .padding(horizontal = 8.dp, vertical = 4.dp),
+        ) {
+            Text(
+                text = labelDisplayText(entry.label),
+                color = labelDisplayColor(entry.label),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PhotoViewer(
+    filePath: String,
+    currentLabel: CaptureLabel,
+    onClose: () -> Unit,
+    onUpdateLabel: (CaptureLabel, String?) -> Unit,
+    onShare: (() -> Unit)? = null,
+) {
+    var bitmap by remember(filePath) { mutableStateOf<ImageBitmap?>(null) }
+    var showAnnotatePicker by remember { mutableStateOf(false) }
+
+    LaunchedEffect(filePath) {
+        bitmap = withContext(Dispatchers.IO) { loadImageBitmapFromFile(filePath) }
+    }
+
+    if (showAnnotatePicker) {
+        LabelPickerDialog(
+            current = currentLabel,
+            onPick = { label, note ->
+                showAnnotatePicker = false
+                onUpdateLabel(label, note)
+            },
+            onDismiss = { showAnnotatePicker = false },
         )
+    }
+
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+        val bmp = bitmap
+        if (bmp != null) {
+            Image(
+                bitmap = bmp,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit,
+            )
+        } else {
+            CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center),
+                color = Color.White,
+            )
+        }
+
+        // Top bar: close (left) + share (right)
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .fillMaxWidth()
+                .systemBarsPadding()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            IconButton(
+                onClick = onClose,
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(Color(0x88000000), CircleShape),
+            ) {
+                Text("✕", color = Color.White, fontSize = 18.sp)
+            }
+            if (onShare != null) {
+                IconButton(
+                    onClick = onShare,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(Color(0x88000000), CircleShape),
+                ) {
+                    Text("✉", color = Color(0xFF88CCFF), fontSize = 18.sp)
+                }
+            }
+        }
+
+        // Bottom: label chip + annotate button
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .systemBarsPadding()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = labelDisplayText(currentLabel),
+                color = labelDisplayColor(currentLabel),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .background(Color(0xAA000000))
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+            )
+            Button(onClick = { showAnnotatePicker = true }) {
+                Text("Annotate")
+            }
+        }
     }
 }
 

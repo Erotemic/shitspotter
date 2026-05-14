@@ -17,6 +17,8 @@ data class AppSettings(
     val showOverlay: Boolean = true,
     val useFrontCamera: Boolean = false,
     val metadataMode: MetadataMode = MetadataMode.FULL,
+    val showScoreSlider: Boolean = true,
+    val recipientEmail: String = "crall.vision@gmail.com",
 )
 
 interface SettingsStore {
@@ -56,6 +58,8 @@ fun AppState.applySettings(s: AppSettings) {
     showOverlay = s.showOverlay
     useFrontCamera = s.useFrontCamera
     metadataMode = s.metadataMode
+    showScoreSlider = s.showScoreSlider
+    recipientEmail = s.recipientEmail
 }
 
 fun AppState.toSettings(): AppSettings = AppSettings(
@@ -65,4 +69,6 @@ fun AppState.toSettings(): AppSettings = AppSettings(
     showOverlay = showOverlay,
     useFrontCamera = useFrontCamera,
     metadataMode = metadataMode,
+    showScoreSlider = showScoreSlider,
+    recipientEmail = recipientEmail,
 )
