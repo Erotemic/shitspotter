@@ -8,17 +8,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added:
 
-* (2026-05-14): `mobile_app_training_v4`: Pixel 5 on-device benchmark complete.
-  NNAPI EP results for the four Pareto-front cells:
-  - pico@320: 88.8ms → **11.3 FPS** → **PHONE_ELIGIBLE** (deploy winner)
-  - pico@416: 134.6ms → 7.4 FPS → just under the 10 FPS gate
-  - n@512:    274.1ms → 3.6 FPS → PHONE_INELIGIBLE
-  - n@640:    377.8ms → 2.6 FPS → PHONE_INELIGIBLE
+* (2026-05-14): `mobile_app_training_v4`: Pixel 5 on-device benchmark
+  complete (both NNAPI and CPU EP). Four Pareto-front cells:
+  - pico@320: NNAPI 88.8ms/11.3 FPS  CPU 100.3ms/10.0 FPS
+  - pico@416: NNAPI 134.6ms/7.4 FPS  CPU 140.9ms/7.1 FPS
+  - n@512:    NNAPI 274.1ms/3.7 FPS  CPU 263.6ms/3.8 FPS
+  - n@640:    NNAPI 377.8ms/2.7 FPS  CPU 398.3ms/2.5 FPS
   DEIMv2-N transformer attention maps poorly to NNAPI on Snapdragon 765G
-  (6-8× slower on-device than desktop scaling would predict). HGNetv2-pico
-  backbone fares much better. Deploy-eligible winner: pico@320 at AP=0.265.
-  CPU EP benchmarks (BENCH_EP=cpu) may show different ordering — NNAPI can
-  underperform CPU for transformer attention ops.
+  (6-8× slower on-device than desktop scaling predicts). HGNetv2-pico
+  backbone fares better; NNAPI gives pico a ~12% boost over CPU.
+  FPS gate set to 1 (walk-and-scan use case — any detection rate is
+  useful). Deploy-eligible winner: **n@640** at AP=0.520, 2.5 FPS.
 
 * (2026-05-14): `mobile_app_training_v4`: added `05_bench_on_pixel5.sh` +
   companion `ort_bench.c`. The script compiles a tiny C benchmark against
