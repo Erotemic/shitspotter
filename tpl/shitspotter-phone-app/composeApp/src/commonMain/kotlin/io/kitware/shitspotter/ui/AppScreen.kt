@@ -8,6 +8,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,14 +39,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -59,6 +58,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
@@ -593,6 +593,12 @@ private fun ModelPickerRow(spec: ModelSpec, isActive: Boolean, onClick: () -> Un
 
 // ── Review screen ────────────────────────────────────────────────────────────
 
+private enum class ReviewSortOrder(val label: String) {
+    DATE_DESC("Date ↓"),
+    DATE_ASC("Date ↑"),
+    DETECTIONS_DESC("Detections ↓"),
+}
+
 @Composable
 private fun ReviewScreen(
     photos: List<CaptureReviewEntry>,
@@ -614,6 +620,14 @@ private fun ReviewScreen(
     var showBulkLabelPicker by remember { mutableStateOf(false) }
     var showBulkLabelConfirm by remember { mutableStateOf(false) }
     var showBulkDeleteConfirm by remember { mutableStateOf(false) }
+    var sortOrder by remember { mutableStateOf(ReviewSortOrder.DATE_DESC) }
+    val sortedPhotos = remember(photos, sortOrder) {
+        when (sortOrder) {
+            ReviewSortOrder.DATE_DESC -> photos.sortedByDescending { it.timestamp }
+            ReviewSortOrder.DATE_ASC -> photos.sortedBy { it.timestamp }
+            ReviewSortOrder.DETECTIONS_DESC -> photos.sortedByDescending { it.detectionCount }
+        }
+    }
 
     // Back exits selection mode before closing the review screen
     PlatformBackHandler(enabled = selectionMode) {
@@ -695,9 +709,9 @@ private fun ReviewScreen(
                         textAlign = TextAlign.Center,
                     )
                     // Select all / none toggle
-                    val allSelected = photos.isNotEmpty() && selectedPaths.size == photos.size
+                    val allSelected = sortedPhotos.isNotEmpty() && selectedPaths.size == sortedPhotos.size
                     TextButton(onClick = {
-                        selectedPaths = if (allSelected) emptySet() else photos.map { it.filePath }.toSet()
+                        selectedPaths = if (allSelected) emptySet() else sortedPhotos.map { it.filePath }.toSet()
                     }) {
                         Text(if (allSelected) "None" else "All", color = Color(0xFF88CCFF))
                     }
@@ -733,6 +747,9 @@ private fun ReviewScreen(
                         modifier = Modifier.weight(1f),
                     )
                     if (photos.isNotEmpty()) {
+                        TextButton(onClick = {
+                            sortOrder = ReviewSortOrder.entries[(sortOrder.ordinal + 1) % ReviewSortOrder.entries.size]
+                        }) { Text(sortOrder.label, color = Color(0xFF888888), fontSize = 12.sp) }
                         TextButton(onClick = { selectionMode = true }) {
                             Text("Select", color = Color(0xFF88CCFF))
                         }
@@ -746,65 +763,29 @@ private fun ReviewScreen(
                 }
             }
             HorizontalDivider()
-            if (photos.isEmpty()) {
+            if (sortedPhotos.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text("No photos captured yet.", color = Color(0xFF888888), fontSize = 14.sp)
                 }
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    items(photos, key = { it.filePath }) { entry ->
+                    items(sortedPhotos, key = { it.filePath }) { entry ->
                         val isSelected = entry.filePath in selectedPaths
-                        if (!selectionMode && onDeletePhoto != null) {
-                            val dismissState = rememberSwipeToDismissBoxState(
-                                confirmValueChange = { value ->
-                                    if (value == SwipeToDismissBoxValue.EndToStart) {
-                                        onDeletePhoto(entry.filePath); true
-                                    } else false
-                                },
-                            )
-                            SwipeToDismissBox(
-                                state = dismissState,
-                                enableDismissFromStartToEnd = false,
-                                backgroundContent = {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize().background(Color(0xFFCC3333)).padding(end = 20.dp),
-                                        contentAlignment = Alignment.CenterEnd,
-                                    ) { Text("🗑", color = Color.White, fontSize = 20.sp) }
-                                },
-                            ) {
-                                ReviewPhotoRow(
-                                    entry = entry,
-                                    selectionMode = selectionMode,
-                                    selected = isSelected,
-                                    onTap = { onViewPhoto(entry.filePath) },
-                                    onToggleSelect = {
-                                        selectedPaths = if (isSelected) selectedPaths - entry.filePath
-                                        else selectedPaths + entry.filePath
-                                    },
-                                    onLongPress = {
-                                        selectionMode = true
-                                        selectedPaths = setOf(entry.filePath)
-                                    },
-                                    onUpdateLabel = onUpdateLabel,
-                                )
-                            }
-                        } else {
-                            ReviewPhotoRow(
-                                entry = entry,
-                                selectionMode = selectionMode,
-                                selected = isSelected,
-                                onTap = { onViewPhoto(entry.filePath) },
-                                onToggleSelect = {
-                                    selectedPaths = if (isSelected) selectedPaths - entry.filePath
-                                    else selectedPaths + entry.filePath
-                                },
-                                onLongPress = {
-                                    selectionMode = true
-                                    selectedPaths = setOf(entry.filePath)
-                                },
-                                onUpdateLabel = onUpdateLabel,
-                            )
-                        }
+                        ReviewPhotoRow(
+                            entry = entry,
+                            selectionMode = selectionMode,
+                            selected = isSelected,
+                            onTap = { onViewPhoto(entry.filePath) },
+                            onToggleSelect = {
+                                selectedPaths = if (isSelected) selectedPaths - entry.filePath
+                                else selectedPaths + entry.filePath
+                            },
+                            onLongPress = {
+                                selectionMode = true
+                                selectedPaths = setOf(entry.filePath)
+                            },
+                            onUpdateLabel = onUpdateLabel,
+                        )
                         HorizontalDivider(color = Color(0x33FFFFFF))
                     }
                 }
@@ -812,10 +793,10 @@ private fun ReviewScreen(
         }
 
         // Full-screen photo viewer layered on top of the list
-        if (viewingPhotoPath != null && photos.isNotEmpty()) {
-            val initialIndex = photos.indexOfFirst { it.filePath == viewingPhotoPath }.coerceAtLeast(0)
+        if (viewingPhotoPath != null && sortedPhotos.isNotEmpty()) {
+            val initialIndex = sortedPhotos.indexOfFirst { it.filePath == viewingPhotoPath }.coerceAtLeast(0)
             PhotoViewer(
-                photos = photos,
+                photos = sortedPhotos,
                 initialIndex = initialIndex,
                 onClose = onCloseViewer,
                 onUpdateLabel = { filePath, label, note ->
@@ -983,14 +964,51 @@ private fun PhotoViewer(
 
     val m = metadata
 
+    // Zoom + pan state — reset whenever the current page changes
+    var zoomScale by remember { mutableStateOf(1f) }
+    var panOffset by remember { mutableStateOf(Offset.Zero) }
+    LaunchedEffect(pagerState.currentPage) { zoomScale = 1f; panOffset = Offset.Zero }
+
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
-            userScrollEnabled = !drawingFnMode,
+            // Lock pager when zoomed in or drawing an FN box
+            userScrollEnabled = !drawingFnMode && zoomScale <= 1.05f,
         ) { page ->
             val entry = photos.getOrNull(page) ?: return@HorizontalPager
-            PhotoPage(filePath = entry.filePath)
+            var bitmap by remember(entry.filePath) { mutableStateOf<ImageBitmap?>(null) }
+            LaunchedEffect(entry.filePath) {
+                bitmap = withContext(Dispatchers.IO) { loadImageBitmapFromFile(entry.filePath) }
+            }
+            val transformState = rememberTransformableState { zoomChange, panChange, _ ->
+                zoomScale = (zoomScale * zoomChange).coerceIn(1f, 8f)
+                panOffset = if (zoomScale > 1f) panOffset + panChange else Offset.Zero
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer(
+                        scaleX = zoomScale,
+                        scaleY = zoomScale,
+                        translationX = panOffset.x,
+                        translationY = panOffset.y,
+                    )
+                    .transformable(state = transformState),
+                contentAlignment = Alignment.Center,
+            ) {
+                val bmp = bitmap
+                if (bmp != null) {
+                    Image(
+                        bitmap = bmp,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit,
+                    )
+                } else {
+                    CircularProgressIndicator(color = Color.White)
+                }
+            }
         }
 
         // Detection annotation overlay — only when metadata has frame dims

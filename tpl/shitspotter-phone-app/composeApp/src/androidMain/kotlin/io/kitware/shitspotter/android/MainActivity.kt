@@ -109,6 +109,11 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                     }
+                    LaunchedEffect(Unit) {
+                        snapshotFlow { state.reviewMode }
+                            .distinctUntilChanged()
+                            .collect { reviewing -> androidSurface?.setPaused(reviewing) }
+                    }
 
                     val torchState = torchOn
                     val surface = remember {
@@ -151,7 +156,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        androidSurface?.setPaused(false)
+        if (!state.reviewMode) androidSurface?.setPaused(false)
     }
 
     private fun requestLocationPermission() {
