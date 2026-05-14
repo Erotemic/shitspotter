@@ -29,7 +29,7 @@ class AppState {
     /** Which physical camera to use on Android — back is the default
      *  because shitspotter is a "look at the ground" app. */
     var useFrontCamera: Boolean by mutableStateOf(false)
-    var metadataMode: MetadataMode by mutableStateOf(MetadataMode.FULL)
+    var metadataMode: MetadataMode by mutableStateOf(MetadataMode.NO_GPS)
     var showScoreSlider: Boolean by mutableStateOf(true)
     var recipientEmail: String by mutableStateOf("crall.vision@gmail.com")
     var reviewMode: Boolean by mutableStateOf(false)

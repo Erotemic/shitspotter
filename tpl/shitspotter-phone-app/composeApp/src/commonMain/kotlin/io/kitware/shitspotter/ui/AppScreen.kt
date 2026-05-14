@@ -87,7 +87,16 @@ fun AppScreen(
     onUpdatePhotoLabel: ((filePath: String, label: CaptureLabel, note: String?) -> Unit)? = null,
     onSharePhoto: ((filePath: String) -> Unit)? = null,
     onShareAllPhotos: (() -> Unit)? = null,
+    onDeletePhoto: ((filePath: String) -> Unit)? = null,
 ) {
+    // System back: close photo viewer first, then review screen; else let system handle.
+    PlatformBackHandler(enabled = state.reviewMode && state.viewingPhotoPath != null) {
+        state.viewingPhotoPath = null
+    }
+    PlatformBackHandler(enabled = state.reviewMode && state.viewingPhotoPath == null) {
+        state.reviewMode = false
+    }
+
     var flashTick by remember { mutableStateOf(0) }
     var flashVisible by remember { mutableStateOf(false) }
     LaunchedEffect(flashTick) {
@@ -116,8 +125,7 @@ fun AppScreen(
                 Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.75f)))
             }
 
-            // Top area: left column (HUD + slider) + right column (icons)
-            // Using a Row so the slider never extends under the icon buttons.
+            // Top area: HUD + slider on the left, single ⚙ button top-right
             val activeBackendName = state.lastTelemetry?.runtimeBackend
             val activeIsStubFallback =
                 state.activeModelId != "stub-fake-detector" &&
@@ -171,19 +179,8 @@ fun AppScreen(
                     }
                 }
 
-                // Right icon column — stacked vertically, never overlaps slider
-                Column(
-                    modifier = Modifier.padding(start = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    horizontalAlignment = Alignment.End,
-                ) {
-                    ModelIconButton(
-                        activeId = state.activeModelId,
-                        activeIsStubFallback = activeIsStubFallback,
-                        onSelect = { state.activeModelId = it },
-                    )
-                    SettingsIconButton(state)
-                }
+                // Single settings icon — top-right
+                SettingsIconButton(state, activeIsStubFallback)
             }
 
             // Bottom control bar
@@ -215,6 +212,7 @@ fun AppScreen(
                     onUpdateLabel = onUpdatePhotoLabel,
                     onSharePhoto = onSharePhoto,
                     onShareAllPhotos = onShareAllPhotos,
+                    onDeletePhoto = onDeletePhoto,
                 )
             }
         }
@@ -294,48 +292,18 @@ private fun CameraControlBar(
 }
 
 @Composable
-private fun ModelIconButton(
-    activeId: String,
-    activeIsStubFallback: Boolean,
-    onSelect: (String) -> Unit,
-) {
-    var showPicker by remember { mutableStateOf(false) }
+private fun SettingsIconButton(state: AppState, activeIsStubFallback: Boolean) {
+    var showSettings by remember { mutableStateOf(false) }
     IconButton(
-        onClick = { showPicker = true },
+        onClick = { showSettings = true },
         modifier = Modifier
-            .size(40.dp)
+            .size(32.dp)
             .background(
                 if (activeIsStubFallback) Color(0x88FF8800) else Color(0x55FFFFFF),
                 CircleShape,
             ),
     ) {
-        Text(
-            text = if (activeIsStubFallback) "⚠" else "🤖",
-            fontSize = 16.sp,
-        )
-    }
-    if (showPicker) {
-        ModelPickerDialog(
-            activeId = activeId,
-            onSelect = { id ->
-                showPicker = false
-                onSelect(id)
-            },
-            onDismiss = { showPicker = false },
-        )
-    }
-}
-
-@Composable
-private fun SettingsIconButton(state: AppState) {
-    var showSettings by remember { mutableStateOf(false) }
-    IconButton(
-        onClick = { showSettings = true },
-        modifier = Modifier
-            .size(40.dp)
-            .background(Color(0x55FFFFFF), CircleShape),
-    ) {
-        Text("⚙", fontSize = 16.sp)
+        Text(if (activeIsStubFallback) "⚠" else "⚙", fontSize = 14.sp)
     }
     if (showSettings) {
         SettingsDialog(state = state, onDismiss = { showSettings = false })
@@ -344,6 +312,19 @@ private fun SettingsIconButton(state: AppState) {
 
 @Composable
 private fun SettingsDialog(state: AppState, onDismiss: () -> Unit) {
+    var showModelPicker by remember { mutableStateOf(false) }
+
+    if (showModelPicker) {
+        ModelPickerDialog(
+            activeId = state.activeModelId,
+            onSelect = { id ->
+                state.activeModelId = id
+                showModelPicker = false
+            },
+            onDismiss = { showModelPicker = false },
+        )
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Settings") },
@@ -354,19 +335,35 @@ private fun SettingsDialog(state: AppState, onDismiss: () -> Unit) {
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                // Model selector row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showModelPicker = true }
+                        .background(Color(0x22FFFFFF))
+                        .padding(horizontal = 8.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text("Model", color = Color.White, fontSize = 14.sp)
+                    val spec = ModelRegistry.byId(state.activeModelId)
+                    Text(
+                        spec?.displayName ?: state.activeModelId,
+                        color = Color(0xFFAACCFF),
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false).padding(start = 8.dp),
+                    )
+                    Text(" ›", color = Color(0xFF888888), fontSize = 14.sp)
+                }
+                HorizontalDivider()
                 ToggleItem("Show telemetry HUD", state.showFps) { state.showFps = it }
                 ToggleItem("Show detection boxes", state.showOverlay) { state.showOverlay = it }
                 ToggleItem("Show score slider", state.showScoreSlider) { state.showScoreSlider = it }
                 ToggleItem("Use front camera", state.useFrontCamera) { state.useFrontCamera = it }
                 HorizontalDivider()
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text("Photo metadata", color = Color.White, fontSize = 14.sp)
-                    MetadataModeSelector(state)
-                }
+                MetadataToggles(state)
                 HorizontalDivider()
                 TextField(
                     value = state.recipientEmail,
@@ -397,23 +394,32 @@ private fun ToggleItem(label: String, checked: Boolean, onChange: (Boolean) -> U
 }
 
 @Composable
-private fun MetadataModeSelector(state: AppState) {
-    val label = when (state.metadataMode) {
-        MetadataMode.FULL -> "GPS on"
-        MetadataMode.NO_GPS -> "GPS off"
-        MetadataMode.NONE -> "No metadata"
+private fun MetadataToggles(state: AppState) {
+    val exifEnabled = state.metadataMode != MetadataMode.NONE
+    val gpsEnabled = state.metadataMode == MetadataMode.FULL
+
+    ToggleItem("Save EXIF metadata", exifEnabled) { on ->
+        state.metadataMode = if (on) MetadataMode.NO_GPS else MetadataMode.NONE
     }
-    TextButton(
-        onClick = {
-            state.metadataMode = when (state.metadataMode) {
-                MetadataMode.FULL -> MetadataMode.NO_GPS
-                MetadataMode.NO_GPS -> MetadataMode.NONE
-                MetadataMode.NONE -> MetadataMode.FULL
-            }
-        },
-        modifier = Modifier.background(Color(0x44FFFFFF)),
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(label, color = Color.White, fontSize = 12.sp)
+        Text(
+            "Include GPS location",
+            color = if (exifEnabled) Color.White else Color(0xFF666666),
+            fontSize = 14.sp,
+        )
+        Switch(
+            checked = gpsEnabled,
+            onCheckedChange = { on ->
+                state.metadataMode = if (on) MetadataMode.FULL else MetadataMode.NO_GPS
+            },
+            enabled = exifEnabled,
+        )
     }
 }
 
@@ -532,6 +538,7 @@ private fun ReviewScreen(
     onUpdateLabel: ((String, CaptureLabel, String?) -> Unit)?,
     onSharePhoto: ((String) -> Unit)?,
     onShareAllPhotos: (() -> Unit)?,
+    onDeletePhoto: ((String) -> Unit)?,
 ) {
     Box(modifier = Modifier.fillMaxSize().background(Color(0xEE101010))) {
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
@@ -567,6 +574,9 @@ private fun ReviewScreen(
                             entry = entry,
                             onViewPhoto = { onViewPhoto(entry.filePath) },
                             onUpdateLabel = onUpdateLabel,
+                            onDelete = if (onDeletePhoto != null) {
+                                { onDeletePhoto(entry.filePath) }
+                            } else null,
                         )
                         HorizontalDivider(color = Color(0x33FFFFFF))
                     }
@@ -588,6 +598,9 @@ private fun ReviewScreen(
                 onShare = if (onSharePhoto != null) {
                     { onSharePhoto(viewingPhotoPath) }
                 } else null,
+                onDelete = if (onDeletePhoto != null) {
+                    { onDeletePhoto(viewingPhotoPath); onCloseViewer() }
+                } else null,
             )
         }
     }
@@ -598,8 +611,11 @@ private fun ReviewPhotoRow(
     entry: CaptureReviewEntry,
     onViewPhoto: () -> Unit,
     onUpdateLabel: ((String, CaptureLabel, String?) -> Unit)?,
+    onDelete: (() -> Unit)?,
 ) {
     var showAnnotatePicker by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
     if (showAnnotatePicker) {
         LabelPickerDialog(
             current = entry.label,
@@ -610,11 +626,26 @@ private fun ReviewPhotoRow(
             onDismiss = { showAnnotatePicker = false },
         )
     }
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete photo?") },
+            text = { Text("This will permanently delete the photo and its metadata.", color = Color(0xFFCCCCCC)) },
+            confirmButton = {
+                TextButton(onClick = { showDeleteConfirm = false; onDelete?.invoke() }) {
+                    Text("Delete", color = Color(0xFFFF6666))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+            },
+        )
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onViewPhoto)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(start = 12.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -638,7 +669,7 @@ private fun ReviewPhotoRow(
                 )
             }
         }
-        // Tapping the label chip opens the annotation picker independently of viewing
+        // Label chip — tap to annotate
         Box(
             modifier = Modifier
                 .clickable(enabled = onUpdateLabel != null) { showAnnotatePicker = true }
@@ -652,6 +683,15 @@ private fun ReviewPhotoRow(
                 fontWeight = FontWeight.SemiBold,
             )
         }
+        // Delete button
+        if (onDelete != null) {
+            IconButton(
+                onClick = { showDeleteConfirm = true },
+                modifier = Modifier.size(40.dp),
+            ) {
+                Text("🗑", fontSize = 16.sp)
+            }
+        }
     }
 }
 
@@ -662,9 +702,11 @@ private fun PhotoViewer(
     onClose: () -> Unit,
     onUpdateLabel: (CaptureLabel, String?) -> Unit,
     onShare: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
 ) {
     var bitmap by remember(filePath) { mutableStateOf<ImageBitmap?>(null) }
     var showAnnotatePicker by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     LaunchedEffect(filePath) {
         bitmap = withContext(Dispatchers.IO) { loadImageBitmapFromFile(filePath) }
@@ -678,6 +720,21 @@ private fun PhotoViewer(
                 onUpdateLabel(label, note)
             },
             onDismiss = { showAnnotatePicker = false },
+        )
+    }
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete photo?") },
+            text = { Text("This will permanently delete the photo and its metadata.", color = Color(0xFFCCCCCC)) },
+            confirmButton = {
+                TextButton(onClick = { showDeleteConfirm = false; onDelete?.invoke() }) {
+                    Text("Delete", color = Color(0xFFFF6666))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+            },
         )
     }
 
@@ -714,14 +771,26 @@ private fun PhotoViewer(
             ) {
                 Text("✕", color = Color.White, fontSize = 18.sp)
             }
-            if (onShare != null) {
-                IconButton(
-                    onClick = onShare,
-                    modifier = Modifier
-                        .size(44.dp)
-                        .background(Color(0x88000000), CircleShape),
-                ) {
-                    Text("✉", color = Color(0xFF88CCFF), fontSize = 18.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (onShare != null) {
+                    IconButton(
+                        onClick = onShare,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(Color(0x88000000), CircleShape),
+                    ) {
+                        Text("✉", color = Color(0xFF88CCFF), fontSize = 18.sp)
+                    }
+                }
+                if (onDelete != null) {
+                    IconButton(
+                        onClick = { showDeleteConfirm = true },
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(Color(0x88000000), CircleShape),
+                    ) {
+                        Text("🗑", color = Color(0xFFFF6666), fontSize = 18.sp)
+                    }
                 }
             }
         }

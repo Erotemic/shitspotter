@@ -66,6 +66,12 @@ class PhotoStore(private val dir: File) {
         }
     }
 
+    fun delete(jpegFile: File) {
+        jpegFile.delete()
+        val jsonFile = File(jpegFile.parent, jpegFile.nameWithoutExtension + ".json")
+        if (jsonFile.exists()) jsonFile.delete()
+    }
+
     fun updateLabel(jpegFile: File, newLabel: CaptureLabel, note: String?) {
         val jsonFile = File(jpegFile.parent, jpegFile.nameWithoutExtension + ".json")
         if (!jsonFile.exists()) return

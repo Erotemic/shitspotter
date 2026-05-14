@@ -16,7 +16,7 @@ data class AppSettings(
     val showFps: Boolean = true,
     val showOverlay: Boolean = true,
     val useFrontCamera: Boolean = false,
-    val metadataMode: MetadataMode = MetadataMode.FULL,
+    val metadataMode: MetadataMode = MetadataMode.NO_GPS,
     val showScoreSlider: Boolean = true,
     val recipientEmail: String = "crall.vision@gmail.com",
 )

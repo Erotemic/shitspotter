@@ -129,6 +129,7 @@ class MainActivity : ComponentActivity() {
                         onUpdatePhotoLabel = ::updatePhotoLabel,
                         onSharePhoto = ::sharePhoto,
                         onShareAllPhotos = ::shareAllPhotos,
+                        onDeletePhoto = ::deletePhoto,
                     )
                 }
             }
@@ -289,6 +290,24 @@ class MainActivity : ComponentActivity() {
             startActivity(Intent.createChooser(intent, "Send via email"))
         } catch (_: ActivityNotFoundException) {
             state.setError("No app found to handle email sharing")
+        }
+    }
+
+    private fun deletePhoto(filePath: String) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            photoStore.delete(File(filePath))
+            val entries = photoStore.listAll().map { (file, meta) ->
+                CaptureReviewEntry(
+                    filePath = file.absolutePath,
+                    timestamp = meta?.timestamp ?: file.nameWithoutExtension,
+                    label = meta?.label ?: CaptureLabel.UNCERTAIN,
+                    detectionCount = meta?.detections?.size ?: 0,
+                    note = meta?.userNote,
+                )
+            }
+            withContext(Dispatchers.Main) {
+                state.capturedPhotos = entries
+            }
         }
     }
 
