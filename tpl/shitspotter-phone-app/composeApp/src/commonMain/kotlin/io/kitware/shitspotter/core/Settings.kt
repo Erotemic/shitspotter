@@ -17,6 +17,7 @@ data class AppSettings(
     val showOverlay: Boolean = true,
     val useFrontCamera: Boolean = false,
     val metadataMode: MetadataMode = MetadataMode.FULL,
+    val showScoreSlider: Boolean = true,
 )
 
 interface SettingsStore {
@@ -56,6 +57,7 @@ fun AppState.applySettings(s: AppSettings) {
     showOverlay = s.showOverlay
     useFrontCamera = s.useFrontCamera
     metadataMode = s.metadataMode
+    showScoreSlider = s.showScoreSlider
 }
 
 fun AppState.toSettings(): AppSettings = AppSettings(
@@ -65,4 +67,5 @@ fun AppState.toSettings(): AppSettings = AppSettings(
     showOverlay = showOverlay,
     useFrontCamera = useFrontCamera,
     metadataMode = metadataMode,
+    showScoreSlider = showScoreSlider,
 )
