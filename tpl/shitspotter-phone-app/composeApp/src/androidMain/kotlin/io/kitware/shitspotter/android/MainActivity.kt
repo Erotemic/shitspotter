@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationManager
+import android.media.MediaActionSound
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -18,22 +19,19 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import io.kitware.shitspotter.core.AppState
 import io.kitware.shitspotter.core.BuildInfo
 import io.kitware.shitspotter.core.CaptureLabel
 import io.kitware.shitspotter.core.CaptureMetadata
-import io.kitware.shitspotter.core.FailureCaseMetadata
-import io.kitware.shitspotter.core.FailureType
+import io.kitware.shitspotter.core.CaptureReviewEntry
 import io.kitware.shitspotter.core.MetadataMode
 import io.kitware.shitspotter.core.PrintlnLogger
 import io.kitware.shitspotter.core.SettingsStore
@@ -43,6 +41,7 @@ import io.kitware.shitspotter.ui.AppRootTheme
 import io.kitware.shitspotter.ui.AppScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import java.io.File
@@ -50,13 +49,12 @@ import java.io.File
 class MainActivity : ComponentActivity() {
 
     private val state = AppState()
-    private lateinit var failureStore: AndroidFailureCaseStore
     private lateinit var settingsStore: SettingsStore
     private lateinit var backendManager: AndroidBackendManager
     private lateinit var photoStore: PhotoStore
     private val captureExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
-    private var paused by mutableStateOf(false)
-    private var torchOn by mutableStateOf(false)
+    private val shutterSound = MediaActionSound()
+    private var torchOn = androidx.compose.runtime.mutableStateOf(false)
     private var androidSurface: AndroidCameraSurface? = null
     private var lastLocation: android.location.Location? = null
 
@@ -69,11 +67,10 @@ class MainActivity : ComponentActivity() {
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { _ -> }
-    private val cameraPermissionGranted = mutableStateOf(false)
+    private val cameraPermissionGranted = androidx.compose.runtime.mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        failureStore = AndroidFailureCaseStore(this)
         settingsStore = AndroidSettingsStore(this)
         state.applySettings(settingsStore.load())
         backendManager = AndroidBackendManager(this)
@@ -106,6 +103,7 @@ class MainActivity : ComponentActivity() {
                             }
                     }
 
+                    val torchState = torchOn
                     val surface = remember {
                         AndroidCameraSurface(
                             context = this@MainActivity,
@@ -117,19 +115,14 @@ class MainActivity : ComponentActivity() {
                     AppScreen(
                         state = state,
                         cameraSurface = surface,
-                        onSaveFailureCase = ::saveFailureCase,
-                        onTogglePause = {
-                            paused = !paused
-                            androidSurface?.setPaused(paused)
-                        },
-                        isPaused = paused,
-                        canSaveFailureCase = androidSurface?.hasAnalyzedFrame() ?: false,
                         onTakePhoto = { label, note -> savePhoto(label, note) },
                         onToggleTorch = {
-                            torchOn = !torchOn
-                            androidSurface?.setTorch(torchOn)
+                            torchState.value = !torchState.value
+                            androidSurface?.setTorch(torchState.value)
                         },
-                        torchOn = torchOn,
+                        torchOn = torchState.value,
+                        onReviewPhotos = ::openReview,
+                        onUpdatePhotoLabel = ::updatePhotoLabel,
                     )
                 }
             }
@@ -182,6 +175,7 @@ class MainActivity : ComponentActivity() {
 
     private fun savePhoto(label: CaptureLabel, note: String?) {
         val surface = androidSurface ?: return
+        shutterSound.play(MediaActionSound.SHUTTER_CLICK)
         val now = Clock.System.now().toString()
         val outputFile = photoStore.newCaptureFile(now)
         val backendSnap = backendManager.snapshot()
@@ -214,50 +208,40 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private fun saveFailureCase(type: FailureType, note: String?) {
-        val surface = androidSurface
-        val backendSnap = backendManager.snapshot()
-        if (surface == null || !surface.hasAnalyzedFrame()) {
-            PrintlnLogger.warn(
-                "ShitSpotter.Failure",
-                "save-failure tapped before first frame; nothing to write",
-            )
-            state.setError("no frame yet; wait for the camera to start")
-            return
+    private fun openReview() {
+        lifecycleScope.launch {
+            val entries = withContext(Dispatchers.IO) {
+                photoStore.listAll().map { (file, meta) ->
+                    CaptureReviewEntry(
+                        filePath = file.absolutePath,
+                        timestamp = meta?.timestamp ?: file.nameWithoutExtension,
+                        label = meta?.label ?: CaptureLabel.UNCERTAIN,
+                        detectionCount = meta?.detections?.size ?: 0,
+                        note = meta?.userNote,
+                    )
+                }
+            }
+            state.capturedPhotos = entries
+            state.reviewMode = true
         }
-        val tele = state.lastTelemetry
-        val now = Clock.System.now().toString()
-        val md = FailureCaseMetadata(
-            timestamp = now,
-            deviceModel = BuildInfo.deviceModel,
-            osVersion = BuildInfo.osVersion,
-            appCommit = BuildInfo.appCommit,
-            modelId = backendSnap.spec.modelId,
-            modelHash = backendSnap.spec.modelHash,
-            runtimeBackend = backendSnap.backendName,
-            delegate = backendSnap.delegate,
-            inputWidth = backendSnap.spec.inputWidth,
-            inputHeight = backendSnap.spec.inputHeight,
-            scoreThreshold = state.scoreThreshold,
-            iouThreshold = backendSnap.spec.iouThreshold,
-            latencyMs = tele?.totalMs ?: 0.0,
-            fpsRecent = tele?.fpsRecent ?: 0.0,
-            failureType = type,
-            userNote = note,
-            detections = state.lastDetections,
-        )
-        val jpegBytes = surface.encodeLastFrameAsJpeg()
-        if (jpegBytes.isEmpty()) {
-            PrintlnLogger.warn(
-                "ShitSpotter.Failure",
-                "encodeLastFrameAsJpeg returned 0 bytes; skipping save",
-            )
-            state.setError("frame encode failed; not saving")
-            return
+    }
+
+    private fun updatePhotoLabel(filePath: String, label: CaptureLabel, note: String?) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            photoStore.updateLabel(File(filePath), label, note)
+            val entries = photoStore.listAll().map { (file, meta) ->
+                CaptureReviewEntry(
+                    filePath = file.absolutePath,
+                    timestamp = meta?.timestamp ?: file.nameWithoutExtension,
+                    label = meta?.label ?: CaptureLabel.UNCERTAIN,
+                    detectionCount = meta?.detections?.size ?: 0,
+                    note = meta?.userNote,
+                )
+            }
+            withContext(Dispatchers.Main) {
+                state.capturedPhotos = entries
+            }
         }
-        val path = failureStore.save(jpegBytes, md)
-        state.failureCasesSavedCount = state.failureCasesSavedCount + 1
-        PrintlnLogger.info("ShitSpotter.Failure", "saved → $path")
     }
 
     override fun onPause() {
@@ -270,6 +254,7 @@ class MainActivity : ComponentActivity() {
         try { captureExecutor.shutdown() } catch (_: Throwable) {}
         try { androidSurface?.close() } catch (_: Throwable) {}
         try { backendManager.close() } catch (_: Throwable) {}
+        try { shutterSound.release() } catch (_: Throwable) {}
     }
 }
 
@@ -291,7 +276,7 @@ private fun PermissionRationale(onRequest: () -> Unit) {
                 color = Color.White,
             )
             Text(
-                "The app does not record or upload video. Failure-case captures are kept on the device.",
+                "The app does not record or upload video. Captures are kept on the device.",
                 color = Color(0xFFCCCCCC),
             )
             Button(onClick = onRequest) { Text("Grant camera permission") }

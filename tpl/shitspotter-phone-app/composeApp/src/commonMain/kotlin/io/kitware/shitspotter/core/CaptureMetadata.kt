@@ -23,3 +23,11 @@ data class CaptureMetadata(
     val longitude: Double? = null,
     val userNote: String? = null,
 )
+
+data class CaptureReviewEntry(
+    val filePath: String,
+    val timestamp: String,
+    val label: CaptureLabel,
+    val detectionCount: Int,
+    val note: String? = null,
+)

@@ -1,21 +1,13 @@
 package io.kitware.shitspotter.desktop
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import io.kitware.shitspotter.core.AppState
 import io.kitware.shitspotter.core.BuildInfo
 import io.kitware.shitspotter.core.DetectorBackend
-import io.kitware.shitspotter.core.FailureCaseMetadata
-import io.kitware.shitspotter.core.FailureType
 import io.kitware.shitspotter.core.ModelRegistry
 import io.kitware.shitspotter.core.ModelSpec
 import io.kitware.shitspotter.core.PrintlnLogger
@@ -24,7 +16,6 @@ import io.kitware.shitspotter.core.applySettings
 import io.kitware.shitspotter.core.toSettings
 import io.kitware.shitspotter.ui.AppRootTheme
 import io.kitware.shitspotter.ui.AppScreen
-import kotlinx.datetime.Clock
 import java.io.File
 
 private fun argValue(args: Array<String>, key: String): String? {
@@ -80,7 +71,6 @@ fun main(args: Array<String>) {
     val frame = imageFile?.takeIf { it.isFile }?.let { StillImageFrameSource.fromFile(it) }
     val frameDirSource = frameDir?.takeIf { it.isDirectory }?.let { FrameDirectorySource(it) }
     val backgroundImage = imageFile?.takeIf { it.isFile }?.let { javax.imageio.ImageIO.read(it) }
-    val failureStore = DesktopFailureCaseStore(File("failure_cases"))
 
     val harness = DesktopHarness(state) { backend }
 
@@ -122,32 +112,6 @@ fun main(args: Array<String>) {
                 AppScreen(
                     state = state,
                     cameraSurface = remember { DesktopCameraSurface(backgroundImage) },
-                    onSaveFailureCase = { type, note ->
-                        val tele = state.lastTelemetry
-                        val now = Clock.System.now().toString()
-                        val md = FailureCaseMetadata(
-                            timestamp = now,
-                            deviceModel = BuildInfo.deviceModel,
-                            osVersion = BuildInfo.osVersion,
-                            appCommit = BuildInfo.appCommit,
-                            modelId = backend.spec.modelId,
-                            modelHash = backend.spec.modelHash,
-                            runtimeBackend = backend.backendName,
-                            delegate = backend.delegate,
-                            inputWidth = backend.spec.inputWidth,
-                            inputHeight = backend.spec.inputHeight,
-                            scoreThreshold = backend.spec.scoreThreshold,
-                            iouThreshold = backend.spec.iouThreshold,
-                            latencyMs = tele?.totalMs ?: 0.0,
-                            fpsRecent = tele?.fpsRecent ?: 0.0,
-                            failureType = type,
-                            userNote = note,
-                            detections = state.lastDetections,
-                        )
-                        val path = failureStore.save(ByteArray(0), md)
-                        state.failureCasesSavedCount = state.failureCasesSavedCount + 1
-                        PrintlnLogger.info("ShitSpotter.Desktop", "failure-case saved → $path")
-                    },
                 )
             }
         }

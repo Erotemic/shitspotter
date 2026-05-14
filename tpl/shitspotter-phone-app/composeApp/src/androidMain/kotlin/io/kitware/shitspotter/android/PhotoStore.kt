@@ -3,9 +3,11 @@ package io.kitware.shitspotter.android
 import android.location.Location
 import android.os.Build
 import androidx.exifinterface.media.ExifInterface
+import io.kitware.shitspotter.core.CaptureLabel
 import io.kitware.shitspotter.core.CaptureMetadata
 import io.kitware.shitspotter.core.FailureCaseSerialization
 import io.kitware.shitspotter.core.MetadataMode
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import java.io.File
 
@@ -49,6 +51,29 @@ class PhotoStore(private val dir: File) {
         val jsonFile = File(jpegFile.parent, jpegFile.nameWithoutExtension + ".json")
         jsonFile.writeText(FailureCaseSerialization.json.encodeToString(metadata))
         return jpegFile
+    }
+
+    fun listAll(): List<Pair<File, CaptureMetadata?>> {
+        val jpegFiles = dir.listFiles { f -> f.extension == "jpg" || f.extension == "jpeg" }
+            ?: return emptyList()
+        return jpegFiles.sortedByDescending { it.lastModified() }.map { jpegFile ->
+            val jsonFile = File(jpegFile.parent, jpegFile.nameWithoutExtension + ".json")
+            val meta = if (jsonFile.exists()) {
+                try { FailureCaseSerialization.json.decodeFromString<CaptureMetadata>(jsonFile.readText()) }
+                catch (_: Throwable) { null }
+            } else null
+            Pair(jpegFile, meta)
+        }
+    }
+
+    fun updateLabel(jpegFile: File, newLabel: CaptureLabel, note: String?) {
+        val jsonFile = File(jpegFile.parent, jpegFile.nameWithoutExtension + ".json")
+        if (!jsonFile.exists()) return
+        val existing = try {
+            FailureCaseSerialization.json.decodeFromString<CaptureMetadata>(jsonFile.readText())
+        } catch (_: Throwable) { return }
+        val updated = existing.copy(label = newLabel, userNote = note ?: existing.userNote)
+        jsonFile.writeText(FailureCaseSerialization.json.encodeToString(updated))
     }
 
     private fun decToDms(decimal: Double): String {
