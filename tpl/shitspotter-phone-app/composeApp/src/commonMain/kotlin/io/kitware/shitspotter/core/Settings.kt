@@ -14,7 +14,6 @@ data class AppSettings(
     val activeModelId: String = ModelRegistry.default.modelId,
     val scoreThreshold: Float = ModelRegistry.default.scoreThreshold,
     val showFps: Boolean = true,
-    val showOverlay: Boolean = true,
     val useFrontCamera: Boolean = false,
     val metadataMode: MetadataMode = MetadataMode.NO_GPS,
     val showScoreSlider: Boolean = true,
@@ -55,7 +54,6 @@ fun AppState.applySettings(s: AppSettings) {
     activeModelId = s.activeModelId
     scoreThreshold = s.scoreThreshold
     showFps = s.showFps
-    showOverlay = s.showOverlay
     useFrontCamera = s.useFrontCamera
     metadataMode = s.metadataMode
     showScoreSlider = s.showScoreSlider
@@ -66,7 +64,6 @@ fun AppState.toSettings(): AppSettings = AppSettings(
     activeModelId = activeModelId,
     scoreThreshold = scoreThreshold,
     showFps = showFps,
-    showOverlay = showOverlay,
     useFrontCamera = useFrontCamera,
     metadataMode = metadataMode,
     showScoreSlider = showScoreSlider,
