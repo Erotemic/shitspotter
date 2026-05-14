@@ -748,3 +748,10 @@ kwcoco metric code.
 I'm seeing something very strange in PXL_20260312_223749719.MP.jpg and
 PXL_20260312_224050094.jpg the later image appears to be temporally mixed up.
 I'm not sure how that could happen. 
+
+# 2026-05-14
+
+ITS ALIVE!
+
+We needed the bigger pico model. 416x416 and yes there were false positives and
+I needed the threshold low, but it spotted one I didn't see. 
