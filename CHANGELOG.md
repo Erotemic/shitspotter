@@ -8,6 +8,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added:
 
+* (2026-05-14): `mobile_app_training_v4`: Pixel 5 on-device benchmark complete.
+  NNAPI EP results for the four Pareto-front cells:
+  - pico@320: 88.8ms → **11.3 FPS** → **PHONE_ELIGIBLE** (deploy winner)
+  - pico@416: 134.6ms → 7.4 FPS → just under the 10 FPS gate
+  - n@512:    274.1ms → 3.6 FPS → PHONE_INELIGIBLE
+  - n@640:    377.8ms → 2.6 FPS → PHONE_INELIGIBLE
+  DEIMv2-N transformer attention maps poorly to NNAPI on Snapdragon 765G
+  (6-8× slower on-device than desktop scaling would predict). HGNetv2-pico
+  backbone fares much better. Deploy-eligible winner: pico@320 at AP=0.265.
+  CPU EP benchmarks (BENCH_EP=cpu) may show different ordering — NNAPI can
+  underperform CPU for transformer attention ops.
+
 * (2026-05-14): `mobile_app_training_v4`: added `05_bench_on_pixel5.sh` +
   companion `ort_bench.c`. The script compiles a tiny C benchmark against
   the ORT 1.19.2 ARM64 shared library already in the Gradle cache (no extra
