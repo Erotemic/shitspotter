@@ -129,6 +129,7 @@ class MainActivity : ComponentActivity() {
                         onUpdatePhotoLabel = ::updatePhotoLabel,
                         onSharePhoto = ::sharePhoto,
                         onShareAllPhotos = ::shareAllPhotos,
+                        onSharePhotos = ::sharePhotos,
                         onDeletePhoto = ::deletePhoto,
                     )
                 }
@@ -241,6 +242,19 @@ class MainActivity : ComponentActivity() {
             if (jsonFile.exists()) add(jsonFile)
         }
         sendFilesViaEmail(files, "ShitSpotter — 1 photo")
+    }
+
+    private fun sharePhotos(filePaths: List<String>) {
+        val files = buildList {
+            for (path in filePaths) {
+                val jpegFile = File(path)
+                add(jpegFile)
+                val jsonFile = File(jpegFile.parent, jpegFile.nameWithoutExtension + ".json")
+                if (jsonFile.exists()) add(jsonFile)
+            }
+        }
+        if (files.isEmpty()) { state.setError("No files to send"); return }
+        sendFilesViaEmail(files, "ShitSpotter — ${filePaths.size} photo(s)")
     }
 
     private fun shareAllPhotos() {

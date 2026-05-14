@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -93,6 +94,7 @@ fun AppScreen(
     onUpdatePhotoLabel: ((filePath: String, label: CaptureLabel, note: String?) -> Unit)? = null,
     onSharePhoto: ((filePath: String) -> Unit)? = null,
     onShareAllPhotos: (() -> Unit)? = null,
+    onSharePhotos: ((filePaths: List<String>) -> Unit)? = null,
     onDeletePhoto: ((filePath: String) -> Unit)? = null,
 ) {
     // System back: close photo viewer first, then review screen; else let system handle.
@@ -150,7 +152,7 @@ fun AppScreen(
                         .weight(1f)
                         .heightIn(max = 400.dp)
                         .verticalScroll(rememberScrollState())
-                        .padding(end = 8.dp),
+                        .padding(end = 16.dp),
                 ) {
                     if (state.showFps) {
                         TelemetryHud(
@@ -219,6 +221,7 @@ fun AppScreen(
                     onUpdateLabel = onUpdatePhotoLabel,
                     onSharePhoto = onSharePhoto,
                     onShareAllPhotos = onShareAllPhotos,
+                    onSharePhotos = onSharePhotos,
                     onDeletePhoto = onDeletePhoto,
                 )
             }
@@ -244,13 +247,13 @@ private fun CameraControlBar(
                 IconButton(
                     onClick = onReviewPhotos,
                     modifier = Modifier
-                        .size(42.dp)
-                        .background(Color(0x55FFFFFF), CircleShape),
+                        .size(32.dp)
+                        .background(Color(0x44FFFFFF), CircleShape),
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("🖼", fontSize = 20.sp)
                         if (photoCount > 0) {
-                            Text("$photoCount", fontSize = 9.sp, color = Color.White)
+                            Text("$photoCount", fontSize = 8.sp, color = Color.White, lineHeight = 8.sp)
                         }
                     }
                 }
@@ -281,9 +284,9 @@ private fun CameraControlBar(
                 IconButton(
                     onClick = onToggleTorch,
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(32.dp)
                         .background(
-                            if (torchOn) Color(0xFFFFDD44) else Color(0x55FFFFFF),
+                            if (torchOn) Color(0xFFFFDD44) else Color(0x44FFFFFF),
                             CircleShape,
                         ),
                 ) {
@@ -304,13 +307,13 @@ private fun SettingsIconButton(state: AppState, activeIsStubFallback: Boolean) {
     IconButton(
         onClick = { showSettings = true },
         modifier = Modifier
-            .size(24.dp)
+            .size(28.dp)
             .background(
-                if (activeIsStubFallback) Color(0x88FF8800) else Color(0x55FFFFFF),
+                if (activeIsStubFallback) Color(0x88FF8800) else Color(0x44FFFFFF),
                 CircleShape,
             ),
     ) {
-        Text(if (activeIsStubFallback) "⚠" else "⚙", fontSize = 16.sp)
+        Text(if (activeIsStubFallback) "⚠" else "⚙", fontSize = 20.sp)
     }
     if (showSettings) {
         SettingsDialog(state = state, onDismiss = { showSettings = false })
@@ -365,7 +368,7 @@ private fun SettingsDialog(state: AppState, onDismiss: () -> Unit) {
                     Text(" ›", color = Color(0xFF888888), fontSize = 14.sp)
                 }
                 HorizontalDivider()
-                ToggleItem("Show telemetry HUD", state.showFps) { state.showFps = it }
+                ToggleItem("Show HUD", state.showFps) { state.showFps = it }
                 ToggleItem("Show score slider", state.showScoreSlider) { state.showScoreSlider = it }
                 ToggleItem("Use front camera", state.useFrontCamera) { state.useFrontCamera = it }
                 HorizontalDivider()
@@ -375,9 +378,17 @@ private fun SettingsDialog(state: AppState, onDismiss: () -> Unit) {
                     value = state.recipientEmail,
                     onValueChange = { state.recipientEmail = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Send photos to (email)") },
+                    label = { Text("Recipient email") },
+                    placeholder = { Text("you@example.com") },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    supportingText = {
+                        Text(
+                            "Photos are only sent when you tap ✉ — capturing never sends automatically.",
+                            fontSize = 11.sp,
+                            color = Color(0xFF888888),
+                        )
+                    },
                 )
             }
         },
@@ -545,29 +556,145 @@ private fun ReviewScreen(
     onUpdateLabel: ((String, CaptureLabel, String?) -> Unit)?,
     onSharePhoto: ((String) -> Unit)?,
     onShareAllPhotos: (() -> Unit)?,
+    onSharePhotos: ((List<String>) -> Unit)?,
     onDeletePhoto: ((String) -> Unit)?,
 ) {
+    var selectionMode by remember { mutableStateOf(false) }
+    var selectedPaths by remember { mutableStateOf(emptySet<String>()) }
+    var pendingBulkLabel by remember { mutableStateOf<CaptureLabel?>(null) }
+    var showBulkLabelPicker by remember { mutableStateOf(false) }
+    var showBulkLabelConfirm by remember { mutableStateOf(false) }
+    var showBulkDeleteConfirm by remember { mutableStateOf(false) }
+
+    // Back exits selection mode before closing the review screen
+    PlatformBackHandler(enabled = selectionMode) {
+        selectionMode = false
+        selectedPaths = emptySet()
+    }
+
+    if (showBulkLabelPicker) {
+        LabelPickerDialog(
+            current = CaptureLabel.UNCERTAIN,
+            onPick = { label, _ ->
+                pendingBulkLabel = label
+                showBulkLabelPicker = false
+                showBulkLabelConfirm = true
+            },
+            onDismiss = { showBulkLabelPicker = false },
+        )
+    }
+    if (showBulkLabelConfirm && pendingBulkLabel != null) {
+        val label = pendingBulkLabel!!
+        AlertDialog(
+            onDismissRequest = { showBulkLabelConfirm = false },
+            title = { Text("Change ${selectedPaths.size} photo${if (selectedPaths.size == 1) "" else "s"}?") },
+            text = {
+                Text(
+                    "Set label to \"${labelDisplayText(label)}\" on ${selectedPaths.size} selected photo${if (selectedPaths.size == 1) "" else "s"}.",
+                    color = Color(0xFFCCCCCC),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showBulkLabelConfirm = false
+                    selectedPaths.forEach { path -> onUpdateLabel?.invoke(path, label, null) }
+                    selectionMode = false
+                    selectedPaths = emptySet()
+                }) { Text("Apply", color = labelDisplayColor(label)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBulkLabelConfirm = false }) { Text("Cancel") }
+            },
+        )
+    }
+    if (showBulkDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showBulkDeleteConfirm = false },
+            title = { Text("Delete ${selectedPaths.size} photo${if (selectedPaths.size == 1) "" else "s"}?") },
+            text = { Text("This cannot be undone.", color = Color(0xFFCCCCCC)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showBulkDeleteConfirm = false
+                    selectedPaths.toList().forEach { path -> onDeletePhoto?.invoke(path) }
+                    selectionMode = false
+                    selectedPaths = emptySet()
+                }) { Text("Delete", color = Color(0xFFFF6666)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBulkDeleteConfirm = false }) { Text("Cancel") }
+            },
+        )
+    }
+
     Box(modifier = Modifier.fillMaxSize().background(Color(0xEE101010))) {
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "Photos (${photos.size})",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    modifier = Modifier.weight(1f),
-                )
-                if (onShareAllPhotos != null && photos.isNotEmpty()) {
-                    TextButton(onClick = onShareAllPhotos) {
-                        Text("✉ Send all", color = Color(0xFF88CCFF))
+            if (selectionMode) {
+                // Selection mode header
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(onClick = { selectionMode = false; selectedPaths = emptySet() }) {
+                        Text("Cancel", color = Color(0xFF88CCFF))
+                    }
+                    Text(
+                        "${selectedPaths.size} selected",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                    )
+                    // Select all / none toggle
+                    val allSelected = photos.isNotEmpty() && selectedPaths.size == photos.size
+                    TextButton(onClick = {
+                        selectedPaths = if (allSelected) emptySet() else photos.map { it.filePath }.toSet()
+                    }) {
+                        Text(if (allSelected) "None" else "All", color = Color(0xFF88CCFF))
+                    }
+                    if (selectedPaths.isNotEmpty()) {
+                        if (onSharePhotos != null) {
+                            IconButton(onClick = { onSharePhotos(selectedPaths.toList()) }) {
+                                Text("✉", fontSize = 18.sp, color = Color(0xFF88CCFF))
+                            }
+                        }
+                        if (onUpdateLabel != null) {
+                            IconButton(onClick = { showBulkLabelPicker = true }) {
+                                Text("✏", fontSize = 18.sp, color = Color.White)
+                            }
+                        }
+                        if (onDeletePhoto != null) {
+                            IconButton(onClick = { showBulkDeleteConfirm = true }) {
+                                Text("🗑", fontSize = 18.sp, color = Color(0xFFFF6666))
+                            }
+                        }
                     }
                 }
-                TextButton(onClick = onClose) { Text("Close", color = Color.White) }
+            } else {
+                // Normal header
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "Photos (${photos.size})",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (photos.isNotEmpty()) {
+                        TextButton(onClick = { selectionMode = true }) {
+                            Text("Select", color = Color(0xFF88CCFF))
+                        }
+                    }
+                    if (onShareAllPhotos != null && photos.isNotEmpty()) {
+                        TextButton(onClick = onShareAllPhotos) {
+                            Text("✉ All", color = Color(0xFF88CCFF))
+                        }
+                    }
+                    TextButton(onClick = onClose) { Text("Close", color = Color.White) }
+                }
             }
             HorizontalDivider()
             if (photos.isEmpty()) {
@@ -577,15 +704,12 @@ private fun ReviewScreen(
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(photos, key = { it.filePath }) { entry ->
-                        val deleteEntry = if (onDeletePhoto != null) {
-                            { onDeletePhoto(entry.filePath) }
-                        } else null
-                        if (deleteEntry != null) {
+                        val isSelected = entry.filePath in selectedPaths
+                        if (!selectionMode && onDeletePhoto != null) {
                             val dismissState = rememberSwipeToDismissBoxState(
                                 confirmValueChange = { value ->
                                     if (value == SwipeToDismissBoxValue.EndToStart) {
-                                        deleteEntry()
-                                        true
+                                        onDeletePhoto(entry.filePath); true
                                     } else false
                                 },
                             )
@@ -594,29 +718,34 @@ private fun ReviewScreen(
                                 enableDismissFromStartToEnd = false,
                                 backgroundContent = {
                                     Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(Color(0xFFCC3333))
-                                            .padding(end = 20.dp),
+                                        modifier = Modifier.fillMaxSize().background(Color(0xFFCC3333)).padding(end = 20.dp),
                                         contentAlignment = Alignment.CenterEnd,
-                                    ) {
-                                        Text("🗑 Delete", color = Color.White, fontSize = 14.sp)
-                                    }
+                                    ) { Text("🗑 Delete", color = Color.White, fontSize = 14.sp) }
                                 },
                             ) {
                                 ReviewPhotoRow(
                                     entry = entry,
-                                    onViewPhoto = { onViewPhoto(entry.filePath) },
+                                    selectionMode = selectionMode,
+                                    selected = isSelected,
+                                    onTap = { onViewPhoto(entry.filePath) },
+                                    onToggleSelect = {
+                                        selectedPaths = if (isSelected) selectedPaths - entry.filePath
+                                        else selectedPaths + entry.filePath
+                                    },
                                     onUpdateLabel = onUpdateLabel,
-                                    onDelete = deleteEntry,
                                 )
                             }
                         } else {
                             ReviewPhotoRow(
                                 entry = entry,
-                                onViewPhoto = { onViewPhoto(entry.filePath) },
+                                selectionMode = selectionMode,
+                                selected = isSelected,
+                                onTap = { onViewPhoto(entry.filePath) },
+                                onToggleSelect = {
+                                    selectedPaths = if (isSelected) selectedPaths - entry.filePath
+                                    else selectedPaths + entry.filePath
+                                },
                                 onUpdateLabel = onUpdateLabel,
-                                onDelete = null,
                             )
                         }
                         HorizontalDivider(color = Color(0x33FFFFFF))
@@ -647,12 +776,13 @@ private fun ReviewScreen(
 @Composable
 private fun ReviewPhotoRow(
     entry: CaptureReviewEntry,
-    onViewPhoto: () -> Unit,
+    selectionMode: Boolean,
+    selected: Boolean,
+    onTap: () -> Unit,
+    onToggleSelect: () -> Unit,
     onUpdateLabel: ((String, CaptureLabel, String?) -> Unit)?,
-    onDelete: (() -> Unit)?,
 ) {
     var showAnnotatePicker by remember { mutableStateOf(false) }
-    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     if (showAnnotatePicker) {
         LabelPickerDialog(
@@ -664,28 +794,32 @@ private fun ReviewPhotoRow(
             onDismiss = { showAnnotatePicker = false },
         )
     }
-    if (showDeleteConfirm) {
-        AlertDialog(
-            onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete photo?") },
-            text = { Text("This will permanently delete the photo and its metadata.", color = Color(0xFFCCCCCC)) },
-            confirmButton = {
-                TextButton(onClick = { showDeleteConfirm = false; onDelete?.invoke() }) {
-                    Text("Delete", color = Color(0xFFFF6666))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
-            },
-        )
-    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onViewPhoto)
-            .padding(start = 12.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
+            .background(if (selected) Color(0x22AADDFF) else Color.Transparent)
+            .clickable(onClick = if (selectionMode) onToggleSelect else onTap)
+            .padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (selectionMode) {
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .background(
+                        if (selected) Color(0xFF88CCFF) else Color.Transparent,
+                        CircleShape,
+                    )
+                    .then(
+                        if (!selected) Modifier.background(Color(0x33FFFFFF), CircleShape) else Modifier,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (selected) Text("✓", color = Color.Black, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.size(10.dp))
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 entry.timestamp.take(19).replace("T", " "),
@@ -707,10 +841,10 @@ private fun ReviewPhotoRow(
                 )
             }
         }
-        // Label chip — tap to annotate
+        // Label chip — tap to annotate (only outside selection mode)
         Box(
             modifier = Modifier
-                .clickable(enabled = onUpdateLabel != null) { showAnnotatePicker = true }
+                .clickable(enabled = !selectionMode && onUpdateLabel != null) { showAnnotatePicker = true }
                 .background(Color(0x44FFFFFF))
                 .padding(horizontal = 8.dp, vertical = 4.dp),
         ) {
@@ -720,15 +854,6 @@ private fun ReviewPhotoRow(
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
             )
-        }
-        // Delete button
-        if (onDelete != null) {
-            IconButton(
-                onClick = { showDeleteConfirm = true },
-                modifier = Modifier.size(30.dp),
-            ) {
-                Text("🗑", fontSize = 16.sp)
-            }
         }
     }
 }
@@ -822,25 +947,25 @@ private fun PhotoViewer(
         ) {
             IconButton(
                 onClick = onClose,
-                modifier = Modifier.size(33.dp).background(Color(0x88000000), CircleShape),
+                modifier = Modifier.size(28.dp).background(Color(0x88000000), CircleShape),
             ) {
-                Text("✕", color = Color.White, fontSize = 18.sp)
+                Text("✕", color = Color.White, fontSize = 20.sp)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (onShare != null) {
                     IconButton(
                         onClick = { onShare(currentEntry.filePath) },
-                        modifier = Modifier.size(33.dp).background(Color(0x88000000), CircleShape),
+                        modifier = Modifier.size(28.dp).background(Color(0x88000000), CircleShape),
                     ) {
-                        Text("✉", color = Color(0xFF88CCFF), fontSize = 18.sp)
+                        Text("✉", color = Color(0xFF88CCFF), fontSize = 20.sp)
                     }
                 }
                 if (onDelete != null) {
                     IconButton(
                         onClick = { showDeleteConfirm = true },
-                        modifier = Modifier.size(33.dp).background(Color(0x88000000), CircleShape),
+                        modifier = Modifier.size(28.dp).background(Color(0x88000000), CircleShape),
                     ) {
-                        Text("🗑", color = Color(0xFFFF6666), fontSize = 18.sp)
+                        Text("🗑", color = Color(0xFFFF6666), fontSize = 20.sp)
                     }
                 }
             }
