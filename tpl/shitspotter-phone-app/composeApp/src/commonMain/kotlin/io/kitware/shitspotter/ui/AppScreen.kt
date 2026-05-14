@@ -1,5 +1,6 @@
 package io.kitware.shitspotter.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,24 +17,28 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.foundation.Image
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -111,15 +116,13 @@ fun AppScreen(
         Box(modifier = Modifier.fillMaxSize()) {
             cameraSurface.Render(Modifier.fillMaxSize())
 
-            if (state.showOverlay) {
-                DetectionOverlay(
-                    detections = state.lastDetections,
-                    frameWidth = state.lastFrameWidth,
-                    frameHeight = state.lastFrameHeight,
-                    modifier = Modifier.fillMaxSize(),
-                    scaleMode = cameraSurface.overlayScaleMode,
-                )
-            }
+            DetectionOverlay(
+                detections = state.lastDetections,
+                frameWidth = state.lastFrameWidth,
+                frameHeight = state.lastFrameHeight,
+                modifier = Modifier.fillMaxSize(),
+                scaleMode = cameraSurface.overlayScaleMode,
+            )
 
             if (flashVisible) {
                 Box(modifier = Modifier.fillMaxSize().background(Color.White.copy(alpha = 0.75f)))
@@ -237,13 +240,13 @@ private fun CameraControlBar(
                 IconButton(
                     onClick = onReviewPhotos,
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(42.dp)
                         .background(Color(0x55FFFFFF), CircleShape),
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("🖼", fontSize = 20.sp)
+                        Text("🖼", fontSize = 15.sp)
                         if (photoCount > 0) {
-                            Text("$photoCount", fontSize = 9.sp, color = Color.White)
+                            Text("$photoCount", fontSize = 8.sp, color = Color.White)
                         }
                     }
                 }
@@ -254,19 +257,19 @@ private fun CameraControlBar(
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .size(80.dp)
+                    .size(60.dp)
                     .background(Color.White, CircleShape)
                     .clickable { onCapture() },
                 contentAlignment = Alignment.Center,
             ) {
                 Box(
                     modifier = Modifier
-                        .size(68.dp)
+                        .size(51.dp)
                         .background(Color(0xFFDDDDDD), CircleShape),
                 )
             }
         } else {
-            Spacer(Modifier.size(80.dp))
+            Spacer(Modifier.size(60.dp))
         }
 
         Box(modifier = Modifier.align(Alignment.CenterEnd)) {
@@ -274,7 +277,7 @@ private fun CameraControlBar(
                 IconButton(
                     onClick = onToggleTorch,
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(42.dp)
                         .background(
                             if (torchOn) Color(0xFFFFDD44) else Color(0x55FFFFFF),
                             CircleShape,
@@ -282,7 +285,7 @@ private fun CameraControlBar(
                 ) {
                     Text(
                         text = "🔦",
-                        fontSize = 20.sp,
+                        fontSize = 15.sp,
                         color = if (torchOn) Color.Black else Color(0xCCFFFFFF),
                     )
                 }
@@ -297,13 +300,13 @@ private fun SettingsIconButton(state: AppState, activeIsStubFallback: Boolean) {
     IconButton(
         onClick = { showSettings = true },
         modifier = Modifier
-            .size(32.dp)
+            .size(24.dp)
             .background(
                 if (activeIsStubFallback) Color(0x88FF8800) else Color(0x55FFFFFF),
                 CircleShape,
             ),
     ) {
-        Text(if (activeIsStubFallback) "⚠" else "⚙", fontSize = 14.sp)
+        Text(if (activeIsStubFallback) "⚠" else "⚙", fontSize = 11.sp)
     }
     if (showSettings) {
         SettingsDialog(state = state, onDismiss = { showSettings = false })
@@ -359,7 +362,6 @@ private fun SettingsDialog(state: AppState, onDismiss: () -> Unit) {
                 }
                 HorizontalDivider()
                 ToggleItem("Show telemetry HUD", state.showFps) { state.showFps = it }
-                ToggleItem("Show detection boxes", state.showOverlay) { state.showOverlay = it }
                 ToggleItem("Show score slider", state.showScoreSlider) { state.showScoreSlider = it }
                 ToggleItem("Use front camera", state.useFrontCamera) { state.useFrontCamera = it }
                 HorizontalDivider()
@@ -448,6 +450,7 @@ private fun ScoreThresholdControl(state: AppState) {
             value = state.scoreThreshold,
             onValueChange = { state.scoreThreshold = it.coerceIn(0f, 1f) },
             valueRange = 0f..1f,
+            modifier = Modifier.height(24.dp),
         )
     }
 }
@@ -570,14 +573,48 @@ private fun ReviewScreen(
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(photos, key = { it.filePath }) { entry ->
-                        ReviewPhotoRow(
-                            entry = entry,
-                            onViewPhoto = { onViewPhoto(entry.filePath) },
-                            onUpdateLabel = onUpdateLabel,
-                            onDelete = if (onDeletePhoto != null) {
-                                { onDeletePhoto(entry.filePath) }
-                            } else null,
-                        )
+                        val deleteEntry = if (onDeletePhoto != null) {
+                            { onDeletePhoto(entry.filePath) }
+                        } else null
+                        if (deleteEntry != null) {
+                            val dismissState = rememberSwipeToDismissBoxState(
+                                confirmValueChange = { value ->
+                                    if (value == SwipeToDismissBoxValue.EndToStart) {
+                                        deleteEntry()
+                                        true
+                                    } else false
+                                },
+                            )
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                enableDismissFromStartToEnd = false,
+                                backgroundContent = {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Color(0xFFCC3333))
+                                            .padding(end = 20.dp),
+                                        contentAlignment = Alignment.CenterEnd,
+                                    ) {
+                                        Text("🗑 Delete", color = Color.White, fontSize = 14.sp)
+                                    }
+                                },
+                            ) {
+                                ReviewPhotoRow(
+                                    entry = entry,
+                                    onViewPhoto = { onViewPhoto(entry.filePath) },
+                                    onUpdateLabel = onUpdateLabel,
+                                    onDelete = deleteEntry,
+                                )
+                            }
+                        } else {
+                            ReviewPhotoRow(
+                                entry = entry,
+                                onViewPhoto = { onViewPhoto(entry.filePath) },
+                                onUpdateLabel = onUpdateLabel,
+                                onDelete = null,
+                            )
+                        }
                         HorizontalDivider(color = Color(0x33FFFFFF))
                     }
                 }
@@ -585,21 +622,18 @@ private fun ReviewScreen(
         }
 
         // Full-screen photo viewer layered on top of the list
-        if (viewingPhotoPath != null) {
+        if (viewingPhotoPath != null && photos.isNotEmpty()) {
+            val initialIndex = photos.indexOfFirst { it.filePath == viewingPhotoPath }.coerceAtLeast(0)
             PhotoViewer(
-                filePath = viewingPhotoPath,
-                currentLabel = photos.firstOrNull { it.filePath == viewingPhotoPath }?.label
-                    ?: CaptureLabel.UNCERTAIN,
+                photos = photos,
+                initialIndex = initialIndex,
                 onClose = onCloseViewer,
-                onUpdateLabel = { label, note ->
-                    onUpdateLabel?.invoke(viewingPhotoPath, label, note)
-                    onCloseViewer()
+                onUpdateLabel = { filePath, label, note ->
+                    onUpdateLabel?.invoke(filePath, label, note)
                 },
-                onShare = if (onSharePhoto != null) {
-                    { onSharePhoto(viewingPhotoPath) }
-                } else null,
+                onShare = onSharePhoto,
                 onDelete = if (onDeletePhoto != null) {
-                    { onDeletePhoto(viewingPhotoPath); onCloseViewer() }
+                    { filePath -> onDeletePhoto(filePath); onCloseViewer() }
                 } else null,
             )
         }
@@ -687,9 +721,9 @@ private fun ReviewPhotoRow(
         if (onDelete != null) {
             IconButton(
                 onClick = { showDeleteConfirm = true },
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(30.dp),
             ) {
-                Text("🗑", fontSize = 16.sp)
+                Text("🗑", fontSize = 12.sp)
             }
         }
     }
@@ -697,27 +731,25 @@ private fun ReviewPhotoRow(
 
 @Composable
 private fun PhotoViewer(
-    filePath: String,
-    currentLabel: CaptureLabel,
+    photos: List<CaptureReviewEntry>,
+    initialIndex: Int,
     onClose: () -> Unit,
-    onUpdateLabel: (CaptureLabel, String?) -> Unit,
-    onShare: (() -> Unit)? = null,
-    onDelete: (() -> Unit)? = null,
+    onUpdateLabel: (filePath: String, CaptureLabel, String?) -> Unit,
+    onShare: ((filePath: String) -> Unit)? = null,
+    onDelete: ((filePath: String) -> Unit)? = null,
 ) {
-    var bitmap by remember(filePath) { mutableStateOf<ImageBitmap?>(null) }
+    val pagerState = rememberPagerState(initialPage = initialIndex) { photos.size }
     var showAnnotatePicker by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
-    LaunchedEffect(filePath) {
-        bitmap = withContext(Dispatchers.IO) { loadImageBitmapFromFile(filePath) }
-    }
+    val currentEntry = photos.getOrNull(pagerState.currentPage) ?: return
 
     if (showAnnotatePicker) {
         LabelPickerDialog(
-            current = currentLabel,
+            current = currentEntry.label,
             onPick = { label, note ->
                 showAnnotatePicker = false
-                onUpdateLabel(label, note)
+                onUpdateLabel(currentEntry.filePath, label, note)
             },
             onDismiss = { showAnnotatePicker = false },
         )
@@ -728,7 +760,7 @@ private fun PhotoViewer(
             title = { Text("Delete photo?") },
             text = { Text("This will permanently delete the photo and its metadata.", color = Color(0xFFCCCCCC)) },
             confirmButton = {
-                TextButton(onClick = { showDeleteConfirm = false; onDelete?.invoke() }) {
+                TextButton(onClick = { showDeleteConfirm = false; onDelete?.invoke(currentEntry.filePath) }) {
                     Text("Delete", color = Color(0xFFFF6666))
                 }
             },
@@ -739,22 +771,43 @@ private fun PhotoViewer(
     }
 
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        val bmp = bitmap
-        if (bmp != null) {
-            Image(
-                bitmap = bmp,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit,
-            )
-        } else {
-            CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center),
-                color = Color.White,
-            )
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize(),
+        ) { page ->
+            val entry = photos.getOrNull(page) ?: return@HorizontalPager
+            PhotoPage(filePath = entry.filePath)
         }
 
-        // Top bar: close (left) + share (right)
+        // Page indicator dots (when > 1 photo)
+        if (photos.size > 1) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .systemBarsPadding()
+                    .padding(bottom = 80.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val displayCount = minOf(photos.size, 9)
+                repeat(displayCount) { i ->
+                    val active = i == pagerState.currentPage.coerceIn(0, displayCount - 1)
+                    Box(
+                        modifier = Modifier
+                            .size(if (active) 8.dp else 5.dp)
+                            .background(
+                                if (active) Color.White else Color(0x88FFFFFF),
+                                CircleShape,
+                            ),
+                    )
+                }
+                if (photos.size > 9) {
+                    Text("…", color = Color(0x88FFFFFF), fontSize = 12.sp)
+                }
+            }
+        }
+
+        // Top bar: close (left) + share + delete (right)
         Row(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -765,31 +818,25 @@ private fun PhotoViewer(
         ) {
             IconButton(
                 onClick = onClose,
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(Color(0x88000000), CircleShape),
+                modifier = Modifier.size(33.dp).background(Color(0x88000000), CircleShape),
             ) {
-                Text("✕", color = Color.White, fontSize = 18.sp)
+                Text("✕", color = Color.White, fontSize = 14.sp)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (onShare != null) {
                     IconButton(
-                        onClick = onShare,
-                        modifier = Modifier
-                            .size(44.dp)
-                            .background(Color(0x88000000), CircleShape),
+                        onClick = { onShare(currentEntry.filePath) },
+                        modifier = Modifier.size(33.dp).background(Color(0x88000000), CircleShape),
                     ) {
-                        Text("✉", color = Color(0xFF88CCFF), fontSize = 18.sp)
+                        Text("✉", color = Color(0xFF88CCFF), fontSize = 14.sp)
                     }
                 }
                 if (onDelete != null) {
                     IconButton(
                         onClick = { showDeleteConfirm = true },
-                        modifier = Modifier
-                            .size(44.dp)
-                            .background(Color(0x88000000), CircleShape),
+                        modifier = Modifier.size(33.dp).background(Color(0x88000000), CircleShape),
                     ) {
-                        Text("🗑", color = Color(0xFFFF6666), fontSize = 18.sp)
+                        Text("🗑", color = Color(0xFFFF6666), fontSize = 14.sp)
                     }
                 }
             }
@@ -800,13 +847,13 @@ private fun PhotoViewer(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .systemBarsPadding()
-                .padding(16.dp),
+                .padding(bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = labelDisplayText(currentLabel),
-                color = labelDisplayColor(currentLabel),
+                text = labelDisplayText(currentEntry.label),
+                color = labelDisplayColor(currentEntry.label),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
@@ -816,6 +863,27 @@ private fun PhotoViewer(
             Button(onClick = { showAnnotatePicker = true }) {
                 Text("Annotate")
             }
+        }
+    }
+}
+
+@Composable
+private fun PhotoPage(filePath: String) {
+    var bitmap by remember(filePath) { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(filePath) {
+        bitmap = withContext(Dispatchers.IO) { loadImageBitmapFromFile(filePath) }
+    }
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        val bmp = bitmap
+        if (bmp != null) {
+            Image(
+                bitmap = bmp,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit,
+            )
+        } else {
+            CircularProgressIndicator(color = Color.White)
         }
     }
 }

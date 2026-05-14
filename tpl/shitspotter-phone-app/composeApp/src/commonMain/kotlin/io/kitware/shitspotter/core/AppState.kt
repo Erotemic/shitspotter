@@ -17,7 +17,6 @@ class AppState {
     var activeModelId: String by mutableStateOf(ModelRegistry.default.modelId)
     var scoreThreshold: Float by mutableStateOf(ModelRegistry.default.scoreThreshold)
     var showFps: Boolean by mutableStateOf(true)
-    var showOverlay: Boolean by mutableStateOf(true)
     var lastFrameWidth: Int by mutableStateOf(0)
         private set
     var lastFrameHeight: Int by mutableStateOf(0)

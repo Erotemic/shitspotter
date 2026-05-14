@@ -131,6 +131,24 @@ data class ModelSpec(
             notes = "Returns a deterministic fake box for Milestone 1 wiring tests.",
         )
 
+        val CAMERA_ONLY = ModelSpec(
+            modelId = "camera-only",
+            displayName = "Camera only (no detection)",
+            modelFile = "<none>",
+            format = ModelFormat.STUB,
+            inputWidth = 640,
+            inputHeight = 640,
+            inputLayout = InputLayout.NCHW,
+            colorOrder = ColorOrder.RGB,
+            normalization = Normalization(scale = 1f / 255f),
+            resizePolicy = ResizePolicy.LETTERBOX,
+            postprocessType = PostprocessType.STUB,
+            classNames = emptyList(),
+            scoreThreshold = 2.0f,
+            fpsHint = "max FPS",
+            notes = "No model loaded; shows camera preview with no detection boxes.",
+        )
+
         val YOLOX_NANO_POOP = ModelSpec(
             modelId = "yolox-nano-poop-cropped-v1",
             displayName = "YOLOX-nano poop (cropped, v1)",
@@ -325,7 +343,7 @@ data class ModelSpec(
 
 object ModelRegistry {
     val all: List<ModelSpec> = listOf(
-        ModelSpec.STUB,
+        ModelSpec.CAMERA_ONLY,
         // v4 DEIMv2 candidates — fastest first so the chip row reads left→right
         ModelSpec.DEIMV2_PICO_320,
         ModelSpec.DEIMV2_PICO_416,
@@ -336,9 +354,11 @@ object ModelRegistry {
         ModelSpec.SIMPLE_V3_RUN_V06,
         ModelSpec.CUSTOM_V5_EPOCH115,
         ModelSpec.CUSTOM_V2_EPOCH126,
+        // dev / wiring test
+        ModelSpec.STUB,
     )
 
     fun byId(id: String): ModelSpec? = all.firstOrNull { it.modelId == id }
 
-    val default: ModelSpec = ModelSpec.STUB
+    val default: ModelSpec = ModelSpec.CAMERA_ONLY
 }
