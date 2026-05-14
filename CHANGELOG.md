@@ -8,6 +8,15 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added:
 
+* (2026-05-14): `mobile_app_training_v4`: added `05_bench_on_pixel5.sh` +
+  companion `ort_bench.c`. The script compiles a tiny C benchmark against
+  the ORT 1.19.2 ARM64 shared library already in the Gradle cache (no extra
+  downloads), pushes it + the four Pareto-front ONNXes to the device via
+  adb, runs NNAPI-EP inference (falls back to CPU), and writes
+  `$V4_ROOT/pixel5_bench.tsv` in the format `eligibility_manifest.py
+  --pixel5_index` expects. `07_register_in_phone_app.md` updated to
+  reference the script in its Step 6.
+
 * (2026-05-14): `mobile_app_training_v4`: Pareto sweep complete. 8 cells
   trained, ONNX-exported, evaluated (simplified GT AP @ IoU=0.5), and
   desktop-benchmarked. Results (non-dominated front on desk latency):

@@ -182,7 +182,22 @@ PY
 
 ### 6. Run on-device benchmark
 
-Once sideloaded, exercise:
+Use `05_bench_on_pixel5.sh` — it compiles a tiny C benchmark (`ort_bench.c`)
+against the ORT 1.19 ARM64 shared library already in the Gradle cache, pushes
+it to the device, and writes `$V4_ROOT/pixel5_bench.tsv`:
+
+```bash
+# on the workstation with the Pixel 5 plugged in
+source /data/tmp/shitspotter-app-toolchain/env.sh
+V4_ROOT=/data/joncrall/shitspotter_v4 \
+    bash experiments/mobile_app_training_v4/05_bench_on_pixel5.sh
+```
+
+The script benchmarks all four Pareto-front cells (pico@320, pico@416,
+n@512, n@640) with NNAPI EP (falling back to CPU) and emits a TSV that
+`eligibility_manifest.py --pixel5_index` consumes directly.
+
+Once sideloaded with DEIMv2 support (steps 1–5 above), also exercise:
 
 ```text
 1. Live FPS for FAST_FULL_FRAME at the new model.
