@@ -1,3 +1,4 @@
+import java.time.LocalDate
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
@@ -130,14 +131,13 @@ android {
     }
 
     buildTypes {
+        val gitCommit = providers.exec { commandLine("git", "rev-parse", "--short", "HEAD") }
+            .standardOutput.asText.get().trim().ifEmpty { "unknown" }
+        val buildDate = LocalDate.now().toString()
         debug {
             isMinifyEnabled = false
-            buildConfigField(
-                "String",
-                "APP_GIT_COMMIT",
-                "\"${providers.exec { commandLine("git", "rev-parse", "--short", "HEAD") }
-                    .standardOutput.asText.get().trim().ifEmpty { "unknown" }}\""
-            )
+            buildConfigField("String", "APP_GIT_COMMIT", "\"$gitCommit\"")
+            buildConfigField("String", "APP_BUILD_DATE", "\"$buildDate\"")
         }
         release {
             // Note: debuggable signing config is reused — release builds
@@ -150,12 +150,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            buildConfigField(
-                "String",
-                "APP_GIT_COMMIT",
-                "\"${providers.exec { commandLine("git", "rev-parse", "--short", "HEAD") }
-                    .standardOutput.asText.get().trim().ifEmpty { "unknown" }}\""
-            )
+            buildConfigField("String", "APP_GIT_COMMIT", "\"$gitCommit\"")
+            buildConfigField("String", "APP_BUILD_DATE", "\"$buildDate\"")
         }
     }
 }

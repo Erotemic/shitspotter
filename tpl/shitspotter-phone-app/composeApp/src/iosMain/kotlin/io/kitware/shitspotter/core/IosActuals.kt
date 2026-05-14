@@ -10,4 +10,5 @@ actual object BuildInfo {
     actual val deviceModel: String = UIDevice.currentDevice.model
     actual val osVersion: String = "iOS ${UIDevice.currentDevice.systemVersion}"
     actual val appCommit: String = "ios-unset"
+    actual val buildDate: String = "ios-unset"
 }

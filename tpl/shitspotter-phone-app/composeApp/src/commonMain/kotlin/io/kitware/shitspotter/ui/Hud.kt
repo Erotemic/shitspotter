@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.kitware.shitspotter.core.BuildInfo
 import io.kitware.shitspotter.core.Fmt
 import io.kitware.shitspotter.core.FrameTelemetry
 
@@ -61,7 +62,7 @@ fun TelemetryHud(
             fontSize = 10.sp,
         )
         Text(
-            "build ${telemetry.appCommit} | dropped ${telemetry.droppedFrames}",
+            "sha=${telemetry.appCommit} ${BuildInfo.buildDate} | dropped ${telemetry.droppedFrames}",
             color = Color(0xFF888888),
             fontSize = 9.sp,
         )
