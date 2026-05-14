@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -45,6 +46,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -83,6 +85,8 @@ fun AppScreen(
     torchOn: Boolean = false,
     onReviewPhotos: (() -> Unit)? = null,
     onUpdatePhotoLabel: ((filePath: String, label: CaptureLabel, note: String?) -> Unit)? = null,
+    onSharePhoto: ((filePath: String) -> Unit)? = null,
+    onShareAllPhotos: (() -> Unit)? = null,
 ) {
     var flashTick by remember { mutableStateOf(0) }
     var flashVisible by remember { mutableStateOf(false) }
@@ -209,6 +213,8 @@ fun AppScreen(
                     onViewPhoto = { state.viewingPhotoPath = it },
                     onCloseViewer = { state.viewingPhotoPath = null },
                     onUpdateLabel = onUpdatePhotoLabel,
+                    onSharePhoto = onSharePhoto,
+                    onShareAllPhotos = onShareAllPhotos,
                 )
             }
         }
@@ -343,7 +349,9 @@ private fun SettingsDialog(state: AppState, onDismiss: () -> Unit) {
         title = { Text("Settings") },
         text = {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 ToggleItem("Show telemetry HUD", state.showFps) { state.showFps = it }
@@ -359,6 +367,15 @@ private fun SettingsDialog(state: AppState, onDismiss: () -> Unit) {
                     Text("Photo metadata", color = Color.White, fontSize = 14.sp)
                     MetadataModeSelector(state)
                 }
+                HorizontalDivider()
+                TextField(
+                    value = state.recipientEmail,
+                    onValueChange = { state.recipientEmail = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Send photos to (email)") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                )
             }
         },
         confirmButton = {
@@ -513,6 +530,8 @@ private fun ReviewScreen(
     onViewPhoto: (String) -> Unit,
     onCloseViewer: () -> Unit,
     onUpdateLabel: ((String, CaptureLabel, String?) -> Unit)?,
+    onSharePhoto: ((String) -> Unit)?,
+    onShareAllPhotos: (() -> Unit)?,
 ) {
     Box(modifier = Modifier.fillMaxSize().background(Color(0xEE101010))) {
         Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
@@ -529,6 +548,11 @@ private fun ReviewScreen(
                     fontSize = 18.sp,
                     modifier = Modifier.weight(1f),
                 )
+                if (onShareAllPhotos != null && photos.isNotEmpty()) {
+                    TextButton(onClick = onShareAllPhotos) {
+                        Text("✉ Send all", color = Color(0xFF88CCFF))
+                    }
+                }
                 TextButton(onClick = onClose) { Text("Close", color = Color.White) }
             }
             HorizontalDivider()
@@ -561,6 +585,9 @@ private fun ReviewScreen(
                     onUpdateLabel?.invoke(viewingPhotoPath, label, note)
                     onCloseViewer()
                 },
+                onShare = if (onSharePhoto != null) {
+                    { onSharePhoto(viewingPhotoPath) }
+                } else null,
             )
         }
     }
@@ -634,6 +661,7 @@ private fun PhotoViewer(
     currentLabel: CaptureLabel,
     onClose: () -> Unit,
     onUpdateLabel: (CaptureLabel, String?) -> Unit,
+    onShare: (() -> Unit)? = null,
 ) {
     var bitmap by remember(filePath) { mutableStateOf<ImageBitmap?>(null) }
     var showAnnotatePicker by remember { mutableStateOf(false) }
@@ -669,20 +697,36 @@ private fun PhotoViewer(
             )
         }
 
-        // Close button — top-right
-        IconButton(
-            onClick = onClose,
+        // Top bar: close (left) + share (right)
+        Row(
             modifier = Modifier
-                .align(Alignment.TopEnd)
+                .align(Alignment.TopStart)
+                .fillMaxWidth()
                 .systemBarsPadding()
-                .padding(8.dp)
-                .size(44.dp)
-                .background(Color(0x88000000), CircleShape),
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text("✕", color = Color.White, fontSize = 18.sp)
+            IconButton(
+                onClick = onClose,
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(Color(0x88000000), CircleShape),
+            ) {
+                Text("✕", color = Color.White, fontSize = 18.sp)
+            }
+            if (onShare != null) {
+                IconButton(
+                    onClick = onShare,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(Color(0x88000000), CircleShape),
+                ) {
+                    Text("✉", color = Color(0xFF88CCFF), fontSize = 18.sp)
+                }
+            }
         }
 
-        // Current label chip + annotate button — bottom center
+        // Bottom: label chip + annotate button
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- App's external files dir — covers getExternalFilesDir("pictures")/shitspotter/ -->
+    <external-files-path name="external_files" path="." />
+    <!-- App's internal files dir — fallback when external storage is unavailable -->
+    <files-path name="internal_files" path="." />
+</paths>
