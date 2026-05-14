@@ -2,7 +2,10 @@ package io.kitware.shitspotter.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -244,11 +247,9 @@ private fun CameraControlBar(
     ) {
         Box(modifier = Modifier.align(Alignment.CenterStart)) {
             if (onReviewPhotos != null) {
-                IconButton(
+                SmallCircleButton(
                     onClick = onReviewPhotos,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .background(Color(0x44FFFFFF), CircleShape),
+                    circleSize = 22.dp,
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("🖼", fontSize = 20.sp)
@@ -281,14 +282,10 @@ private fun CameraControlBar(
 
         Box(modifier = Modifier.align(Alignment.CenterEnd)) {
             if (onToggleTorch != null) {
-                IconButton(
+                SmallCircleButton(
                     onClick = onToggleTorch,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .background(
-                            if (torchOn) Color(0xFFFFDD44) else Color(0x44FFFFFF),
-                            CircleShape,
-                        ),
+                    circleColor = if (torchOn) Color(0xFFFFDD44) else Color(0x44FFFFFF),
+                    circleSize = 22.dp,
                 ) {
                     Text(
                         text = "🔦",
@@ -301,17 +298,43 @@ private fun CameraControlBar(
     }
 }
 
+/**
+ * Icon button where the circle background is SMALLER than the tap target so
+ * the emoji glyph is never clipped by its container. The outer [tapSize] box
+ * is the actual touch area; [circleSize] is only the painted background disc.
+ */
+@Composable
+private fun SmallCircleButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    circleColor: Color = Color(0x44FFFFFF),
+    circleSize: androidx.compose.ui.unit.Dp = 22.dp,
+    tapSize: androidx.compose.ui.unit.Dp = 40.dp,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .size(tapSize)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(modifier = Modifier.size(circleSize).background(circleColor, CircleShape))
+        content()
+    }
+}
+
 @Composable
 private fun SettingsIconButton(state: AppState, activeIsStubFallback: Boolean) {
     var showSettings by remember { mutableStateOf(false) }
-    IconButton(
+    SmallCircleButton(
         onClick = { showSettings = true },
-        modifier = Modifier
-            .size(28.dp)
-            .background(
-                if (activeIsStubFallback) Color(0x88FF8800) else Color(0x44FFFFFF),
-                CircleShape,
-            ),
+        circleColor = if (activeIsStubFallback) Color(0x88FF8800) else Color(0x44FFFFFF),
+        circleSize = 22.dp,
+        tapSize = 40.dp,
     ) {
         Text(if (activeIsStubFallback) "⚠" else "⚙", fontSize = 20.sp)
     }
@@ -732,6 +755,10 @@ private fun ReviewScreen(
                                         selectedPaths = if (isSelected) selectedPaths - entry.filePath
                                         else selectedPaths + entry.filePath
                                     },
+                                    onLongPress = {
+                                        selectionMode = true
+                                        selectedPaths = setOf(entry.filePath)
+                                    },
                                     onUpdateLabel = onUpdateLabel,
                                 )
                             }
@@ -744,6 +771,10 @@ private fun ReviewScreen(
                                 onToggleSelect = {
                                     selectedPaths = if (isSelected) selectedPaths - entry.filePath
                                     else selectedPaths + entry.filePath
+                                },
+                                onLongPress = {
+                                    selectionMode = true
+                                    selectedPaths = setOf(entry.filePath)
                                 },
                                 onUpdateLabel = onUpdateLabel,
                             )
@@ -773,6 +804,7 @@ private fun ReviewScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ReviewPhotoRow(
     entry: CaptureReviewEntry,
@@ -780,6 +812,7 @@ private fun ReviewPhotoRow(
     selected: Boolean,
     onTap: () -> Unit,
     onToggleSelect: () -> Unit,
+    onLongPress: (() -> Unit)? = null,
     onUpdateLabel: ((String, CaptureLabel, String?) -> Unit)?,
 ) {
     var showAnnotatePicker by remember { mutableStateOf(false) }
@@ -799,7 +832,10 @@ private fun ReviewPhotoRow(
         modifier = Modifier
             .fillMaxWidth()
             .background(if (selected) Color(0x22AADDFF) else Color.Transparent)
-            .clickable(onClick = if (selectionMode) onToggleSelect else onTap)
+            .combinedClickable(
+                onClick = if (selectionMode) onToggleSelect else onTap,
+                onLongClick = if (!selectionMode && onLongPress != null) onLongPress else null,
+            )
             .padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -844,6 +880,7 @@ private fun ReviewPhotoRow(
         // Label chip — tap to annotate (only outside selection mode)
         Box(
             modifier = Modifier
+                .padding(end = 12.dp)
                 .clickable(enabled = !selectionMode && onUpdateLabel != null) { showAnnotatePicker = true }
                 .background(Color(0x44FFFFFF))
                 .padding(horizontal = 8.dp, vertical = 4.dp),
@@ -945,25 +982,28 @@ private fun PhotoViewer(
                 .padding(8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            IconButton(
+            SmallCircleButton(
                 onClick = onClose,
-                modifier = Modifier.size(28.dp).background(Color(0x88000000), CircleShape),
+                circleColor = Color(0x88000000),
+                circleSize = 22.dp,
             ) {
                 Text("✕", color = Color.White, fontSize = 20.sp)
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (onShare != null) {
-                    IconButton(
+                    SmallCircleButton(
                         onClick = { onShare(currentEntry.filePath) },
-                        modifier = Modifier.size(28.dp).background(Color(0x88000000), CircleShape),
+                        circleColor = Color(0x88000000),
+                        circleSize = 22.dp,
                     ) {
                         Text("✉", color = Color(0xFF88CCFF), fontSize = 20.sp)
                     }
                 }
                 if (onDelete != null) {
-                    IconButton(
+                    SmallCircleButton(
                         onClick = { showDeleteConfirm = true },
-                        modifier = Modifier.size(28.dp).background(Color(0x88000000), CircleShape),
+                        circleColor = Color(0x88000000),
+                        circleSize = 22.dp,
                     ) {
                         Text("🗑", color = Color(0xFFFF6666), fontSize = 20.sp)
                     }
