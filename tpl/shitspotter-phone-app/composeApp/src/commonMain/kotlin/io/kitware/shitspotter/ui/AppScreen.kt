@@ -2,9 +2,12 @@ package io.kitware.shitspotter.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,22 +53,39 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.kitware.shitspotter.core.AppState
+import io.kitware.shitspotter.core.BoundingBox
 import io.kitware.shitspotter.core.CaptureLabel
+import io.kitware.shitspotter.core.CaptureMetadata
 import io.kitware.shitspotter.core.CaptureReviewEntry
+import io.kitware.shitspotter.core.Detection
+import io.kitware.shitspotter.core.DetectionAnnotation
 import io.kitware.shitspotter.core.MetadataMode
 import io.kitware.shitspotter.core.ModelFormat
 import io.kitware.shitspotter.core.ModelRegistry
 import io.kitware.shitspotter.core.ModelSpec
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -99,6 +119,8 @@ fun AppScreen(
     onShareAllPhotos: (() -> Unit)? = null,
     onSharePhotos: ((filePaths: List<String>) -> Unit)? = null,
     onDeletePhoto: ((filePath: String) -> Unit)? = null,
+    onLoadMetadata: (suspend (String) -> CaptureMetadata?)? = null,
+    onUpdateDetectionAnnotations: ((String, Map<String, DetectionAnnotation>, List<BoundingBox>) -> Unit)? = null,
 ) {
     // System back: close photo viewer first, then review screen; else let system handle.
     PlatformBackHandler(enabled = state.reviewMode && state.viewingPhotoPath != null) {
@@ -226,6 +248,8 @@ fun AppScreen(
                     onShareAllPhotos = onShareAllPhotos,
                     onSharePhotos = onSharePhotos,
                     onDeletePhoto = onDeletePhoto,
+                    onLoadMetadata = onLoadMetadata,
+                    onUpdateDetectionAnnotations = onUpdateDetectionAnnotations,
                 )
             }
         }
@@ -581,6 +605,8 @@ private fun ReviewScreen(
     onShareAllPhotos: (() -> Unit)?,
     onSharePhotos: ((List<String>) -> Unit)?,
     onDeletePhoto: ((String) -> Unit)?,
+    onLoadMetadata: (suspend (String) -> CaptureMetadata?)? = null,
+    onUpdateDetectionAnnotations: ((String, Map<String, DetectionAnnotation>, List<BoundingBox>) -> Unit)? = null,
 ) {
     var selectionMode by remember { mutableStateOf(false) }
     var selectedPaths by remember { mutableStateOf(emptySet<String>()) }
@@ -799,6 +825,8 @@ private fun ReviewScreen(
                 onDelete = if (onDeletePhoto != null) {
                     { filePath -> onDeletePhoto(filePath); onCloseViewer() }
                 } else null,
+                onLoadMetadata = onLoadMetadata,
+                onUpdateDetectionAnnotations = onUpdateDetectionAnnotations,
             )
         }
     }
@@ -903,12 +931,29 @@ private fun PhotoViewer(
     onUpdateLabel: (filePath: String, CaptureLabel, String?) -> Unit,
     onShare: ((filePath: String) -> Unit)? = null,
     onDelete: ((filePath: String) -> Unit)? = null,
+    onLoadMetadata: (suspend (String) -> CaptureMetadata?)? = null,
+    onUpdateDetectionAnnotations: ((String, Map<String, DetectionAnnotation>, List<BoundingBox>) -> Unit)? = null,
 ) {
     val pagerState = rememberPagerState(initialPage = initialIndex) { photos.size }
     var showAnnotatePicker by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var drawingFnMode by remember { mutableStateOf(false) }
+    var metadata by remember { mutableStateOf<CaptureMetadata?>(null) }
+    var localAnnotations by remember { mutableStateOf<Map<String, DetectionAnnotation>>(emptyMap()) }
+    var localMissedBoxes by remember { mutableStateOf<List<BoundingBox>>(emptyList()) }
 
     val currentEntry = photos.getOrNull(pagerState.currentPage) ?: return
+
+    LaunchedEffect(currentEntry.filePath) {
+        metadata = null
+        localAnnotations = emptyMap()
+        localMissedBoxes = emptyList()
+        drawingFnMode = false
+        val m = onLoadMetadata?.invoke(currentEntry.filePath)
+        metadata = m
+        localAnnotations = m?.detectionAnnotations ?: emptyMap()
+        localMissedBoxes = m?.missedBoxes ?: emptyList()
+    }
 
     if (showAnnotatePicker) {
         LabelPickerDialog(
@@ -936,13 +981,44 @@ private fun PhotoViewer(
         )
     }
 
+    val m = metadata
+
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
+            userScrollEnabled = !drawingFnMode,
         ) { page ->
             val entry = photos.getOrNull(page) ?: return@HorizontalPager
             PhotoPage(filePath = entry.filePath)
+        }
+
+        // Detection annotation overlay — only when metadata has frame dims
+        if (m != null && m.frameWidth != null && m.frameHeight != null) {
+            PhotoDetectionOverlay(
+                detections = m.detections,
+                frameWidth = m.frameWidth,
+                frameHeight = m.frameHeight,
+                annotations = localAnnotations,
+                missedBoxes = localMissedBoxes,
+                drawingFnMode = drawingFnMode,
+                onAnnotationChanged = { key, ann ->
+                    val updated = if (ann == null) localAnnotations - key else localAnnotations + (key to ann)
+                    localAnnotations = updated
+                    onUpdateDetectionAnnotations?.invoke(currentEntry.filePath, updated, localMissedBoxes)
+                },
+                onMissedBoxAdded = { box ->
+                    val updated = localMissedBoxes + box
+                    localMissedBoxes = updated
+                    drawingFnMode = false
+                    onUpdateDetectionAnnotations?.invoke(currentEntry.filePath, localAnnotations, updated)
+                },
+                onMissedBoxRemoved = { idx ->
+                    val updated = localMissedBoxes.toMutableList().also { it.removeAt(idx) }
+                    localMissedBoxes = updated
+                    onUpdateDetectionAnnotations?.invoke(currentEntry.filePath, localAnnotations, updated)
+                },
+            )
         }
 
         // Page indicator dots (when > 1 photo)
@@ -951,7 +1027,7 @@ private fun PhotoViewer(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .systemBarsPadding()
-                    .padding(bottom = 80.dp),
+                    .padding(bottom = 96.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -961,10 +1037,7 @@ private fun PhotoViewer(
                     Box(
                         modifier = Modifier
                             .size(if (active) 8.dp else 5.dp)
-                            .background(
-                                if (active) Color.White else Color(0x88FFFFFF),
-                                CircleShape,
-                            ),
+                            .background(if (active) Color.White else Color(0x88FFFFFF), CircleShape),
                     )
                 }
                 if (photos.size > 9) {
@@ -982,11 +1055,7 @@ private fun PhotoViewer(
                 .padding(8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            SmallCircleButton(
-                onClick = onClose,
-                circleColor = Color(0x88000000),
-                circleSize = 32.dp,
-            ) {
+            SmallCircleButton(onClick = onClose, circleColor = Color(0x88000000), circleSize = 32.dp) {
                 Text("✕", color = Color.White, fontSize = 20.sp)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -995,43 +1064,199 @@ private fun PhotoViewer(
                         onClick = { onShare(currentEntry.filePath) },
                         circleColor = Color(0x88000000),
                         circleSize = 32.dp,
-                    ) {
-                        Text("✉", color = Color(0xFF88CCFF), fontSize = 20.sp)
-                    }
+                    ) { Text("✉", color = Color(0xFF88CCFF), fontSize = 20.sp) }
                 }
                 if (onDelete != null) {
                     SmallCircleButton(
                         onClick = { showDeleteConfirm = true },
                         circleColor = Color(0x88000000),
                         circleSize = 32.dp,
-                    ) {
-                        Text("🗑", color = Color(0xFFFF6666), fontSize = 20.sp)
-                    }
+                    ) { Text("🗑", color = Color(0xFFFF6666), fontSize = 20.sp) }
                 }
             }
         }
 
-        // Bottom: label chip + annotate button
+        // Bottom: photo label + annotate + draw-FN toggle
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .systemBarsPadding()
                 .padding(bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(
                 text = labelDisplayText(currentEntry.label),
                 color = labelDisplayColor(currentEntry.label),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .background(Color(0xAA000000))
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                modifier = Modifier.background(Color(0xAA000000)).padding(horizontal = 12.dp, vertical = 6.dp),
             )
-            Button(onClick = { showAnnotatePicker = true }) {
-                Text("Annotate")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { showAnnotatePicker = true }) { Text("Annotate") }
+                if (m?.frameWidth != null) {
+                    Button(
+                        onClick = { drawingFnMode = !drawingFnMode },
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = if (drawingFnMode) Color(0xFF7755BB) else Color(0xFF335566),
+                        ),
+                    ) { Text(if (drawingFnMode) "Cancel draw" else "+ Mark miss") }
+                }
             }
+            when {
+                drawingFnMode -> Text(
+                    "Drag to draw a missed-detection box",
+                    color = Color(0xFFCCCCFF), fontSize = 11.sp,
+                    modifier = Modifier.background(Color(0xAA000000)).padding(horizontal = 8.dp, vertical = 3.dp),
+                )
+                m?.frameWidth != null && m.detections.isNotEmpty() -> Text(
+                    "Tap box: yellow=? → green=TP → red=FP",
+                    color = Color(0xFFAAAAAA), fontSize = 10.sp,
+                    modifier = Modifier.background(Color(0xAA000000)).padding(horizontal = 8.dp, vertical = 3.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PhotoDetectionOverlay(
+    detections: List<Detection>,
+    frameWidth: Int,
+    frameHeight: Int,
+    annotations: Map<String, DetectionAnnotation>,
+    missedBoxes: List<BoundingBox>,
+    drawingFnMode: Boolean,
+    onAnnotationChanged: (String, DetectionAnnotation?) -> Unit,
+    onMissedBoxAdded: (BoundingBox) -> Unit,
+    onMissedBoxRemoved: (Int) -> Unit,
+) {
+    val textMeasurer = rememberTextMeasurer()
+    var canvasSize by remember { mutableStateOf(IntSize.Zero) }
+    var dragStart by remember { mutableStateOf<Offset?>(null) }
+    var dragCurrent by remember { mutableStateOf<Offset?>(null) }
+
+    Box(modifier = Modifier.fillMaxSize().onSizeChanged { canvasSize = it }) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            if (canvasSize.width <= 0 || frameWidth <= 0 || frameHeight <= 0) return@Canvas
+            val sw = canvasSize.width.toFloat()
+            val sh = canvasSize.height.toFloat()
+            val scale = min(sw / frameWidth, sh / frameHeight)
+            val ox = (sw - frameWidth * scale) / 2f
+            val oy = (sh - frameHeight * scale) / 2f
+
+            // Existing model detections
+            detections.forEachIndexed { i, det ->
+                val ann = annotations["$i"]
+                val color = when (ann) {
+                    DetectionAnnotation.TRUE_POSITIVE -> Color(0xFF44CC77)
+                    DetectionAnnotation.FALSE_POSITIVE -> Color(0xFFCC4444)
+                    null -> Color(0xFFFFDD22)
+                }
+                val l = ox + det.box.left * scale
+                val t = oy + det.box.top * scale
+                drawRect(color, topLeft = Offset(l, t), size = Size(det.box.width * scale, det.box.height * scale), style = Stroke(4f))
+                val labelText = when (ann) {
+                    DetectionAnnotation.TRUE_POSITIVE -> "TP"
+                    DetectionAnnotation.FALSE_POSITIVE -> "FP"
+                    null -> "${(det.score * 100).toInt()}%"
+                }
+                val measured = textMeasurer.measure(labelText, TextStyle(color = Color.White, fontSize = 11.sp))
+                val lx = l.coerceAtMost(sw - measured.size.width - 4f)
+                val ly = (t - measured.size.height).coerceAtLeast(0f)
+                drawRect(Color(0xCC000000), topLeft = Offset(lx, ly), size = Size((measured.size.width + 4).toFloat(), measured.size.height.toFloat()))
+                drawText(measured, topLeft = Offset(lx + 2f, ly))
+            }
+
+            // User-drawn missed-detection boxes (dashed blue, tap to remove)
+            missedBoxes.forEach { box ->
+                val l = ox + box.left * scale
+                val t = oy + box.top * scale
+                drawRect(
+                    Color(0xFF8888FF),
+                    topLeft = Offset(l, t),
+                    size = Size(box.width * scale, box.height * scale),
+                    style = Stroke(4f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 6f))),
+                )
+                val measured = textMeasurer.measure("FN (tap×)", TextStyle(color = Color.White, fontSize = 11.sp))
+                val lx = l.coerceAtMost(sw - measured.size.width - 4f)
+                val ly = (t - measured.size.height).coerceAtLeast(0f)
+                drawRect(Color(0xCC000000), topLeft = Offset(lx, ly), size = Size((measured.size.width + 4).toFloat(), measured.size.height.toFloat()))
+                drawText(measured, topLeft = Offset(lx + 2f, ly))
+            }
+
+            // In-progress box while dragging
+            val ds = dragStart; val dc = dragCurrent
+            if (drawingFnMode && ds != null && dc != null) {
+                drawRect(
+                    Color(0x998888FF),
+                    topLeft = Offset(min(ds.x, dc.x), min(ds.y, dc.y)),
+                    size = Size(abs(dc.x - ds.x), abs(dc.y - ds.y)),
+                    style = Stroke(3f),
+                )
+            }
+        }
+
+        if (drawingFnMode) {
+            Box(
+                modifier = Modifier.fillMaxSize().pointerInput(canvasSize, frameWidth, frameHeight) {
+                    val sw = canvasSize.width.toFloat(); val sh = canvasSize.height.toFloat()
+                    if (sw <= 0f || sh <= 0f) return@pointerInput
+                    val scale = min(sw / frameWidth, sh / frameHeight)
+                    val ox = (sw - frameWidth * scale) / 2f
+                    val oy = (sh - frameHeight * scale) / 2f
+                    detectDragGestures(
+                        onDragStart = { o -> dragStart = o; dragCurrent = o },
+                        onDrag = { change, _ -> dragCurrent = change.position },
+                        onDragEnd = {
+                            val s = dragStart; val e = dragCurrent
+                            if (s != null && e != null) {
+                                val fx1 = ((s.x - ox) / scale).coerceIn(0f, frameWidth.toFloat())
+                                val fy1 = ((s.y - oy) / scale).coerceIn(0f, frameHeight.toFloat())
+                                val fx2 = ((e.x - ox) / scale).coerceIn(0f, frameWidth.toFloat())
+                                val fy2 = ((e.y - oy) / scale).coerceIn(0f, frameHeight.toFloat())
+                                val box = BoundingBox(
+                                    x = min(fx1, fx2), y = min(fy1, fy2),
+                                    width = abs(fx2 - fx1), height = abs(fy2 - fy1),
+                                )
+                                if (box.width > 5f && box.height > 5f) onMissedBoxAdded(box)
+                            }
+                            dragStart = null; dragCurrent = null
+                        },
+                        onDragCancel = { dragStart = null; dragCurrent = null },
+                    )
+                },
+            )
+        } else {
+            Box(
+                modifier = Modifier.fillMaxSize().pointerInput(canvasSize, frameWidth, frameHeight, annotations, missedBoxes) {
+                    val sw = canvasSize.width.toFloat(); val sh = canvasSize.height.toFloat()
+                    if (sw <= 0f || sh <= 0f) return@pointerInput
+                    val scale = min(sw / frameWidth, sh / frameHeight)
+                    val ox = (sw - frameWidth * scale) / 2f
+                    val oy = (sh - frameHeight * scale) / 2f
+                    detectTapGestures { offset ->
+                        val fx = (offset.x - ox) / scale
+                        val fy = (offset.y - oy) / scale
+                        val missedHit = missedBoxes.indexOfFirst { b ->
+                            fx >= b.left && fx <= b.right && fy >= b.top && fy <= b.bottom
+                        }
+                        if (missedHit >= 0) { onMissedBoxRemoved(missedHit); return@detectTapGestures }
+                        val detHit = detections.indexOfFirst { d ->
+                            fx >= d.box.left && fx <= d.box.right && fy >= d.box.top && fy <= d.box.bottom
+                        }
+                        if (detHit >= 0) {
+                            val key = "$detHit"
+                            val next = when (annotations[key]) {
+                                null -> DetectionAnnotation.TRUE_POSITIVE
+                                DetectionAnnotation.TRUE_POSITIVE -> DetectionAnnotation.FALSE_POSITIVE
+                                DetectionAnnotation.FALSE_POSITIVE -> null
+                            }
+                            onAnnotationChanged(key, next)
+                        }
+                    }
+                },
+            )
         }
     }
 }

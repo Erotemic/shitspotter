@@ -32,10 +32,13 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import io.kitware.shitspotter.core.AppState
+import io.kitware.shitspotter.core.BoundingBox
 import io.kitware.shitspotter.core.BuildInfo
 import io.kitware.shitspotter.core.CaptureLabel
 import io.kitware.shitspotter.core.CaptureMetadata
 import io.kitware.shitspotter.core.CaptureReviewEntry
+import io.kitware.shitspotter.core.DetectionAnnotation
+import io.kitware.shitspotter.core.FailureCaseSerialization
 import io.kitware.shitspotter.core.MetadataMode
 import io.kitware.shitspotter.core.PrintlnLogger
 import io.kitware.shitspotter.core.SettingsStore
@@ -131,6 +134,10 @@ class MainActivity : ComponentActivity() {
                         onShareAllPhotos = ::shareAllPhotos,
                         onSharePhotos = ::sharePhotos,
                         onDeletePhoto = ::deletePhoto,
+                        onLoadMetadata = { filePath ->
+                            withContext(Dispatchers.IO) { loadMetadata(filePath) }
+                        },
+                        onUpdateDetectionAnnotations = ::updateDetectionAnnotations,
                     )
                 }
             }
@@ -205,6 +212,8 @@ class MainActivity : ComponentActivity() {
                     latitude = loc?.latitude,
                     longitude = loc?.longitude,
                     userNote = note,
+                    frameWidth = state.lastFrameWidth.takeIf { it > 0 },
+                    frameHeight = state.lastFrameHeight.takeIf { it > 0 },
                 )
                 photoStore.addMetadataAndSave(file, metadata, state.metadataMode, loc)
                 state.photosSavedCount++
@@ -322,6 +331,25 @@ class MainActivity : ComponentActivity() {
             withContext(Dispatchers.Main) {
                 state.capturedPhotos = entries
             }
+        }
+    }
+
+    private fun loadMetadata(filePath: String): CaptureMetadata? {
+        val jpegFile = java.io.File(filePath)
+        val jsonFile = java.io.File(jpegFile.parent, jpegFile.nameWithoutExtension + ".json")
+        return if (jsonFile.exists()) {
+            try { FailureCaseSerialization.json.decodeFromString<CaptureMetadata>(jsonFile.readText()) }
+            catch (_: Throwable) { null }
+        } else null
+    }
+
+    private fun updateDetectionAnnotations(
+        filePath: String,
+        annotations: Map<String, DetectionAnnotation>,
+        missedBoxes: List<BoundingBox>,
+    ) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            photoStore.updateDetectionAnnotations(File(filePath), annotations, missedBoxes)
         }
     }
 
