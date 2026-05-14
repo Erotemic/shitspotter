@@ -126,7 +126,7 @@ data class ModelSpec(
             normalization = Normalization(scale = 1f / 255f),
             resizePolicy = ResizePolicy.LETTERBOX,
             postprocessType = PostprocessType.STUB,
-            classNames = listOf("poop"),
+            classNames = listOf("stub"),
             scoreThreshold = 0.0f,
             notes = "Returns a deterministic fake box for Milestone 1 wiring tests.",
         )
