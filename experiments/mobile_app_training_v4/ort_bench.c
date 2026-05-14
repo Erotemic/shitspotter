@@ -17,6 +17,12 @@
 #include <time.h>
 #include "onnxruntime_c_api.h"
 
+/* OrtSessionOptionsAppendExecutionProvider_Nnapi is exported from
+ * libonnxruntime.so on Android but not declared in the AAR headers.
+ * Forward-declare so the compiler accepts it; the linker resolves it. */
+extern OrtStatus* OrtSessionOptionsAppendExecutionProvider_Nnapi(
+    OrtSessionOptions* options, uint32_t nnapi_flags);
+
 static const OrtApi* g_ort = NULL;
 
 #define ORT_CHECK(expr) do { \
