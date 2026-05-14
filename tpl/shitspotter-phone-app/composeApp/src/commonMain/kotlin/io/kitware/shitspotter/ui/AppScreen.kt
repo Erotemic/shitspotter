@@ -249,7 +249,7 @@ private fun CameraControlBar(
             if (onReviewPhotos != null) {
                 SmallCircleButton(
                     onClick = onReviewPhotos,
-                    circleSize = 22.dp,
+                    circleSize = 28.dp,
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("🖼", fontSize = 20.sp)
@@ -285,7 +285,7 @@ private fun CameraControlBar(
                 SmallCircleButton(
                     onClick = onToggleTorch,
                     circleColor = if (torchOn) Color(0xFFFFDD44) else Color(0x44FFFFFF),
-                    circleSize = 22.dp,
+                    circleSize = 28.dp,
                 ) {
                     Text(
                         text = "🔦",
@@ -308,7 +308,7 @@ private fun SmallCircleButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     circleColor: Color = Color(0x44FFFFFF),
-    circleSize: androidx.compose.ui.unit.Dp = 22.dp,
+    circleSize: androidx.compose.ui.unit.Dp = 28.dp,
     tapSize: androidx.compose.ui.unit.Dp = 40.dp,
     content: @Composable () -> Unit,
 ) {
@@ -333,7 +333,7 @@ private fun SettingsIconButton(state: AppState, activeIsStubFallback: Boolean) {
     SmallCircleButton(
         onClick = { showSettings = true },
         circleColor = if (activeIsStubFallback) Color(0x88FF8800) else Color(0x44FFFFFF),
-        circleSize = 22.dp,
+        circleSize = 28.dp,
         tapSize = 40.dp,
     ) {
         Text(if (activeIsStubFallback) "⚠" else "⚙", fontSize = 20.sp)
@@ -743,7 +743,7 @@ private fun ReviewScreen(
                                     Box(
                                         modifier = Modifier.fillMaxSize().background(Color(0xFFCC3333)).padding(end = 20.dp),
                                         contentAlignment = Alignment.CenterEnd,
-                                    ) { Text("🗑 Delete", color = Color.White, fontSize = 14.sp) }
+                                    ) { Text("🗑", color = Color.White, fontSize = 20.sp) }
                                 },
                             ) {
                                 ReviewPhotoRow(
@@ -880,7 +880,7 @@ private fun ReviewPhotoRow(
         // Label chip — tap to annotate (only outside selection mode)
         Box(
             modifier = Modifier
-                .padding(end = 12.dp)
+                .padding(end = 52.dp)
                 .clickable(enabled = !selectionMode && onUpdateLabel != null) { showAnnotatePicker = true }
                 .background(Color(0x44FFFFFF))
                 .padding(horizontal = 8.dp, vertical = 4.dp),
@@ -985,7 +985,7 @@ private fun PhotoViewer(
             SmallCircleButton(
                 onClick = onClose,
                 circleColor = Color(0x88000000),
-                circleSize = 22.dp,
+                circleSize = 28.dp,
             ) {
                 Text("✕", color = Color.White, fontSize = 20.sp)
             }
@@ -994,7 +994,7 @@ private fun PhotoViewer(
                     SmallCircleButton(
                         onClick = { onShare(currentEntry.filePath) },
                         circleColor = Color(0x88000000),
-                        circleSize = 22.dp,
+                        circleSize = 28.dp,
                     ) {
                         Text("✉", color = Color(0xFF88CCFF), fontSize = 20.sp)
                     }
@@ -1003,7 +1003,7 @@ private fun PhotoViewer(
                     SmallCircleButton(
                         onClick = { showDeleteConfirm = true },
                         circleColor = Color(0x88000000),
-                        circleSize = 22.dp,
+                        circleSize = 28.dp,
                     ) {
                         Text("🗑", color = Color(0xFFFF6666), fontSize = 20.sp)
                     }
