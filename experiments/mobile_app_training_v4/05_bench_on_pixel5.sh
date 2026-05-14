@@ -69,13 +69,45 @@ PIXEL5_TSV="$V4_ROOT/pixel5_bench.tsv"
 ORT_BENCH_SRC="$V4_DEV_DPATH/ort_bench.c"
 ORT_BENCH_BIN="$V4_ROOT/ort_bench_arm64"
 
-# ORT 1.19.2 arm64 libs from the Gradle cache — locate via glob.
-ORT_GRADLE_ROOT="${HOME}/.gradle/caches"
-ORT_AAR_DIR=$(find "$ORT_GRADLE_ROOT" \
-    -path "*/onnxruntime-android-1.19.2/jni/arm64-v8a" \
-    -type d 2>/dev/null | head -1)
+# ORT 1.19.2 arm64 libs — search Gradle caches in common locations, then
+# fall back to downloading the AAR from Maven Central and extracting it.
+ORT_VERSION="1.19.2"
+ORT_AAR_DIR=""
+for _root in \
+    "${HOME}/.gradle/caches" \
+    "/home/agent/.gradle/caches" \
+    "/root/.gradle/caches" \
+; do
+    _found=$(find "$_root" \
+        -path "*/onnxruntime-android-${ORT_VERSION}/jni/arm64-v8a" \
+        -type d 2>/dev/null | head -1)
+    if [ -n "$_found" ]; then
+        ORT_AAR_DIR="$_found"
+        break
+    fi
+done
+
+# If not found in any Gradle cache, download + extract the AAR.
+if [ -z "$ORT_AAR_DIR" ]; then
+    ORT_EXTRACT_DIR="$V4_ROOT/ort_aar_extract"
+    ORT_AAR_DIR="$ORT_EXTRACT_DIR/jni/arm64-v8a"
+    if [ ! -d "$ORT_AAR_DIR" ]; then
+        echo "  ORT AAR not in Gradle caches — downloading from Maven Central..."
+        ORT_AAR_CACHE="$V4_ROOT/onnxruntime-android-${ORT_VERSION}.aar"
+        if [ ! -f "$ORT_AAR_CACHE" ]; then
+            curl -fL --progress-bar \
+                "https://repo1.maven.org/maven2/com/microsoft/onnxruntime/onnxruntime-android/${ORT_VERSION}/onnxruntime-android-${ORT_VERSION}.aar" \
+                -o "$ORT_AAR_CACHE"
+        fi
+        mkdir -p "$ORT_EXTRACT_DIR"
+        unzip -q -o "$ORT_AAR_CACHE" -d "$ORT_EXTRACT_DIR"
+        echo "  extracted to $ORT_EXTRACT_DIR"
+    fi
+fi
+
 ORT_LIBORT="${ORT_AAR_DIR}/libonnxruntime.so"
-ORT_HEADERS=$(dirname "$(dirname "$(dirname "$ORT_AAR_DIR")")")/headers
+# headers live two levels up from jni/arm64-v8a → <aar_root>/headers
+ORT_HEADERS="$(dirname "$(dirname "$ORT_AAR_DIR")")/headers"
 
 # ---------------------------------------------------------------------------
 # 0. Toolchain + adb checks
