@@ -25,6 +25,7 @@ import io.kitware.shitspotter.core.Yolox
 import io.kitware.shitspotter.core.nowMonoMs
 import java.io.File
 import java.nio.FloatBuffer
+import java.nio.LongBuffer
 import java.util.EnumSet
 
 /**
@@ -44,7 +45,7 @@ class OnnxRuntimeAndroidBackend(
 
     private var env: OrtEnvironment? = null
     private var session: OrtSession? = null
-    private var inputName: String = ""
+    private var imageInputName: String = ""
     private var closed = false
 
     init {
@@ -76,12 +77,12 @@ class OnnxRuntimeAndroidBackend(
         val s = session ?: throw IllegalStateException(
             "Could not create ONNX session for $modelPath", lastErr
         )
-        inputName = s.inputNames.first()
+        imageInputName = spec.deimv2Schema?.imagesInput ?: s.inputNames.first()
         validateInputShape(s)
     }
 
     private fun validateInputShape(s: OrtSession) {
-        val info = s.inputInfo[inputName] ?: return
+        val info = s.inputInfo[imageInputName] ?: return
         val ti = info.info as? ai.onnxruntime.TensorInfo ?: return
         val shape = ti.shape
         if (shape.size != 4) return
@@ -135,7 +136,7 @@ class OnnxRuntimeAndroidBackend(
             InputLayout.NHWC -> longArrayOf(1L, spec.inputHeight.toLong(), spec.inputWidth.toLong(), 3L)
         }
         val inputBuf = FloatBuffer.wrap(tensorData)
-        val inputTensor = OnnxTensor.createTensor(e, inputBuf, shape)
+        val imageTensor = OnnxTensor.createTensor(e, inputBuf, shape)
         val preprocessMs = nowMonoMs() - preStart
 
         var inferenceMs = 0.0
@@ -143,12 +144,25 @@ class OnnxRuntimeAndroidBackend(
         val finalDets: List<Detection>
         try {
             val infStart = nowMonoMs()
-            val outputs = s.run(mapOf(inputName to inputTensor))
+            val inputs: Map<String, OnnxTensor> = when (spec.postprocessType) {
+                PostprocessType.DEIMV2 -> {
+                    val schema = spec.deimv2Schema!!
+                    val origSizeBuf = LongBuffer.wrap(
+                        longArrayOf(spec.inputWidth.toLong(), spec.inputHeight.toLong())
+                    )
+                    val origSizeTensor = OnnxTensor.createTensor(e, origSizeBuf, longArrayOf(1L, 2L))
+                    mapOf(schema.imagesInput to imageTensor, schema.origSizeInput to origSizeTensor)
+                }
+                else -> mapOf(imageInputName to imageTensor)
+            }
+            val outputs = s.run(inputs)
+            // origSizeTensor (if created) will be GC'd; ORT Android copies data eagerly.
             inferenceMs = nowMonoMs() - infStart
             try {
                 val postStart = nowMonoMs()
                 val numClasses = spec.classNames.size
                 val rawDets: List<Detection> = when (spec.postprocessType) {
+                    PostprocessType.DEIMV2 -> decodeDeimv2(outputs)
                     PostprocessType.YOLO_V9_DFL -> decodeYolov9(outputs, numClasses)
                     PostprocessType.YOLOX,
                     PostprocessType.YOLO_V9,
@@ -165,10 +179,6 @@ class OnnxRuntimeAndroidBackend(
                             predictions = flat,
                             numAnchors = numAnchors,
                             numClasses = numClasses,
-                            // BACKEND_FLOOR_THRESHOLD here so the UI slider can
-                            // recover all the way down; spec.scoreThreshold is
-                            // the *default UI threshold* and is consulted by
-                            // AppState, not the backend.
                             scoreThreshold = BACKEND_FLOOR_THRESHOLD,
                             iouThreshold = spec.iouThreshold,
                             classNames = spec.classNames,
@@ -186,7 +196,7 @@ class OnnxRuntimeAndroidBackend(
                 outputs.close()
             }
         } finally {
-            inputTensor.close()
+            imageTensor.close()
         }
 
         return InferenceResult(
@@ -205,6 +215,30 @@ class OnnxRuntimeAndroidBackend(
         try { session?.close() } catch (_: Throwable) {}
         session = null
         env = null
+    }
+
+    private fun decodeDeimv2(outputs: OrtSession.Result): List<Detection> {
+        val schema = spec.deimv2Schema
+            ?: error("DEIMV2 requires ModelSpec.deimv2Schema; '${spec.modelId}' has none")
+        val boxes  = flattenOutput(outputs.get(schema.boxesOutput).orElseThrow().value)
+        val scores = flattenOutput(outputs.get(schema.scoresOutput).orElseThrow().value)
+        val n = scores.size
+        val dets = ArrayList<Detection>(n / 10)
+        for (i in 0 until n) {
+            val score = scores[i]
+            if (score < BACKEND_FLOOR_THRESHOLD) continue
+            val x0 = boxes[i * 4]
+            val y0 = boxes[i * 4 + 1]
+            val x1 = boxes[i * 4 + 2]
+            val y1 = boxes[i * 4 + 3]
+            dets += Detection(
+                box = BoundingBox(x0, y0, x1 - x0, y1 - y0),
+                score = score,
+                classId = 0,
+                className = spec.classNames.getOrElse(0) { "poop" },
+            )
+        }
+        return dets
     }
 
     private fun decodeYolov9(

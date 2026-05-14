@@ -29,10 +29,34 @@ enum class PostprocessType {
      * multiplied by the level's stride to convert to pixel units.
      */
     YOLO_V9_DFL,
+    /**
+     * DEIMv2 transformer detector with built-in postprocessor.
+     *
+     * Two inputs: "images" (float32 NCHW, normalised to [0,1]) and
+     * "orig_target_sizes" (int64 [1,2] = [[W, H]] in model-input pixels).
+     * Three outputs: "labels" (int64 [1,N]), "boxes" (float32 [1,N,4],
+     * xyxy in orig_target_sizes pixel space), "scores" (float32 [1,N]).
+     *
+     * Requires [ModelSpec.deimv2Schema] to be non-null.
+     */
+    DEIMV2,
     GENERIC_BOX_SCORE_CLASS,
     NONE,
     STUB,
 }
+
+/**
+ * I/O schema for [PostprocessType.DEIMV2]. Default values match the names
+ * produced by the v4 ONNX export (03_export_onnx.sh).
+ */
+@Serializable
+data class Deimv2Schema(
+    val imagesInput: String = "images",
+    val origSizeInput: String = "orig_target_sizes",
+    val labelsOutput: String = "labels",
+    val boxesOutput: String = "boxes",
+    val scoresOutput: String = "scores",
+)
 
 /**
  * Output-tensor schema for [PostprocessType.YOLO_V9_DFL]. The three
@@ -82,6 +106,8 @@ data class ModelSpec(
     val notes: String? = null,
     /** Only used when [postprocessType] = YOLO_V9_DFL. */
     val yolov9Schema: Yolov9Schema? = null,
+    /** Only used when [postprocessType] = DEIMV2. */
+    val deimv2Schema: Deimv2Schema? = null,
 ) {
     companion object {
         val STUB = ModelSpec(
@@ -186,6 +212,80 @@ data class ModelSpec(
                 "used at inference time.",
         )
 
+        // ---- v4 DEIMv2 sweep candidates (mobile_app_training_v4) ----------
+        // All trained on the v9 tile-augmented split; ONNX files are in
+        // $V4_ROOT/runs/<candidate_id>/export/ and should be pushed to the
+        // device's models dir (see 05_bench_on_pixel5.sh / 07_register…).
+        // Pixel 5 NNAPI latency measured 2026-05-14.
+
+        val DEIMV2_PICO_320 = ModelSpec(
+            modelId = "shitspotter-deimv2_pico-h320w320-fixed",
+            displayName = "DEIMv2-Pico 320×320 (v4, 11 FPS)",
+            modelFile = "deimv2_pico_h320_w320.onnx",
+            format = ModelFormat.ONNX,
+            inputWidth = 320, inputHeight = 320,
+            inputLayout = InputLayout.NCHW,
+            colorOrder = ColorOrder.RGB,
+            normalization = Normalization(scale = 1f / 255f),
+            resizePolicy = ResizePolicy.LETTERBOX,
+            postprocessType = PostprocessType.DEIMV2,
+            classNames = listOf("poop"),
+            scoreThreshold = 0.30f, iouThreshold = 0.45f,
+            deimv2Schema = Deimv2Schema(),
+            notes = "AP=0.265. Pixel 5 NNAPI: 89ms/11 FPS. Fastest v4 model.",
+        )
+
+        val DEIMV2_PICO_416 = ModelSpec(
+            modelId = "shitspotter-deimv2_pico-h416w416-fixed",
+            displayName = "DEIMv2-Pico 416×416 (v4, 7 FPS)",
+            modelFile = "deimv2_pico_h416_w416.onnx",
+            format = ModelFormat.ONNX,
+            inputWidth = 416, inputHeight = 416,
+            inputLayout = InputLayout.NCHW,
+            colorOrder = ColorOrder.RGB,
+            normalization = Normalization(scale = 1f / 255f),
+            resizePolicy = ResizePolicy.LETTERBOX,
+            postprocessType = PostprocessType.DEIMV2,
+            classNames = listOf("poop"),
+            scoreThreshold = 0.30f, iouThreshold = 0.45f,
+            deimv2Schema = Deimv2Schema(),
+            notes = "AP=0.406. Pixel 5 NNAPI: 135ms/7 FPS.",
+        )
+
+        val DEIMV2_N_512 = ModelSpec(
+            modelId = "shitspotter-deimv2_n-h512w512-fixed",
+            displayName = "DEIMv2-N 512×512 (v4, 4 FPS)",
+            modelFile = "deimv2_n_h512_w512.onnx",
+            format = ModelFormat.ONNX,
+            inputWidth = 512, inputHeight = 512,
+            inputLayout = InputLayout.NCHW,
+            colorOrder = ColorOrder.RGB,
+            normalization = Normalization(scale = 1f / 255f),
+            resizePolicy = ResizePolicy.LETTERBOX,
+            postprocessType = PostprocessType.DEIMV2,
+            classNames = listOf("poop"),
+            scoreThreshold = 0.30f, iouThreshold = 0.45f,
+            deimv2Schema = Deimv2Schema(),
+            notes = "AP=0.477. Pixel 5 NNAPI: 274ms/4 FPS.",
+        )
+
+        val DEIMV2_N_640 = ModelSpec(
+            modelId = "shitspotter-deimv2_n-h640w640-fixed",
+            displayName = "DEIMv2-N 640×640 (v4, 3 FPS)",
+            modelFile = "deimv2_n_h640_w640.onnx",
+            format = ModelFormat.ONNX,
+            inputWidth = 640, inputHeight = 640,
+            inputLayout = InputLayout.NCHW,
+            colorOrder = ColorOrder.RGB,
+            normalization = Normalization(scale = 1f / 255f),
+            resizePolicy = ResizePolicy.LETTERBOX,
+            postprocessType = PostprocessType.DEIMV2,
+            classNames = listOf("poop"),
+            scoreThreshold = 0.30f, iouThreshold = 0.45f,
+            deimv2Schema = Deimv2Schema(),
+            notes = "AP=0.520 (highest v4 AP). Pixel 5 NNAPI: 378ms/3 FPS.",
+        )
+
         /**
          * Earlier custom v2 detector. Same input/output shape as v5 but
          * trained on a smaller dataset. Useful as a comparison baseline.
@@ -214,6 +314,12 @@ data class ModelSpec(
 object ModelRegistry {
     val all: List<ModelSpec> = listOf(
         ModelSpec.STUB,
+        // v4 DEIMv2 candidates — fastest first so the chip row reads left→right
+        ModelSpec.DEIMV2_PICO_320,
+        ModelSpec.DEIMV2_PICO_416,
+        ModelSpec.DEIMV2_N_512,
+        ModelSpec.DEIMV2_N_640,
+        // legacy YOLOX / YOLOv9 baselines
         ModelSpec.YOLOX_NANO_POOP,
         ModelSpec.SIMPLE_V3_RUN_V06,
         ModelSpec.CUSTOM_V5_EPOCH115,

@@ -8,6 +8,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added:
 
+* (2026-05-14): phone app: landed `PostprocessType.DEIMV2` backend support in
+  `OnnxRuntimeAndroidBackend` and `OnnxRuntimeJvmBackend`. Two-input
+  session.run (images float32 NCHW + orig_target_sizes int64 [1,2]=[W,H]);
+  decoder converts xyxy pixel boxes → `BoundingBox(x,y,w,h)` then runs
+  `lbParams.mapBoxToSource()` for letterbox inversion. Added `Deimv2Schema`
+  data class and four `ModelSpec` constants (DEIMV2_PICO_320/416,
+  DEIMV2_N_512/640) keyed to the v4 Pareto-front ONNX files; registered all
+  four in `ModelRegistry.all`. Release APK is 21 MB (arm64-v8a, R8).
+  To test on Pixel 5: push the four ONNX files and install the APK — see
+  `experiments/mobile_app_training_v4/07_register_in_phone_app.md`.
+
 * (2026-05-14): `mobile_app_training_v4`: Pixel 5 on-device benchmark
   complete (both NNAPI and CPU EP). Four Pareto-front cells:
   - pico@320: NNAPI 88.8ms/11.3 FPS  CPU 100.3ms/10.0 FPS

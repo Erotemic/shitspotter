@@ -5,6 +5,7 @@ import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import ai.onnxruntime.TensorInfo
 import io.kitware.shitspotter.core.BACKEND_FLOOR_THRESHOLD
+import io.kitware.shitspotter.core.BoundingBox
 import io.kitware.shitspotter.core.DetectorBackend
 import io.kitware.shitspotter.core.Detection
 import io.kitware.shitspotter.core.FeatureLevel
@@ -21,6 +22,7 @@ import io.kitware.shitspotter.core.Yolox
 import io.kitware.shitspotter.core.nowMonoMs
 import java.io.File
 import java.nio.FloatBuffer
+import java.nio.LongBuffer
 
 /**
  * Desktop / JVM ONNX Runtime backend (CPU-only). Used by the still-image
@@ -36,7 +38,7 @@ class OnnxRuntimeJvmBackend(
 
     private val env: OrtEnvironment = OrtEnvironment.getEnvironment()
     private val session: OrtSession
-    private val inputName: String
+    private val imageInputName: String
     private var closed = false
 
     init {
@@ -44,13 +46,13 @@ class OnnxRuntimeJvmBackend(
         val opts = OrtSession.SessionOptions()
         opts.setOptimizationLevel(OrtSession.SessionOptions.OptLevel.ALL_OPT)
         session = env.createSession(modelPath, opts)
-        inputName = session.inputNames.first()
+        imageInputName = spec.deimv2Schema?.imagesInput ?: session.inputNames.first()
         validateInputShape()
     }
 
     private fun validateInputShape() {
-        val info = session.inputInfo[inputName]
-            ?: error("session.inputInfo missing entry for $inputName")
+        val info = session.inputInfo[imageInputName]
+            ?: error("session.inputInfo missing entry for $imageInputName")
         val ti = info.info as? ai.onnxruntime.TensorInfo
             ?: return // Non-tensor input; let analyze() fail with the model's own error.
         val shape = ti.shape
@@ -108,7 +110,7 @@ class OnnxRuntimeJvmBackend(
             InputLayout.NCHW -> longArrayOf(1L, 3L, spec.inputHeight.toLong(), spec.inputWidth.toLong())
             InputLayout.NHWC -> longArrayOf(1L, spec.inputHeight.toLong(), spec.inputWidth.toLong(), 3L)
         }
-        val inputTensor = OnnxTensor.createTensor(env, FloatBuffer.wrap(tensorData), shape)
+        val imageTensor = OnnxTensor.createTensor(env, FloatBuffer.wrap(tensorData), shape)
         val preprocessMs = nowMonoMs() - preStart
 
         var inferenceMs = 0.0
@@ -116,12 +118,25 @@ class OnnxRuntimeJvmBackend(
         val finalDets: List<Detection>
         try {
             val infStart = nowMonoMs()
-            val outputs = session.run(mapOf(inputName to inputTensor))
+            val inputs: Map<String, OnnxTensor> = when (spec.postprocessType) {
+                PostprocessType.DEIMV2 -> {
+                    val schema = spec.deimv2Schema!!
+                    val origSizeTensor = OnnxTensor.createTensor(
+                        env,
+                        LongBuffer.wrap(longArrayOf(spec.inputWidth.toLong(), spec.inputHeight.toLong())),
+                        longArrayOf(1L, 2L),
+                    )
+                    mapOf(schema.imagesInput to imageTensor, schema.origSizeInput to origSizeTensor)
+                }
+                else -> mapOf(imageInputName to imageTensor)
+            }
+            val outputs = session.run(inputs)
             inferenceMs = nowMonoMs() - infStart
             try {
                 val postStart = nowMonoMs()
                 val numClasses = spec.classNames.size
                 val rawDets: List<Detection> = when (spec.postprocessType) {
+                    PostprocessType.DEIMV2 -> decodeDeimv2(outputs)
                     PostprocessType.YOLO_V9_DFL -> decodeYolov9(outputs, numClasses)
                     PostprocessType.YOLOX,
                     PostprocessType.YOLO_V9,
@@ -137,8 +152,6 @@ class OnnxRuntimeJvmBackend(
                             predictions = flat,
                             numAnchors = numAnchors,
                             numClasses = numClasses,
-                            // BACKEND_FLOOR_THRESHOLD here, not spec.scoreThreshold —
-                            // see DetectorBackend.kt for the two-threshold rationale.
                             scoreThreshold = BACKEND_FLOOR_THRESHOLD,
                             iouThreshold = spec.iouThreshold,
                             classNames = spec.classNames,
@@ -154,7 +167,7 @@ class OnnxRuntimeJvmBackend(
                 outputs.close()
             }
         } finally {
-            inputTensor.close()
+            imageTensor.close()
         }
 
         return InferenceResult(
@@ -171,6 +184,30 @@ class OnnxRuntimeJvmBackend(
         if (closed) return
         closed = true
         try { session.close() } catch (_: Throwable) {}
+    }
+
+    private fun decodeDeimv2(outputs: OrtSession.Result): List<Detection> {
+        val schema = spec.deimv2Schema
+            ?: error("DEIMV2 requires ModelSpec.deimv2Schema; '${spec.modelId}' has none")
+        val boxes  = flattenOutput(outputs.get(schema.boxesOutput).orElseThrow().value)
+        val scores = flattenOutput(outputs.get(schema.scoresOutput).orElseThrow().value)
+        val n = scores.size
+        val dets = ArrayList<Detection>(n / 10)
+        for (i in 0 until n) {
+            val score = scores[i]
+            if (score < BACKEND_FLOOR_THRESHOLD) continue
+            val x0 = boxes[i * 4]
+            val y0 = boxes[i * 4 + 1]
+            val x1 = boxes[i * 4 + 2]
+            val y1 = boxes[i * 4 + 3]
+            dets += Detection(
+                box = BoundingBox(x0, y0, x1 - x0, y1 - y0),
+                score = score,
+                classId = 0,
+                className = spec.classNames.getOrElse(0) { "poop" },
+            )
+        }
+        return dets
     }
 
     /** Build per-level FeatureLevel inputs from named outputs and dispatch
