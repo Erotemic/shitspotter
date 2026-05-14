@@ -104,6 +104,10 @@ data class ModelSpec(
     val modelVersion: String? = null,
     val trainingDatasetHint: String? = null,
     val notes: String? = null,
+    /** mAP@IoU=0.5 on the v9 simplified-GT test split, if known. */
+    val apAt50: Float? = null,
+    /** Human-readable speed hint shown in the model picker, e.g. "11 FPS (NNAPI)". */
+    val fpsHint: String? = null,
     /** Only used when [postprocessType] = YOLO_V9_DFL. */
     val yolov9Schema: Yolov9Schema? = null,
     /** Only used when [postprocessType] = DEIMV2. */
@@ -232,6 +236,8 @@ data class ModelSpec(
             classNames = listOf("poop"),
             scoreThreshold = 0.30f, iouThreshold = 0.45f,
             deimv2Schema = Deimv2Schema(),
+            apAt50 = 0.265f,
+            fpsHint = "11 FPS (NNAPI)",
             notes = "AP=0.265. Pixel 5 NNAPI: 89ms/11 FPS. Fastest v4 model.",
         )
 
@@ -249,6 +255,8 @@ data class ModelSpec(
             classNames = listOf("poop"),
             scoreThreshold = 0.30f, iouThreshold = 0.45f,
             deimv2Schema = Deimv2Schema(),
+            apAt50 = 0.406f,
+            fpsHint = "7 FPS (NNAPI)",
             notes = "AP=0.406. Pixel 5 NNAPI: 135ms/7 FPS.",
         )
 
@@ -266,6 +274,8 @@ data class ModelSpec(
             classNames = listOf("poop"),
             scoreThreshold = 0.30f, iouThreshold = 0.45f,
             deimv2Schema = Deimv2Schema(),
+            apAt50 = 0.477f,
+            fpsHint = "4 FPS (NNAPI)",
             notes = "AP=0.477. Pixel 5 NNAPI: 274ms/4 FPS.",
         )
 
@@ -283,6 +293,8 @@ data class ModelSpec(
             classNames = listOf("poop"),
             scoreThreshold = 0.30f, iouThreshold = 0.45f,
             deimv2Schema = Deimv2Schema(),
+            apAt50 = 0.520f,
+            fpsHint = "3 FPS (NNAPI)",
             notes = "AP=0.520 (highest v4 AP). Pixel 5 NNAPI: 378ms/3 FPS.",
         )
 

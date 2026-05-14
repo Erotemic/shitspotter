@@ -11,6 +11,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.sp
 import io.kitware.shitspotter.core.Detection
 
 /**
@@ -46,6 +50,8 @@ fun DetectionOverlay(
     strokeWidthPx: Float = 4f,
     scaleMode: OverlayScaleMode = OverlayScaleMode.FILL_CENTER,
 ) {
+    val textMeasurer = rememberTextMeasurer()
+    val labelStyle = TextStyle(color = Color.White, fontSize = 12.sp)
     Box(modifier = modifier) {
         if (frameWidth <= 0 || frameHeight <= 0 || detections.isEmpty()) return@Box
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -70,6 +76,25 @@ fun DetectionOverlay(
                         topLeft = Offset(l, t),
                         size = Size(w, h),
                         style = Stroke(width = strokeWidthPx),
+                    )
+                    // Label: "classname score%" above the box top-left corner
+                    val pct = (d.score * 100f).toInt()
+                    val label = buildString {
+                        d.className?.let { append(it); append(' ') }
+                        append("$pct%")
+                    }
+                    val measured = textMeasurer.measure(label, labelStyle)
+                    val lw = measured.size.width.toFloat()
+                    val lh = measured.size.height.toFloat()
+                    val labelTop = (t - lh).coerceAtLeast(0f)
+                    drawRect(
+                        color = Color(0xCC000000),
+                        topLeft = Offset(l, labelTop),
+                        size = Size(lw + 4f, lh),
+                    )
+                    drawText(
+                        textLayoutResult = measured,
+                        topLeft = Offset(l + 2f, labelTop),
                     )
                 }
             }

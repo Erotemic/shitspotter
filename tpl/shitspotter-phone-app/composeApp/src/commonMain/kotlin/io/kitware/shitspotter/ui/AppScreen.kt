@@ -1,6 +1,7 @@
 package io.kitware.shitspotter.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,15 +14,18 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
@@ -32,11 +36,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.kitware.shitspotter.core.AppState
 import io.kitware.shitspotter.core.FailureType
 import io.kitware.shitspotter.core.ModelRegistry
+import io.kitware.shitspotter.core.ModelSpec
 
 interface CameraSurface {
     /** How this surface scales its preview. The DetectionOverlay uses
@@ -105,7 +112,7 @@ fun AppScreen(
                     state.activeModelId != "stub-fake-detector" &&
                         activeBackendName != null &&
                         activeBackendName.startsWith("stub-")
-                ModelChipsRow(
+                ModelSelectorButton(
                     activeId = state.activeModelId,
                     activeIsStubFallback = activeIsStubFallback,
                     onSelect = { state.activeModelId = it },
@@ -201,40 +208,117 @@ private fun ControlBar(
 }
 
 /**
- * Horizontally-scrollable chip row so longer model display names
- * don't get truncated or push other chips off-screen on a narrow
- * portrait phone. The active model is prefixed with "●"; tapping a
- * non-active chip writes the new id into [AppState.activeModelId].
- * The actual backend swap is done by the host platform's reactive
- * effect (Android MainActivity LaunchedEffect / desktop main); this
- * composable does not own backend lifecycle.
+ * A compact button showing the active model name. Tapping it opens
+ * [ModelPickerDialog] which lists all models with their AP and FPS
+ * metadata so the user can make an informed choice without the chip
+ * row consuming horizontal space on the live-camera screen.
  */
 @Composable
-private fun ModelChipsRow(
+private fun ModelSelectorButton(
     activeId: String,
     activeIsStubFallback: Boolean,
     onSelect: (String) -> Unit,
 ) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.horizontalScroll(rememberScrollState()),
-    ) {
-        ModelRegistry.all.forEach { spec ->
-            val active = spec.modelId == activeId
-            Button(
-                onClick = { if (!active) onSelect(spec.modelId) },
+    var showPicker by remember { mutableStateOf(false) }
+    val activeSpec = ModelRegistry.byId(activeId)
+    val label = when {
+        activeIsStubFallback -> "⚠ ${activeSpec?.displayName ?: activeId}"
+        else -> "Model: ${activeSpec?.displayName ?: activeId}"
+    }
+    Button(onClick = { showPicker = true }) {
+        Text(text = label, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+    if (showPicker) {
+        ModelPickerDialog(
+            activeId = activeId,
+            onSelect = { id ->
+                showPicker = false
+                onSelect(id)
+            },
+            onDismiss = { showPicker = false },
+        )
+    }
+}
+
+@Composable
+private fun ModelPickerDialog(
+    activeId: String,
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Select model") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
             ) {
-                val prefix = when {
-                    active && activeIsStubFallback -> "⚠ "
-                    active -> "● "
-                    else -> ""
+                // Header row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Model", fontWeight = FontWeight.Bold, fontSize = 12.sp,
+                        modifier = Modifier.weight(1f))
+                    Text("AP", fontWeight = FontWeight.Bold, fontSize = 12.sp,
+                        modifier = Modifier.width(40.dp))
+                    Text("Speed", fontWeight = FontWeight.Bold, fontSize = 12.sp,
+                        modifier = Modifier.width(80.dp))
                 }
-                Text(
-                    text = "$prefix${spec.displayName}",
-                    color = Color.White,
-                )
+                HorizontalDivider()
+                ModelRegistry.all.forEach { spec ->
+                    ModelPickerRow(
+                        spec = spec,
+                        isActive = spec.modelId == activeId,
+                        onClick = { onSelect(spec.modelId) },
+                    )
+                    HorizontalDivider(color = Color(0x33FFFFFF))
+                }
             }
-        }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        },
+    )
+}
+
+@Composable
+private fun ModelPickerRow(
+    spec: ModelSpec,
+    isActive: Boolean,
+    onClick: () -> Unit,
+) {
+    val bg = if (isActive) Color(0x33FFFFFF) else Color.Transparent
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(bg)
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp, horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = if (isActive) "● ${spec.displayName}" else spec.displayName,
+            fontSize = 13.sp,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+            fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal,
+        )
+        Text(
+            text = spec.apAt50?.let { "${(it * 100).toInt()}%" } ?: "—",
+            fontSize = 12.sp,
+            modifier = Modifier.width(40.dp),
+        )
+        Text(
+            text = spec.fpsHint ?: "—",
+            fontSize = 12.sp,
+            modifier = Modifier.width(80.dp),
+        )
     }
 }
 
