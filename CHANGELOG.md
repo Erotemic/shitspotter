@@ -8,6 +8,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added:
 
+* (2026-05-14): `mobile_app_training_v4`: Pareto sweep complete. 8 cells
+  trained, ONNX-exported, evaluated (simplified GT AP @ IoU=0.5), and
+  desktop-benchmarked. Results (non-dominated front on desk latency):
+  - `deimv2_pico@320`: AP=0.265, desk=14.1ms
+  - `deimv2_pico@416`: AP=0.406, desk=17.6ms
+  - `deimv2_n@512`:    AP=0.477, desk=31.5ms
+  - `deimv2_n@640`:    AP=0.520, desk=46.3ms  ← host-promising winner
+  All 8 cells are consolidated in a single sweep index under
+  `$V4_ROOT/sweeps/` with status `ok`/`ok_resumed`. Manifest written to
+  `$V4_ROOT/manifest.{tsv,json}`. Pending: on-device Pixel 5 benchmarks
+  to select the deploy-eligible winner via `--pixel5_index`.
+
 * (2026-05-12): `mobile_app_training_v4`: landed the two fixes for the
   Q5/Q6 failure modes surfaced by sweep `20260511T134137Z`, and made
   the sweep restart gracefully.
