@@ -3,8 +3,10 @@ package io.kitware.shitspotter.android
 import android.location.Location
 import android.os.Build
 import androidx.exifinterface.media.ExifInterface
+import io.kitware.shitspotter.core.BoundingBox
 import io.kitware.shitspotter.core.CaptureLabel
 import io.kitware.shitspotter.core.CaptureMetadata
+import io.kitware.shitspotter.core.DetectionAnnotation
 import io.kitware.shitspotter.core.FailureCaseSerialization
 import io.kitware.shitspotter.core.MetadataMode
 import kotlinx.serialization.decodeFromString
@@ -70,6 +72,23 @@ class PhotoStore(private val dir: File) {
         jpegFile.delete()
         val jsonFile = File(jpegFile.parent, jpegFile.nameWithoutExtension + ".json")
         if (jsonFile.exists()) jsonFile.delete()
+    }
+
+    fun updateDetectionAnnotations(
+        jpegFile: File,
+        annotations: Map<String, DetectionAnnotation>,
+        missedBoxes: List<BoundingBox>,
+    ) {
+        val jsonFile = File(jpegFile.parent, jpegFile.nameWithoutExtension + ".json")
+        if (!jsonFile.exists()) return
+        val existing = try {
+            FailureCaseSerialization.json.decodeFromString<CaptureMetadata>(jsonFile.readText())
+        } catch (_: Throwable) { return }
+        jsonFile.writeText(
+            FailureCaseSerialization.json.encodeToString(
+                existing.copy(detectionAnnotations = annotations, missedBoxes = missedBoxes),
+            ),
+        )
     }
 
     fun updateLabel(jpegFile: File, newLabel: CaptureLabel, note: String?) {
