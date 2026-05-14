@@ -59,6 +59,22 @@ class StubDetectorBackend(
         val preprocessMs = nowMonoMs() - pre
 
         val infStart = nowMonoMs()
+        @Suppress("UNUSED_VARIABLE")
+        val rgbLen = rgb.size
+
+        // Camera-only or any no-class stub — skip fake detection generation entirely.
+        if (spec.classNames.isEmpty()) {
+            val inferenceMs = nowMonoMs() - infStart
+            return InferenceResult(
+                detections = emptyList(),
+                preprocessMs = preprocessMs,
+                inferenceMs = inferenceMs,
+                postprocessMs = 0.0,
+                backendName = backendName,
+                delegate = delegate,
+            )
+        }
+
         val n = (counter++ % 600L)
         val w = frame.width.toFloat()
         val h = frame.height.toFloat()
@@ -74,16 +90,12 @@ class StubDetectorBackend(
         )
         val score = 0.5f + 0.4f * sineApprox(n / 30.0).toFloat()
         val det = Detection(box = fakeBox, score = score, classId = 0, className = spec.classNames.firstOrNull())
-        // Suppress unused locals — preprocessMs above is real timing.
-        @Suppress("UNUSED_VARIABLE")
-        val rgbLen = rgb.size
         val inferenceMs = nowMonoMs() - infStart
-        val post = 0.0
         return InferenceResult(
             detections = listOf(det),
             preprocessMs = preprocessMs,
             inferenceMs = inferenceMs,
-            postprocessMs = post,
+            postprocessMs = 0.0,
             backendName = backendName,
             delegate = delegate,
         )

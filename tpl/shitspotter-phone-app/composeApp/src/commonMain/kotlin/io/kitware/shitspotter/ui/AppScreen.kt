@@ -59,6 +59,7 @@ import io.kitware.shitspotter.core.AppState
 import io.kitware.shitspotter.core.CaptureLabel
 import io.kitware.shitspotter.core.CaptureReviewEntry
 import io.kitware.shitspotter.core.MetadataMode
+import io.kitware.shitspotter.core.ModelFormat
 import io.kitware.shitspotter.core.ModelRegistry
 import io.kitware.shitspotter.core.ModelSpec
 import kotlinx.coroutines.Dispatchers
@@ -130,8 +131,10 @@ fun AppScreen(
 
             // Top area: HUD + slider on the left, single ⚙ button top-right
             val activeBackendName = state.lastTelemetry?.runtimeBackend
+            val activeSpec = ModelRegistry.byId(state.activeModelId)
             val activeIsStubFallback =
-                state.activeModelId != "stub-fake-detector" &&
+                activeSpec != null &&
+                    activeSpec.format != ModelFormat.STUB &&
                     activeBackendName != null &&
                     activeBackendName.startsWith("stub-")
             Row(
@@ -146,7 +149,8 @@ fun AppScreen(
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(max = 400.dp)
-                        .verticalScroll(rememberScrollState()),
+                        .verticalScroll(rememberScrollState())
+                        .padding(end = 8.dp),
                 ) {
                     if (state.showFps) {
                         TelemetryHud(
@@ -244,9 +248,9 @@ private fun CameraControlBar(
                         .background(Color(0x55FFFFFF), CircleShape),
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("🖼", fontSize = 15.sp)
+                        Text("🖼", fontSize = 20.sp)
                         if (photoCount > 0) {
-                            Text("$photoCount", fontSize = 8.sp, color = Color.White)
+                            Text("$photoCount", fontSize = 9.sp, color = Color.White)
                         }
                     }
                 }
@@ -285,7 +289,7 @@ private fun CameraControlBar(
                 ) {
                     Text(
                         text = "🔦",
-                        fontSize = 15.sp,
+                        fontSize = 20.sp,
                         color = if (torchOn) Color.Black else Color(0xCCFFFFFF),
                     )
                 }
@@ -306,7 +310,7 @@ private fun SettingsIconButton(state: AppState, activeIsStubFallback: Boolean) {
                 CircleShape,
             ),
     ) {
-        Text(if (activeIsStubFallback) "⚠" else "⚙", fontSize = 11.sp)
+        Text(if (activeIsStubFallback) "⚠" else "⚙", fontSize = 16.sp)
     }
     if (showSettings) {
         SettingsDialog(state = state, onDismiss = { showSettings = false })
@@ -723,7 +727,7 @@ private fun ReviewPhotoRow(
                 onClick = { showDeleteConfirm = true },
                 modifier = Modifier.size(30.dp),
             ) {
-                Text("🗑", fontSize = 12.sp)
+                Text("🗑", fontSize = 16.sp)
             }
         }
     }
@@ -820,7 +824,7 @@ private fun PhotoViewer(
                 onClick = onClose,
                 modifier = Modifier.size(33.dp).background(Color(0x88000000), CircleShape),
             ) {
-                Text("✕", color = Color.White, fontSize = 14.sp)
+                Text("✕", color = Color.White, fontSize = 18.sp)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (onShare != null) {
@@ -828,7 +832,7 @@ private fun PhotoViewer(
                         onClick = { onShare(currentEntry.filePath) },
                         modifier = Modifier.size(33.dp).background(Color(0x88000000), CircleShape),
                     ) {
-                        Text("✉", color = Color(0xFF88CCFF), fontSize = 14.sp)
+                        Text("✉", color = Color(0xFF88CCFF), fontSize = 18.sp)
                     }
                 }
                 if (onDelete != null) {
@@ -836,7 +840,7 @@ private fun PhotoViewer(
                         onClick = { showDeleteConfirm = true },
                         modifier = Modifier.size(33.dp).background(Color(0x88000000), CircleShape),
                     ) {
-                        Text("🗑", color = Color(0xFFFF6666), fontSize = 14.sp)
+                        Text("🗑", color = Color(0xFFFF6666), fontSize = 18.sp)
                     }
                 }
             }
