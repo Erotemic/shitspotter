@@ -46,11 +46,11 @@ Fix: request location **only** when the user enables "Include GPS location" in s
 If denied, keep `MetadataMode.NO_GPS` and show a one-line explanation.
 Never ask for location on first launch.
 
-### 0.4 Remove hardcoded recipient email
+### 0.4 Change default recipient email
 
-`AppState` initializes a personal email as the default share recipient. In a public build this
-looks unpolished and raises privacy review questions even though no upload is automatic.
-Make the default blank; let the share sheet handle recipient selection.
+The recipient email field is already editable in Settings. The default just happens to be a
+personal Gmail address. Before public distribution, change `AppState.kt:33` and `Settings.kt:20`
+to a project address (e.g. `contribute@shitspotter.org`) or blank. One-line change.
 
 ### 0.5 Privacy policy
 
