@@ -25,7 +25,7 @@ fi
 
 DEFAULT_DEST="./pulled_failure_cases/$(date -u +%Y%m%d_%H%M%S)"
 DEST="${1:-$DEFAULT_DEST}"
-SRC="/sdcard/Android/data/io.kitware.shitspotter/files/failure_cases"
+SRC="/sdcard/Android/data/io.github.erotemic.shitspotter/files/failure_cases"
 
 mkdir -p "$DEST"
 echo "→ pulling $SRC → $DEST"
@@ -33,7 +33,7 @@ echo "→ pulling $SRC → $DEST"
 # adb pull preserves the directory tree; we get $DEST/failure_cases/<ts>/...
 if ! adb pull -a "$SRC" "$DEST" 2>&1; then
     echo "ERROR: adb pull failed; is the app installed?" >&2
-    echo "       try 'adb shell run-as io.kitware.shitspotter ls files/'" >&2
+    echo "       try 'adb shell run-as io.github.erotemic.shitspotter ls files/'" >&2
     exit 1
 fi
 

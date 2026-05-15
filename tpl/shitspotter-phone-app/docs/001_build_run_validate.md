@@ -1,14 +1,79 @@
 # 001 — Build, run, and validate
 
 This is the operator-facing checklist for building the prototype, running it
-on the Linux desktop harness, and sideloading it onto a Pixel 5. It assumes
-you've already read [`README.md`](../README.md) and have sourced the
-toolchain env file.
+on the Linux desktop harness, and sideloading it onto a Pixel 5.
+
+---
+
+## 0. Toolchain setup — choose your machine
+
+### Dev VM (the shitspotter VM with `/data/tmp/`)
+
+The full toolchain (Temurin JDK 17, Android SDK, adb) lives under
+`/data/tmp/shitspotter-app-toolchain/`. **Source this file in every shell
+that runs a build:**
 
 ```bash
 source /data/tmp/shitspotter-app-toolchain/env.sh
-cd /home/joncrall/code/shitspotter/tpl/shitspotter-phone-app
+# sets JAVA_HOME, ANDROID_HOME, and prepends bin dirs to PATH
 ```
+
+Verify with:
+
+```bash
+java -version    # expect Temurin 17.0.12+
+javac -version   # must match
+adb --version
+```
+
+If anything is missing, re-run the installer (idempotent, ~1 GB):
+
+```bash
+bash install_toolchain.sh          # JDK 17 + Android SDK
+bash install_toolchain.sh --check  # verify existing install
+```
+
+### Local workstation (e.g. `toothbrush`)
+
+The `env.sh` above is VM-specific. On your own machine install the
+prerequisites directly, then set `JAVA_HOME` before running Gradle:
+
+```bash
+# Ubuntu/Debian — install the full JDK (not just the JRE):
+sudo apt install openjdk-21-jdk android-tools-adb
+
+# Point JAVA_HOME at the JDK that provides javac:
+export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which javac))))
+```
+
+`ANDROID_HOME` must also be set if you want to build Android targets.
+If you have Android Studio, its SDK is usually at `~/Android/Sdk`:
+
+```bash
+export ANDROID_HOME="$HOME/Android/Sdk"
+export PATH="$ANDROID_HOME/platform-tools:$PATH"
+```
+
+Add both exports to `~/.bashrc` / `~/.zshrc` so you don't have to repeat
+them each session.
+
+**After changing `JAVA_HOME` or installing a new JDK**, kill any running
+Gradle daemon — it caches the old toolchain detection:
+
+```bash
+./gradlew --stop
+./gradlew clean :composeApp:assembleRelease
+```
+
+> **Why the JDK, not the JRE?**
+> Ubuntu ships `openjdk-21-jre` and `openjdk-21-jdk` as separate packages.
+> The JRE directory (`/usr/lib/jvm/java-21-openjdk-amd64`) lacks `javac`,
+> and Gradle's toolchain resolver validates capability `JAVA_COMPILER` by
+> checking that directory — not just `PATH`. Installing `openjdk-21-jdk`
+> adds `javac` to that same directory. The Gradle daemon must be restarted
+> after the install because it caches the capability scan.
+
+---
 
 ---
 
@@ -239,7 +304,45 @@ After running on a Pixel 5, please share:
 
 ---
 
-## 9. Known limitations on this VM
+## 9. Troubleshooting
+
+### `Toolchain installation … does not provide the required capabilities: [JAVA_COMPILER]`
+
+Gradle's JVM toolchain resolver checked a specific directory and found no
+`javac` there. Three likely causes:
+
+| Cause | Fix |
+|---|---|
+| Only the JRE is installed (`openjdk-21-jre`, not `openjdk-21-jdk`) | `sudo apt install openjdk-21-jdk` |
+| `JAVA_HOME` not set — Gradle picked up the wrong directory | `export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which javac))))` |
+| Gradle daemon cached the old (pre-JDK-install) detection | `./gradlew --stop` then retry |
+| On the VM, forgot to source `env.sh` | `source /data/tmp/shitspotter-app-toolchain/env.sh` |
+
+All four can compound. The safe reset sequence on a local workstation:
+
+```bash
+sudo apt install openjdk-21-jdk                     # ensure JDK present
+export JAVA_HOME=$(dirname $(dirname $(readlink -f $(which javac))))
+./gradlew --stop                                     # kill stale daemon
+./gradlew clean :composeApp:assembleRelease
+```
+
+### `ANDROID_HOME not set` / aapt2 not found
+
+```bash
+export ANDROID_HOME="$HOME/Android/Sdk"             # adjust to your SDK path
+export PATH="$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+```
+
+### Build hangs downloading Gradle distribution
+
+The Gradle wrapper downloads `gradle-8.10.2-bin.zip` on first run (~130 MB).
+It caches under `~/.gradle/wrapper/dists/`. If the download hangs, kill it
+and retry — the partial download is cleaned up automatically.
+
+---
+
+## 10. Known limitations on this VM
 
 - No webcam → no live camera test for the desktop harness; still images only.
 - No USB passthrough → no on-device APK install from the VM.
