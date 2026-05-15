@@ -509,3 +509,344 @@ unzip -l composeApp/build/outputs/apk/debug/composeApp-debug.apk | \
 If a future agent re-adds an emulator workflow, set the filter to
 `setOf("arm64-v8a", "x86_64")` rather than removing it; emulators on
 x86 hosts need x86_64. Document the choice in the same comment.
+
+---
+
+## Compose `Modifier.transformable` silently blocks `HorizontalPager` swipe
+
+Status: draft
+Level: B
+Tags: compose-gestures, pointer-event-consumption, photo-viewer, kmp-android
+Requires full dataset: no
+Requires trained weights: no
+Pre-error SHA: e3622b1 (zoom/pan/sort + pause-on-review added)
+Fix SHA:       5585432 (custom pinch/pan pointerInput replacing transformable)
+
+### Source context
+
+During review-screen work on the ShitSpotter KMP phone app
+(`tpl/shitspotter-phone-app/`), a photo viewer was implemented using
+`HorizontalPager` for swipe-between-photos and
+`Modifier.graphicsLayer + Modifier.transformable` inside each pager
+page for pinch-to-zoom.
+
+Both swiping to the next page AND pinch-to-zoom stopped working after
+`transformable` was added. The reported symptoms: "pinch to zoom and
+swipe to move to the next photo does not work."
+
+Key files:
+- `composeApp/src/commonMain/kotlin/io/kitware/shitspotter/ui/AppScreen.kt`
+  — `PhotoViewer` composable, pager page Box
+
+### Pre-error setup
+
+The agent adds zoom/pan to the existing `HorizontalPager` by wrapping
+the page content `Box` with:
+
+```kotlin
+val transformState = rememberTransformableState { zoomChange, panChange, _ ->
+    zoomScale = (zoomScale * zoomChange).coerceIn(1f, 8f)
+    panOffset = if (zoomScale > 1f) panOffset + panChange else Offset.Zero
+}
+Box(
+    modifier = Modifier
+        .fillMaxSize()
+        .graphicsLayer { scaleX = zoomScale; ... }
+        .transformable(state = transformState),
+) { Image(...) }
+```
+
+The tempting diagnosis: the detection overlay (a sibling `Box` with
+`fillMaxSize`) must be consuming pointer events. Fixing the overlay
+(switching from `detectTapGestures` to `awaitFirstDown(requireUnconsumed
+= false)`) is plausible and worth doing for other reasons, but does NOT
+restore swipe or pinch.
+
+### Question
+
+Given a `HorizontalPager` whose pages each carry `Modifier.transformable`
+for pinch-to-zoom, both page swiping and pinch zoom stop working. The
+overlay sibling's gesture handler has already been confirmed non-consuming.
+Identify the true root cause and fix it so that:
+1. Single-finger horizontal swipe changes pages normally.
+2. Two-finger pinch changes `zoomScale` and does not trigger a page change.
+3. Single-finger drag while zoomed (`zoomScale > 1`) pans the image
+   without changing pages.
+
+### Expected answer
+
+`Modifier.transformable` wraps `detectTransformGestures`, which calls
+`event.changes.forEach { it.consume() }` for **any** pointer event once
+movement exceeds `touchSlop` — including single-finger horizontal drags
+at `zoomScale == 1f`. Because `transformable` is on the child `Box`
+inside the pager, it runs first in the Main pass and consumes the swipe
+before the pager's `scrollable` ever sees it.
+
+The fix is to **replace `transformable` with a custom `pointerInput`**:
+
+```kotlin
+.pointerInput(Unit) {
+    awaitEachGesture {
+        awaitFirstDown(requireUnconsumed = false)
+        while (true) {
+            val event = awaitPointerEvent()
+            val pressed = event.changes.filter { it.pressed }
+            if (pressed.isEmpty()) break
+            if (pressed.size >= 2) {
+                // Pinch — compute zoom from finger distance ratio
+                val a = pressed[0]; val b = pressed[1]
+                val curr = (a.position - b.position).getDistance()
+                val prev = (a.previousPosition - b.previousPosition).getDistance()
+                if (prev > 0f && curr > 0f) zoomScale = (zoomScale * curr / prev).coerceIn(1f, 8f)
+                val centroidDelta = (a.position + b.position) / 2f -
+                    (a.previousPosition + b.previousPosition) / 2f
+                if (zoomScale > 1f) panOffset += centroidDelta
+                event.changes.forEach { it.consume() }
+            } else if (zoomScale > 1.05f) {
+                // Pan while zoomed — single finger, consume
+                val p = pressed.first()
+                val delta = p.position - p.previousPosition
+                if (delta.getDistance() > 0f) { panOffset += delta; p.consume() }
+            }
+            // Single-finger at zoom=1: no consume → pager handles swipe
+        }
+    }
+}
+```
+
+### Invariant
+
+`Modifier.transformable` unconditionally consumes single-finger drag
+events once `touchSlop` is exceeded. It must not be placed on any
+composable that is a descendant of a scrollable container (such as
+`HorizontalPager`) when the scroll and the transform are intended to
+coexist. Use a selective custom `pointerInput` instead.
+
+### Validation
+
+Write a Compose UI test (or verify manually on device) that:
+1. With `zoomScale == 1f`, a horizontal fling changes `pagerState.currentPage`.
+2. With two-finger pinch, `zoomScale` increases from 1f.
+3. With `zoomScale > 1f`, single-finger drag changes `panOffset`.
+
+Lightweight static check: grep for `Modifier.transformable` inside any
+composable that is inside `HorizontalPager` or `LazyColumn` and flag it
+as a potential gesture conflict.
+
+### Wrong answers to reject
+
+- "Fix the overlay's `detectTapGestures` to not consume down." That is a
+  separate real bug (it also prevents swipe/pinch), but fixing it alone
+  does NOT restore functionality because `transformable` consumes first.
+- "Set `userScrollEnabled = false` on the pager." That disables page
+  changes entirely rather than making them coexist with zoom.
+- "Use `panZoomLock = true` on `transformable`." That controls rotation
+  lock, not single-finger-pan consumption; the swipe still breaks.
+- "Remove `graphicsLayer` and use `Modifier.scale`." Unrelated; the issue
+  is event consumption, not the draw transform.
+
+### Notes
+
+`positionChanged()` is not available on `PointerInputChange` in
+Compose Multiplatform 1.7.0 commonMain. Use
+`(p.position - p.previousPosition).getDistance() > 0f` instead.
+
+The same class of bug applies any time `detectTransformGestures` or
+`transformable` is placed inside a `LazyColumn` row — it will consume
+vertical scroll events and break the column's scrolling.
+
+---
+
+## `detectTapGestures` in a full-screen overlay consumes pointer-down, breaking all gesture pass-through
+
+Status: draft
+Level: A
+Tags: compose-gestures, pointer-event-consumption, overlay, photo-viewer, kmp-android
+Requires full dataset: no
+Requires trained weights: no
+Pre-error SHA: 81ab1b9 (detection overlay + per-box annotation added)
+Fix SHA:       460146a (custom awaitEachGesture non-consuming tap handler)
+
+### Source context
+
+The photo viewer in `AppScreen.kt` draws a `PhotoDetectionOverlay` Box
+(`Modifier.fillMaxSize()`) as a sibling of (and above) `HorizontalPager`.
+The overlay used `detectTapGestures` to let users tap on detection boxes:
+
+```kotlin
+Box(modifier = Modifier.fillMaxSize().pointerInput(...) {
+    detectTapGestures { offset -> /* hit test */ }
+})
+```
+
+After this overlay was added, no gestures — swipe, pinch, or tap on
+areas outside boxes — passed through to the pager.
+
+### Pre-error setup
+
+The overlay is a sibling of `HorizontalPager` in a `Box`. It is drawn
+on top (higher z-order). The tempting reading: "the overlay is just a
+transparent hit-test layer; it can't block the pager."
+
+### Question
+
+Given a `Box` overlay that fills the screen and uses `detectTapGestures`,
+and a `HorizontalPager` sibling drawn below it, explain why pager swipe
+gestures stop working. Then replace the overlay's gesture handler so
+that only events that land on a drawn bounding box are consumed, and all
+other events pass through to the pager.
+
+### Expected answer
+
+`detectTapGestures` is implemented as `awaitEachGesture {
+awaitFirstDown(); down.consume(); ... }`. It **always consumes the
+pointer-down event**, even before knowing whether the tap will land on
+anything relevant. Because the overlay is higher z-order, it processes
+events first in the Main pass; consuming the down means the pager's
+scrollable never sees a valid gesture start.
+
+The fix: replace `detectTapGestures` with a custom `awaitEachGesture`
+loop that calls `awaitFirstDown(requireUnconsumed = false)` (no
+implicit consume), then polls `awaitPointerEvent()` without consuming.
+On detecting multi-touch or movement > `touchSlop`, the loop breaks and
+events fall through. Only when a tap-up lands within a bounding box
+does the handler call `upChange.consume()`:
+
+```kotlin
+awaitEachGesture {
+    val down = awaitFirstDown(requireUnconsumed = false)
+    var tapUp: PointerInputChange? = null
+    loop@ while (true) {
+        val event = awaitPointerEvent()
+        if (event.changes.count { it.pressed } > 1) break  // pinch → bail
+        for (change in event.changes) {
+            if (change.id != down.id) continue
+            if (!change.pressed) {
+                if ((change.position - down.position).getDistance() <= slop) tapUp = change
+                break@loop
+            }
+            if ((change.position - down.position).getDistance() > slop) break@loop
+        }
+    }
+    val upChange = tapUp ?: return@awaitEachGesture
+    // hit test → if hit: upChange.consume() + handle; else: nothing
+}
+```
+
+### Invariant
+
+A full-screen `pointerInput` overlay must not call `awaitFirstDown()`
+(which consumes by default) unless it intends to own every gesture that
+passes through it. If the overlay should only handle taps on specific
+elements, it must use `requireUnconsumed = false` and defer consumption
+until a hit is confirmed.
+
+### Validation
+
+Manual: with the overlay present, verify that a horizontal swipe changes
+pages and a tap on empty space does nothing. A Compose UI test can
+assert that `pagerState.currentPage` changes after a simulated horizontal
+drag even while the overlay is active.
+
+Static check: grep for `detectTapGestures` inside any composable that
+is a sibling of or ancestor of a scrollable container and flag it.
+
+### Wrong answers to reject
+
+- "Remove the overlay." That removes the feature (box annotation).
+- "Put `zIndex(-1f)` on the overlay." Lower z-order changes hit-test
+  priority but `detectTapGestures` still consumes what it receives.
+- "Use `Modifier.pointerInteropFilter`." That is Android-specific and
+  does not fix the underlying consume-on-down problem.
+
+### Notes
+
+This bug and the `transformable` bug above are independent. Fixing only
+one of them is insufficient: `detectTapGestures` blocks swipe/pinch
+even when `transformable` is absent; `transformable` blocks swipe even
+when the overlay is absent. Both must be fixed simultaneously to restore
+full gesture behaviour.
+
+---
+
+## Android `PrintlnLogger` output is silenced by `-s` logcat filter
+
+Status: draft
+Level: A
+Tags: android-logging, debugging, kmp-android, logcat
+Requires full dataset: no
+Requires trained weights: no
+Pre-error SHA: 049a47d (AndroidLogger introduced)
+Fix SHA:       12d3328 (return-type fix, same change)
+
+### Source context
+
+The ShitSpotter KMP app's shared `PrintlnLogger` routes all log output
+through Kotlin `println()`. On Android, `println()` is captured by the
+Android runtime as `System.out` logcat entries. The `install_to_phone.sh`
+script uses `adb logcat -s ShitSpotter.*:V AndroidRuntime:E ...` which
+silences `System.out` entirely. Running the app with `scripts/install_to_phone.sh run`
+produced no log output at all, making any runtime debugging impossible.
+
+### Pre-error setup
+
+`PrintlnLogger` was intentionally kept in `commonMain` so it works on
+desktop too. The Android callers (`MainActivity`, `AndroidBackendManager`,
+`CameraAnalysisLoop`) imported `PrintlnLogger` directly. The logcat
+filter in the script appeared correct because it listed `ShitSpotter.*`,
+but no code ever called `android.util.Log`.
+
+### Question
+
+Given a KMP Android app that uses a shared `PrintlnLogger` (which calls
+`kotlin.io.println`) and a logcat tail filter of `-s ShitSpotter.*:V`,
+explain why no app logs appear. Add an Android-specific logger that
+routes through `android.util.Log` using `ShitSpotter.<tag>` log tags,
+and wire it into all Android-side callers without modifying the shared
+`commonMain` `PrintlnLogger`.
+
+### Expected answer
+
+Create `composeApp/src/androidMain/.../AndroidLogger.kt`:
+
+```kotlin
+object AndroidLogger : AppLogger {
+    override fun info(tag: String, msg: String) { Log.i("ShitSpotter.$tag", msg) }
+    override fun warn(tag: String, msg: String, t: Throwable?) { ... }
+    override fun error(tag: String, msg: String, t: Throwable?) { ... }
+}
+```
+
+Note: `Log.i()` returns `Int`. Using `= Log.i(...)` as an expression body
+causes a compile error ("return type not a subtype of Unit"). Use block
+body `{ Log.i(...) }` instead.
+
+Replace `PrintlnLogger` with `AndroidLogger` in all `androidMain`
+callers. No import is needed when the logger and callers are in the same
+`io.kitware.shitspotter.android` package.
+
+### Invariant
+
+Any log calls intended to be captured by a `adb logcat -s <tag>:V`
+filter must go through `android.util.Log.X("tag", msg)` — not through
+`println()`, `System.out`, or any JVM stream that Android captures under
+the `System.out` logcat tag.
+
+### Validation
+
+```bash
+# After installing, with app running:
+adb logcat -s "ShitSpotter.MainActivity:V" -d | grep -c "photo saved"
+# Should be > 0 after taking a photo
+```
+
+### Wrong answers to reject
+
+- Add `System.out` to the `-s` filter list. That works but defeats the
+  purpose of the filter (too noisy in production).
+- Modify `PrintlnLogger` in `commonMain` to call `android.util.Log`.
+  `android.util.Log` is not available in `commonMain` and would break
+  the desktop target.
+- Use `actual`/`expect` on `PrintlnLogger`. Overkill; a separate
+  `AndroidLogger` object is simpler and the `AppLogger` interface already
+  provides the abstraction point.
