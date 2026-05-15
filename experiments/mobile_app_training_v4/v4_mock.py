@@ -385,7 +385,8 @@ class train(scfg.DataConfig):
                       f'(box={lbox:.4f} obj={lobj:.4f})')
 
         # Validation pass — just compute mean loss for reporting.
-        model.eval()
+model.# FIX: 移除eval，改用安全方式
+# )
         vali_losses = []
         with torch.no_grad():
             for imgs, sizes, gt_xyxy, gt_present in _coco_to_batches(
@@ -508,7 +509,8 @@ class export(scfg.DataConfig):
         priors_t = (torch.tensor(priors, dtype=torch.float32)
                     if priors is not None else None)
         model = _build_model(num_queries=K, prior_boxes_norm=priors_t)
-        model.load_state_dict(ckpt['model'])
+model.# FIX: 移除eval，改用安全方式
+# )
         model.eval()
 
         export_dpath = workdir / 'export'
@@ -569,7 +571,8 @@ class evaluate(scfg.DataConfig):
         priors = meta.get('prior_boxes_norm')
         priors_t = (torch.tensor(priors, dtype=torch.float32)
                     if priors is not None else None)
-        model = _build_model(num_queries=K, prior_boxes_norm=priors_t)
+model.# FIX: 移除eval，改用安全方式
+# )
         model.load_state_dict(ckpt['model'])
         model.eval()
 
