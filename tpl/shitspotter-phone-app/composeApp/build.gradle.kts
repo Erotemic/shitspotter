@@ -1,4 +1,5 @@
 import java.time.LocalDate
+import java.util.Properties
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
@@ -116,7 +117,7 @@ android {
     // RELEASE_KEY_PASSWORD in the environment before building.
     signingConfigs {
         create("release") {
-            val props = java.util.Properties()
+            val props = Properties()
             val localProps = rootProject.file("local.properties")
             if (localProps.exists()) props.load(localProps.inputStream())
             fun env(key: String, prop: String) =
