@@ -40,7 +40,6 @@ import io.kitware.shitspotter.core.CaptureReviewEntry
 import io.kitware.shitspotter.core.DetectionAnnotation
 import io.kitware.shitspotter.core.FailureCaseSerialization
 import io.kitware.shitspotter.core.MetadataMode
-import io.kitware.shitspotter.core.PrintlnLogger
 import io.kitware.shitspotter.core.SettingsStore
 import io.kitware.shitspotter.core.applySettings
 import io.kitware.shitspotter.core.toSettings
@@ -222,7 +221,7 @@ class MainActivity : ComponentActivity() {
                 )
                 photoStore.addMetadataAndSave(file, metadata, state.metadataMode, loc)
                 state.photosSavedCount++
-                PrintlnLogger.info("MainActivity", "photo saved → $file")
+                AndroidLogger.info("MainActivity", "photo saved → $file")
             },
             onError = { e ->
                 state.setError("Photo capture failed: ${e.message}")
@@ -295,7 +294,7 @@ class MainActivity : ComponentActivity() {
             try {
                 uris.add(FileProvider.getUriForFile(this, "$packageName.fileprovider", file))
             } catch (e: Throwable) {
-                PrintlnLogger.warn("MainActivity", "FileProvider skipped ${file.name}: ${e.message}")
+                AndroidLogger.warn("MainActivity", "FileProvider skipped ${file.name}: ${e.message}")
             }
         }
         if (uris.isEmpty()) {

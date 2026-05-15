@@ -8,7 +8,6 @@ import io.kitware.shitspotter.core.InferenceResult
 import io.kitware.shitspotter.core.ModelFormat
 import io.kitware.shitspotter.core.ModelRegistry
 import io.kitware.shitspotter.core.ModelSpec
-import io.kitware.shitspotter.core.PrintlnLogger
 import io.kitware.shitspotter.core.StubDetectorBackend
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -35,7 +34,7 @@ import kotlin.concurrent.withLock
  */
 class AndroidBackendManager(
     private val context: Context,
-    private val logger: AppLogger = PrintlnLogger,
+    private val logger: AppLogger = AndroidLogger,
 ) {
     private val lock = ReentrantLock()
     private val loader = AndroidModelLoader(context)
