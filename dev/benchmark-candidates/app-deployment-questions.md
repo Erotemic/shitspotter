@@ -29,7 +29,7 @@ of `Erotemic/shitspotter` as of 2026-05-10.
 
 ## ONNX shape mismatch fails at session.run, not at load
 
-Status: draft
+Status: solved
 Level: A
 Tags: preprocessing-parity, onnx-export-parity, model-spec, fail-fast
 Requires full dataset: no
@@ -128,7 +128,7 @@ Mirror this Kotlin pattern when adding it.
 
 ## PreviewView FILL_CENTER vs overlay FIT_CENTER produces misaligned boxes
 
-Status: draft
+Status: solved
 Level: B
 Tags: phone-deployment, overlay-coordinate-system, scale-type-parity
 Requires full dataset: no
@@ -220,7 +220,7 @@ related-but-distinct rotation-orientation issue.
 
 ## Camera rotationDegrees is non-zero on portrait-locked Android phones
 
-Status: draft
+Status: solved
 Level: B
 Tags: phone-deployment, exif-orientation, coordinate-transform
 Requires full dataset: no
@@ -336,7 +336,7 @@ on a synthetic 90°-rotated frame.
 
 ## YOLOX-nano-poop is a cropped-only model and over-fires on full images
 
-Status: draft
+Status: solved
 Level: A
 Tags: phone-deployment, model-export, ood-behaviour, preprocessing-parity
 Requires full dataset: no
@@ -431,7 +431,7 @@ contribution is to make swap-in painless via the `ModelRegistry`.
 
 ## Default APK ABI filters bundle 4x the native libraries
 
-Status: draft
+Status: solved
 Level: A
 Tags: phone-deployment, packaging, native-libraries, release-engineering
 Requires full dataset: no
@@ -514,7 +514,7 @@ x86 hosts need x86_64. Document the choice in the same comment.
 
 ## Compose `Modifier.transformable` silently blocks `HorizontalPager` swipe
 
-Status: draft
+Status: solved
 Level: B
 Tags: compose-gestures, pointer-event-consumption, photo-viewer, kmp-android
 Requires full dataset: no
@@ -659,7 +659,7 @@ vertical scroll events and break the column's scrolling.
 
 ## `detectTapGestures` in a full-screen overlay consumes pointer-down, breaking all gesture pass-through
 
-Status: draft
+Status: solved
 Level: A
 Tags: compose-gestures, pointer-event-consumption, overlay, photo-viewer, kmp-android
 Requires full dataset: no
@@ -771,7 +771,7 @@ full gesture behaviour.
 
 ## Android `PrintlnLogger` output is silenced by `-s` logcat filter
 
-Status: draft
+Status: solved
 Level: A
 Tags: android-logging, debugging, kmp-android, logcat
 Requires full dataset: no
@@ -850,3 +850,348 @@ adb logcat -s "ShitSpotter.MainActivity:V" -d | grep -c "photo saved"
 - Use `actual`/`expect` on `PrintlnLogger`. Overkill; a separate
   `AndroidLogger` object is simpler and the `AppLogger` interface already
   provides the abstraction point.
+
+---
+
+## Candidate 9 — Gesture Handler Never Fires Inside or Beside HorizontalPager
+
+**Status: solved**
+**Pre-error SHA:** `5585432`
+**Wrong-fix SHA:** `2d13bec`
+**Fix SHA:** `aa710fb`
+
+### Context
+
+KMP + Compose Multiplatform 1.7.0. A `PhotoViewer` composable wraps a
+`HorizontalPager` to let users swipe between photos. We need a custom
+`pointerInput` handler for pinch-to-zoom, which cannot be expressed via
+`Modifier.transformable` alone in this layout.
+
+### The broken approach
+
+`pointerInput` was first attached to the content `Box` **inside** the pager
+page lambda — the block that wraps the image:
+
+```kotlin
+HorizontalPager(state = pagerState, ...) { page ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {   // ← never fires
+                awaitEachGesture { ... }
+            }
+    ) { ... }
+}
+```
+
+When that failed, the handler was moved to a **sibling** `Box` at the same
+level as `HorizontalPager`:
+
+```kotlin
+Box(modifier = Modifier.fillMaxSize()) {      // outer container
+    HorizontalPager(...) { ... }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {             // ← also never fires
+                awaitEachGesture { ... }
+            }
+    ) { /* transparent overlay */ }
+}
+```
+
+`awaitFirstDown` inside the sibling block never returned — the gesture
+handler was installed (the first log line ran) but no pointer events were
+ever delivered.
+
+### Root cause
+
+1. **Inside pager page content**: `HorizontalPager` is backed by `LazyLayout`
+   / an internal `ScrollableContainer`. Its own `pointerInput` modifier
+   intercepts all events via `PointerEventPass.Main` before dispatching to
+   page children. By the time the event reaches the child's `pointerInput`,
+   it may already be consumed or not re-dispatched at all.
+
+2. **Sibling Box**: Compose hit-tests from the front of the layout tree and
+   dispatches to the *highest-z child* in the hit path. The sibling overlay
+   `Box` was placed **after** `HorizontalPager` in the `Box` scope, making it
+   the topmost child, but `PointerEventPass.Main` still dispatches child →
+   parent. Since the sibling has no children in the hit path and no scrollable
+   modifier, Compose's internal dispatch short-circuits before reaching the
+   sibling's `pointerInput`. (The exact mechanism is that the sibling's
+   `awaitFirstDown` was a different layout node, not in the dispatch chain for
+   the pager area.)
+
+### Correct fix
+
+Place the `pointerInput` on the **parent Box** of `HorizontalPager` and use
+`PointerEventPass.Initial`, which fires **parent → child** (before any child
+sees the event):
+
+```kotlin
+Box(
+    modifier = Modifier
+        .fillMaxSize()
+        .background(Color.Black)
+        .pointerInput(Unit) {
+            awaitEachGesture {
+                awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                while (true) {
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                    // handle pinch / swipe ...
+                    if (event.changes.all { !it.pressed }) break
+                }
+            }
+        },
+) {
+    HorizontalPager(state = pagerState, ...) { ... }
+}
+```
+
+`PointerEventPass.Initial` is guaranteed to fire on the parent *before*
+`HorizontalPager`'s own `PointerEventPass.Main` handler runs.
+
+### Validation
+
+```bash
+# After fix, build + install + launch:
+scripts/install_to_phone.sh run
+# In logcat, open photo viewer and touch the screen:
+adb logcat -s "ShitSpotter.Gesture:V" -d | grep "gesture started"
+# Expect at least one line per touch
+```
+
+### Wrong answers to reject
+
+- Attach `pointerInput` inside the pager page lambda. Events are absorbed by
+  the pager's internal scrollable before reaching page children.
+- Use a sibling `Box` overlay with `pointerInput`. Sibling nodes are not in
+  the same dispatch chain as `HorizontalPager` and `awaitFirstDown` blocks
+  forever.
+- Use `PointerEventPass.Final` on the parent. Final fires after all children
+  have processed the event; by then the pager may have consumed it.
+
+---
+
+## Candidate 10 — HorizontalPager Swipe Broken When Custom Handler Owns `PointerEventPass.Initial`
+
+**Status: solved**
+**Pre-error SHA:** `aa710fb`
+**Fix SHA:** `e4746f1`
+
+### Context
+
+After fixing the gesture handler location (Candidate 9), pinch-to-zoom works.
+But left/right swipe between photos still does not work even though the
+Initial-pass handler does NOT consume single-finger drag events.
+
+### The broken approach
+
+The assumption was: if the Initial-pass parent handler does not call
+`it.consume()` on single-finger events, `HorizontalPager`'s own Main-pass
+scrollable will still see them and handle swipes normally.
+
+```kotlin
+// parent pointerInput, PointerEventPass.Initial
+} else {
+    // single finger — do NOT consume; let pager handle it
+}
+```
+
+`userScrollEnabled` was left at the default (`true`) so the pager's internal
+swipe should have fired. In practice, no page navigation occurred.
+
+### Root cause
+
+`HorizontalPager` (Compose Multiplatform 1.7.0) uses an internal
+`scrollable` modifier that relies on the standard `VelocityTracker` and
+swipe threshold logic running on `PointerEventPass.Main`. When an outer
+`awaitEachGesture` loop (even one that does not consume events) is active
+on a parent, it appears to interfere with the pager's internal gesture
+recognizer timing/state — possibly because `awaitEachGesture` resets the
+pointer tracking state each iteration in a way that confuses downstream
+consumers. Additionally, `@RestrictsSuspension` on `AwaitPointerEventScope`
+means you cannot call `pagerState.animateScrollToPage` from within the
+gesture loop anyway.
+
+### Correct fix
+
+Set `userScrollEnabled = false` on the `HorizontalPager` so it no longer
+competes for gesture ownership, then manually track horizontal displacement
+and navigate pages after gesture end using a `pendingSwipePage` state +
+`LaunchedEffect`:
+
+```kotlin
+// State outside gesture handler:
+var pendingSwipePage by remember { mutableStateOf<Int?>(null) }
+LaunchedEffect(pendingSwipePage) {
+    val target = pendingSwipePage ?: return@LaunchedEffect
+    if (target != pagerState.currentPage) pagerState.animateScrollToPage(target)
+    pendingSwipePage = null
+}
+
+// Inside awaitEachGesture (restricted scope — no suspend calls allowed):
+var totalDx = 0f
+while (true) {
+    val event = awaitPointerEvent(PointerEventPass.Initial)
+    val pressed = event.changes.filter { it.pressed }
+    if (pressed.isEmpty()) break
+    if (pressed.size == 1 && zoomScale <= 1.05f) {
+        totalDx += (pressed[0].position - pressed[0].previousPosition).x
+    }
+}
+val swipeThresh = viewConfiguration.touchSlop * 8f
+if (abs(totalDx) > swipeThresh && abs(totalDx) > abs(totalDy) * 1.5f) {
+    pendingSwipePage = if (totalDx < 0)
+        (pagerState.currentPage + 1).coerceAtMost(photos.size - 1)
+    else
+        (pagerState.currentPage - 1).coerceAtLeast(0)
+    // pendingSwipePage write is a plain state write — OK in restricted scope
+}
+```
+
+### Why `pendingSwipePage` is needed
+
+`awaitEachGesture`'s lambda runs in `AwaitPointerEventScope`, which carries
+`@RestrictsSuspension`. That annotation forbids calling `suspend` functions
+that are not defined on the scope itself (only scope members like
+`awaitPointerEvent` are allowed). `pagerState.animateScrollToPage` is a
+regular coroutine suspend function and triggers a compile error if called
+there directly. The `LaunchedEffect` runs in an unrestricted coroutine scope
+and is the correct escape hatch.
+
+### Validation
+
+```bash
+scripts/install_to_phone.sh run
+# Open photo viewer with ≥2 photos, swipe left/right
+adb logcat -s "ShitSpotter.Gesture:V" -d | grep "swipe →"
+# Expect lines like: swipe → page 1 (was 0)
+```
+
+### Wrong answers to reject
+
+- Leave `userScrollEnabled = true` and rely on the pager to handle swipe.
+  The pager's internal recognizer loses when an `awaitEachGesture` parent
+  loop is active.
+- Call `pagerState.animateScrollToPage` directly inside `awaitEachGesture`.
+  Compile error: restricted suspension scope forbids it.
+- Use `coroutineScope { launch { ... } }` inside `awaitEachGesture` to
+  escape the restriction. `@RestrictsSuspension` blocks `coroutineScope` too.
+
+---
+
+## Candidate 11 — Detection Overlay Boxes Don't Follow `graphicsLayer` Zoom/Pan
+
+**Status: solved**
+**Pre-error SHA:** `aa710fb`
+**Fix SHA:** `e4746f1`
+
+### Context
+
+The photo viewer applies zoom and pan via `Modifier.graphicsLayer`:
+
+```kotlin
+Box(
+    modifier = Modifier
+        .fillMaxSize()
+        .graphicsLayer {
+            scaleX = zoomScale
+            scaleY = zoomScale
+            translationX = panOffset.x
+            translationY = panOffset.y
+        },
+    contentAlignment = Alignment.Center,
+) {
+    AsyncImage(...)
+}
+```
+
+A `PhotoDetectionOverlay` composable draws bounding boxes over detections.
+It was placed as a **sibling** of `HorizontalPager` with no transform, so
+boxes remained at their original positions while the photo zoomed and panned.
+
+### Root cause
+
+`Modifier.graphicsLayer` is a **drawing-only** transform. It affects how the
+node is rendered on screen but does NOT:
+- Change the node's layout bounds (still at the pre-transform position for
+  hit testing and sibling layout).
+- Propagate to any sibling nodes.
+
+A sibling overlay with no `graphicsLayer` of its own is painted in unscaled,
+unpanned screen space, so boxes appear fixed while the image moves.
+
+Furthermore, even if the overlay is wrapped in the same `graphicsLayer`,
+touch events delivered to the overlay's `pointerInput` arrive in **layout
+space** (pre-transform), not in the scaled/panned screen space that the user
+sees. So box hit testing also requires an inverse transform.
+
+### Correct fix
+
+**Part 1 — visual**: Wrap the overlay in a sibling `Box` with the same
+`graphicsLayer` parameters:
+
+```kotlin
+// Image Box
+Box(
+    modifier = Modifier.fillMaxSize().graphicsLayer {
+        scaleX = zoomScale; scaleY = zoomScale
+        translationX = panOffset.x; translationY = panOffset.y
+    },
+    contentAlignment = Alignment.Center,
+) { AsyncImage(...) }
+
+// Overlay Box — same graphicsLayer
+Box(
+    modifier = Modifier.fillMaxSize().graphicsLayer {
+        scaleX = zoomScale; scaleY = zoomScale
+        translationX = panOffset.x; translationY = panOffset.y
+    },
+) {
+    PhotoDetectionOverlay(
+        ...,
+        zoomScale = zoomScale,
+        panOffset = panOffset,
+    )
+}
+```
+
+**Part 2 — hit testing**: Inside `PhotoDetectionOverlay`, touch coordinates
+arrive in layout space. Map them to the pre-zoom frame space using the
+inverse of the `graphicsLayer` transform:
+
+```kotlin
+// graphicsLayer scales around the center of the canvas
+val cx = canvasWidth / 2f
+val cy = canvasHeight / 2f
+fun toLayoutSpace(raw: Offset): Offset {
+    val lx = if (zoomScale != 1f) cx + (raw.x - panOffset.x - cx) / zoomScale else raw.x
+    val ly = if (zoomScale != 1f) cy + (raw.y - panOffset.y - cy) / zoomScale else raw.y
+    return Offset(lx, ly)
+}
+// Then map layout→frame coordinates as before
+val framePoint = toLayoutSpace(touchOffset)
+val fx = (framePoint.x - imageOffsetX) / imageScale
+val fy = (framePoint.y - imageOffsetY) / imageScale
+```
+
+### Validation
+
+```bash
+scripts/install_to_phone.sh run
+# Open photo viewer, pinch-zoom in, then inspect overlay boxes:
+# They should scale and pan with the image.
+# Tap a detection box while zoomed — annotation should toggle correctly.
+```
+
+### Wrong answers to reject
+
+- Apply `scale()` or `offset()` modifier to the overlay. These affect
+  layout bounds and will shift hit-testing, creating a mismatch between
+  visual and interactive areas at high zoom levels.
+- Pass the zoom transform to `PhotoDetectionOverlay` and apply it in Canvas
+  `drawWithContent`. The overlay uses `pointerInput` for tap/drag annotation;
+  Canvas transforms only affect drawing, not pointer dispatch.
+- Use `graphicsLayer` on the overlay but skip the inverse-transform in hit
+  testing. Taps will be off by `(zoomScale - 1) * distanceFromCenter` pixels.
