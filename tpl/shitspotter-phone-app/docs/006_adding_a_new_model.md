@@ -37,7 +37,7 @@ the same recipe as `Yolox.decodeRawStrides`.
 
 ## Step 2 — Add a `ModelSpec` entry
 
-In `composeApp/src/commonMain/kotlin/io/kitware/shitspotter/core/ModelSpec.kt`,
+In `composeApp/src/commonMain/kotlin/io/github/erotemic/shitspotter/core/ModelSpec.kt`,
 add a constant inside `ModelSpec.Companion`:
 
 ```kotlin
@@ -81,13 +81,36 @@ of being registered.
 There's no commit step here — the rule is "weights stay out of git".
 Pick whichever placement matches your workflow:
 
-- **Sideload**: `adb push your_model.onnx /sdcard/Android/data/io.kitware.shitspotter/files/models/`
+- **Sideload (easiest)**: add the filename to `KNOWN` in `scripts/push_models.sh` and run it.
+  That script searches three locations automatically (see below) and pushes to the right
+  on-device path for debug or release.
+- **Manual adb push**:
+  ```bash
+  # debug build
+  adb push your_model.onnx /sdcard/Android/data/io.github.erotemic.shitspotter.debug/files/models/
+  # release build
+  adb push your_model.onnx /sdcard/Android/data/io.github.erotemic.shitspotter/files/models/
+  ```
 - **Bundled in APK**: `cp your_model.onnx composeApp/src/androidMain/assets/your_model.onnx`
-  (gitignored via `*.onnx` rule)
+  (gitignored via `*.onnx` rule — only do this for small default models)
 - **Desktop one-off**: `--model=/path/to/your_model.onnx --model-id=your-model-v1`
 
 `AndroidModelLoader` falls through external-files-dir → cache → assets
 in that order, so any of the above will work.
+
+### Where the weights live on the workstation
+
+`scripts/push_models.sh` searches these locations in order:
+
+| Location | Contents |
+|----------|----------|
+| `tpl/poop_models/` | YOLOX-nano, custom-v5, custom-v2 |
+| `/data/joncrall/shitspotter_v4/runs/*/export/` | DEIMv2 pico/n at 320/416/512/640 |
+| `/data/joncrall/dvc-repos/shitspotter_dvc/models/` | YOLOv9 simple-v3 (long checkpoint filename matched by prefix) |
+
+The script pushes all 8 registered models in one shot and skips files it can't find
+locally. After pushing, switch models in the app or restart it — the loader checks
+the external dir fresh on every `setActive` call, no caching of misses.
 
 ## Step 4 — Verify before declaring victory
 
