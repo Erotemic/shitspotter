@@ -111,7 +111,18 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(Unit) {
                         snapshotFlow { state.reviewMode }
                             .distinctUntilChanged()
-                            .collect { reviewing -> androidSurface?.setPaused(reviewing) }
+                            .collect { reviewing ->
+                                AndroidLogger.info("MainActivity", if (reviewing) "nav → review screen" else "nav → camera view")
+                                androidSurface?.setPaused(reviewing)
+                            }
+                    }
+                    LaunchedEffect(Unit) {
+                        snapshotFlow { state.viewingPhotoPath }
+                            .distinctUntilChanged()
+                            .collect { path ->
+                                if (path != null) AndroidLogger.info("MainActivity", "nav → photo viewer: $path")
+                                else AndroidLogger.info("MainActivity", "nav ← closed photo viewer")
+                            }
                     }
 
                     val torchState = torchOn
