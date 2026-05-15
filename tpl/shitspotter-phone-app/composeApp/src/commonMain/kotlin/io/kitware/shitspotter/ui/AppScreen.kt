@@ -1012,6 +1012,15 @@ private fun PhotoViewer(
     var panOffset by remember { mutableStateOf(Offset.Zero) }
     LaunchedEffect(pagerState.currentPage) { zoomScale = 1f; panOffset = Offset.Zero }
 
+    // Swipe target set from within the restricted awaitEachGesture scope (no suspend allowed
+    // there); the LaunchedEffect runs outside and calls the actual suspend animateScrollToPage.
+    var pendingSwipePage by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(pendingSwipePage) {
+        val target = pendingSwipePage ?: return@LaunchedEffect
+        if (target != pagerState.currentPage) pagerState.animateScrollToPage(target)
+        pendingSwipePage = null
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1025,14 +1034,15 @@ private fun PhotoViewer(
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
                     logger.info("Gesture", "gesture started zoom=$zoomScale")
+                    var totalDx = 0f
+                    var totalDy = 0f
+                    var had2Fingers = false
                     while (true) {
                         val event = awaitPointerEvent(PointerEventPass.Initial)
                         val pressed = event.changes.filter { it.pressed }
-                        if (pressed.isEmpty()) {
-                            logger.info("Gesture", "gesture ended zoom=$zoomScale")
-                            break
-                        }
+                        if (pressed.isEmpty()) break
                         if (pressed.size >= 2) {
+                            had2Fingers = true
                             logger.info("Gesture", "pinch ${pressed.size}pt zoom=$zoomScale")
                             val a = pressed[0]; val b = pressed[1]
                             val curr = (a.position - b.position).getDistance()
@@ -1044,15 +1054,31 @@ private fun PhotoViewer(
                                 (a.previousPosition + b.previousPosition) / 2f
                             if (zoomScale > 1f) panOffset += centroidDelta
                             event.changes.forEach { it.consume() }
-                        } else if (zoomScale > 1.05f) {
+                        } else {
                             val p = pressed.first()
                             val delta = p.position - p.previousPosition
-                            if (delta.getDistance() > 0f) {
+                            if (zoomScale > 1.05f) {
                                 panOffset += delta
                                 event.changes.forEach { it.consume() }
+                            } else {
+                                totalDx += delta.x
+                                totalDy += delta.y
                             }
                         }
-                        // Single-finger at zoom=1: don't consume → pager handles swipe
+                    }
+                    // Gesture ended — detect horizontal swipe and manually page
+                    val swipeThresh = viewConfiguration.touchSlop * 8f
+                    logger.info("Gesture", "ended zoom=$zoomScale dx=$totalDx dy=$totalDy 2f=$had2Fingers")
+                    if (!had2Fingers && zoomScale <= 1.05f &&
+                        abs(totalDx) > swipeThresh && abs(totalDx) > abs(totalDy) * 1.5f
+                    ) {
+                        val target = if (totalDx < 0) {
+                            (pagerState.currentPage + 1).coerceAtMost(photos.size - 1)
+                        } else {
+                            (pagerState.currentPage - 1).coerceAtLeast(0)
+                        }
+                        logger.info("Gesture", "swipe → page $target (was ${pagerState.currentPage})")
+                        pendingSwipePage = target
                     }
                 }
             },
@@ -1060,8 +1086,7 @@ private fun PhotoViewer(
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
-            // Lock pager when zoomed in or drawing an FN box
-            userScrollEnabled = !drawingFnMode && zoomScale <= 1.05f,
+            userScrollEnabled = false,
         ) { page ->
             val entry = photos.getOrNull(page) ?: return@HorizontalPager
             var bitmap by remember(entry.filePath) { mutableStateOf<ImageBitmap?>(null) }
@@ -1093,32 +1118,47 @@ private fun PhotoViewer(
             }
         }
 
-        // Detection annotation overlay — only when metadata has frame dims
+        // Detection annotation overlay — transforms with the image via the same graphicsLayer.
+        // zoomScale/panOffset are passed through so the tap handler can inverse-transform
+        // touch coordinates back to pre-zoom layout space for correct box hit testing.
         if (m != null && m.frameWidth != null && m.frameHeight != null) {
-            PhotoDetectionOverlay(
-                detections = m.detections,
-                frameWidth = m.frameWidth,
-                frameHeight = m.frameHeight,
-                annotations = localAnnotations,
-                missedBoxes = localMissedBoxes,
-                drawingFnMode = drawingFnMode,
-                onAnnotationChanged = { key, ann ->
-                    val updated = if (ann == null) localAnnotations - key else localAnnotations + (key to ann)
-                    localAnnotations = updated
-                    onUpdateDetectionAnnotations?.invoke(currentEntry.filePath, updated, localMissedBoxes)
-                },
-                onMissedBoxAdded = { box ->
-                    val updated = localMissedBoxes + box
-                    localMissedBoxes = updated
-                    drawingFnMode = false
-                    onUpdateDetectionAnnotations?.invoke(currentEntry.filePath, localAnnotations, updated)
-                },
-                onMissedBoxRemoved = { idx ->
-                    val updated = localMissedBoxes.toMutableList().also { it.removeAt(idx) }
-                    localMissedBoxes = updated
-                    onUpdateDetectionAnnotations?.invoke(currentEntry.filePath, localAnnotations, updated)
-                },
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        scaleX = zoomScale
+                        scaleY = zoomScale
+                        translationX = panOffset.x
+                        translationY = panOffset.y
+                    },
+            ) {
+                PhotoDetectionOverlay(
+                    detections = m.detections,
+                    frameWidth = m.frameWidth,
+                    frameHeight = m.frameHeight,
+                    annotations = localAnnotations,
+                    missedBoxes = localMissedBoxes,
+                    drawingFnMode = drawingFnMode,
+                    zoomScale = zoomScale,
+                    panOffset = panOffset,
+                    onAnnotationChanged = { key, ann ->
+                        val updated = if (ann == null) localAnnotations - key else localAnnotations + (key to ann)
+                        localAnnotations = updated
+                        onUpdateDetectionAnnotations?.invoke(currentEntry.filePath, updated, localMissedBoxes)
+                    },
+                    onMissedBoxAdded = { box ->
+                        val updated = localMissedBoxes + box
+                        localMissedBoxes = updated
+                        drawingFnMode = false
+                        onUpdateDetectionAnnotations?.invoke(currentEntry.filePath, localAnnotations, updated)
+                    },
+                    onMissedBoxRemoved = { idx ->
+                        val updated = localMissedBoxes.toMutableList().also { it.removeAt(idx) }
+                        localMissedBoxes = updated
+                        onUpdateDetectionAnnotations?.invoke(currentEntry.filePath, localAnnotations, updated)
+                    },
+                )
+            }
         }
 
         // Page indicator dots (when > 1 photo)
@@ -1230,6 +1270,8 @@ private fun PhotoDetectionOverlay(
     onAnnotationChanged: (String, DetectionAnnotation?) -> Unit,
     onMissedBoxAdded: (BoundingBox) -> Unit,
     onMissedBoxRemoved: (Int) -> Unit,
+    zoomScale: Float = 1f,
+    panOffset: Offset = Offset.Zero,
 ) {
     val textMeasurer = rememberTextMeasurer()
     var canvasSize by remember { mutableStateOf(IntSize.Zero) }
@@ -1299,22 +1341,31 @@ private fun PhotoDetectionOverlay(
 
         if (drawingFnMode) {
             Box(
-                modifier = Modifier.fillMaxSize().pointerInput(canvasSize, frameWidth, frameHeight) {
+                modifier = Modifier.fillMaxSize().pointerInput(canvasSize, frameWidth, frameHeight, zoomScale, panOffset) {
                     val sw = canvasSize.width.toFloat(); val sh = canvasSize.height.toFloat()
                     if (sw <= 0f || sh <= 0f) return@pointerInput
                     val scale = min(sw / frameWidth, sh / frameHeight)
                     val ox = (sw - frameWidth * scale) / 2f
                     val oy = (sh - frameHeight * scale) / 2f
+                    val cx = sw / 2f; val cy = sh / 2f
+                    // Inverse-transform a screen position (in graphicsLayer-transformed space)
+                    // back to pre-transform layout space, then to frame coordinates.
+                    fun toFrame(p: Offset): Offset {
+                        val lx = if (zoomScale != 1f) cx + (p.x - panOffset.x - cx) / zoomScale else p.x
+                        val ly = if (zoomScale != 1f) cy + (p.y - panOffset.y - cy) / zoomScale else p.y
+                        return Offset((lx - ox) / scale, (ly - oy) / scale)
+                    }
                     detectDragGestures(
                         onDragStart = { o -> dragStart = o; dragCurrent = o },
                         onDrag = { change, _ -> dragCurrent = change.position },
                         onDragEnd = {
                             val s = dragStart; val e = dragCurrent
                             if (s != null && e != null) {
-                                val fx1 = ((s.x - ox) / scale).coerceIn(0f, frameWidth.toFloat())
-                                val fy1 = ((s.y - oy) / scale).coerceIn(0f, frameHeight.toFloat())
-                                val fx2 = ((e.x - ox) / scale).coerceIn(0f, frameWidth.toFloat())
-                                val fy2 = ((e.y - oy) / scale).coerceIn(0f, frameHeight.toFloat())
+                                val f1 = toFrame(s); val f2 = toFrame(e)
+                                val fx1 = f1.x.coerceIn(0f, frameWidth.toFloat())
+                                val fy1 = f1.y.coerceIn(0f, frameHeight.toFloat())
+                                val fx2 = f2.x.coerceIn(0f, frameWidth.toFloat())
+                                val fy2 = f2.y.coerceIn(0f, frameHeight.toFloat())
                                 val box = BoundingBox(
                                     x = min(fx1, fx2), y = min(fy1, fy2),
                                     width = abs(fx2 - fx1), height = abs(fy2 - fy1),
@@ -1329,15 +1380,17 @@ private fun PhotoDetectionOverlay(
             )
         } else {
             // Custom tap handler that observes without consuming the down event so
-            // HorizontalPager swipes and the page-level pinch-to-zoom still work.
-            // Events are only consumed when the tap actually lands on a detection box.
+            // the page-level pinch-to-zoom still works. Events are only consumed when
+            // the tap lands on a detection box. Touch coords are inverse-transformed
+            // from graphicsLayer space back to pre-zoom layout space before hit testing.
             Box(
-                modifier = Modifier.fillMaxSize().pointerInput(canvasSize, frameWidth, frameHeight, annotations, missedBoxes) {
+                modifier = Modifier.fillMaxSize().pointerInput(canvasSize, frameWidth, frameHeight, annotations, missedBoxes, zoomScale, panOffset) {
                     val sw = canvasSize.width.toFloat(); val sh = canvasSize.height.toFloat()
                     if (sw <= 0f || sh <= 0f) return@pointerInput
                     val scale = min(sw / frameWidth, sh / frameHeight)
                     val ox = (sw - frameWidth * scale) / 2f
                     val oy = (sh - frameHeight * scale) / 2f
+                    val cx = sw / 2f; val cy = sh / 2f
                     val slop = viewConfiguration.touchSlop
                     awaitEachGesture {
                         val down = awaitFirstDown(requireUnconsumed = false)
@@ -1355,9 +1408,12 @@ private fun PhotoDetectionOverlay(
                             }
                         }
                         val upChange = tapUp ?: return@awaitEachGesture
-                        val offset = down.position
-                        val fx = (offset.x - ox) / scale
-                        val fy = (offset.y - oy) / scale
+                        val raw = down.position
+                        // Inverse-transform from graphicsLayer-transformed space to pre-zoom layout space
+                        val lx = if (zoomScale != 1f) cx + (raw.x - panOffset.x - cx) / zoomScale else raw.x
+                        val ly = if (zoomScale != 1f) cy + (raw.y - panOffset.y - cy) / zoomScale else raw.y
+                        val fx = (lx - ox) / scale
+                        val fy = (ly - oy) / scale
                         val missedHit = missedBoxes.indexOfFirst { b ->
                             fx >= b.left && fx <= b.right && fy >= b.top && fy <= b.bottom
                         }
