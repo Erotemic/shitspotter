@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ShitSpotter</string>
-    <string name="camera_permission_rationale">ShitSpotter needs camera access to run live, fully-on-device detection. The app does not record or upload video.</string>
+    <string name="app_name">ScatSpotter</string>
+    <string name="camera_permission_rationale">ScatSpotter needs camera access to run live, fully-on-device detection. The app does not record or upload video.</string>
 </resources>

@@ -163,7 +163,7 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Deb, TargetFormat.AppImage)
-            packageName = "ShitSpotter"
+            packageName = "ScatSpotter"
             packageVersion = "0.1.0"
         }
     }

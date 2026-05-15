@@ -266,7 +266,7 @@ class MainActivity : ComponentActivity() {
             add(jpegFile)
             if (jsonFile.exists()) add(jsonFile)
         }
-        sendFilesViaEmail(files, "ShitSpotter — 1 photo")
+        sendFilesViaEmail(files, "ScatSpotter — 1 photo")
     }
 
     private fun sharePhotos(filePaths: List<String>) {
@@ -279,7 +279,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         if (files.isEmpty()) { state.setError("No files to send"); return }
-        sendFilesViaEmail(files, "ShitSpotter — ${filePaths.size} photo(s)")
+        sendFilesViaEmail(files, "ScatSpotter — ${filePaths.size} photo(s)")
     }
 
     private fun shareAllPhotos() {
@@ -296,7 +296,7 @@ class MainActivity : ComponentActivity() {
                     if (jsonFile.exists()) add(jsonFile)
                 }
             }
-            sendFilesViaEmail(files, "ShitSpotter — ${entries.size} photo(s)")
+            sendFilesViaEmail(files, "ScatSpotter — ${entries.size} photo(s)")
         }
     }
 
@@ -320,7 +320,7 @@ class MainActivity : ComponentActivity() {
             putExtra(Intent.EXTRA_SUBJECT, subject)
             putExtra(
                 Intent.EXTRA_TEXT,
-                "ShitSpotter capture data. See attached JPEG + JSON metadata.",
+                "ScatSpotter capture data. See attached JPEG + JSON metadata.",
             )
             putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -415,7 +415,7 @@ private fun PermissionRationale(onRequest: () -> Unit) {
             modifier = Modifier.padding(24.dp),
         ) {
             Text(
-                "ShitSpotter needs camera access to run live, fully-on-device detection.",
+                "ScatSpotter needs camera access to run live, fully-on-device detection.",
                 color = Color.White,
             )
             Text(
