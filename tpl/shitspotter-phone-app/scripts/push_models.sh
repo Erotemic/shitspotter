@@ -71,6 +71,20 @@ find_model() {
 # Make sure the app data dir exists (launch the app first if not).
 adb shell mkdir -p "$MODELS_DST"
 
+# Migrate any models that are still in the old package's external dir.
+OLD_DIRS=(
+    "/sdcard/Android/data/io.kitware.shitspotter/files/models"
+    "/sdcard/Android/data/io.github.erotemic.shitspotter/files/models"
+)
+for old in "${OLD_DIRS[@]}"; do
+    if [ "$old" = "$MODELS_DST" ]; then continue; fi
+    count=$(adb shell "ls '$old'/*.onnx 2>/dev/null | wc -l" | tr -d '[:space:]')
+    if [ "${count:-0}" -gt 0 ]; then
+        echo "→ migrating models from $old"
+        adb shell "for f in '$old'/*.onnx; do dst='$MODELS_DST/\$(basename \"\$f\")'; [ -f \"\$dst\" ] || cp \"\$f\" \"\$dst\" && echo \"  cp \$(basename \$f)\"; done"
+    fi
+done
+
 # All model files the app's ModelRegistry knows about.
 KNOWN=(
     yolox_nano_poop_cropped_only_best.onnx
