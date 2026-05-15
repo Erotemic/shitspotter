@@ -1031,11 +1031,18 @@ private fun PhotoViewer(
                     .pointerInput(Unit) {
                         awaitEachGesture {
                             awaitFirstDown(requireUnconsumed = false)
+                            println("[SSGesture] gesture started page=$page zoom=$zoomScale")
+                            var eventCount = 0
                             while (true) {
                                 val event = awaitPointerEvent()
                                 val pressed = event.changes.filter { it.pressed }
-                                if (pressed.isEmpty()) break
+                                eventCount++
+                                if (pressed.isEmpty()) {
+                                    println("[SSGesture] gesture ended after $eventCount events zoom=$zoomScale")
+                                    break
+                                }
                                 if (pressed.size >= 2) {
+                                    println("[SSGesture] pinch detected pointers=${pressed.size}")
                                     // Pinch — compute zoom from distance change between two fingers
                                     val a = pressed[0]; val b = pressed[1]
                                     val curr = (a.position - b.position).getDistance()

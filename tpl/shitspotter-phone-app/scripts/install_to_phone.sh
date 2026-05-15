@@ -63,6 +63,7 @@ TAIL_FILTER=(
     "ShitSpotter.Settings:V"
     "ShitSpotter.Desktop:V"
     "AndroidRuntime:E"
+    "System.out:V"
     "libc:F"
     "DEBUG:V"
 )
