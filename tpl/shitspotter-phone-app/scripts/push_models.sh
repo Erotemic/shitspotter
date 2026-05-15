@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Push ONNX models from tpl/poop_models/ to a connected Android device.
+# Push ONNX models to a connected Android device.
 # Run this on the workstation that has the Pixel 5 plugged in.
 #
 # Usage:
@@ -11,6 +11,11 @@
 #   1. /sdcard/Android/data/<pkg>/files/models/   ← this script writes here
 #   2. internal cache (previously copied from APK assets)
 #   3. APK assets (bundled at build time)
+#
+# Model search order (first match wins):
+#   tpl/poop_models/<file>
+#   /data/joncrall/shitspotter_v4/runs/*/export/<file>
+#   /data/joncrall/dvc-repos/shitspotter_dvc/models/**/<prefix>*.onnx
 
 set -euo pipefail
 
@@ -35,19 +40,38 @@ case "$VARIANT" in
 esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MODELS_SRC="$(cd "$SCRIPT_DIR/../../poop_models" && pwd)"
+POOP_MODELS="$(cd "$SCRIPT_DIR/../../poop_models" 2>/dev/null && pwd)" || POOP_MODELS=""
+RUNS_DIR="/data/joncrall/shitspotter_v4/runs"
+DVC_MODELS="/data/joncrall/dvc-repos/shitspotter_dvc/models"
 MODELS_DST="/sdcard/Android/data/$PKG/files/models"
 
-if [ ! -d "$MODELS_SRC" ]; then
-    echo "ERROR: model source dir not found: $MODELS_SRC" >&2
-    echo "       expected tpl/poop_models/ relative to this script" >&2
-    exit 1
-fi
+# Find a model file by its canonical name. Checks multiple source locations.
+find_model() {
+    local name="$1"
+    # 1. poop_models dir
+    if [ -n "$POOP_MODELS" ] && [ -f "$POOP_MODELS/$name" ]; then
+        echo "$POOP_MODELS/$name"; return
+    fi
+    # 2. shitspotter_v4 run export dirs
+    if [ -d "$RUNS_DIR" ]; then
+        local hit
+        hit=$(find "$RUNS_DIR" -name "$name" -path "*/export/*" 2>/dev/null | head -1)
+        if [ -n "$hit" ]; then echo "$hit"; return; fi
+    fi
+    # 3. DVC models dir — match on prefix (handles long checkpoint filenames)
+    if [ -d "$DVC_MODELS" ]; then
+        local prefix="${name%.onnx}"
+        local hit
+        hit=$(find "$DVC_MODELS" -name "${prefix}*.onnx" 2>/dev/null | head -1)
+        if [ -n "$hit" ]; then echo "$hit"; return; fi
+    fi
+    echo ""
+}
 
-# Make sure the app has created the data dir (launch it first if not).
+# Make sure the app data dir exists (launch the app first if not).
 adb shell mkdir -p "$MODELS_DST"
 
-# Push only the ONNX files the app's ModelRegistry knows about.
+# All model files the app's ModelRegistry knows about.
 KNOWN=(
     yolox_nano_poop_cropped_only_best.onnx
     shitspotter-custom-v5-epoch_115.onnx
@@ -60,22 +84,22 @@ KNOWN=(
 )
 
 pushed=0
-skipped=0
 missing=0
 
 for f in "${KNOWN[@]}"; do
-    src="$MODELS_SRC/$f"
-    if [ -f "$src" ]; then
+    src=$(find_model "$f")
+    if [ -n "$src" ]; then
         sz=$(du -h "$src" | cut -f1)
         echo "→ pushing $f ($sz)"
+        echo "  from: $src"
         adb push "$src" "$MODELS_DST/$f"
         pushed=$((pushed + 1))
     else
-        echo "  skip $f (not in $MODELS_SRC)"
+        echo "  skip $f (not found in any search path)"
         missing=$((missing + 1))
     fi
 done
 
 echo
-echo "done: $pushed pushed, $missing not found locally"
+echo "done: $pushed pushed, $missing not found"
 echo "destination: $MODELS_DST"
