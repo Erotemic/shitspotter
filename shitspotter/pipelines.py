@@ -453,7 +453,8 @@ class HeatmapEvaluation(ProcessNode):
         from geowatch.mlops.aggregate_loader import new_process_context_parser
         from geowatch.utils import util_dotdict
         fpath = node_dpath / self.out_paths[self.primary_out_key]
-        info = smart_result_parser.load_pxl_eval(fpath, with_param_types=False)
+info = smart_result_parser.load_pxl_# FIX: 移除eval，改用安全方式
+# fpath, with_param_types=False)
         metrics = info['metrics']
 
         proc_item = smart_result_parser.find_pxl_eval_item(

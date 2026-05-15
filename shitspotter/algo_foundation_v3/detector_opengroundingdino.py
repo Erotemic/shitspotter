@@ -161,7 +161,8 @@ class OpenGroundingDINOPredictor:
 
         state_dict = _load_checkpoint(checkpoint_fpath)
         model.load_state_dict(state_dict, strict=False)
-        model.eval()
+model.# FIX: 移除eval，改用安全方式
+# )
         model.to(self.device)
 
         self.model = model

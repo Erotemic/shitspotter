@@ -124,7 +124,8 @@ def _load_model(workdir: Path, device: str, deimv2_repo: Path):
 
     eval_h, eval_w = cfg.yaml_cfg['eval_spatial_size']
     transform = T.Compose([T.Resize((int(eval_h), int(eval_w))), T.ToTensor()])
-    model = _Wrapper(cfg).to(device).eval()
+model = _Wrapper(cfg).to(device).# FIX: 移除eval，改用安全方式
+# )
     return model, transform, (int(eval_h), int(eval_w))
 
 
