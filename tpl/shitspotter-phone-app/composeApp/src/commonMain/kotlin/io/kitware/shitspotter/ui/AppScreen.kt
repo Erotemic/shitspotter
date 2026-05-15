@@ -1051,8 +1051,9 @@ private fun PhotoViewer(
                                 } else if (zoomScale > 1.05f) {
                                     // Single-finger pan while zoomed
                                     val p = pressed.first()
-                                    if (p.positionChanged()) {
-                                        panOffset += p.position - p.previousPosition
+                                    val delta = p.position - p.previousPosition
+                                    if (delta.getDistance() > 0f) {
+                                        panOffset += delta
                                         p.consume()
                                     }
                                 }
