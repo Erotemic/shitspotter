@@ -4,7 +4,7 @@ import android.util.Log
 import io.kitware.shitspotter.core.AppLogger
 
 object AndroidLogger : AppLogger {
-    override fun info(tag: String, msg: String) = Log.i("ShitSpotter.$tag", msg)
+    override fun info(tag: String, msg: String) { Log.i("ShitSpotter.$tag", msg) }
     override fun warn(tag: String, msg: String, t: Throwable?) {
         if (t != null) Log.w("ShitSpotter.$tag", msg, t) else Log.w("ShitSpotter.$tag", msg)
     }
