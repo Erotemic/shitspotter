@@ -24,7 +24,6 @@ import io.kitware.shitspotter.core.FrameSource
 import io.kitware.shitspotter.core.FrameTelemetry
 import io.kitware.shitspotter.core.LatencyAccumulator
 import io.kitware.shitspotter.core.filterByScore
-import io.kitware.shitspotter.core.PrintlnLogger
 import io.kitware.shitspotter.core.nowMonoMs
 import java.util.concurrent.Executor
 import java.util.concurrent.ExecutorService
@@ -42,7 +41,7 @@ class CameraAnalysisLoop(
     private val lifecycleOwner: LifecycleOwner,
     private val state: AppState,
     private val backendManager: AndroidBackendManager,
-    private val logger: AppLogger = PrintlnLogger,
+    private val logger: AppLogger = AndroidLogger,
     private val targetAnalysisSize: Size = Size(640, 480),
 ) {
     @Volatile var isPaused: Boolean = false
