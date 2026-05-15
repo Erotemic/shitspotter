@@ -257,7 +257,7 @@ class CameraAnalysisLoop(
     }
 
     companion object {
-        const val TAG = "ShitSpotter.AnalysisLoop"
+        const val TAG = "AnalysisLoop"
     }
 }
 
