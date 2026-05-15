@@ -91,11 +91,11 @@ kotlin {
 }
 
 android {
-    namespace = "io.kitware.shitspotter"
+    namespace = "io.github.erotemic.shitspotter"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "io.kitware.shitspotter"
+        applicationId = "io.github.erotemic.shitspotter"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
@@ -159,7 +159,7 @@ android {
 
 compose.desktop {
     application {
-        mainClass = "io.kitware.shitspotter.desktop.MainKt"
+        mainClass = "io.github.erotemic.shitspotter.desktop.MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Deb, TargetFormat.AppImage)

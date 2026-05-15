@@ -50,8 +50,8 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-PKG="io.kitware.shitspotter"
-ACTIVITY="$PKG/io.kitware.shitspotter.android.MainActivity"
+PKG="io.github.erotemic.shitspotter"
+ACTIVITY="$PKG/io.github.erotemic.shitspotter.android.MainActivity"
 # Tags to show during tail. ":S" at the end silences every other tag.
 TAIL_FILTER=(
     -v threadtime

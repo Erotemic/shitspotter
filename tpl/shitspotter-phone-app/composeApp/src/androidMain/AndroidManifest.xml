@@ -16,7 +16,7 @@
         android:theme="@android:style/Theme.Material.NoActionBar">
 
         <activity
-            android:name="io.kitware.shitspotter.android.MainActivity"
+            android:name="io.github.erotemic.shitspotter.android.MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
             android:screenOrientation="portrait"
