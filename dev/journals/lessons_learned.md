@@ -500,3 +500,77 @@ What did **not** run on the VM (requires phone):
 Each is documented as such in
 `dev/journals/2026-05-10_phone_app_kmp_scaffold.md` and
 `tpl/shitspotter-phone-app/docs/001_build_run_validate.md`.
+
+---
+
+## 2026-05-15: Compose gesture pass-through — two independent bugs that look identical
+
+### Trigger
+
+Adding pinch-to-zoom and per-photo swipe navigation to the ShitSpotter
+phone app photo viewer (`PhotoViewer` in `AppScreen.kt`). User reported
+"pinch to zoom and swipe to move to the next photo do not work."
+
+### Symptoms
+
+After adding `PhotoDetectionOverlay` (sibling `Box` with `fillMaxSize` +
+`detectTapGestures`) and `Modifier.transformable` on the pager page
+content Box, both single-finger swipe and two-finger pinch stopped
+working completely. Detection box tapping and FN box drawing still worked.
+
+### Root cause
+
+Two independent bugs with identical surface symptoms:
+
+**Bug 1 — `detectTapGestures` always consumes pointer-down.**
+`detectTapGestures` internally calls `awaitFirstDown().also { it.consume() }`.
+Because the overlay is higher z-order and processes events first, every
+single-finger down was consumed before reaching the pager's scroll
+handler or the page content's gesture handler.
+
+**Bug 2 — `Modifier.transformable` always consumes single-finger drag.**
+`transformable` wraps `detectTransformGestures`, which calls
+`event.changes.forEach { it.consume() }` once movement exceeds
+`touchSlop` — even for single-finger horizontal drags at `zoomScale==1f`.
+So even after fixing Bug 1, the pager's `scrollable` still never saw a
+swipe because the child page Box's `transformable` consumed it first
+(Main pass: child before parent).
+
+The initial wrong hypothesis was that the overlay was the sole cause.
+Fixing Bug 1 alone was insufficient; Bug 2 independently caused the same
+failure for different reasons.
+
+### Fix
+
+Bug 1: Replace `detectTapGestures` with a custom `awaitEachGesture` loop
+using `awaitFirstDown(requireUnconsumed = false)`. Only consume the *up*
+event when a tap actually lands on a detection or FN box.
+
+Bug 2: Replace `rememberTransformableState + Modifier.transformable` with
+a custom `pointerInput` that consumes only when appropriate:
+- 2-finger touch → consume (pinch zoom)
+- 1-finger touch + `zoomScale > 1.05f` → consume (pan)
+- 1-finger touch + `zoomScale == 1f` → no consume (let pager swipe)
+
+Additional compile note: `PointerInputChange.positionChanged()` is
+absent in Compose Multiplatform 1.7.0 `commonMain`; use
+`(p.position - p.previousPosition).getDistance() > 0f` instead.
+
+### Durable lesson
+
+Any `pointerInput` modifier on a composable that overlaps a scrollable
+container (pager, LazyColumn, ScrollView) must be written with explicit
+consumption logic. The "safe" Compose gesture APIs (`detectTapGestures`,
+`transformable`) eagerly consume events and cannot safely coexist with
+ancestor or sibling scrollables without modification.
+
+Rule of thumb: if a composable's gesture handler should "pass through"
+some events, write a custom `awaitEachGesture` loop and only call
+`change.consume()` when you have confirmed you are handling that gesture.
+
+### Candidate follow-up
+
+Two benchmark candidates added to
+`dev/benchmark-candidates/app-deployment-questions.md`:
+- "Compose `Modifier.transformable` silently blocks `HorizontalPager` swipe" (Level B)
+- "`detectTapGestures` in a full-screen overlay consumes pointer-down, breaking all gesture pass-through" (Level A)
