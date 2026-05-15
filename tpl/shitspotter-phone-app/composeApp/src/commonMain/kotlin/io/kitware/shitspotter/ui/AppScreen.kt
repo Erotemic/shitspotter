@@ -9,8 +9,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.rememberTransformableState
-import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -1018,10 +1016,6 @@ private fun PhotoViewer(
             LaunchedEffect(entry.filePath) {
                 bitmap = withContext(Dispatchers.IO) { loadImageBitmapFromFile(entry.filePath) }
             }
-            val transformState = rememberTransformableState { zoomChange, panChange, _ ->
-                zoomScale = (zoomScale * zoomChange).coerceIn(1f, 8f)
-                panOffset = if (zoomScale > 1f) panOffset + panChange else Offset.Zero
-            }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -1031,7 +1025,41 @@ private fun PhotoViewer(
                         translationX = panOffset.x
                         translationY = panOffset.y
                     }
-                    .transformable(state = transformState),
+                    // Custom pinch/pan handler: only consumes events for 2-finger pinch or
+                    // single-finger pan while zoomed. Single-finger swipe at zoom=1 is NOT
+                    // consumed so HorizontalPager can detect page changes normally.
+                    .pointerInput(Unit) {
+                        awaitEachGesture {
+                            awaitFirstDown(requireUnconsumed = false)
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val pressed = event.changes.filter { it.pressed }
+                                if (pressed.isEmpty()) break
+                                if (pressed.size >= 2) {
+                                    // Pinch — compute zoom from distance change between two fingers
+                                    val a = pressed[0]; val b = pressed[1]
+                                    val curr = (a.position - b.position).getDistance()
+                                    val prev = (a.previousPosition - b.previousPosition).getDistance()
+                                    if (prev > 0f && curr > 0f) {
+                                        zoomScale = (zoomScale * curr / prev).coerceIn(1f, 8f)
+                                    }
+                                    // Pan via centroid shift
+                                    val centroidDelta = (a.position + b.position) / 2f -
+                                        (a.previousPosition + b.previousPosition) / 2f
+                                    if (zoomScale > 1f) panOffset += centroidDelta
+                                    event.changes.forEach { it.consume() }
+                                } else if (zoomScale > 1.05f) {
+                                    // Single-finger pan while zoomed
+                                    val p = pressed.first()
+                                    if (p.positionChanged()) {
+                                        panOffset += p.position - p.previousPosition
+                                        p.consume()
+                                    }
+                                }
+                                // Single-finger at zoom=1: don't consume → pager handles swipe
+                            }
+                        }
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 val bmp = bitmap
@@ -1284,7 +1312,7 @@ private fun PhotoDetectionOverlay(
             )
         } else {
             // Custom tap handler that observes without consuming the down event so
-            // HorizontalPager swipes and transformable pinch-to-zoom still work.
+            // HorizontalPager swipes and the page-level pinch-to-zoom still work.
             // Events are only consumed when the tap actually lands on a detection box.
             Box(
                 modifier = Modifier.fillMaxSize().pointerInput(canvasSize, frameWidth, frameHeight, annotations, missedBoxes) {
