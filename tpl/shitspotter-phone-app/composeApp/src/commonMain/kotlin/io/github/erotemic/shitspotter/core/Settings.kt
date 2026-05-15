@@ -18,6 +18,7 @@ data class AppSettings(
     val metadataMode: MetadataMode = MetadataMode.NO_GPS,
     val showScoreSlider: Boolean = true,
     val recipientEmail: String = "crall.vision@gmail.com",
+    val useOfficialName: Boolean = false,
 )
 
 interface SettingsStore {
@@ -58,6 +59,7 @@ fun AppState.applySettings(s: AppSettings) {
     metadataMode = s.metadataMode
     showScoreSlider = s.showScoreSlider
     recipientEmail = s.recipientEmail
+    useOfficialName = s.useOfficialName
 }
 
 fun AppState.toSettings(): AppSettings = AppSettings(
@@ -68,4 +70,5 @@ fun AppState.toSettings(): AppSettings = AppSettings(
     metadataMode = metadataMode,
     showScoreSlider = showScoreSlider,
     recipientEmail = recipientEmail,
+    useOfficialName = useOfficialName,
 )

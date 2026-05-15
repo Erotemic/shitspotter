@@ -34,6 +34,7 @@ class AppState {
     var reviewMode: Boolean by mutableStateOf(false)
     var capturedPhotos: List<CaptureReviewEntry> by mutableStateOf(emptyList())
     var viewingPhotoPath: String? by mutableStateOf(null)
+    var useOfficialName: Boolean by mutableStateOf(false)
 
     fun pushFrame(detections: List<Detection>, telemetry: FrameTelemetry, frameW: Int, frameH: Int) {
         lastDetections = detections

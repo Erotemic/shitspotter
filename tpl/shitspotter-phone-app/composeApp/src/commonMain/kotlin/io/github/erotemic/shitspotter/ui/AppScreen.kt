@@ -184,6 +184,15 @@ fun AppScreen(
                         .verticalScroll(rememberScrollState())
                         .padding(end = 16.dp),
                 ) {
+                    if (state.useOfficialName) {
+                        Text(
+                            "ShitSpotter",
+                            color = Color(0xFFFFCC00),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Spacer(Modifier.height(2.dp))
+                    }
                     if (state.showFps) {
                         TelemetryHud(
                             telemetry = state.lastTelemetry,
@@ -424,6 +433,7 @@ private fun SettingsDialog(state: AppState, onDismiss: () -> Unit) {
                 ToggleItem("Show HUD", state.showFps) { state.showFps = it }
                 ToggleItem("Show score slider", state.showScoreSlider) { state.showScoreSlider = it }
                 ToggleItem("Use front camera", state.useFrontCamera) { state.useFrontCamera = it }
+                ToggleItem("ShitSpotter mode", state.useOfficialName) { state.useOfficialName = it }
                 HorizontalDivider()
                 MetadataToggles(state)
                 HorizontalDivider()

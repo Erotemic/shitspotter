@@ -68,7 +68,6 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
         cameraPermissionGranted.value = granted
-        if (granted) requestLocationPermission()
     }
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -88,8 +87,6 @@ class MainActivity : ComponentActivity() {
         cameraPermissionGranted.value = have
         if (!have) {
             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-        } else {
-            requestLocationPermission()
         }
 
         setContent {
@@ -114,6 +111,18 @@ class MainActivity : ComponentActivity() {
                             .collect { reviewing ->
                                 AndroidLogger.info("MainActivity", if (reviewing) "nav → review screen" else "nav → camera view")
                                 androidSurface?.setPaused(reviewing)
+                                if (reviewing) {
+                                    window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                                } else {
+                                    window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                                }
+                            }
+                    }
+                    LaunchedEffect(Unit) {
+                        snapshotFlow { state.metadataMode }
+                            .distinctUntilChanged()
+                            .collect { mode ->
+                                if (mode == MetadataMode.FULL) requestLocationPermission()
                             }
                     }
                     LaunchedEffect(Unit) {

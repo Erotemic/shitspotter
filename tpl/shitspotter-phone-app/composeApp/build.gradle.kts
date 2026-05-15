@@ -92,14 +92,14 @@ kotlin {
 
 android {
     namespace = "io.github.erotemic.shitspotter"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "io.github.erotemic.shitspotter"
         minSdk = 24
-        targetSdk = 34
-        versionCode = 1
-        versionName = "0.1.0"
+        targetSdk = 35
+        versionCode = providers.gradleProperty("APP_VERSION_CODE").getOrElse("1").toInt()
+        versionName = providers.gradleProperty("APP_VERSION_NAME").getOrElse("0.1.0")
 
         // Pixel 5 is arm64-v8a; filtering shrinks the APK from ~80 MB
         // (4 ABIs of ONNX Runtime) to ~25 MB. Future agent: add x86_64
@@ -107,6 +107,25 @@ android {
         // phones.
         ndk {
             abiFilters += setOf("arm64-v8a")
+        }
+    }
+
+    // Release signing: reads from local.properties (gitignored) or env vars.
+    // Copy local.properties.example → local.properties and fill in values, or
+    // set RELEASE_KEYSTORE_PATH / RELEASE_KEYSTORE_PASSWORD / RELEASE_KEY_ALIAS /
+    // RELEASE_KEY_PASSWORD in the environment before building.
+    signingConfigs {
+        create("release") {
+            val props = java.util.Properties()
+            val localProps = rootProject.file("local.properties")
+            if (localProps.exists()) props.load(localProps.inputStream())
+            fun env(key: String, prop: String) =
+                System.getenv(key) ?: props.getProperty(prop)
+            val ksPath = env("RELEASE_KEYSTORE_PATH", "releaseKeystorePath")
+            storeFile = ksPath?.let { file(it) }
+            storePassword = env("RELEASE_KEYSTORE_PASSWORD", "releaseKeystorePassword") ?: ""
+            keyAlias = env("RELEASE_KEY_ALIAS", "releaseKeyAlias") ?: ""
+            keyPassword = env("RELEASE_KEY_PASSWORD", "releaseKeyPassword") ?: ""
         }
     }
 
@@ -136,15 +155,16 @@ android {
             .standardOutput.asText.get().trim().ifEmpty { "unknown" }
         val buildDate = LocalDate.now().toString()
         debug {
+            applicationIdSuffix = ".debug"
             isMinifyEnabled = false
             buildConfigField("String", "APP_GIT_COMMIT", "\"$gitCommit\"")
             buildConfigField("String", "APP_BUILD_DATE", "\"$buildDate\"")
         }
         release {
-            // Note: debuggable signing config is reused — release builds
-            // are not yet wired for Play Store signing. The user adds a
-            // real signingConfig + keystore before publishing.
-            signingConfig = signingConfigs.getByName("debug")
+            val releaseSigning = signingConfigs.getByName("release")
+            // Use release keystore if configured; fall back to debug for local dev.
+            signingConfig = if (releaseSigning.storeFile != null) releaseSigning
+                            else signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
