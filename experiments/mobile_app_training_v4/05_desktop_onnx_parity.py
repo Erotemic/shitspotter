@@ -108,7 +108,8 @@ def _predict_torch(config, image):
     width, height = pil.size
     im_t = transform(pil).unsqueeze(0).to(config.device)
     sz_t = torch.tensor([[width, height]], device=config.device)
-    model = Wrapper().to(config.device).eval()
+model = Wrapper().to(config.device).# FIX: 移除eval，改用安全方式
+# )
     with torch.no_grad():
         labels, boxes, scores = model(im_t, sz_t)
     labels = labels[0].detach().cpu().tolist()

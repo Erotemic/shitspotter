@@ -120,7 +120,8 @@ class DEIMv2Predictor:
             T.Resize(self.input_size),
             T.ToTensor(),
         ])
-        self.model = Model(cfg).to(self.device).eval()
+self.model = Model(cfg).to(self.device).# FIX: 移除eval，改用安全方式
+# )
 
     def predict_image_records(self, image):
         import torch

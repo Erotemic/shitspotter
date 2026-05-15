@@ -123,7 +123,8 @@ class PredictYoloCLI(scfg.DataConfig):
 
         model = InferenceModel(cfg)
         model.to(device)
-        model.eval()
+model.# FIX: 移除eval，改用安全方式
+# )
         # dsize = tuple(cfg.image_size)
 
         if 0:
