@@ -1024,49 +1024,6 @@ private fun PhotoViewer(
                         scaleY = zoomScale
                         translationX = panOffset.x
                         translationY = panOffset.y
-                    }
-                    // Custom pinch/pan handler: only consumes events for 2-finger pinch or
-                    // single-finger pan while zoomed. Single-finger swipe at zoom=1 is NOT
-                    // consumed so HorizontalPager can detect page changes normally.
-                    .pointerInput(Unit) {
-                        awaitEachGesture {
-                            awaitFirstDown(requireUnconsumed = false)
-                            println("[SSGesture] gesture started page=$page zoom=$zoomScale")
-                            var eventCount = 0
-                            while (true) {
-                                val event = awaitPointerEvent()
-                                val pressed = event.changes.filter { it.pressed }
-                                eventCount++
-                                if (pressed.isEmpty()) {
-                                    println("[SSGesture] gesture ended after $eventCount events zoom=$zoomScale")
-                                    break
-                                }
-                                if (pressed.size >= 2) {
-                                    println("[SSGesture] pinch detected pointers=${pressed.size}")
-                                    // Pinch — compute zoom from distance change between two fingers
-                                    val a = pressed[0]; val b = pressed[1]
-                                    val curr = (a.position - b.position).getDistance()
-                                    val prev = (a.previousPosition - b.previousPosition).getDistance()
-                                    if (prev > 0f && curr > 0f) {
-                                        zoomScale = (zoomScale * curr / prev).coerceIn(1f, 8f)
-                                    }
-                                    // Pan via centroid shift
-                                    val centroidDelta = (a.position + b.position) / 2f -
-                                        (a.previousPosition + b.previousPosition) / 2f
-                                    if (zoomScale > 1f) panOffset += centroidDelta
-                                    event.changes.forEach { it.consume() }
-                                } else if (zoomScale > 1.05f) {
-                                    // Single-finger pan while zoomed
-                                    val p = pressed.first()
-                                    val delta = p.position - p.previousPosition
-                                    if (delta.getDistance() > 0f) {
-                                        panOffset += delta
-                                        p.consume()
-                                    }
-                                }
-                                // Single-finger at zoom=1: don't consume → pager handles swipe
-                            }
-                        }
                     },
                 contentAlignment = Alignment.Center,
             ) {
@@ -1083,6 +1040,51 @@ private fun PhotoViewer(
                 }
             }
         }
+
+        // Gesture handler as a sibling of HorizontalPager. Inside HorizontalPager's
+        // LazyLayout, pointerInput on page content is never dispatched. As a sibling
+        // it is always in the hit-test tree. Single-finger swipes at zoom=1 are left
+        // unconsumed so the pager's own scrollable can still drive page changes.
+        Box(
+            modifier = Modifier.fillMaxSize().pointerInput(Unit) {
+                println("[SSGesture] handler installed")
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    println("[SSGesture] gesture started zoom=$zoomScale")
+                    var eventCount = 0
+                    while (true) {
+                        val event = awaitPointerEvent()
+                        val pressed = event.changes.filter { it.pressed }
+                        eventCount++
+                        if (pressed.isEmpty()) {
+                            println("[SSGesture] ended after $eventCount events zoom=$zoomScale")
+                            break
+                        }
+                        if (pressed.size >= 2) {
+                            println("[SSGesture] pinch pointers=${pressed.size} zoom=$zoomScale")
+                            val a = pressed[0]; val b = pressed[1]
+                            val curr = (a.position - b.position).getDistance()
+                            val prev = (a.previousPosition - b.previousPosition).getDistance()
+                            if (prev > 0f && curr > 0f) {
+                                zoomScale = (zoomScale * curr / prev).coerceIn(1f, 8f)
+                            }
+                            val centroidDelta = (a.position + b.position) / 2f -
+                                (a.previousPosition + b.previousPosition) / 2f
+                            if (zoomScale > 1f) panOffset += centroidDelta
+                            event.changes.forEach { it.consume() }
+                        } else if (zoomScale > 1.05f) {
+                            val p = pressed.first()
+                            val delta = p.position - p.previousPosition
+                            if (delta.getDistance() > 0f) {
+                                panOffset += delta
+                                p.consume()
+                            }
+                        }
+                        // Single-finger at zoom=1: don't consume → pager handles swipe
+                    }
+                }
+            },
+        )
 
         // Detection annotation overlay — only when metadata has frame dims
         if (m != null && m.frameWidth != null && m.frameHeight != null) {
