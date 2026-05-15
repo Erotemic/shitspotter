@@ -6,8 +6,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -33,6 +34,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
@@ -59,6 +61,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
@@ -785,6 +788,9 @@ private fun ReviewScreen(
                                 selectedPaths = setOf(entry.filePath)
                             },
                             onUpdateLabel = onUpdateLabel,
+                            onDelete = if (onDeletePhoto != null) {
+                                { onDeletePhoto(entry.filePath) }
+                            } else null,
                         )
                         HorizontalDivider(color = Color(0x33FFFFFF))
                     }
@@ -823,8 +829,10 @@ private fun ReviewPhotoRow(
     onToggleSelect: () -> Unit,
     onLongPress: (() -> Unit)? = null,
     onUpdateLabel: ((String, CaptureLabel, String?) -> Unit)?,
+    onDelete: (() -> Unit)? = null,
 ) {
     var showAnnotatePicker by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     if (showAnnotatePicker) {
         LabelPickerDialog(
@@ -836,6 +844,21 @@ private fun ReviewPhotoRow(
             onDismiss = { showAnnotatePicker = false },
         )
     }
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete photo?") },
+            text = { Text("This cannot be undone.", color = Color(0xFFCCCCCC)) },
+            confirmButton = {
+                TextButton(onClick = { showDeleteConfirm = false; onDelete?.invoke() }) {
+                    Text("Delete", color = Color(0xFFFF6666))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+            },
+        )
+    }
 
     Row(
         modifier = Modifier
@@ -845,7 +868,7 @@ private fun ReviewPhotoRow(
                 onClick = if (selectionMode) onToggleSelect else onTap,
                 onLongClick = if (!selectionMode && onLongPress != null) onLongPress else null,
             )
-            .padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
+            .padding(start = 12.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (selectionMode) {
@@ -886,20 +909,34 @@ private fun ReviewPhotoRow(
                 )
             }
         }
-        // Label chip — tap to annotate (only outside selection mode)
-        Box(
-            modifier = Modifier
-                .padding(end = 52.dp)
-                .clickable(enabled = !selectionMode && onUpdateLabel != null) { showAnnotatePicker = true }
-                .background(Color(0x44FFFFFF))
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-        ) {
-            Text(
-                text = labelDisplayText(entry.label),
-                color = labelDisplayColor(entry.label),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
+        // Label chip + delete button (outside selection mode)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .clickable(enabled = !selectionMode && onUpdateLabel != null) { showAnnotatePicker = true }
+                    .background(Color(0x44FFFFFF))
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+            ) {
+                Text(
+                    text = labelDisplayText(entry.label),
+                    color = labelDisplayColor(entry.label),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            if (!selectionMode && onDelete != null) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                        ) { showDeleteConfirm = true },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("🗑", fontSize = 16.sp, color = Color(0xFFFF6666))
+                }
+            }
         }
     }
 }
@@ -988,12 +1025,12 @@ private fun PhotoViewer(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .graphicsLayer(
-                        scaleX = zoomScale,
-                        scaleY = zoomScale,
-                        translationX = panOffset.x,
-                        translationY = panOffset.y,
-                    )
+                    .graphicsLayer {
+                        scaleX = zoomScale
+                        scaleY = zoomScale
+                        translationX = panOffset.x
+                        translationY = panOffset.y
+                    }
                     .transformable(state = transformState),
                 contentAlignment = Alignment.Center,
             ) {
@@ -1246,6 +1283,9 @@ private fun PhotoDetectionOverlay(
                 },
             )
         } else {
+            // Custom tap handler that observes without consuming the down event so
+            // HorizontalPager swipes and transformable pinch-to-zoom still work.
+            // Events are only consumed when the tap actually lands on a detection box.
             Box(
                 modifier = Modifier.fillMaxSize().pointerInput(canvasSize, frameWidth, frameHeight, annotations, missedBoxes) {
                     val sw = canvasSize.width.toFloat(); val sh = canvasSize.height.toFloat()
@@ -1253,17 +1293,39 @@ private fun PhotoDetectionOverlay(
                     val scale = min(sw / frameWidth, sh / frameHeight)
                     val ox = (sw - frameWidth * scale) / 2f
                     val oy = (sh - frameHeight * scale) / 2f
-                    detectTapGestures { offset ->
+                    val slop = viewConfiguration.touchSlop
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        var tapUp: PointerInputChange? = null
+                        loop@ while (true) {
+                            val event = awaitPointerEvent()
+                            if (event.changes.count { it.pressed } > 1) break  // multi-touch → pinch
+                            for (change in event.changes) {
+                                if (change.id != down.id) continue
+                                if (!change.pressed) {
+                                    if ((change.position - down.position).getDistance() <= slop) tapUp = change
+                                    break@loop
+                                }
+                                if ((change.position - down.position).getDistance() > slop) break@loop
+                            }
+                        }
+                        val upChange = tapUp ?: return@awaitEachGesture
+                        val offset = down.position
                         val fx = (offset.x - ox) / scale
                         val fy = (offset.y - oy) / scale
                         val missedHit = missedBoxes.indexOfFirst { b ->
                             fx >= b.left && fx <= b.right && fy >= b.top && fy <= b.bottom
                         }
-                        if (missedHit >= 0) { onMissedBoxRemoved(missedHit); return@detectTapGestures }
+                        if (missedHit >= 0) {
+                            upChange.consume()
+                            onMissedBoxRemoved(missedHit)
+                            return@awaitEachGesture
+                        }
                         val detHit = detections.indexOfFirst { d ->
                             fx >= d.box.left && fx <= d.box.right && fy >= d.box.top && fy <= d.box.bottom
                         }
                         if (detHit >= 0) {
+                            upChange.consume()
                             val key = "$detHit"
                             val next = when (annotations[key]) {
                                 null -> DetectionAnnotation.TRUE_POSITIVE
@@ -1328,6 +1390,7 @@ private fun LabelPickerDialog(
                     Button(
                         onClick = { onPick(label, note.trim().ifEmpty { null }) },
                         modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E1E30)),
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
