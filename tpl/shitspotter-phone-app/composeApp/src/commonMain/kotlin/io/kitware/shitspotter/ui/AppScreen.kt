@@ -59,6 +59,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -73,8 +74,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.kitware.shitspotter.core.AppLogger
 import io.kitware.shitspotter.core.AppState
 import io.kitware.shitspotter.core.BoundingBox
+import io.kitware.shitspotter.core.PrintlnLogger
 import io.kitware.shitspotter.core.CaptureLabel
 import io.kitware.shitspotter.core.CaptureMetadata
 import io.kitware.shitspotter.core.CaptureReviewEntry
@@ -122,6 +125,7 @@ fun AppScreen(
     onDeletePhoto: ((filePath: String) -> Unit)? = null,
     onLoadMetadata: (suspend (String) -> CaptureMetadata?)? = null,
     onUpdateDetectionAnnotations: ((String, Map<String, DetectionAnnotation>, List<BoundingBox>) -> Unit)? = null,
+    logger: AppLogger = PrintlnLogger,
 ) {
     // System back: close photo viewer first, then review screen; else let system handle.
     PlatformBackHandler(enabled = state.reviewMode && state.viewingPhotoPath != null) {
@@ -251,6 +255,7 @@ fun AppScreen(
                     onDeletePhoto = onDeletePhoto,
                     onLoadMetadata = onLoadMetadata,
                     onUpdateDetectionAnnotations = onUpdateDetectionAnnotations,
+                    logger = logger,
                 )
             }
         }
@@ -614,6 +619,7 @@ private fun ReviewScreen(
     onDeletePhoto: ((String) -> Unit)?,
     onLoadMetadata: (suspend (String) -> CaptureMetadata?)? = null,
     onUpdateDetectionAnnotations: ((String, Map<String, DetectionAnnotation>, List<BoundingBox>) -> Unit)? = null,
+    logger: AppLogger = PrintlnLogger,
 ) {
     var selectionMode by remember { mutableStateOf(false) }
     var selectedPaths by remember { mutableStateOf(emptySet<String>()) }
@@ -812,6 +818,7 @@ private fun ReviewScreen(
                 } else null,
                 onLoadMetadata = onLoadMetadata,
                 onUpdateDetectionAnnotations = onUpdateDetectionAnnotations,
+                logger = logger,
             )
         }
     }
@@ -949,6 +956,7 @@ private fun PhotoViewer(
     onDelete: ((filePath: String) -> Unit)? = null,
     onLoadMetadata: (suspend (String) -> CaptureMetadata?)? = null,
     onUpdateDetectionAnnotations: ((String, Map<String, DetectionAnnotation>, List<BoundingBox>) -> Unit)? = null,
+    logger: AppLogger = PrintlnLogger,
 ) {
     val pagerState = rememberPagerState(initialPage = initialIndex) { photos.size }
     var showAnnotatePicker by remember { mutableStateOf(false) }
@@ -1004,7 +1012,51 @@ private fun PhotoViewer(
     var panOffset by remember { mutableStateOf(Offset.Zero) }
     LaunchedEffect(pagerState.currentPage) { zoomScale = 1f; panOffset = Offset.Zero }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            // PointerEventPass.Initial fires on the parent BEFORE any children see the event.
+            // This guarantees we intercept 2-finger pinch and zoomed 1-finger pan before
+            // HorizontalPager's internal scrollable processes them, while leaving single-
+            // finger swipes at zoom=1 unconsumed so the pager handles page changes naturally.
+            .pointerInput(Unit) {
+                logger.info("Gesture", "handler installed")
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    logger.info("Gesture", "gesture started zoom=$zoomScale")
+                    while (true) {
+                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                        val pressed = event.changes.filter { it.pressed }
+                        if (pressed.isEmpty()) {
+                            logger.info("Gesture", "gesture ended zoom=$zoomScale")
+                            break
+                        }
+                        if (pressed.size >= 2) {
+                            logger.info("Gesture", "pinch ${pressed.size}pt zoom=$zoomScale")
+                            val a = pressed[0]; val b = pressed[1]
+                            val curr = (a.position - b.position).getDistance()
+                            val prev = (a.previousPosition - b.previousPosition).getDistance()
+                            if (prev > 0f && curr > 0f) {
+                                zoomScale = (zoomScale * curr / prev).coerceIn(1f, 8f)
+                            }
+                            val centroidDelta = (a.position + b.position) / 2f -
+                                (a.previousPosition + b.previousPosition) / 2f
+                            if (zoomScale > 1f) panOffset += centroidDelta
+                            event.changes.forEach { it.consume() }
+                        } else if (zoomScale > 1.05f) {
+                            val p = pressed.first()
+                            val delta = p.position - p.previousPosition
+                            if (delta.getDistance() > 0f) {
+                                panOffset += delta
+                                event.changes.forEach { it.consume() }
+                            }
+                        }
+                        // Single-finger at zoom=1: don't consume → pager handles swipe
+                    }
+                }
+            },
+    ) {
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
@@ -1040,51 +1092,6 @@ private fun PhotoViewer(
                 }
             }
         }
-
-        // Gesture handler as a sibling of HorizontalPager. Inside HorizontalPager's
-        // LazyLayout, pointerInput on page content is never dispatched. As a sibling
-        // it is always in the hit-test tree. Single-finger swipes at zoom=1 are left
-        // unconsumed so the pager's own scrollable can still drive page changes.
-        Box(
-            modifier = Modifier.fillMaxSize().pointerInput(Unit) {
-                println("[SSGesture] handler installed")
-                awaitEachGesture {
-                    awaitFirstDown(requireUnconsumed = false)
-                    println("[SSGesture] gesture started zoom=$zoomScale")
-                    var eventCount = 0
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        val pressed = event.changes.filter { it.pressed }
-                        eventCount++
-                        if (pressed.isEmpty()) {
-                            println("[SSGesture] ended after $eventCount events zoom=$zoomScale")
-                            break
-                        }
-                        if (pressed.size >= 2) {
-                            println("[SSGesture] pinch pointers=${pressed.size} zoom=$zoomScale")
-                            val a = pressed[0]; val b = pressed[1]
-                            val curr = (a.position - b.position).getDistance()
-                            val prev = (a.previousPosition - b.previousPosition).getDistance()
-                            if (prev > 0f && curr > 0f) {
-                                zoomScale = (zoomScale * curr / prev).coerceIn(1f, 8f)
-                            }
-                            val centroidDelta = (a.position + b.position) / 2f -
-                                (a.previousPosition + b.previousPosition) / 2f
-                            if (zoomScale > 1f) panOffset += centroidDelta
-                            event.changes.forEach { it.consume() }
-                        } else if (zoomScale > 1.05f) {
-                            val p = pressed.first()
-                            val delta = p.position - p.previousPosition
-                            if (delta.getDistance() > 0f) {
-                                panOffset += delta
-                                p.consume()
-                            }
-                        }
-                        // Single-finger at zoom=1: don't consume → pager handles swipe
-                    }
-                }
-            },
-        )
 
         // Detection annotation overlay — only when metadata has frame dims
         if (m != null && m.frameWidth != null && m.frameHeight != null) {

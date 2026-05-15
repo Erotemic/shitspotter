@@ -59,6 +59,7 @@ TAIL_FILTER=(
     "ShitSpotter.AnalysisLoop:V"
     "ShitSpotter.BackendMgr:V"
     "ShitSpotter.MainActivity:V"
+    "ShitSpotter.Gesture:V"
     "ShitSpotter.Failure:V"
     "ShitSpotter.Settings:V"
     "ShitSpotter.Desktop:V"

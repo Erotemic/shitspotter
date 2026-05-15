@@ -137,6 +137,7 @@ class MainActivity : ComponentActivity() {
                     AppScreen(
                         state = state,
                         cameraSurface = surface,
+                        logger = AndroidLogger,
                         onTakePhoto = { label, note -> savePhoto(label, note) },
                         onToggleTorch = {
                             torchState.value = !torchState.value
