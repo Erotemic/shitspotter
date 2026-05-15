@@ -137,7 +137,7 @@ class AndroidBackendManager(
     }
 
     companion object {
-        const val TAG = "ShitSpotter.BackendMgr"
+        const val TAG = "BackendMgr"
     }
 }
 
