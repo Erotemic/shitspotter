@@ -61,10 +61,21 @@ _ensure_workspace() {
 
 _run_in_image() {
     _ensure_workspace
-    # All training/eval runs inside the image with the three bind mounts.
+    # All training/eval runs inside the image with the bind mounts.
+    #
+    # The DVC bundle has absolute asset paths baked in pointing at
+    # /home/joncrall/data/dvc-repos/shitspotter_{,expt_}dvc/. On this host
+    # the source-of-truth lives at /data/joncrall/dvc-repos/.../ so we
+    # bind-mount the same source at BOTH paths the bundle might
+    # reference. Override either by exporting DVC_RO / DVC_EXPT_RO / the
+    # *_LEGACY_RO variants before running.
+    DVC_LEGACY_RO=${DVC_LEGACY_RO:-/home/joncrall/data/dvc-repos/shitspotter_dvc}
+    DVC_EXPT_LEGACY_RO=${DVC_EXPT_LEGACY_RO:-/home/joncrall/data/dvc-repos/shitspotter_expt_dvc}
     docker run --gpus=all -it --rm \
         -v "$DVC_RO:$DVC_RO:ro" \
         -v "$DVC_EXPT_RO:$DVC_EXPT_RO:ro" \
+        -v "$DVC_RO:$DVC_LEGACY_RO:ro" \
+        -v "$DVC_EXPT_RO:$DVC_EXPT_LEGACY_RO:ro" \
         -v "$KCD_HOST:$KCD_HOST" \
         "$IMAGE_TAG" "$@"
 }
