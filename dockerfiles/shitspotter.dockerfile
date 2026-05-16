@@ -240,14 +240,31 @@ cd /root/code/kwcoco_detector_kit/tpl/Open-GroundingDino
 # are gated behind kit's [opengroundingdino] extras.
 uv pip install addict yapf colorlog pycocotools timm 'transformers>=4.35,<4.47' jsonlines
 cd models/GroundingDINO/ops
+
+# The upstream setup.py gates the CUDA build on torch.cuda.is_available(),
+# which is False during a headless docker build (no GPU visible). The
+# convention for headless extension builds is to gate on CUDA_HOME alone
+# and rely on TORCH_CUDA_ARCH_LIST to drive the right gencodes. We patch
+# the gate in-place rather than amending the submodule SHA.
+sed -i 's/if torch.cuda.is_available() and CUDA_HOME is not None:/if CUDA_HOME is not None:/' setup.py
+grep -q "if CUDA_HOME is not None:" setup.py || { echo "patch failed"; exit 1; }
+
+# FORCE_CUDA is the mmcv/detectron convention; harmless here but kept
+# for any sub-step that may consult it.
+export FORCE_CUDA=1
+
 python setup.py build_ext --inplace -v
+
 # The forked OGDino expects the .so next to the package root, not under
 # models/GroundingDINO/ops/. Copy + smoke-import (matches hacky_setup.sh).
+# We deliberately do NOT execute the .so here -- importing a CUDA
+# extension on a no-GPU host fails -- the check-env --runtime probe
+# imports it at runtime when a GPU is present.
 TORCH_LIB_DPATH=$(dirname $(find $(python -c "import torch; print(torch.__path__[0])") -name "libc10.so" | head -1))
 export LD_LIBRARY_PATH=$TORCH_LIB_DPATH:$LD_LIBRARY_PATH
 cp MultiScaleDeformableAttention.*.so ../../../
-cd ../../..
-python -c "import sys; sys.path.insert(0, '.'); import MultiScaleDeformableAttention; print('OGDino MSDeformAttention OK')"
+ls -la ../../../MultiScaleDeformableAttention.*.so
+echo "OGDino MSDeformAttention .so built (runtime import deferred to check-env --runtime)"
 EOF
 
 # Convenience env so the kit's tools see the OGDino .so at runtime.
