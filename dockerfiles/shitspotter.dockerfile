@@ -112,15 +112,30 @@ EOF
 # TORCH_INDEX_URL=https://download.pytorch.org/whl/cu130 if you bump the
 # BASE_IMAGE to a CUDA 13.x base.
 ARG TORCH_INDEX_URL=https://download.pytorch.org/whl/cu124
+# Promote ARG -> ENV so bash heredocs below can see it. Docker only
+# substitutes ${VAR} in RUN exec-form / shell-form (NOT in heredoc
+# bodies); bash does the heredoc expansion using its own env.
+ENV TORCH_INDEX_URL=${TORCH_INDEX_URL}
 
 RUN --mount=type=cache,target=/root/.cache <<EOF
 #!/bin/bash
 set -e
 export PATH="$HOME/.local/bin:$PATH"
 source $HOME/venv$PYTHON_VERSION/bin/activate
+# Fail loudly if the ARG->ENV promotion didn't take effect; otherwise an
+# empty --index-url would silently fall back to default PyPI and install
+# the wrong-CUDA torch wheel.
+if [ -z "${TORCH_INDEX_URL:-}" ]; then
+    echo "ERROR: TORCH_INDEX_URL is empty inside the bash heredoc; the" >&2
+    echo "       ARG->ENV promotion above must be wrong." >&2
+    exit 1
+fi
+echo "[torch-pin] using TORCH_INDEX_URL=${TORCH_INDEX_URL}"
+# No --extra-index-url: uv's resolver may pick a higher version from
+# PyPI even when --index-url points at the CUDA-pinned wheel index.
+# Single index keeps us on the cu-suffixed wheels.
 uv pip install \
     --index-url ${TORCH_INDEX_URL} \
-    --extra-index-url https://pypi.org/simple/ \
     torch torchvision torchaudio
 # Assert nvcc and torch agree on the CUDA major.minor BEFORE we waste
 # any time building extensions. This is the same guard the kit's
