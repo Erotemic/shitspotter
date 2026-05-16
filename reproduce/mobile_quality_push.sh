@@ -71,7 +71,13 @@ _run_in_image() {
     # *_LEGACY_RO variants before running.
     DVC_LEGACY_RO=${DVC_LEGACY_RO:-/home/joncrall/data/dvc-repos/shitspotter_dvc}
     DVC_EXPT_LEGACY_RO=${DVC_EXPT_LEGACY_RO:-/home/joncrall/data/dvc-repos/shitspotter_expt_dvc}
+    # --shm-size: Docker defaults /dev/shm to 64 MiB, way too small for
+    # PyTorch DataLoader worker IPC. 32 GiB covers DEIMv2 pico@416 (~6 GiB
+    # observed) with comfortable headroom for n@640 and the round-loop
+    # workers in v8. Override with SHM_SIZE=8g for a smaller host.
+    SHM_SIZE=${SHM_SIZE:-32g}
     docker run --gpus=all -it --rm \
+        --shm-size="$SHM_SIZE" \
         -v "$DVC_RO:$DVC_RO:ro" \
         -v "$DVC_EXPT_RO:$DVC_EXPT_RO:ro" \
         -v "$DVC_RO:$DVC_LEGACY_RO:ro" \
