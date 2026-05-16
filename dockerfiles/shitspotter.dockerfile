@@ -17,7 +17,8 @@ DEBIAN_FRONTEND=noninteractive apt install -q -y --no-install-recommends \
     git \
     unzip \
     ca-certificates \
-    build-essential 
+    build-essential \
+    ninja-build
 # Cleanup for smaller image sizes
 apt clean
 rm -rf /var/lib/apt/lists/*
@@ -91,11 +92,54 @@ export PATH="$HOME/.local/bin:$PATH"
 # Auto-activate the venv on login
 source $HOME/venv'$PYTHON_VERSION'/bin/activate
 '
-# It is important to add the content to both so 
+# It is important to add the content to both so
 # subsequent run commands use the context we setup here.
 echo "$BASHRC_CONTENTS" >> $HOME/.bashrc
 echo "$BASHRC_CONTENTS" >> $HOME/.profile
 echo "$BASHRC_CONTENTS" >> $HOME/.bash_profile
+EOF
+
+
+# -----------------------------------------------------------------------
+# Step 3.5: Pre-install CUDA-matched torch wheels (BEFORE any other pip)
+# -----------------------------------------------------------------------
+# As of 2026 PyPI's default torch wheels are built against CUDA 13.0. Our
+# base image provides CUDA 12.4, so loading the default torch breaks any
+# C++/CUDA extension that calls torch.utils.cpp_extension._check_cuda_version
+# (DEIMv2's MSDeformAttn, OGDino's MSDeformAttn). Pin the cu124-built
+# wheels here so every downstream `uv pip install` finds torch already at
+# the right version and skips the resolve. Override --build-arg
+# TORCH_INDEX_URL=https://download.pytorch.org/whl/cu130 if you bump the
+# BASE_IMAGE to a CUDA 13.x base.
+ARG TORCH_INDEX_URL=https://download.pytorch.org/whl/cu124
+
+RUN --mount=type=cache,target=/root/.cache <<EOF
+#!/bin/bash
+set -e
+export PATH="$HOME/.local/bin:$PATH"
+source $HOME/venv$PYTHON_VERSION/bin/activate
+uv pip install \
+    --index-url ${TORCH_INDEX_URL} \
+    --extra-index-url https://pypi.org/simple/ \
+    torch torchvision torchaudio
+# Assert nvcc and torch agree on the CUDA major.minor BEFORE we waste
+# any time building extensions. This is the same guard the kit's
+# docker/opengroundingdino/Dockerfile uses.
+python - <<'PY'
+import re, shutil, subprocess
+import torch
+torch_cuda = torch.version.cuda
+nvcc = shutil.which("nvcc")
+text = subprocess.check_output([nvcc, "--version"], text=True)
+match = re.search(r"release\s+([0-9]+\.[0-9]+)", text)
+nvcc_cuda = match.group(1) if match else None
+print(f"torch={torch.__version__}  torch.version.cuda={torch_cuda}  nvcc={nvcc_cuda}")
+if not torch_cuda or not nvcc_cuda or torch_cuda != nvcc_cuda:
+    raise SystemExit(
+        f"CUDA ABI mismatch: torch.version.cuda={torch_cuda!r}, nvcc={nvcc_cuda!r}. "
+        f"Match BASE_IMAGE and TORCH_INDEX_URL: cuda 12.4 -> cu124, 13.0 -> cu130, etc."
+    )
+PY
 EOF
 
 
@@ -305,6 +349,13 @@ export PYTHON_VERSION=3.11
 # 4090 = 8.9, A100 = 8.0, H100 = 9.0. Multiple are allowed: "8.0;8.6;8.9".
 export TORCH_CUDA_ARCH_LIST="8.6"
 
+# Torch wheel index URL. MUST match the BASE_IMAGE CUDA version:
+#   nvidia/cuda:12.4.*  -> https://download.pytorch.org/whl/cu124
+#   nvidia/cuda:12.6.*  -> https://download.pytorch.org/whl/cu126
+#   nvidia/cuda:12.8.*  -> https://download.pytorch.org/whl/cu128
+#   nvidia/cuda:13.0.*  -> https://download.pytorch.org/whl/cu130
+export TORCH_INDEX_URL="https://download.pytorch.org/whl/cu124"
+
 # Build the image with version-specific tags
 DOCKER_BUILDKIT=1 docker build --progress=plain \
     -t shitspotter:${REPO_GIT_HASH}-uv${UV_VERSION}-python${PYTHON_VERSION} \
@@ -312,6 +363,7 @@ DOCKER_BUILDKIT=1 docker build --progress=plain \
     --build-arg UV_VERSION=$UV_VERSION \
     --build-arg REPO_GIT_HASH=$REPO_GIT_HASH \
     --build-arg TORCH_CUDA_ARCH_LIST=$TORCH_CUDA_ARCH_LIST \
+    --build-arg TORCH_INDEX_URL=$TORCH_INDEX_URL \
     -f ./dockerfiles/shitspotter.dockerfile .
 
 # Add concise tags for easier reuse

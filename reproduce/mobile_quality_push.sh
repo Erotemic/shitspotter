@@ -42,6 +42,10 @@ KCD_HOST=${KCD_HOST:-/data/joncrall/kcd}
 
 IMAGE_TAG=${IMAGE_TAG:-shitspotter:latest}
 TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST:-"8.6"}     # RTX 3090
+# Torch wheel index URL -- must match the dockerfile's BASE_IMAGE CUDA
+# version. cu124 matches the default nvidia/cuda:12.4.1 base. If you
+# bump the base, change this too (cu126 / cu128 / cu130 ...).
+TORCH_INDEX_URL=${TORCH_INDEX_URL:-"https://download.pytorch.org/whl/cu124"}
 UV_VERSION=${UV_VERSION:-0.8.4}
 PYTHON_VERSION=${PYTHON_VERSION:-3.11}
 
@@ -106,6 +110,7 @@ cmd_build() {
         --build-arg UV_VERSION="$UV_VERSION" \
         --build-arg REPO_GIT_HASH="$repo_hash" \
         --build-arg TORCH_CUDA_ARCH_LIST="$TORCH_CUDA_ARCH_LIST" \
+        --build-arg TORCH_INDEX_URL="$TORCH_INDEX_URL" \
         -f ./dockerfiles/shitspotter.dockerfile .
     echo "[build] done. tags: $IMAGE_TAG, shitspotter:${repo_hash}-uv${UV_VERSION}-python${PYTHON_VERSION}"
 }
