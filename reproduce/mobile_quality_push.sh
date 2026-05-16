@@ -147,14 +147,37 @@ cmd_compare() {
     # Compare each vN/manifest.tsv against v4's manifest and print the AP
     # delta per cell. Runs inside the image so Python + pandas-ish parsing
     # is available regardless of host Python.
-    _run_in_image bash -lc '
+    #
+    # V4 baseline numbers (hardcoded so the compare works without the
+    # original v4 manifest on disk). If you have a custom v4 manifest at
+    # a host path, point V4_MANIFEST_HOST at it and it'll be bind-mounted
+    # at /__v4_manifest.tsv inside the container and used instead.
+    local extra_mount=()
+    if [ -n "${V4_MANIFEST_HOST:-}" ] && [ -f "$V4_MANIFEST_HOST" ]; then
+        extra_mount=(-v "$V4_MANIFEST_HOST:/__v4_manifest.tsv:ro")
+        echo "[compare] using V4 manifest from $V4_MANIFEST_HOST"
+    else
+        echo "[compare] no V4_MANIFEST_HOST; using hardcoded v4 baseline AP per cell"
+    fi
+    _ensure_workspace
+    docker run --gpus=all -it --rm \
+        --shm-size="${SHM_SIZE:-32g}" \
+        -v "$KCD_HOST:$KCD_HOST" \
+        "${extra_mount[@]}" \
+        "$IMAGE_TAG" bash -lc '
         python3 -c "
-import csv, sys, os
+import csv, sys
 from pathlib import Path
 
-V4 = Path(\"/data/joncrall/shitspotter_v4/manifest.tsv\")
-if not V4.exists():
-    print(\"no v4 manifest; skip\"); sys.exit(0)
+# Hardcoded v4 fixed-policy AP@0.5 on the simplified test set, per
+# /data/joncrall/shitspotter_v4/manifest.tsv as of 2026-05-14.
+V4_BASELINE = {
+    (\"deimv2_pico\", \"416\"): 0.406,
+    (\"deimv2_n\",    \"640\"): 0.520,
+    (\"deimv2_pico\", \"320\"): 0.265,
+    (\"deimv2_n\",    \"512\"): 0.477,
+    (\"deimv2_n\",    \"320\"): 0.340,
+}
 
 def load(path):
     rows = {}
@@ -162,7 +185,10 @@ def load(path):
         return rows
     with open(path, newline=\"\") as f:
         for r in csv.DictReader(f, delimiter=\"\\t\"):
-            key = (r.get(\"variant\",\"\"), r.get(\"export_input_h\",\"\"))
+            variant = r.get(\"variant\",\"\")
+            # Strip _hgnetv2_/_dinov3_ infix so kit + v4 keys align.
+            v_norm = variant.replace(\"_hgnetv2_\", \"_\").replace(\"_dinov3_\", \"_\")
+            key = (v_norm, r.get(\"export_input_h\",\"\"))
             try:
                 ap = float(r.get(\"test_ap\") or r.get(\"test_ap_simplified\") or \"nan\")
             except ValueError:
@@ -170,17 +196,33 @@ def load(path):
             rows[key] = ap
     return rows
 
-v4_rows = load(V4)
-print(\"%-40s %10s %10s %10s\" % (\"cell\", \"v4_AP\", \"latest_AP\", \"delta\"))
+# Prefer mounted v4 manifest if present.
+V4 = Path(\"/__v4_manifest.tsv\")
+if V4.exists():
+    v4_rows = load(V4)
+else:
+    v4_rows = V4_BASELINE
+
+print(\"%-44s %10s %10s %10s\" % (\"cell\", \"v4_AP\", \"latest_AP\", \"delta\"))
+print(\"-\" * 76)
+any_found = False
 for vN in (\"v6\",\"v7\",\"v8\",\"v9\",\"v10\"):
     mpath = Path(f\"/data/joncrall/kcd/{vN}/manifest.tsv\")
     rows = load(mpath)
     if not rows:
         continue
+    any_found = True
     for key, ap in rows.items():
         v4ap = v4_rows.get(key, float(\"nan\"))
-        delta = ap - v4ap
-        print(\"%-40s %10.4f %10.4f %+10.4f\" % (f\"{vN}:{key[0]}@{key[1]}\", v4ap, ap, delta))
+        delta = ap - v4ap if v4ap == v4ap else float(\"nan\")  # nan-safe
+        gate = \"\"
+        if delta == delta:
+            if delta >= 0.01:   gate = \"  WIN\"
+            elif delta <= -0.01: gate = \"  REGRESS\"
+            else:                gate = \"  ~=v4\"
+        print(\"%-44s %10.4f %10.4f %+10.4f%s\" % (f\"{vN}:{key[0]}@{key[1]}\", v4ap, ap, delta, gate))
+if not any_found:
+    print(\"  (no vN/manifest.tsv files found under /data/joncrall/kcd/)\")
 "
     '
 }
