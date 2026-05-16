@@ -61,10 +61,14 @@ def main():
         name = repo['name']
         local_path = Path(os.path.expanduser(repo['local_path']))
         remote_url, url_branch = parse_remote_url(repo['remote_url'])
+        recurse_submodules = bool(repo.get('recurse_submodules', False))
 
         if not (local_path / '.git').is_dir():
-            print(f"ERROR: {local_path} is not a git repository", file=sys.stderr)
-            sys.exit(2)
+            # Tolerate worktrees (a .git *file* pointing into the parent's
+            # gitdir) — only error when there is no .git at all.
+            if not (local_path / '.git').exists():
+                print(f"ERROR: {local_path} is not a git repository", file=sys.stderr)
+                sys.exit(2)
 
         print(f"Processing '{name}' from {local_path}")
 
@@ -79,7 +83,7 @@ def main():
 
         staging_path = staging_dir / name
 
-        if (staging_path / '.git').is_dir():
+        if (staging_path / '.git').exists():
             print(f" Repo '{name}' already exists in staging. Updating...")
             run_cmd("git fetch", cwd=staging_path)
             run_cmd(f"git checkout {branch}", cwd=staging_path)
@@ -90,6 +94,35 @@ def main():
             run_cmd(f"git reset --hard {current_commit}", cwd=staging_path)
 
         print(f" '{name}' updated to branch '{branch}' at commit '{current_commit}'")
+
+        if recurse_submodules:
+            print(f" Recursing submodules for '{name}'...")
+            # Point the staging clone's submodule URLs at the source repo's
+            # submodules on the host (file:// clone). This lets us stage
+            # without network access and keeps the SHAs in lockstep with
+            # the local checkout. Then update --init --recursive.
+            run_cmd(
+                f"git -c protocol.file.allow=always submodule update "
+                f"--init --recursive --force",
+                cwd=staging_path,
+            )
+            # Mirror each submodule's HEAD to the source repo's HEAD so the
+            # staging tree matches the host bit-for-bit. (`git submodule
+            # update` already does this when --init is fresh, but a re-run
+            # against an existing staging clone may have drifted.)
+            sm_status = run_cmd(
+                "git submodule foreach --quiet 'echo $sm_path $sha1'",
+                cwd=local_path,
+            )
+            for line in sm_status.splitlines():
+                if not line.strip():
+                    continue
+                sm_path, sm_sha = line.split()
+                staging_sm = staging_path / sm_path
+                if (staging_sm / '.git').exists():
+                    run_cmd(f"git fetch --all", cwd=staging_sm)
+                    run_cmd(f"git reset --hard {sm_sha}", cwd=staging_sm)
+                    print(f"  submodule '{sm_path}' -> {sm_sha[:12]}")
 
     print("Staging complete.")
 
