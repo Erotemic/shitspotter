@@ -210,7 +210,13 @@ RUN --mount=type=cache,target=/root/.cache <<EOF
 #!/bin/bash
 set -e
 cd /root/code/kwcoco_detector_kit
-uv pip install -e ".[dev,deimv2,kwcoco-dataloader]"
+# The [kwcoco-dataloader] extra pins kwcoco-dataloader>=0.1.3 which is
+# only available as a local unreleased package, not on PyPI. v6-v10
+# don't use the sampler functionality -- they read tiled kwcoco bundles
+# directly -- so the extra is intentionally omitted here. Add it back
+# in a follow-up image when a >=0.1.3 release lands on PyPI or when
+# kwcoco_dataloader is staged as another repo via repos.yaml.
+uv pip install -e ".[dev,deimv2]"
 EOF
 
 # Compile DEIMv2's MultiScaleDeformableAttention CUDA extension. Builds
