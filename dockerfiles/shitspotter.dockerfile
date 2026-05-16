@@ -186,14 +186,68 @@ EOF
 # ---------------------------------
 
 COPY .staging/Open-GroundingDino /root/code/Open-GroundingDino
-COPY .staging/YOLO-v9 /root/code/YOLO-v9 
+COPY .staging/YOLO-v9 /root/code/YOLO-v9
 
 RUN <<EOF
 #!/bin/bash
 set -e
-cd  /root/code/YOLO-v9 
+cd  /root/code/YOLO-v9
 uv pip install -e .
 EOF
+
+# ---------------------------------------------------------------
+# Step NEW: install kwcoco_detector_kit (the v6+ training interface)
+# ---------------------------------------------------------------
+# The kit owns its own DEIMv2 + Open-GroundingDino submodules under
+# tpl/. We point KCD_DEIMV2_REPO_DPATH at the kit's DEIMv2 so the
+# trainer dispatch picks up the pinned SHA (kept in lockstep by
+# setup_staging.py's recurse_submodules path). We install the [dev]
+# + [deimv2] extras at build time; the [opengroundingdino] extras are
+# only needed for v9 distillation and are installed lazily there.
+COPY .staging/kwcoco_detector_kit /root/code/kwcoco_detector_kit
+
+RUN --mount=type=cache,target=/root/.cache <<EOF
+#!/bin/bash
+set -e
+cd /root/code/kwcoco_detector_kit
+uv pip install -e ".[dev,deimv2,kwcoco-dataloader]"
+EOF
+
+# Compile DEIMv2's MultiScaleDeformableAttention CUDA extension. Builds
+# for the RTX 3090 architecture (SM 8.6) by default; override with
+# --build-arg TORCH_CUDA_ARCH_LIST="..." for other hardware. The build
+# only needs nvcc + CUDA headers (provided by cuda-devel base); no GPU
+# is required at image-build time.
+ARG TORCH_CUDA_ARCH_LIST="8.6"
+ENV TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST}
+ENV KCD_DEIMV2_REPO_DPATH=/root/code/kwcoco_detector_kit/tpl/DEIMv2
+
+# Build the kit's Open-GroundingDino MSDeformAttention extension. This
+# is only required for v9 distillation (the OGDino bbox teacher), but
+# we build it at image time so the v9 step doesn't surprise users with
+# a long CUDA compile when they're trying to start a training run.
+RUN --mount=type=cache,target=/root/.cache <<EOF
+#!/bin/bash
+set -e
+cd /root/code/kwcoco_detector_kit/tpl/Open-GroundingDino
+# Lightweight deps to drive setup.py; the trainer plugin's full deps
+# are gated behind kit's [opengroundingdino] extras.
+uv pip install addict yapf colorlog pycocotools timm 'transformers>=4.35,<4.47' jsonlines
+cd models/GroundingDINO/ops
+python setup.py build_ext --inplace -v
+# The forked OGDino expects the .so next to the package root, not under
+# models/GroundingDINO/ops/. Copy + smoke-import (matches hacky_setup.sh).
+TORCH_LIB_DPATH=$(dirname $(find $(python -c "import torch; print(torch.__path__[0])") -name "libc10.so" | head -1))
+export LD_LIBRARY_PATH=$TORCH_LIB_DPATH:$LD_LIBRARY_PATH
+cp MultiScaleDeformableAttention.*.so ../../../
+cd ../../..
+python -c "import sys; sys.path.insert(0, '.'); import MultiScaleDeformableAttention; print('OGDino MSDeformAttention OK')"
+EOF
+
+# Convenience env so the kit's tools see the OGDino .so at runtime.
+# (Entrypoint sources .bashrc which extends PYTHONPATH if a user has
+# their own additions; this is the base.)
+ENV PYTHONPATH=/root/code/kwcoco_detector_kit/tpl/Open-GroundingDino
 
 # Set the default workdir to the shitspotter code repo
 WORKDIR /root/code/shitspotter
@@ -224,12 +278,17 @@ export REPO_GIT_HASH=$(git rev-parse --short=12 HEAD)
 export UV_VERSION=0.8.4
 export PYTHON_VERSION=3.11
 
+# Pick the CUDA arch(s) to compile MSDeformAttention for. RTX 3090 = 8.6,
+# 4090 = 8.9, A100 = 8.0, H100 = 9.0. Multiple are allowed: "8.0;8.6;8.9".
+export TORCH_CUDA_ARCH_LIST="8.6"
+
 # Build the image with version-specific tags
 DOCKER_BUILDKIT=1 docker build --progress=plain \
     -t shitspotter:${REPO_GIT_HASH}-uv${UV_VERSION}-python${PYTHON_VERSION} \
     --build-arg PYTHON_VERSION=$PYTHON_VERSION \
     --build-arg UV_VERSION=$UV_VERSION \
     --build-arg REPO_GIT_HASH=$REPO_GIT_HASH \
+    --build-arg TORCH_CUDA_ARCH_LIST=$TORCH_CUDA_ARCH_LIST \
     -f ./dockerfiles/shitspotter.dockerfile .
 
 # Add concise tags for easier reuse
@@ -241,11 +300,13 @@ docker tag $IMAGE_QUALNAME $NAME1
 docker tag $IMAGE_QUALNAME $NAME2
 docker tag $IMAGE_QUALNAME $NAME3
 
-# Verify that GPUs are visible and that each shitspotter command works
-docker run --gpus=all -it shitspotter:latest nvidia-smi
+# Verify that GPUs are visible and the kit imports
+docker run --gpus=all --rm shitspotter:latest nvidia-smi
+docker run --gpus=all --rm shitspotter:latest \
+    kwcoco-detector-kit check-env --runtime
 
 # Start a shell and run any custom tests
-# (TODO: show how to replicate experiments)
+# (See reproduce/mobile_quality_push.sh for the v6-v10 driver.)
 docker run --gpus=all -it shitspotter:latest bash
 
 # 1) Authenticate (recommended: use a Docker Hub access token)

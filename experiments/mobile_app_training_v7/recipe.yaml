@@ -1,0 +1,56 @@
+# v7 — multi-scale training. Same model as v6 + n@640, but the training
+# resolution policy is multiscale instead of fixed. Both target cells.
+#
+# Hypothesis: closes the gap v4 left open in the *_multiscale_* rows.
+# Expected: +1..3 AP over the v6/v4 fixed baselines.
+---
+schema: recipe.v1
+name: shitspotter_v7_multiscale
+description: >
+  Multi-scale training for pico@416 and n@640. Trains a band of
+  resolutions around each export size; export size itself is unchanged.
+
+data:
+  train_kwcoco: /data/joncrall/kcd/v6/data/train_tile_g2.kwcoco.zip
+  vali_kwcoco:  /data/joncrall/kcd/v6/data/vali_tile_g2.kwcoco.zip
+  test_kwcoco:  /data/joncrall/dvc-repos/shitspotter_expt_dvc/foundation_detseg_v3/v9/detector_prepared/test.simplified.kwcoco.zip
+
+workspace:
+  kcd_root: /data/joncrall/kcd/v7
+
+sweep:
+  trainer: deimv2
+  num_classes: 1
+  category_name: poop
+  matrix:
+    - variant: deimv2_pico
+      input_hw: [416, 416]
+      train_policy: multiscale_320_512   # +/- ~25% band centered on 416
+    - variant: deimv2_n
+      input_hw: [640, 640]
+      train_policy: multiscale_512_768   # +/- ~25% band centered on 640
+  # pico@416 batch + LR from v4 policy; n@640 batch shrinks (memory).
+  # When matrix has rows with different memory profiles, the recipe
+  # currently uses the larger batch for all; if n@640 OOMs, lower
+  # batch_size to 16 and re-run with --force_train.
+  num_epochs: 80
+  batch_size: 32
+  val_batch_size: 48
+  lr: 5.0e-4
+  backbone_lr: 2.5e-5
+  use_amp: true
+  scale_tier: M
+  num_gpus: 1
+  distributed: false
+  do_export: true
+  do_eval: true
+  do_bench: true
+
+eligibility:
+  max_desktop_ms: 80.0
+  min_device_fps: 1.0
+  include_smoke_models: false
+
+reproducibility:
+  seed: 0
+  deterministic: false

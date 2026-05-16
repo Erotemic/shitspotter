@@ -1,0 +1,50 @@
+# v9 — distill v9 OGDino bbox teacher into pico@416 and n@640.
+# The training kwcoco is merged (human GT + teacher pseudo-GT), produced
+# once by run.sh before this recipe runs.
+---
+schema: recipe.v1
+name: shitspotter_v9_ogdino_distill
+description: >
+  Distill the v9 OpenGroundingDINO bbox teacher (AP=0.766) into the two
+  mobile cells via offline pseudo-GT merging. SAM2 is not in the loop.
+
+data:
+  train_kwcoco: /data/joncrall/kcd/v9/data/train_tile_g2_merged.kwcoco.zip
+  vali_kwcoco:  /data/joncrall/kcd/v6/data/vali_tile_g2.kwcoco.zip
+  test_kwcoco:  /data/joncrall/dvc-repos/shitspotter_expt_dvc/foundation_detseg_v3/v9/detector_prepared/test.simplified.kwcoco.zip
+
+workspace:
+  kcd_root: /data/joncrall/kcd/v9
+
+sweep:
+  trainer: deimv2
+  num_classes: 1
+  category_name: poop
+  matrix:
+    - variant: deimv2_pico
+      input_hw: [416, 416]
+      train_policy: multiscale_320_512
+    - variant: deimv2_n
+      input_hw: [640, 640]
+      train_policy: multiscale_512_768
+  num_epochs: 100   # longer — pseudo-GT adds effective dataset size
+  batch_size: 32
+  val_batch_size: 48
+  lr: 5.0e-4
+  backbone_lr: 2.5e-5
+  use_amp: true
+  scale_tier: M
+  num_gpus: 1
+  distributed: false
+  do_export: true
+  do_eval: true
+  do_bench: true
+
+eligibility:
+  max_desktop_ms: 80.0
+  min_device_fps: 1.0
+  include_smoke_models: false
+
+reproducibility:
+  seed: 0
+  deterministic: false
