@@ -23,12 +23,17 @@ sweep:
   num_classes: 1
   category_name: poop
   matrix:
+    # Per-cell init_checkpoint -- each variant fine-tunes from its own
+    # COCO-pretrained .pth. See [[v6 EVAL.md]] for the parity finding
+    # that motivated this requirement.
     - variant: deimv2_pico
       input_hw: [416, 416]
       train_policy: multiscale_320_512   # +/- ~25% band centered on 416
+      init_checkpoint: /data/joncrall/shitspotter_v4/pretrained/deimv2/deimv2_pico_coco.pth
     - variant: deimv2_n
       input_hw: [640, 640]
       train_policy: multiscale_512_768   # +/- ~25% band centered on 640
+      init_checkpoint: /data/joncrall/shitspotter_v4/pretrained/deimv2/deimv2_n_coco.pth
   # pico@416 batch + LR from v4 policy; n@640 batch shrinks (memory).
   # When matrix has rows with different memory profiles, the recipe
   # currently uses the larger batch for all; if n@640 OOMs, lower

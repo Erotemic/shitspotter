@@ -24,9 +24,11 @@ sweep:
     - variant: deimv2_pico
       input_hw: [416, 416]
       train_policy: multiscale_320_512
+      init_checkpoint: /data/joncrall/shitspotter_v4/pretrained/deimv2/deimv2_pico_coco.pth
     - variant: deimv2_n
       input_hw: [640, 640]
       train_policy: multiscale_512_768
+      init_checkpoint: /data/joncrall/shitspotter_v4/pretrained/deimv2/deimv2_n_coco.pth
   num_epochs: 100   # longer — pseudo-GT adds effective dataset size
   batch_size: 32
   val_batch_size: 48

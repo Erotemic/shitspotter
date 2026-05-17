@@ -71,6 +71,16 @@ _run_in_image() {
     # *_LEGACY_RO variants before running.
     DVC_LEGACY_RO=${DVC_LEGACY_RO:-/home/joncrall/data/dvc-repos/shitspotter_dvc}
     DVC_EXPT_LEGACY_RO=${DVC_EXPT_LEGACY_RO:-/home/joncrall/data/dvc-repos/shitspotter_expt_dvc}
+    # DEIMv2 COCO-pretrained .pth files. v6+ recipes reference them at
+    # /data/joncrall/shitspotter_v4/pretrained/deimv2/<variant>_coco.pth.
+    # Mount the parent dir read-only so the kit can load them at training
+    # start. Override with V4_PRETRAINED_RO if your host stores them
+    # elsewhere.
+    V4_PRETRAINED_RO=${V4_PRETRAINED_RO:-/data/joncrall/shitspotter_v4}
+    pretrained_mount=()
+    if [ -d "$V4_PRETRAINED_RO" ]; then
+        pretrained_mount=(-v "$V4_PRETRAINED_RO:$V4_PRETRAINED_RO:ro")
+    fi
     # --shm-size: Docker defaults /dev/shm to 64 MiB, way too small for
     # PyTorch DataLoader worker IPC. 32 GiB covers DEIMv2 pico@416 (~6 GiB
     # observed) with comfortable headroom for n@640 and the round-loop
@@ -83,6 +93,7 @@ _run_in_image() {
         -v "$DVC_RO:$DVC_LEGACY_RO:ro" \
         -v "$DVC_EXPT_RO:$DVC_EXPT_LEGACY_RO:ro" \
         -v "$KCD_HOST:$KCD_HOST" \
+        "${pretrained_mount[@]}" \
         "$IMAGE_TAG" "$@"
 }
 
