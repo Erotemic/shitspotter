@@ -35,6 +35,10 @@ sweep:
     - variant: deimv2_pico
       input_hw: [416, 416]
       train_policy: fixed
+  # COCO-pretrained DEIMv2-pico checkpoint. Required for parity with v4 --
+  # the v4 baseline (AP=0.406) fine-tuned from this; training from scratch
+  # (init_checkpoint omitted) loses 5-10 AP on this dataset size.
+  init_checkpoint: /data/joncrall/shitspotter_v4/pretrained/deimv2/deimv2_pico_coco.pth
   # Mirrors v4 policy.json for deimv2_pico_tile_g2_fixed_416x416:
   #   num_epochs=80, train_batch=48, val_batch=96, lr=7.5e-4,
   #   backbone_lr=3.75e-5, use_amp=True
