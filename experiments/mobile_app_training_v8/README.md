@@ -1,5 +1,25 @@
 # mobile_app_training_v8 — round-based hard-negative mining
 
+> **Morning kickoff routine (copy-paste, then walk away):**
+> ```bash
+> cd ~/code/shitspotter
+> git fetch aivm-aivm-2404-fe98f795 && git merge --ff-only aivm-aivm-2404-fe98f795/main
+> ./reproduce/mobile_quality_push.sh build        # ~30s, kit-layer rebuild
+> ./reproduce/mobile_quality_push.sh compare      # confirm v7 numbers landed
+> # If v7 looks reasonable, kick off v8 (8-10 h, both cells, 3 rounds each):
+> ./reproduce/mobile_quality_push.sh v8 2>&1 | tee /tmp/v8_run.log
+> ```
+> Spot-check around T+15 min (multi-scale tile step done, round 0 started)
+> and T+30 min (DEIMv2 launch banner shows the COCO init loaded). After
+> that you can walk away until evening.
+> 
+> First-run caveat: this is the **first end-to-end run** of the kit's
+> `round-loop` path on this dataset. Most likely failure modes are kit-side
+> bugs in tile-split-by-role or the round merge. If the tile step fails or
+> round 0 doesn't start within 20 min, ctrl-C and ping me — don't burn the
+> day waiting on a hung pipeline.
+
+
 v5's idea, finally executed at scale through `kwcoco-detector-kit round-loop`.
 Round 0 trains on positives + a random sample of negatives. Each subsequent
 round runs the prior round's model on the full negative pool, picks the
@@ -24,16 +44,37 @@ round, and the next-round training kickoff. Wrapping it in the
 single-shot `recipe-run` would just inline its logic. v8 calls it
 directly.
 
-## Quick start (inside the docker image)
+## Quick start — morning kickoff, hands-off all day
+
+The whole sequence is one command via the driver. Expected runtime
+~8-10 h for both cells × 3 rounds × 30 epochs/round on a single 3090.
 
 ```bash
-docker run --gpus=all -it --rm \
-    -v /data/joncrall/dvc-repos/shitspotter_dvc:/data/joncrall/dvc-repos/shitspotter_dvc:ro \
-    -v /data/joncrall/dvc-repos/shitspotter_expt_dvc:/data/joncrall/dvc-repos/shitspotter_expt_dvc:ro \
-    -v /data/joncrall/kcd:/data/joncrall/kcd \
-    shitspotter:latest \
-    bash experiments/mobile_app_training_v8/run.sh
+cd ~/code/shitspotter
+./reproduce/mobile_quality_push.sh v8 2>&1 | tee /tmp/v8_run.log
 ```
+
+Then walk away. Each cell streams its own per-round log under
+`/data/joncrall/kcd/v8/{deimv2_pico_416x416,deimv2_n_640x640}/rounds/`.
+Round 0 fine-tunes from the matching `deimv2_<variant>_coco.pth` (the
+COCO-pretrained checkpoint, same one v6 used). Rounds 1+ resume from
+the prior round's `best_stg2.pth` automatically.
+
+### Single-cell variant (pico only, ~3-4 h)
+
+```bash
+V8_CELLS="pico:416" ./reproduce/mobile_quality_push.sh v8
+```
+
+### GPU note
+
+The Pixel 5 mobile cells are single-GPU by design. **Do not** try to
+spread one training run across both GPUs on a host where the second
+3090 is on only 2 PCIe lanes — DDP all-reduce is bottlenecked by the
+slowest peer and you'll lose throughput. The driver pins to GPU 0
+implicitly (the kit defaults `CUDA_VISIBLE_DEVICES=0` when unset, per
+[`_env.default_cuda_visible_devices`](../../tpl/kwcoco_detector_kit/kwcoco_detector_kit/_env.py)).
+GPU 1 stays free for ad-hoc work.
 
 ## Prerequisites
 
