@@ -26,7 +26,14 @@ V8_NUM_ROUNDS=${V8_NUM_ROUNDS:-3}
 V8_ROUND0_NEG_OVER_POS=${V8_ROUND0_NEG_OVER_POS:-3.0}
 V8_MINE_SCORE_THRESH=${V8_MINE_SCORE_THRESH:-0.30}
 V8_MAX_HARD_PER_ROUND=${V8_MAX_HARD_PER_ROUND:-5000}
-V8_ROUND_EPOCHS=${V8_ROUND_EPOCHS:-20}
+V8_ROUND_EPOCHS=${V8_ROUND_EPOCHS:-30}
+
+# Round 0 of each cell fine-tunes from the matching DEIMv2 COCO-pretrained
+# checkpoint. Rounds 1+ resume from the prior round's best_stg2.pth
+# automatically. Per-cell paths -- override via env if your host stores
+# the .pth files elsewhere.
+V8_PICO_INIT=${V8_PICO_INIT:-/data/joncrall/shitspotter_v4/pretrained/deimv2/deimv2_pico_coco.pth}
+V8_N_INIT=${V8_N_INIT:-/data/joncrall/shitspotter_v4/pretrained/deimv2/deimv2_n_coco.pth}
 
 # Multi-scale tiles for the mining pool. Produces pos + neg bundles.
 # v5 default scales (1.0, 0.66, 0.40, 0.25) cover the operating modes
@@ -65,11 +72,23 @@ for role, dst in [('positive', '$pos'), ('negative', '$neg')]:
 done
 
 for cell in $V8_CELLS; do
-    variant="deimv2_${cell%%:*}"
+    variant_short="${cell%%:*}"
+    variant="deimv2_${variant_short}"
     size="${cell##*:}"
     workdir_tag="${variant}_${size}x${size}"
+
+    case "$variant_short" in
+        pico) init_ckpt="$V8_PICO_INIT" ;;
+        n)    init_ckpt="$V8_N_INIT" ;;
+        *)    init_ckpt="" ;;
+    esac
+    if [ -n "$init_ckpt" ] && [ ! -f "$init_ckpt" ]; then
+        echo "[v8] ERROR: init_checkpoint missing: $init_ckpt" >&2
+        exit 2
+    fi
+
     echo
-    echo "[v8] === round-loop for $workdir_tag ==="
+    echo "[v8] === round-loop for $workdir_tag (init=$init_ckpt) ==="
     KCD_ROOT="$V8_ROOT/$workdir_tag" \
     kwcoco-detector-kit round-loop \
         --pos_tiles_kwcoco "$V8_DATA/train_tiles_pos.kwcoco.zip" \
@@ -94,7 +113,8 @@ for cell in $V8_CELLS; do
         --backbone_lr      2.5e-5 \
         --use_amp          True \
         --scale_tier       M \
-        --num_gpus         1
+        --num_gpus         1 \
+        ${init_ckpt:+--init_checkpoint "$init_ckpt"}
 done
 
 # Aggregate the final rounds' artifacts into one cross-cell manifest.
