@@ -1,5 +1,25 @@
 # mobile_app_training_v8 — round-based hard-negative mining
 
+> **Morning kickoff routine (copy-paste, then walk away):**
+> ```bash
+> cd ~/code/shitspotter
+> git fetch aivm-aivm-2404-fe98f795 && git merge --ff-only aivm-aivm-2404-fe98f795/main
+> ./reproduce/mobile_quality_push.sh build        # ~30s, kit-layer rebuild
+> ./reproduce/mobile_quality_push.sh compare      # confirm v7 numbers landed
+> # If v7 looks reasonable, kick off v8 (8-10 h, both cells, 3 rounds each):
+> ./reproduce/mobile_quality_push.sh v8 2>&1 | tee /tmp/v8_run.log
+> ```
+> Spot-check around T+15 min (multi-scale tile step done, round 0 started)
+> and T+30 min (DEIMv2 launch banner shows the COCO init loaded). After
+> that you can walk away until evening.
+> 
+> First-run caveat: this is the **first end-to-end run** of the kit's
+> `round-loop` path on this dataset. Most likely failure modes are kit-side
+> bugs in tile-split-by-role or the round merge. If the tile step fails or
+> round 0 doesn't start within 20 min, ctrl-C and ping me — don't burn the
+> day waiting on a hung pipeline.
+
+
 v5's idea, finally executed at scale through `kwcoco-detector-kit round-loop`.
 Round 0 trains on positives + a random sample of negatives. Each subsequent
 round runs the prior round's model on the full negative pool, picks the
