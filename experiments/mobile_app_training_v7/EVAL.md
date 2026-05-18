@@ -1,46 +1,71 @@
-# v7 evaluation — TO BE FILLED IN AFTER RUNNING
-
-## How to fill this in (morning routine)
-
-```bash
-./reproduce/mobile_quality_push.sh compare
-```
-
-That prints a row per cell with v6 → v4 delta. v7's cells appear as
-`v7:deimv2_pico@416` and `v7:deimv2_n@640`. Copy the AP values into
-the table below.
-
-Per-cell DEIMv2 internal val AP@0.5 trajectory is in the log file at
-`/data/joncrall/kcd/v7/runs/<cell>/log.txt`. Grep for `test_coco_eval_bbox`
-to see the per-epoch arc.
+# v7 evaluation
 
 ## Headline numbers
 
-| Cell        | v4 fixed AP | v6 kit baseline | v7 multiscale AP | Δ vs v4 | Δ vs v6 | Verdict |
-|-------------|-------------|-----------------|------------------|---------|---------|---------|
-| pico@416    | 0.406       | 0.386           | TBD              | TBD     | TBD     | TBD     |
-| n@640       | 0.520       | (not run in v6) | TBD              | TBD     | —       | TBD     |
+| Cell        | v4 fixed AP | v6 kit baseline | v7 multiscale AP | Δ vs v4   | Δ vs v6   | Verdict        |
+|-------------|-------------|-----------------|------------------|-----------|-----------|----------------|
+| pico@416    | 0.406       | 0.386           | **0.398**        | −0.008    | +0.012    | ~=v4 (in noise)|
+| n@640       | 0.520       | (not run in v6) | **0.535**        | **+0.015**| —         | **WIN vs v4**  |
 
-| Cell        | Desktop ms (mean) | Eligibility class |
-|-------------|-------------------|-------------------|
-| pico@416    | TBD               | TBD               |
-| n@640       | TBD               | TBD               |
+n@640 is the **first cell in the ladder to beat v4**. pico@416 closed
+the v6 kit-baseline gap (+0.012 from multiscale) and landed effectively
+at v4 (delta within the DETR run-to-run noise band).
 
 ## Decision
 
-The bar isn't "match v4 exactly" — v6 settled the kit-pivot gap as
-−0.020 AP (within DETR noise). For v7 we want the multiscale policy
-to **beat v6's kit-baseline number** by at least ~+0.01 AP on each
-cell, OR to leave the number unchanged with no regression.
+- [x] **Both cells advance to v8.** n@640 because it's already
+      winning; pico@416 because it's at parity and v8's hard-neg
+      mining is independent of the train policy that got us here.
 
-- [ ] Both cells ≥ +0.01 AP over v6 → multiscale clearly helps, carry both into v8.
-- [ ] One cell improves, one doesn't → carry the improved cell into v8, note the negative result for the other.
-- [ ] Both regress vs v6 → multiscale is hurting, drop it; v8 uses v6's fixed policy.
+## What it took — surprise architecture mismatch on n@640
 
-## Run identity (fill after compare)
+v7 surfaced a kit bug that did not fire on the pico cells: when an
+HGNetv2 variant doesn't explicitly set `DEIMTransformer.use_gateway`
+in its upstream config, DEIMv2's YAMLConfig can pick a different
+default at eval time than at train time. n@640 trained fine but the
+post-train eval crashed with state_dict-vs-architecture mismatch
+(saved gateway keys vs. eval-time non-gateway model).
 
-- Kit commit at run: `70c2270` round_loop init_checkpoint
+Fixed in kit commit `78c5654` with two safety layers:
+
+1. **Per-variant `use_gateway` table** in the kit's variant registry,
+   written explicitly into every generated train.yml. Future runs
+   can't silently disagree across train / export / eval.
+2. **`DEIMv2Predictor` auto-detect** — inspects the saved state_dict
+   for `gateway.*` keys and force-sets the YAML before building the
+   model. This salvages already-trained checkpoints written by the
+   pre-fix kit (which is how we got the n@640 number on this row
+   without retraining).
+
+## Run identity
+
+- Kit commits at final eval:
+  - `70c2270` round_loop init_checkpoint (pre-existing)
+  - `78c5654` use_gateway per variant + predictor auto-detect (eval-time)
 - Workspace: `/data/joncrall/kcd/v7/`
 - Manifest: `/data/joncrall/kcd/v7/manifest.tsv`
 
+## Caveat: exported ONNX may be wrong
+
+The n@640 export step ran with the pre-fix YAML and may have written
+an ONNX with `use_gateway=False` and partial weights. Desktop bench
+timing was valid but ONNX-based predictions are suspect. If you need
+the n@640 ONNX (for phone-app or any other downstream consumer), force
+re-export so the new code path writes the correct architecture into
+the generated train.yml and the export subprocess builds the right
+model:
+
+```bash
+./reproduce/mobile_quality_push.sh v7 --force_export --force_eval
+```
+
+Not blocking for v8 (v8 trains from the .pth, not the ONNX).
+
 ## Notes
+
+- Per-cell DEIMv2 internal val AP@0.5 trajectory is in
+  `/data/joncrall/kcd/v7/runs/<cell>/log.txt`. Grep for
+  `test_coco_eval_bbox` to see the per-epoch arc.
+- Both cells used multi-scale tile training data shared with v6
+  (`/data/joncrall/kcd/v6/data/`) plus a wider train-resolution band
+  (multiscale_320_512 for pico, multiscale_512_768 for n).
