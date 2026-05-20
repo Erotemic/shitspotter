@@ -27,6 +27,13 @@ V8_ROUND0_NEG_OVER_POS=${V8_ROUND0_NEG_OVER_POS:-3.0}
 V8_MINE_SCORE_THRESH=${V8_MINE_SCORE_THRESH:-0.30}
 V8_MAX_HARD_PER_ROUND=${V8_MAX_HARD_PER_ROUND:-5000}
 V8_ROUND_EPOCHS=${V8_ROUND_EPOCHS:-30}
+# Mining budget: cap negative-tile scoring per round. The multi-scale
+# tile pool is ~1.8M negatives; without a budget, mining round 0 alone
+# takes ~16 h on a 3090. 50000 stratified-by-image gives a balanced
+# sample of every source scene at roughly 30x speedup. Set to 0 to
+# disable the cap and score everything (legacy v8.0 behavior).
+V8_MINE_MAX_CANDIDATES=${V8_MINE_MAX_CANDIDATES:-50000}
+V8_MINE_CANDIDATE_STRATEGY=${V8_MINE_CANDIDATE_STRATEGY:-stratified_by_image}
 
 # Round 0 of each cell fine-tunes from the matching DEIMv2 COCO-pretrained
 # checkpoint. Rounds 1+ resume from the prior round's best_stg2.pth
@@ -114,6 +121,8 @@ for cell in $V8_CELLS; do
         --use_amp          True \
         --scale_tier       M \
         --num_gpus         1 \
+        --mine_max_candidates    "$V8_MINE_MAX_CANDIDATES" \
+        --mine_candidate_strategy "$V8_MINE_CANDIDATE_STRATEGY" \
         ${init_ckpt:+--init_checkpoint "$init_ckpt"}
 done
 

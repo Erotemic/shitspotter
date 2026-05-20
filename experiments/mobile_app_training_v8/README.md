@@ -66,6 +66,27 @@ the prior round's `best_stg2.pth` automatically.
 V8_CELLS="pico:416" ./reproduce/mobile_quality_push.sh v8
 ```
 
+### Mining budget — preventing 16-hour rounds
+
+The multi-scale tile pool produces ~1.8M negative tiles. Scoring every
+one per round at ~19 Hz on a 3090 = ~16 h **per round**. With 3 rounds
+that's 48 h just for the mining passes.
+
+v8 now caps mining at `V8_MINE_MAX_CANDIDATES` (default 50000) using a
+`stratified_by_image` sample so each source image contributes roughly
+equally to the candidate pool. ~30x speedup with negligible recall
+loss (we only care about the TOP-K hard negatives at the end anyway,
+and 50k>>5k is plenty of headroom). Override:
+
+```bash
+V8_MINE_MAX_CANDIDATES=100000 ./reproduce/mobile_quality_push.sh v8
+# or, to revert to legacy "score everything":
+V8_MINE_MAX_CANDIDATES=0      ./reproduce/mobile_quality_push.sh v8
+```
+
+The v8.0 run that hit the 16h mining ETA had this budget = 0; the
+2026-05-18 kit commit added the knob with default 50000 going forward.
+
 ### GPU note
 
 The Pixel 5 mobile cells are single-GPU by design. **Do not** try to
