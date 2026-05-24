@@ -37,12 +37,19 @@ from pathlib import Path
 KIT_REPO = Path("/home/joncrall/code/kwcoco_detector_kit")
 
 
+def _git(repo: Path, *args, **kw) -> str:
+    """`git -C repo -c safe.directory=* ...` — bypasses the dubious-
+    ownership guard for read-only bind-mounts in docker.
+    """
+    return subprocess.check_output(
+        ["git", "-c", "safe.directory=*", "-C", str(repo), *args],
+        text=True, **kw,
+    )
+
+
 def _git_log_with_dates(repo: Path):
     """Return [(sha, iso_date)] for every commit in repo, newest first."""
-    out = subprocess.check_output(
-        ["git", "-C", str(repo), "log", "--pretty=format:%H %cI", "--all"],
-        text=True,
-    )
+    out = _git(repo, "log", "--pretty=format:%H %cI", "--all")
     rows = []
     for line in out.splitlines():
         sha, _, iso = line.partition(" ")
@@ -63,10 +70,8 @@ def _infer_sha_from_mtime(repo: Path, target_iso: str):
 
 def _submodule_sha(repo: Path, submodule: str):
     try:
-        out = subprocess.check_output(
-            ["git", "-C", str(repo), "submodule", "status", submodule],
-            text=True, stderr=subprocess.DEVNULL,
-        )
+        out = _git(repo, "submodule", "status", submodule,
+                   stderr=subprocess.DEVNULL)
         # output looks like " 377e10a... tpl/DEIMv2 (377e10a)"
         token = out.strip().split()[0]
         return token.lstrip("+-U")
