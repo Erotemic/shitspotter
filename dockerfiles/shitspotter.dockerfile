@@ -276,6 +276,34 @@ cd /root/code/kwcoco_detector_kit
 # in a follow-up image when a >=0.1.3 release lands on PyPI or when
 # kwcoco_dataloader is staged as another repo via repos.yaml.
 uv pip install -e ".[dev,deimv2]"
+
+# Bake provenance into the image so every artifact produced inside is
+# self-describing. kwcoco_detector_kit/_provenance.py reads this file
+# at runtime; failing that it falls back to live git rev-parse of the
+# installed source. Storing it in /etc/ means: even if a future user
+# mutates the kit source (via -v bind-mount for iteration), the
+# image's intended provenance is preserved.
+mkdir -p /etc
+python3 - <<PY
+import json, subprocess, os
+def _sha(p):
+    try:
+        return subprocess.check_output(
+            ["git", "-C", p, "rev-parse", "HEAD"], text=True,
+            stderr=subprocess.DEVNULL).strip()
+    except Exception:
+        return None
+prov = {
+    "kit_sha": _sha("/root/code/kwcoco_detector_kit"),
+    "deimv2_sha": _sha("/root/code/kwcoco_detector_kit/tpl/DEIMv2"),
+    "opengroundingdino_sha":
+        _sha("/root/code/kwcoco_detector_kit/tpl/Open-GroundingDino"),
+    "image_built_at": subprocess.check_output(["date","-u","+%Y-%m-%dT%H:%M:%SZ"], text=True).strip(),
+}
+with open("/etc/kcd_provenance.json","w") as f:
+    json.dump(prov, f, indent=2)
+print("provenance baked:", prov)
+PY
 EOF
 
 # Compile DEIMv2's MultiScaleDeformableAttention CUDA extension. Builds
