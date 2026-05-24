@@ -200,6 +200,47 @@ investment.
 
 ---
 
+## 2026-05-24 — Contamination check + provenance system
+
+User raised the question: did any of the 30+ commits on the kit's
+`origin/main` (the user's sealions work + GDAL Kitware fix + DEIMv2
+submodule bumps) leak into the v6-v8 results?
+
+**Verified clean.** Kit local main reflog shows a linear chain of v6-v8
+fix commits only — no merge or pull from origin/main ever happened.
+DEIMv2 submodule reflog shows a single checkout to `377e10a` with no
+later bumps. OGDino at `cfe1534` throughout. Every v6/v7/v8 training
+ran with:
+
+- kit: somewhere in the linear chain `df5c41d ... b5aeaec`
+- DEIMv2: `377e10a273fa14509d90e77f076b81882d3ba3ff`
+- OGDino: `cfe1534689e2415101ade2e95b87ce2ac82ab98f`
+
+To prevent this kind of question from being painful to answer again,
+landed a **provenance capture system** (kit commits `82e079e` +
+`3cf1c36`):
+
+1. `_provenance.py`: env -> `/etc/kcd_provenance.json` -> git rev-parse
+   fallback chain for resolving kit_sha + deimv2_sha + ogdino_sha.
+2. `_dump_policy_json` stamps provenance into every trained workdir's
+   `policy.json`.
+3. `run_kwcoco_eval` stamps provenance AND eval inputs (test_kwcoco
+   path, score_thresh, etc.) into `detect_metrics.json`.
+4. `check-env --runtime` prints kit / deimv2 / ogdino short SHAs at
+   startup, with a `DIRTY-KIT` flag if the installed kit has uncommitted
+   changes.
+5. dockerfile bakes `/etc/kcd_provenance.json` at build time so a future
+   bind-mount-mutated container still carries the image's intended
+   provenance.
+6. `experiments/provenance_backfill.py`: one-shot script that scans the
+   existing v6/v6.1/v7/v8 workdirs and writes a `provenance.json`
+   sidecar (kit SHA inferred from workdir mtime + kit git log; DEIMv2 /
+   OGDino SHAs constant in this lineage, read directly).
+
+Going forward, every artifact is one `cat` away from being fully
+identifiable. The 2026-05-22 investigation that took half a day will
+take ~30 seconds next time.
+
 ## Lessons accumulated
 
 1. **Always re-evaluate baselines with the eval driver you'll use for
@@ -235,3 +276,10 @@ investment.
    ad-hoc eval (which is mostly CPU anyway) or for the predictor side
    of mining. Not safe to DDP across. Recipes/driver should set
    `CUDA_VISIBLE_DEVICES=0` by default.
+
+8. **Provenance must be automatic, not requested.** The 2026-05-22
+   "is v4 self-report comparable to ours?" question was painful because
+   *no artifact in the chain answered it*. Every output should
+   self-describe its inputs (test bundle SHA + score thresh + ...) and
+   its producer (kit_sha + DEIMv2_sha + OGDino_sha + image build time).
+   Stamping kit `82e079e` + dockerfile `3cf1c36` make this automatic.
