@@ -18,8 +18,7 @@ workspace:
 
 sweep:
   trainer: deimv2
-  num_classes: 1
-  category_name: poop
+  category_names: poop
   matrix:
     - variant: deimv2_pico
       input_hw: [416, 416]

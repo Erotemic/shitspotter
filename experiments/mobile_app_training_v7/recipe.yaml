@@ -20,8 +20,7 @@ workspace:
 
 sweep:
   trainer: deimv2
-  num_classes: 1
-  category_name: poop
+  category_names: poop
   matrix:
     # Per-cell init_checkpoint -- each variant fine-tunes from its own
     # COCO-pretrained .pth. See [[v6 EVAL.md]] for the parity finding

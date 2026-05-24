@@ -26,12 +26,12 @@ done
 # If symlinking failed (no v6), tile from raw.
 if [ ! -e "$V7_ROOT/data/train_tile_g2.kwcoco.zip" ]; then
     kwcoco-detector-kit tile "$RAW_TRAIN" "$V7_ROOT/data/train_tile_g2.kwcoco.zip" \
-        --mode quadrant --category_name poop --tile_grid 2 \
+        --mode quadrant --category_names poop --tile_grid 2 \
         --tile_overlap 0.20 --tile_output_dim 640 --full_dim 1280
 fi
 if [ ! -e "$V7_ROOT/data/vali_tile_g2.kwcoco.zip" ]; then
     kwcoco-detector-kit tile "$RAW_VALI" "$V7_ROOT/data/vali_tile_g2.kwcoco.zip" \
-        --mode quadrant --category_name poop --tile_grid 2 \
+        --mode quadrant --category_names poop --tile_grid 2 \
         --tile_overlap 0.20 --tile_output_dim 640 --full_dim 1280
 fi
 
