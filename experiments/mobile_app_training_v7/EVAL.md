@@ -1,5 +1,13 @@
 # v7 evaluation
 
+> **⚠ VERDICT SUPERSEDED 2026-05-22.** The "n@640 WIN vs v4" claim
+> below was based on v4's **self-reported** 0.520. Under consistent
+> kit-eval, v4's n@640 AP is actually **0.5553**, and v7's true gap is
+> **−0.020**, not +0.015. v7 does **not** beat v4. The recipe here also
+> uses the wrong source bundle (see v6's superseded note). See
+> [`../V4_VS_KIT_APPLES_TO_APPLES.md`](../V4_VS_KIT_APPLES_TO_APPLES.md).
+> Numbers below are correct measurements; the verdict is wrong.
+
 ## Headline numbers
 
 | Cell        | v4 fixed AP | v6 kit baseline | v7 multiscale AP | Δ vs v4   | Δ vs v6   | Verdict        |
