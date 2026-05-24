@@ -1,5 +1,16 @@
 # v6 evaluation
 
+> **⚠ VERDICT SUPERSEDED 2026-05-22.** This file's "kit pivot validated"
+> verdict was based on a comparison against v4's **self-reported** AP
+> (0.406). Under consistent kit-eval, v4's pico@416 AP is actually
+> **0.4548**, and v6's true gap is **−0.069**, not −0.020. The recipe
+> here uses the wrong source bundle (`simplified_train_imgs7350` with
+> only 2 564 images instead of v4's `train_imgs10671` with 10 671
+> images). See [`../V4_VS_KIT_APPLES_TO_APPLES.md`](../V4_VS_KIT_APPLES_TO_APPLES.md)
+> for the diagnostic and [`../mobile_app_training_v6_1/`](../mobile_app_training_v6_1/)
+> for the corrected redo. The numbers below are factually correct as
+> measurements; the *verdict* is wrong.
+
 ## Headline numbers
 
 | Metric                        | v4 baseline | v6 measured | Δ vs v4 | Verdict           |

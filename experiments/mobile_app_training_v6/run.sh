@@ -35,7 +35,7 @@ if [ ! -f "$DATA_DPATH/train_tile_g2.kwcoco.zip" ]; then
     kwcoco-detector-kit tile \
         "$RAW_TRAIN" "$DATA_DPATH/train_tile_g2.kwcoco.zip" \
         --mode quadrant \
-        --category_name poop \
+        --category_names poop \
         --tile_grid 2 \
         --tile_overlap 0.20 \
         --tile_output_dim 640 \
@@ -48,7 +48,7 @@ if [ ! -f "$DATA_DPATH/vali_tile_g2.kwcoco.zip" ]; then
     kwcoco-detector-kit tile \
         "$RAW_VALI" "$DATA_DPATH/vali_tile_g2.kwcoco.zip" \
         --mode quadrant \
-        --category_name poop \
+        --category_names poop \
         --tile_grid 2 \
         --tile_overlap 0.20 \
         --tile_output_dim 640 \

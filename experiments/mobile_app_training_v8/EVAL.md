@@ -1,4 +1,11 @@
-# v8 evaluation — REGRESSION vs v7
+# v8 evaluation — REGRESSION vs v7 (and also vs v4)
+
+> **⚠ TABLE UPDATED 2026-05-22.** The "Δ v4" column below used v4's
+> self-reported AP (0.406 / 0.520). Under consistent kit-eval, v4 is
+> actually **pico=0.4548 / n=0.5553**, making the true Δ vs v4
+> **pico=−0.068 / n=−0.040**. The "regression vs v7" verdict is
+> unchanged. The recipe here also uses the wrong source bundle (see
+> v6's superseded note). See [`../V4_VS_KIT_APPLES_TO_APPLES.md`](../V4_VS_KIT_APPLES_TO_APPLES.md).
 
 ## Headline numbers
 

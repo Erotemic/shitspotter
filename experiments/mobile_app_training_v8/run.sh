@@ -54,7 +54,7 @@ for split in train vali; do
         echo "[v8] multi-scale tile $split"
         kwcoco-detector-kit tile "$src" "$V8_DATA/${split}_tiles.kwcoco.zip" \
             --mode multiscale \
-            --category_name poop \
+            --category_names poop \
             --tile_size 320 \
             --source_scales "1.0,0.66,0.40,0.25" \
             --stride_frac 0.5 \
@@ -107,8 +107,7 @@ for cell in $V8_CELLS; do
         --variant          "$variant" \
         --input_hw         "[$size,$size]" \
         --train_policy     fixed \
-        --category_name    poop \
-        --num_classes      1 \
+        --category_names    poop \
         --num_rounds       "$V8_NUM_ROUNDS" \
         --round0_neg_over_pos "$V8_ROUND0_NEG_OVER_POS" \
         --mine_score_thresh "$V8_MINE_SCORE_THRESH" \

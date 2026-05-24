@@ -1,0 +1,61 @@
+# v6.1 -- corrected source bundle (apples-to-apples with v4)
+#
+# v6.0 used `simplified_train_imgs7350_4f0174d0.kwcoco.zip`, which despite
+# its filename contains only 2564 images (vs v4's 10671 in
+# `train_imgs10671_b277c63d.kwcoco.zip`). The kit's tile.py correctly
+# 5x-amplifies the input, so v6.0 trained on ~12.8K tiles vs v4's
+# ~53.4K -- a 4x data deficit that accounts for the -0.057 AP gap on
+# pico@416 under consistent kit-eval (see
+# `experiments/V4_VS_KIT_APPLES_TO_APPLES.md`).
+#
+# v6.1 fixes the source bundle path. Everything else stays identical to
+# v6.0 so the comparison isolates the data variable.
+---
+schema: recipe.v1
+name: shitspotter_v6_1_pico416_corrected_bundle
+description: >
+  v6 redo with the correct (10671-image) source bundle. Validates whether
+  the systematic kit-vs-v4 AP gap was caused by the source-bundle path
+  bug, with all other knobs frozen at v6.0.
+
+data:
+  # Tiled by run.sh from the train_imgs10671 + vali_imgs1258 bundles
+  # (v4's source). Quadrant g2 / overlap=0.20 / output_dim=640 -- the
+  # same as v6.0 and v4.
+  train_kwcoco: /data/joncrall/kcd/v6_1/data/train_tile_g2.kwcoco.zip
+  vali_kwcoco:  /data/joncrall/kcd/v6_1/data/vali_tile_g2.kwcoco.zip
+  test_kwcoco:  /data/joncrall/dvc-repos/shitspotter_expt_dvc/foundation_detseg_v3/v9/detector_prepared/test.simplified.kwcoco.zip
+
+workspace:
+  kcd_root: /data/joncrall/kcd/v6_1
+
+sweep:
+  trainer: deimv2
+  category_names: poop
+  matrix:
+    - variant: deimv2_pico
+      input_hw: [416, 416]
+      train_policy: fixed
+  init_checkpoint: /data/joncrall/shitspotter_v4/pretrained/deimv2/deimv2_pico_coco.pth
+  # v4 policy verbatim:
+  num_epochs: 80
+  batch_size: 48
+  val_batch_size: 96
+  lr: 7.5e-4
+  backbone_lr: 3.75e-5
+  use_amp: true
+  scale_tier: M
+  num_gpus: 1
+  distributed: false
+  do_export: true
+  do_eval: true
+  do_bench: true
+
+eligibility:
+  max_desktop_ms: 80.0
+  min_device_fps: 1.0
+  include_smoke_models: false
+
+reproducibility:
+  seed: 0
+  deterministic: false
