@@ -328,16 +328,29 @@ cd /root/code/kwcoco_detector_kit/tpl/Open-GroundingDino
 uv pip install addict yapf colorlog pycocotools timm 'transformers>=4.35,<4.47' jsonlines
 cd models/GroundingDINO/ops
 
-# The upstream setup.py gates the CUDA build on torch.cuda.is_available(),
-# which is False during a headless docker build (no GPU visible). The
-# convention for headless extension builds is to gate on CUDA_HOME alone
-# and rely on TORCH_CUDA_ARCH_LIST to drive the right gencodes. We patch
-# the gate in-place rather than amending the submodule SHA.
-sed -i 's/if torch.cuda.is_available() and CUDA_HOME is not None:/if CUDA_HOME is not None:/' setup.py
-grep -q "if CUDA_HOME is not None:" setup.py || { echo "patch failed"; exit 1; }
+# Two flavors of OGDino setup.py exist in our submodule history:
+#
+#   pre-9ddf1037: gate is `if torch.cuda.is_available() and CUDA_HOME is not None:`
+#                 -- requires a sed patch so headless docker builds (no GPU
+#                 visible at build time) still take the CUDAExtension path.
+#
+#   9ddf1037+:    gate is `if (torch.cuda.is_available() or force_cuda) and ...`
+#                 -- built-in FORCE_CUDA=1 env-var path, no patch needed.
+#
+# Detect the new gate first and skip the patch if it's there; otherwise
+# apply the legacy patch.
+if grep -q "force_cuda" setup.py; then
+    echo "[ogdino-build] setup.py supports FORCE_CUDA env var natively"
+elif grep -q "if torch.cuda.is_available() and CUDA_HOME is not None:" setup.py; then
+    echo "[ogdino-build] applying legacy sed patch to setup.py CUDA gate"
+    sed -i 's/if torch.cuda.is_available() and CUDA_HOME is not None:/if CUDA_HOME is not None:/' setup.py
+    grep -q "if CUDA_HOME is not None:" setup.py || { echo "patch failed"; exit 1; }
+else
+    echo "[ogdino-build] WARN: setup.py has neither known CUDA gate; build may fail" >&2
+fi
 
-# FORCE_CUDA is the mmcv/detectron convention; harmless here but kept
-# for any sub-step that may consult it.
+# FORCE_CUDA=1 is the modern flavor's switch; harmless for the legacy
+# (patched) flavor since the gate no longer checks for it.
 export FORCE_CUDA=1
 
 python setup.py build_ext --inplace -v
