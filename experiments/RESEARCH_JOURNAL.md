@@ -241,6 +241,81 @@ Going forward, every artifact is one `cat` away from being fully
 identifiable. The 2026-05-22 investigation that took half a day will
 take ~30 seconds next time.
 
+## 2026-05-24 — Kit pulled to latest origin/main (deliberate "muddy")
+
+User opted to pull origin/main into our local kit branch rather than
+cherry-pick selected fixes, accepting that the v6.1 result will conflate
+multiple variables: (corrected source bundle) + (DEIMv2 submodule bump) +
+(multi-class API refactor) + (Universal tile architecture). Tradeoff
+explicitly chosen for time savings + to keep shitspotter and sealion
+work on the same kit codebase.
+
+### What we pulled
+
+42 commits from origin/main. Notable items:
+
+| Commit | What |
+|---|---|
+| `8aa6b51` ... `378ae76` (multi-class series) | `category_name` → `category_names`; tile, merge, mine, eval, sweep, mock_tiny, MSCOCO export, configs, CLI all migrated |
+| `5d99545` | Universal tile + apply-scheme: tile once, collapse per scheme |
+| `bb1e16e`, `0b49e2e` | DEIMv2 submodule bumps |
+| `617be91` | docker: install GDAL via Kitware's wheel index, not apt |
+| `1fb9080` | docker: install GDAL so delayed_image takes fast path |
+| `3469724` | docker: pin huggingface_hub>=0.27 for the modern hf CLI |
+| `2e20145`, `0f66858` | bake tests/ into docker image + run pytest at build time |
+| `cbd57e7` | port viame_sealions_2026 project tree into the kit |
+
+### SHA changes after merge
+
+| | before merge | after merge |
+|---|---|---|
+| kit local main | `b5aeaec` | `b01512b` (merge commit) + 42 commits inherited |
+| `tpl/DEIMv2` | `377e10a` | **`aeabc7e`** (timestamped print + DDP loss-key alignment) |
+| `tpl/Open-GroundingDino` | `cfe1534` | **`9ddf1037`** |
+
+### What this means for the v6.1 measurement
+
+v6.1's hypothesis was "fixing the source bundle closes the kit-vs-v4
+gap." After the merge, v6.1 will run with:
+1. The corrected source bundle (the intended variable change)
+2. The new DEIMv2 SHA `aeabc7e` (the "DDP loss-key alignment" commit
+   could affect training math — needs reading)
+3. The new Open-GroundingDino SHA (affects v9 distillation, not v6.1)
+4. The new kit Python code (multi-class API, universal-tile arch)
+
+If v6.1 lands at ~0.45 AP (matching v4-kit-eval), the result is
+**consistent with** the source-bundle hypothesis, but doesn't prove it
+in isolation — could be the DEIMv2 bump alone, or some combination.
+
+If v6.1 lands below 0.45 AP, the story is genuinely confusing because
+either the bundle wasn't the only issue OR the DEIMv2 bump regressed
+something.
+
+The v4 kit-eval baselines (pico=0.4548, n=0.5553) were measured under
+the OLD DEIMv2 SHA `377e10a`. They're still the right comparison target
+for v6.1 in the sense that "v4's checkpoint hasn't changed and the kit
+eval driver is consistent across the merge" — but the GAP to v6.1 may
+now have a DEIMv2-side component too.
+
+### Recipe changes triggered by the merge
+
+All `category_name: poop` (singular) renamed to `category_names: poop`
+(plural, accepts list or comma-string) in v6/v6.1/v7/v8/v9 recipes and
+run.sh files. `num_classes: 1` removed (now derived from
+`len(category_names)`). Shitspotter commit `539879a`.
+
+### What we explicitly did NOT do
+
+- Did not revert the DEIMv2 SHA bump (option B from the merge-strategy
+  question). The user picked the simpler-to-explain "full merge, take
+  the muddy v6.1 result" path for time.
+- Did not run any tests yet against the merged kit beyond a parse-only
+  smoke check. The dockerfile changes (Kitware GDAL, pytest at build)
+  haven't been exercised on toothbrush yet.
+- Did not pull the sealions project tree's content into shitspotter —
+  it lives in the kit under `projects/viame_sealions_2026/` and is
+  used by sealion runs, irrelevant to shitspotter's experiments.
+
 ## Lessons accumulated
 
 1. **Always re-evaluate baselines with the eval driver you'll use for
@@ -283,3 +358,10 @@ take ~30 seconds next time.
    self-describe its inputs (test bundle SHA + score thresh + ...) and
    its producer (kit_sha + DEIMv2_sha + OGDino_sha + image build time).
    Stamping kit `82e079e` + dockerfile `3cf1c36` make this automatic.
+
+9. **A merge is the right time to write the journal entry,
+   not after.** The 2026-05-24 kit-pull entry was written BEFORE
+   v6.1 ran so we'd know going in that the v6.1 measurement is
+   "muddy" relative to the original hypothesis. Otherwise the
+   temptation post-hoc is to assign a single cause to whatever
+   number comes back.
