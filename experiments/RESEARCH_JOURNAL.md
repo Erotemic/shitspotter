@@ -316,6 +316,34 @@ run.sh files. `num_classes: 1` removed (now derived from
   it lives in the kit under `projects/viame_sealions_2026/` and is
   used by sealion runs, irrelevant to shitspotter's experiments.
 
+## 2026-05-25 — v6.1 result: +0.035 AP, partial confirmation
+
+v6.1 (corrected source bundle + DEIMv2 bump + multi-class refactor)
+lands at **0.4211 AP** on the kit-eval pipeline. Headline:
+
+| Cell     | v4 (kit eval) | v6.0  | **v6.1**  | Δ v6.1 vs v6.0 | Δ v6.1 vs v4 |
+|----------|---------------|-------|-----------|----------------|--------------|
+| pico@416 | 0.4548        | 0.386 | **0.421** | **+0.035**     | **−0.034**   |
+
+The source-bundle fix delivered ~60% of the predicted gap-close.
+**Partial confirmation**: the source bundle was a load-bearing
+variable, but a ~0.034 AP residual still separates v6.1 from v4 under
+kit-eval. Per the 2026-05-24 journal entry's preamble, we cannot
+isolate which of the three combined variables (bundle, DEIMv2 bump,
+multi-class refactor) contributed how much without further A/B work.
+
+**Decision**: take the win and proceed to v7.1 (multi-scale on the
+corrected bundle, both cells). v7's multi-scale gain over v6.0 was
++0.012; if it stacks, v7.1 lands at ~0.433 AP — within ~0.02 of v4,
+solidly inside DETR run-to-run noise.
+
+**Provenance worked** (first run): `policy.json` carries the
+embedded `provenance` block with kit_sha + deimv2_sha + ogdino_sha
+auto-stamped. `detect_metrics.json` did NOT receive its stamp due to
+a stale `category_name` reference left over from the multi-class
+merge — caught in stderr, fixed in kit commit `059f60c`. Future eval
+runs will land with both stamps clean.
+
 ## Lessons accumulated
 
 1. **Always re-evaluate baselines with the eval driver you'll use for
