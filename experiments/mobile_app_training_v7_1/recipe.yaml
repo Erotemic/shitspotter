@@ -1,0 +1,63 @@
+# v7.1 -- multiscale on top of v6.1's corrected source bundle
+#
+# Two cells, multi-scale training policies, COCO-pretrained init, on the
+# train_imgs10671-derived tile bundles produced by v6.1's run (~53K
+# train tiles, matching v4's bundle scale).
+#
+# Hypothesis: v7's prior multiscale gain over v6.0 was +0.012 AP. If
+# that gain stacks on top of v6.1's corrected-bundle gain (v6.1 lands at
+# 0.421 vs v4's 0.455), v7.1 lands at ~0.433 -- within DETR noise of v4
+# and the first defensible v4-comparable kit result. n@640 first run on
+# the corrected bundle (v6.1 was pico-only).
+---
+schema: recipe.v1
+name: shitspotter_v7_1_multiscale_corrected_bundle
+description: >
+  v7 redo with the corrected (10671-image) source bundle. Both cells
+  (pico@416 + n@640) with multiscale training policies on top of v6.1's
+  validated tile bundles.
+
+data:
+  # Reuse v6.1's tile bundles directly. Built from train_imgs10671 +
+  # vali_imgs1258 (the same bundles v4 used). ~53K train tiles vs v6/v7
+  # /v8's 12.8K -- the variable v6.1 corrected.
+  train_kwcoco: /data/joncrall/kcd/v6_1/data/train_tile_g2.kwcoco.zip
+  vali_kwcoco:  /data/joncrall/kcd/v6_1/data/vali_tile_g2.kwcoco.zip
+  test_kwcoco:  /data/joncrall/dvc-repos/shitspotter_expt_dvc/foundation_detseg_v3/v9/detector_prepared/test.simplified.kwcoco.zip
+
+workspace:
+  kcd_root: /data/joncrall/kcd/v7_1
+
+sweep:
+  trainer: deimv2
+  category_names: poop
+  matrix:
+    - variant: deimv2_pico
+      input_hw: [416, 416]
+      train_policy: multiscale_320_512
+      init_checkpoint: /data/joncrall/shitspotter_v4/pretrained/deimv2/deimv2_pico_coco.pth
+    - variant: deimv2_n
+      input_hw: [640, 640]
+      train_policy: multiscale_512_768
+      init_checkpoint: /data/joncrall/shitspotter_v4/pretrained/deimv2/deimv2_n_coco.pth
+  num_epochs: 80
+  batch_size: 32
+  val_batch_size: 48
+  lr: 5.0e-4
+  backbone_lr: 2.5e-5
+  use_amp: true
+  scale_tier: M
+  num_gpus: 1
+  distributed: false
+  do_export: true
+  do_eval: true
+  do_bench: true
+
+eligibility:
+  max_desktop_ms: 80.0
+  min_device_fps: 1.0
+  include_smoke_models: false
+
+reproducibility:
+  seed: 0
+  deterministic: false
