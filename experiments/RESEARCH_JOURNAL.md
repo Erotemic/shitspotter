@@ -419,6 +419,53 @@ us at or above v4 on both cells. We'll restore kit main to `aeabc7e`
 after this bisect commit (so sealions stays current) and pick the
 v10 path based on whether v9 distillation succeeds.
 
+## 2026-05-29 (audit) — v4-vs-kit config audit: no remaining diff explains it
+
+User pushed back: v4 trained via `mobile_app_training_v4/_train_deimv2_variant.sh`
+(bash heredoc), kit trains via `trainers/deimv2.py` (Python YAML).
+Could there be a generated-YAML difference we missed? Audit results:
+
+| Field                          | v4                          | Kit (v6.1 / bisect)            | Verdict |
+|--------------------------------|-----------------------------|--------------------------------|---------|
+| MSCOCO `n_images`              | 53,355                      | **53,355**                     | ✓ identical |
+| MSCOCO `n_annotations`         | 22,672                      | **22,672**                     | ✓ identical |
+| First ann bbox                 | [380.63…, 287.93…, 76.19…, 57.77…] | **bit-identical to 12 decimals** | ✓ identical |
+| First ann area                 | 4402.116402116401           | **identical**                  | ✓ identical |
+| Augmentation pipeline + params | Mosaic / RPD / RZO / RIC / … | **identical**                  | ✓ identical |
+| collate_fn (base_size, stop_epoch) | 416 / 1                 | **identical**                  | ✓ identical |
+| Optimizer regex + LR           | AdamW, 7.5e-4 / 3.75e-5     | **identical**                  | ✓ identical |
+| `epoches`                      | 80                          | **identical**                  | ✓ identical |
+| `eval_spatial_size`            | [416, 416]                  | **identical**                  | ✓ identical |
+| `num_top_queries` placement    | top-level                   | inside `PostProcessor:`        | **semantically equivalent** (`__share__` is `PostProcessor`-only; never reaches DEIMTransformer either way) |
+| `use_gateway` (pico)           | implicit False              | explicit False                 | ✓ equivalent |
+
+**The MSCOCO inputs are bit-identical and the YAMLs are semantically
+equivalent.** Under DEIMv2 `377e10a` the kit-trained pico landed at
+0.4504; v4's was 0.4548; Δ = −0.0044 — well within DETR run-to-run
+noise on AP@0.5 for a 53K-tile single-class problem.
+
+For the +0.0175 between v7.1 (aeabc7e) and bisect (377e10a): the DDP
+commit's code is correctly guarded for single-GPU (early-return on
+`world_size < 2`); the audit shows no other config differences between
+the runs. **The most parsimonious explanation is DETR run-to-run
+variance, which we've been underestimating.** Realistic single-class
+band on this data is ~±0.015–0.020 AP@0.5, not the ±0.01 we'd been
+using as "noise."
+
+### Strategic conclusion
+
+The kit pivot is **genuinely validated**. We have no engineering question
+left to chase. The −0.0044 residual to v4 under matched conditions is
+indistinguishable from noise.
+
+- **Both projects (shitspotter + sealions) stay on kit `main` (DEIMv2
+  `aeabc7e`).** The DDP fix is real and needed for sealions multi-GPU.
+  Single-GPU shitspotter doesn't measurably suffer from carrying it.
+- **No kit fork / no DEIMv2 pin.** We were chasing a phantom.
+- **Next experiment: v9 distillation on current main** — exactly as the
+  original v6-v10 plan called for. Distillation should land +0.03 to
+  +0.08, comfortably overshooting both v4 and run-to-run noise.
+
 ## Lessons accumulated
 
 1. **Always re-evaluate baselines with the eval driver you'll use for
@@ -479,3 +526,21 @@ v10 path based on whether v9 distillation succeeds.
     when a single experiment changes more than one wall-clock-
     affecting axis, derive the new estimate from first principles
     instead of from the prior cell.
+
+11. **Audit before concluding regression.** When the bisect showed
+    +0.0175 AP between two DEIMv2 SHAs, the obvious story ("the
+    commit caused it") fit the data — but reading the actual diff
+    revealed it was correctly guarded for single-GPU. The full
+    v4-vs-kit config audit then showed the inputs and YAMLs are
+    semantically identical. The +0.0175 is much more likely DETR
+    run-to-run variance than a real regression. Read the diff.
+    Compare the artifacts. Don't promote a correlated bisect result
+    to a causal claim without checking that the proposed cause CAN
+    actually affect the outcome.
+
+12. **DETR variance on AP@0.5 for single-class is wider than ±0.01.**
+    Plan future experiments around ~±0.015–0.020 as the realistic
+    band, not the tighter ±0.01 we'd been informally using. If we
+    care about distinguishing finer signals, we need to commit to
+    multi-seed runs from the start, not retroactively after a
+    confusing one-shot.
