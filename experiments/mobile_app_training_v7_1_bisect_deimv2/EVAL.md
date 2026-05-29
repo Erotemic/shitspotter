@@ -1,5 +1,18 @@
 # DEIMv2 bisect — RESULT: bump explains ~80% of the residual
 
+> **⚠ VERDICT REVISED 2026-05-29.** A subsequent v4-vs-kit config audit
+> (see [RESEARCH_JOURNAL.md](../RESEARCH_JOURNAL.md) 2026-05-29 entry
+> + commit `65784ea`) found the MSCOCO inputs to be bit-identical and
+> the generated YAMLs semantically equivalent under both DEIMv2 SHAs.
+> Re-reading the DDP commit diff confirmed it's correctly guarded for
+> single-GPU (early-return on `world_size < 2`). With no code path
+> that could affect single-GPU math, the most parsimonious explanation
+> for the +0.0175 between v7.1 and bisect is **DETR run-to-run
+> variance**, not a true regression. The kit pivot is genuinely
+> validated. The remainder of this file describes the bisect's
+> measurement faithfully, but its "bump caused it" interpretation is
+> superseded.
+
 ## Headline result
 
 | Cell     | v4 (kit eval, 377e10a) | v7.1 (aeabc7e) | **bisect (377e10a)** | Δ bisect vs v7.1 | Δ bisect vs v4 |
