@@ -466,6 +466,53 @@ indistinguishable from noise.
   original v6-v10 plan called for. Distillation should land +0.03 to
   +0.08, comfortably overshooting both v4 and run-to-run noise.
 
+## 2026-05-29 (kit pull from sealions) — clean merge, distractors now soon-relevant
+
+User pulled the kit on toothbrush, bringing in 40+ commits from
+`origin/main` (mostly sealions-line work — submit scripts, env
+forwarding, NCCL traces, journal entries — but with several kit-level
+changes). Merge commit on local kit is `f0293f3`. Submodule state
+unchanged: `tpl/DEIMv2 = aeabc7e`, `tpl/Open-GroundingDino = 9ddf1037`.
+
+### Kit-touching changes inventoried
+
+| Commit | Change | Shitspotter impact |
+|---|---|---|
+| `f993f0f` | `--resume` and `--init_checkpoint` are mutually exclusive (DEIMv2 assert) | None — our recipes never set `resume`. |
+| `b2ed682` | `distractor_classes` is now a first-class `SweepConfig` field | None today (no distractors set). **Becomes load-bearing once we ship leaves as a discriminator class for shitspotter — see flag below.** |
+| `c5e77e3` | Sidecar eval pass excludes distractor classes; eligibility prefers the sidecar metrics file when present | None today (no sidecar files exist for our runs). Eligibility falls back to `detect_metrics.json` cleanly — verified by re-running the manifest aggregator against the bisect workspace and getting `test_ap=0.4504` back. |
+| `3bca71e` | `train_num_workers`/`val_num_workers` are now configurable `SweepConfig` fields | None — defaults match the prior hardcoded `4`/`2`. |
+| `1858d93` | tile output `umask 002` (group-writable cache) | Permissions only. |
+| `852df64` | tile stamps `source_category` from src_dset when absent | Metadata only; doesn't change tile JPEG content. |
+
+### Smoke-test results
+
+| Check | Result |
+|---|---|
+| v6/v6.1/v7/v7.1/v7.1-bisect/v9 recipes parse + build `SweepConfig` | ✓ all OK |
+| `run_kwcoco_eval` signature backwards-compatible | ✓ `distractor_classes=None` keyword added at the end |
+| Existing v7.1 bisect workspace re-aggregates with the post-merge eligibility | ✓ reads back identical AP |
+| Provenance probe under new kit | `kit=f0293f36bb66 deimv2=aeabc7e400e5 ogdino=9ddf10371a46` |
+
+### Flag for the near future — distractors for shitspotter
+
+User has started implementing distractor classes (e.g. **leaves**) for
+shitspotter. Once those land:
+
+- `distractor_classes` in v10/ship recipes' `sweep:` block should be
+  set to a list like `["leaf"]` (or whatever the final class set
+  becomes).
+- Eligibility will then automatically prefer the
+  `detect_metrics.leaf.json` sidecar over the standard
+  `detect_metrics.json` when picking the winner. Per-class AP on
+  leaves stays as a diagnostic in the original file.
+- This makes the AP we report a "discriminative-detector" number
+  (model learns to distinguish leaves but doesn't get credit for
+  leaf detections), matching the sealions NFS pattern.
+
+No code change needed for that — the plumbing is in place. Just add
+the field to the recipe when we have the leaf training data.
+
 ## Lessons accumulated
 
 1. **Always re-evaluate baselines with the eval driver you'll use for
