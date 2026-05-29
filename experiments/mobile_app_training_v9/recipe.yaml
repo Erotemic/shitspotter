@@ -9,8 +9,12 @@ description: >
   mobile cells via offline pseudo-GT merging. SAM2 is not in the loop.
 
 data:
+  # v9 trains on a MERGED bundle (human GT + teacher pseudo-GT) produced
+  # by run.sh from v6.1's corrected tile output. Vali / test are
+  # straight v6.1 outputs (no pseudo-GT on vali so we measure real
+  # generalization, not teacher-fit).
   train_kwcoco: /data/joncrall/kcd/v9/data/train_tile_g2_merged.kwcoco.zip
-  vali_kwcoco:  /data/joncrall/kcd/v6/data/vali_tile_g2.kwcoco.zip
+  vali_kwcoco:  /data/joncrall/kcd/v6_1/data/vali_tile_g2.kwcoco.zip
   test_kwcoco:  /data/joncrall/dvc-repos/shitspotter_expt_dvc/foundation_detseg_v3/v9/detector_prepared/test.simplified.kwcoco.zip
 
 workspace:
