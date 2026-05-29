@@ -344,6 +344,45 @@ a stale `category_name` reference left over from the multi-class
 merge — caught in stderr, fixed in kit commit `059f60c`. Future eval
 runs will land with both stamps clean.
 
+## 2026-05-29 — v7.1 result: multiscale stacks, but a ~0.02 residual remains on both cells
+
+v7.1 (multiscale + corrected source bundle, both cells) lands at:
+
+| Cell     | v4 (kit eval) | v6.1  | **v7.1** | Δ v7.1 vs v4 | Δ v7.1 vs v6.1 |
+|----------|---------------|-------|----------|--------------|----------------|
+| pico@416 | 0.4548        | 0.421 | **0.433**| **−0.022**   | **+0.012**     |
+| n@640    | 0.5553        | —     | **0.535**| **−0.020**   | first measurement |
+
+Two findings worth pulling out:
+
+1. **Multiscale gain on pico is reproducible and additive.** v7.1's
+   +0.012 over v6.1 matches v7's +0.012 over v6.0 exactly. The
+   training-policy contribution is now well-characterized.
+
+2. **n@640 didn't benefit from the corrected source bundle.** v7 with
+   the wrong bundle (0.535) and v7.1 with the right bundle (0.5350)
+   are identical to four decimals. n@640's model has enough capacity
+   to absorb roughly the same signal from either bundle size — pico
+   was data-starved, n@640 wasn't.
+
+That changes the story for the remaining gap. The ~0.02 residual is
+**not** the source bundle (we now know that's pico-specific). The
+~0.02 is fairly consistent on both cells, suggesting a shared cause:
+
+- DEIMv2 SHA bump (`377e10a` → `aeabc7e`)
+- Multi-class refactor side effects
+- Tile-boundary semantics (kit's `tile.py` vs v4's `tile_kwcoco.py`)
+- v4 `_train_deimv2_variant.sh` config details (e.g.
+  `num_top_queries` clamp) the kit may not replicate
+
+A DEIMv2 bisect would isolate (1) for ~3 GPU-hours on pico. Tabling it
+in favor of v9 distillation, which is an independent lever that can
+overshoot the residual entirely if the teacher knowledge transfers.
+
+**Provenance worked end-to-end this run.** Both `policy.json` and
+`detect_metrics.json` carry the embedded SHAs + eval inputs. First
+result with the full traceability stack working cleanly.
+
 ## Lessons accumulated
 
 1. **Always re-evaluate baselines with the eval driver you'll use for

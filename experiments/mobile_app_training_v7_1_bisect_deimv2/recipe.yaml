@@ -1,0 +1,61 @@
+# v7.1 DEIMv2 bisect -- pico-only, rolled back to DEIMv2 377e10a
+#
+# v7.1 (main) landed at pico=0.4329 / n=0.5350 under DEIMv2 aeabc7e --
+# ~0.02 below v4's kit-eval baseline (0.4548 / 0.5553). The source
+# bundle (v6.1) and multiscale policy (v7.1) gains stacked as expected
+# on pico, leaving a stubborn ~0.02 residual we can't explain.
+#
+# This recipe re-runs v7.1 pico under DEIMv2 377e10a (the SHA v4 was
+# trained under, per kit commit a8ca45e). If the result lands at ~0.45,
+# the bump caused the residual. If it stays at 0.43, the residual is
+# elsewhere (multi-class refactor, tile semantics, v4 _train_deimv2_
+# variant.sh logic, etc.).
+#
+# Pico-only, single cell, single training run -- minimum compute for a
+# diagnostic answer. ~3 GPU-hours on a 3090.
+---
+schema: recipe.v1
+name: shitspotter_v7_1_bisect_deimv2_377e10a
+description: >
+  v7.1 pico@416 rerun under the original v4-era DEIMv2 SHA (377e10a) to
+  isolate whether the DEIMv2 bump (377e10a -> aeabc7e) caused the
+  ~0.02 AP residual that v7.1 couldn't close.
+
+data:
+  # Reuse v6.1's corrected tile bundles (same as v7.1).
+  train_kwcoco: /data/joncrall/kcd/v6_1/data/train_tile_g2.kwcoco.zip
+  vali_kwcoco:  /data/joncrall/kcd/v6_1/data/vali_tile_g2.kwcoco.zip
+  test_kwcoco:  /data/joncrall/dvc-repos/shitspotter_expt_dvc/foundation_detseg_v3/v9/detector_prepared/test.simplified.kwcoco.zip
+
+workspace:
+  kcd_root: /data/joncrall/kcd/v7_1_bisect_deimv2
+
+sweep:
+  trainer: deimv2
+  category_names: poop
+  matrix:
+    - variant: deimv2_pico
+      input_hw: [416, 416]
+      train_policy: multiscale_320_512
+      init_checkpoint: /data/joncrall/shitspotter_v4/pretrained/deimv2/deimv2_pico_coco.pth
+  num_epochs: 80
+  batch_size: 32
+  val_batch_size: 48
+  lr: 5.0e-4
+  backbone_lr: 2.5e-5
+  use_amp: true
+  scale_tier: M
+  num_gpus: 1
+  distributed: false
+  do_export: true
+  do_eval: true
+  do_bench: true
+
+eligibility:
+  max_desktop_ms: 80.0
+  min_device_fps: 1.0
+  include_smoke_models: false
+
+reproducibility:
+  seed: 0
+  deterministic: false
