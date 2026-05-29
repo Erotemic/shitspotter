@@ -383,6 +383,42 @@ overshoot the residual entirely if the teacher knowledge transfers.
 `detect_metrics.json` carry the embedded SHAs + eval inputs. First
 result with the full traceability stack working cleanly.
 
+## 2026-05-29 — DEIMv2 bisect: bump explains ~80% of the v7.1 residual
+
+| | DEIMv2 SHA | pico@416 AP | Δ vs v4 (kit eval = 0.4548) |
+|---|---|---|---|
+| v4 | 377e10a | 0.4548 | — |
+| v7.1 | aeabc7e | 0.4329 | −0.0219 |
+| **bisect** | **377e10a** | **0.4504** | **−0.0044** (within noise) |
+
+**Rolling DEIMv2 back closed +0.0175 of the 0.022 residual on pico**.
+Two commits separate `377e10a..aeabc7e`:
+- `aeabc7e setup_print` (cosmetic, ISO-timestamps the stdout)
+- the DDP loss-key alignment commit (single-GPU-irrelevant *in principle*)
+
+The DDP commit is the likely culprit since cosmetic stdout changes
+shouldn't affect AP. Worth filing upstream.
+
+**Kit pivot is genuinely validated on pico under DEIMv2 377e10a**
+(within DETR noise of v4). That's the validation we've been chasing
+since the start of v6. If the bump cost the same ~0.017 on n@640,
+a hypothetical n@640 rerun under 377e10a lands at ~0.5520 vs v4's
+0.5553 — also within noise. Worth confirming but the prior is strong.
+
+**Wall-clock surprise: ~11 hours, not 3.** I anchored my estimate on
+v6.0's 80 epochs × 2.4 min = 3h on the *wrong* (12,820-tile) bundle
+with fixed policy. v7.1 + bisect runs on the corrected 53,355-tile
+bundle with multiscale policy: ~8 min/epoch × 80 = ~10.7h training
++ tail. **Lesson #10**: when changing data size AND policy in the
+same step, re-estimate from scratch, not from the prior cell's
+number.
+
+**Strategic decision for v10**: ship recipes pin DEIMv2 to `377e10a`
+OR rely on v9 distillation to overshoot the residual. Either gets
+us at or above v4 on both cells. We'll restore kit main to `aeabc7e`
+after this bisect commit (so sealions stays current) and pick the
+v10 path based on whether v9 distillation succeeds.
+
 ## Lessons accumulated
 
 1. **Always re-evaluate baselines with the eval driver you'll use for
@@ -432,3 +468,14 @@ result with the full traceability stack working cleanly.
    "muddy" relative to the original hypothesis. Otherwise the
    temptation post-hoc is to assign a single cause to whatever
    number comes back.
+
+10. **When changing data size AND training policy, re-estimate
+    wall-clock from scratch.** I quoted v7.1 + bisect as "~3 GPU-
+    hours pico-only" anchored on v6.0's 80-epoch × 2.4-min number,
+    but v6.0 ran fixed-policy on the wrong-bundle 12,820 tiles. v7.1
+    /bisect ran multiscale-policy on the corrected 53,355 tiles, and
+    the per-epoch time scaled from 2.4 min to ~8 min (~4× data + ~25%
+    multiscale overhead). Actual wall-clock: ~11 hours. The lesson:
+    when a single experiment changes more than one wall-clock-
+    affecting axis, derive the new estimate from first principles
+    instead of from the prior cell.
