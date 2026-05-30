@@ -3,9 +3,15 @@
 # Composition:
 #   - Source bundle:    v6.1's corrected (10671-image) train + 1258-image vali,
 #                       tiled at quadrant g2 / 416 / 640. Same as v7.1.
-#   - Tile store:       webdataset shards built by 00_build_wds_shards.sh
-#                       from v6.1's train bundle. Vali stays MSCOCO
-#                       (random-access kwcoco) per ADR-0001.
+#   - Tile store:       kwcoco_jpeg (the default). Decision rationale:
+#                       v6.1's bundle is being staged on SSD; per
+#                       kwcoco_dataloader's 2026-05-29_ssd_cross_storage
+#                       journal, webdataset only wins on cold HDD
+#                       (~1.7x baseline). On warm SSD it loses ~0.5x
+#                       because the WDS pipeline carries ~1.5x per-sample
+#                       CPU overhead that doesn't pay back without the
+#                       sequential-read win. kwcoco_jpeg is also the
+#                       lower-friction path — no shard pre-build step.
 #   - Train policy:     v7.1's multiscale (the v7 multiscale gain stacked
 #                       cleanly on v6.1's corrected-bundle gain in the
 #                       bisect; +0.012 AP at pico).
@@ -23,38 +29,43 @@
 #   - v9 distillation:       once v9 evaluates, the v9-distilled student
 #     checkpoint becomes the better init than _coco.pth. Repoint
 #     init_checkpoint at the v9 student package.
+#
+# Storage prerequisite:
+#   v6.1's train + vali tile bundles must be copied to the writable SSD
+#   at /media/joncrall/flash1/kcd-ssd/v6_1/data/ before launching v10.
+#   The kcd_root workspace also lives on the SSD so checkpoint writes
+#   are fast.
+#
+#   Copy from the HDD-backed staging:
+#     mkdir -p /media/joncrall/flash1/kcd-ssd/v6_1
+#     rsync -aP /data/joncrall/kcd/v6_1/data /media/joncrall/flash1/kcd-ssd/v6_1/
+#
+#   test_kwcoco stays on shitspotter_expt_dvc (read-only DVC mount;
+#   eval happens once at end-of-run, throughput doesn't matter).
+#   Init checkpoints stay on /data/joncrall/shitspotter_v4/ (read-only).
 ---
 schema: recipe.v1
 name: shitspotter_v10_ship_candidates
 description: >
   v10 best-of-everything: v6.1 corrected bundle + v7.1 multiscale +
-  120-epoch budget + webdataset training input. First defensible
+  120-epoch budget on SSD-backed kwcoco_jpeg. First defensible
   +5-AP-over-v4 ship candidate for both mobile cells.
 
 data:
-  # v6.1's corrected (v4-equivalent, train_imgs10671-derived) tile bundles.
-  # ~53K train tiles, ~22.6K annotations, ~11.6K vali tiles.
-  train_kwcoco: /data/joncrall/kcd/v6_1/data/train_tile_g2.kwcoco.zip
-  vali_kwcoco:  /data/joncrall/kcd/v6_1/data/vali_tile_g2.kwcoco.zip
+  # v6.1's corrected (v4-equivalent, train_imgs10671-derived) tile bundles
+  # copied to SSD. ~53K train tiles / ~22.6K annotations / ~11.6K vali tiles.
+  train_kwcoco: /media/joncrall/flash1/kcd-ssd/v6_1/data/train_tile_g2.kwcoco.zip
+  vali_kwcoco:  /media/joncrall/flash1/kcd-ssd/v6_1/data/vali_tile_g2.kwcoco.zip
   test_kwcoco:  /data/joncrall/dvc-repos/shitspotter_expt_dvc/foundation_detseg_v3/v9/detector_prepared/test.simplified.kwcoco.zip
-
-  # HDD-friendly streaming reader. Built by:
-  #   bash experiments/mobile_app_training_v10/00_build_wds_shards.sh
-  # ~20 shards total across the poop / <empty> buckets at the default
-  # maxcount=5000. See README's "When does WDS actually win?" — at
-  # 19T/91% on a ZFS pool this is almost certainly an HDD-backed pool
-  # where WDS shows ~1.7x baseline (per kwcoco_dataloader's
-  # 2026-05-29_ssd_cross_storage journal). Flip back to kwcoco_jpeg
-  # if the storage tier turns out to be warm SSD.
-  tile_store: webdataset
-  train_wds_shards: /data/joncrall/kcd/v6_1/data/shards
-  # Identity mapping over the single poop class auto-derives from
-  # category_names; explicit here so the recipe is self-documenting.
-  train_wds_source_to_target:
-    poop: poop
+  # tile_store defaults to kwcoco_jpeg — no need to set explicitly,
+  # but documenting it here so future readers see the deliberate choice.
+  tile_store: kwcoco_jpeg
 
 workspace:
-  kcd_root: /data/joncrall/kcd/v10
+  # Workspace on SSD too — DEIMv2 writes checkpoints + tfevents every
+  # few minutes; doing that to a warm SSD vs the HDD pool keeps the
+  # training loop from blocking on flush.
+  kcd_root: /media/joncrall/flash1/kcd-ssd/v10
 
 sweep:
   trainer: deimv2

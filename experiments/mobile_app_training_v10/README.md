@@ -24,70 +24,64 @@ There is no v10 recipe.yaml committed yet — it's intentionally written
 after the upstream cells' EVAL.md files are filled in. That keeps v10
 honest: it's a synthesis, not a prediction.
 
-## Quick start (inside the docker image)
+## Quick start
 
-v10 is the first shitspotter recipe to opt into the kit's
-WebDataset training-input path (see kwcoco-detector-kit ADR-0001).
-That requires a one-time data-prep step to produce the shard tree
-from v6.1's train bundle. Then the recipe + sweep run as usual.
+v10 reads tiles via the default kwcoco_jpeg path on SSD-backed
+storage. The SSD lives at `/media/joncrall/flash1/kcd-ssd/`. On
+warm SSD/NVMe, kwcoco_jpeg beats WebDataset by ~2x per the
+cross-storage bench (see "Storage tier" below). There's no shard
+pre-build step on this path.
 
 ```bash
-# 0. Build the WDS shards from v6.1's train bundle (one-time;
-#    idempotent; FORCE_RESHARD=1 to rebuild).
-#
-#    Runs on the host. The script self-wraps in shitspotter:latest
-#    because /data/joncrall/kcd/v6_1/ is root-owned (created by an
-#    earlier in-container run), so the host user can't write to it
-#    directly. Override the image with SHITSPOTTER_IMAGE=... ;
-#    skip the wrap with SKIP_DOCKER=1 if you have host write access.
-bash experiments/mobile_app_training_v10/00_build_wds_shards.sh
+# 0. Copy v6.1's tile bundles from the HDD-backed staging to the SSD.
+#    One-time step; the bundles are ~few GB combined. Run as the user
+#    that owns the SSD mount (no docker needed for the rsync itself).
+mkdir -p /media/joncrall/flash1/kcd-ssd/v6_1
+rsync -aP /data/joncrall/kcd/v6_1/data /media/joncrall/flash1/kcd-ssd/v6_1/
 
-# 1. Run the recipe (after recipe.yaml is filled in).
-docker run --gpus=all -it --rm \
-    -v /data/joncrall/dvc-repos/shitspotter_dvc:/data/joncrall/dvc-repos/shitspotter_dvc:ro \
-    -v /data/joncrall/dvc-repos/shitspotter_expt_dvc:/data/joncrall/dvc-repos/shitspotter_expt_dvc:ro \
-    -v /data/joncrall/kcd:/data/joncrall/kcd \
-    shitspotter:latest \
-    bash experiments/mobile_app_training_v10/run.sh
+# 1. Dry-run (validates recipe + prints resolved sweep_data; no GPU):
+bash experiments/mobile_app_training_v10/run.sh --dry_run
+
+# 2. Real run. Script self-wraps shitspotter:latest with all required
+#    mounts (GPU, shm, DVC, V4 pretrained, SSD workspace, live
+#    shitspotter source for recipe edits).
+bash experiments/mobile_app_training_v10/run.sh
+
+# Force re-train of completed cells:
+bash experiments/mobile_app_training_v10/run.sh --force_train
 ```
 
-Step 0 needs `kwcoco_dataloader` on dev/0.1.3 or later installed
-in the `shitspotter:latest` image. The shitspotter Dockerfile
-(`dockerfiles/shitspotter.dockerfile`) installs it from the kit's
-submodule `tpl/kwcoco_dataloader` (which `setup_staging.py` pulls
-via `recurse_submodules: true`). If you haven't rebuilt your image
-since the dev/0.1.3 merge landed, do so first:
+If the image isn't built yet:
 
 ```bash
 bash reproduce/mobile_quality_push.sh build
 ```
 
-The script fails fast with a clear "rebuild the image" message if
-the import is missing.
+Override knobs (see `run.sh` header for the full list): `KCD_SSD_DPATH`
+points elsewhere if your SSD isn't at `/media/joncrall/flash1/kcd-ssd/`;
+`SHITSPOTTER_IMAGE` for a custom image tag; `SKIP_DOCKER=1` to skip the
+docker wrap entirely.
 
-The shards land under `$(dirname $TRAIN_KWCOCO)/shards/` by
-default; the recipe just points `data.train_wds_shards` at that
-directory.
+### Storage tier (why kwcoco_jpeg on SSD)
 
-### When does WDS actually win?
+Per kwcoco_dataloader's `2026-05-29_ssd_cross_storage.md` journal,
+WebDataset is a **storage strategy, not a raw-throughput strategy**:
 
-Per the kwcoco_dataloader cross-storage bench (journal entry
-2026-05-29_ssd_cross_storage.md): WebDataset is a **storage
-strategy, not a raw-throughput strategy**.
-
-- Cold rotational HDD with adequate shards: ~1.7× baseline (wins).
-- Warm SSD / NVMe: ~0.5× baseline (loses — the WDS path has a
+- Cold rotational HDD with adequate shards: WDS ~1.7× baseline (wins).
+- Warm SSD / NVMe: WDS ~0.5× baseline (loses — the WDS path has a
   ~1.5× per-sample CPU overhead that doesn't pay back without the
   sequential-read win).
 - Small datasets (<~5K samples): WDS parallelism caps at shard
   count via `split_by_worker`. Shitspotter's ~53K-tile train
   bundle yields ~20 shards across the two buckets (poop +
-  &lt;empty&gt;), which is adequate.
+  &lt;empty&gt;), which is adequate — only relevant if you fall
+  back to the HDD path.
 
-Before opting v10 into webdataset, check whether
-`/data/joncrall/kcd/v6_1/data/train_tile_g2.kwcoco.zip` lives on
-spinning storage. If it's already on a warm SSD, leave
-`tile_store: kwcoco_jpeg` (the default) — webdataset won't help.
+v10 stages v6.1's bundle on SSD, so kwcoco_jpeg wins. If you ever
+need to run from rotational storage, the optional
+`00_build_wds_shards.sh` builds the WDS shard tree and the recipe
+flips back to `tile_store: webdataset` + `train_wds_shards: <path>`
+(see ADR-0001 in the kit).
 
 ## Success criterion
 

@@ -17,7 +17,13 @@
 #
 # Docker-only knobs (ignored once inside):
 #   SHITSPOTTER_IMAGE   image tag (default: shitspotter:latest)
-#   KCD_HOST_DPATH      kcd workspace root host path (rw)
+#   KCD_SSD_DPATH       SSD-backed workspace + tile bundle root (rw,
+#                       default /media/joncrall/flash1/kcd-ssd). This
+#                       is what recipe.yaml's data.* + workspace.kcd_root
+#                       paths resolve under.
+#   KCD_HOST_DPATH      legacy HDD-backed kcd root (rw). Mounted as a
+#                       fallback so older recipes / data still resolve.
+#                       Set to "" to skip the mount.
 #   DVC_RO              shitspotter_dvc host path (ro)
 #   DVC_EXPT_RO         shitspotter_expt_dvc host path (ro)
 #   V4_PRETRAINED_RO    DEIMv2 COCO-pretrained .pth root (ro)
@@ -41,6 +47,7 @@ if [ ! -f "/.dockerenv" ] && [ -z "${IN_DOCKER:-}" ] && [ -z "${SKIP_DOCKER:-}" 
 
     DOCKER_BIN="${DOCKER_BIN:-docker}"
     SHITSPOTTER_IMAGE="${SHITSPOTTER_IMAGE:-shitspotter:latest}"
+    KCD_SSD_DPATH="${KCD_SSD_DPATH:-/media/joncrall/flash1/kcd-ssd}"
     KCD_HOST_DPATH="${KCD_HOST_DPATH:-/data/joncrall/kcd}"
     DVC_RO="${DVC_RO:-/data/joncrall/dvc-repos/shitspotter_dvc}"
     DVC_EXPT_RO="${DVC_EXPT_RO:-/data/joncrall/dvc-repos/shitspotter_expt_dvc}"
@@ -67,9 +74,28 @@ if [ ! -f "/.dockerenv" ] && [ -z "${IN_DOCKER:-}" ] && [ -z "${SKIP_DOCKER:-}" 
     if [ -d "$V4_PRETRAINED_RO" ]; then
         pretrained_mount=(-v "$V4_PRETRAINED_RO:$V4_PRETRAINED_RO:ro")
     fi
+    # SSD mount is required for v10; bail early with a clear message
+    # if the host path doesn't exist (likely means data hasn't been
+    # rsync'd over yet).
+    if [ ! -d "$KCD_SSD_DPATH" ]; then
+        echo "[v10/run.sh] KCD_SSD_DPATH does not exist: $KCD_SSD_DPATH" >&2
+        echo "             Copy v6.1's tiles to SSD first, e.g.:" >&2
+        echo "               mkdir -p $KCD_SSD_DPATH/v6_1" >&2
+        echo "               rsync -aP /data/joncrall/kcd/v6_1/data $KCD_SSD_DPATH/v6_1/" >&2
+        exit 1
+    fi
+    # Legacy HDD kcd mount is optional — only mount when present and
+    # non-empty so a host with that path unmounted still works.
+    kcd_legacy_mount=()
+    if [ -n "${KCD_HOST_DPATH:-}" ] && [ -d "$KCD_HOST_DPATH" ]; then
+        kcd_legacy_mount=(-v "$KCD_HOST_DPATH:$KCD_HOST_DPATH")
+    fi
 
     echo "[v10/run.sh] outside docker — re-exec inside $SHITSPOTTER_IMAGE"
-    echo "[v10/run.sh] mounts: kcd=$KCD_HOST_DPATH(rw)  dvc=$DVC_RO(ro)  dvc_expt=$DVC_EXPT_RO(ro)"
+    echo "[v10/run.sh] mounts: kcd_ssd=$KCD_SSD_DPATH(rw)  dvc=$DVC_RO(ro)  dvc_expt=$DVC_EXPT_RO(ro)"
+    if [ "${#kcd_legacy_mount[@]}" -gt 0 ]; then
+        echo "[v10/run.sh] also mounting legacy kcd=$KCD_HOST_DPATH(rw)"
+    fi
     echo "[v10/run.sh] shm=$SHM_SIZE gpus=$GPUS"
 
     exec "$DOCKER_BIN" run --gpus="$GPUS" --rm -it \
@@ -78,7 +104,8 @@ if [ ! -f "/.dockerenv" ] && [ -z "${IN_DOCKER:-}" ] && [ -z "${SKIP_DOCKER:-}" 
         -v "$DVC_EXPT_RO:$DVC_EXPT_RO:ro" \
         -v "$DVC_RO:$DVC_LEGACY_RO:ro" \
         -v "$DVC_EXPT_RO:$DVC_EXPT_LEGACY_RO:ro" \
-        -v "$KCD_HOST_DPATH:$KCD_HOST_DPATH" \
+        -v "$KCD_SSD_DPATH:$KCD_SSD_DPATH" \
+        "${kcd_legacy_mount[@]}" \
         -v "$SHITSPOTTER_REPO:/work/shitspotter:ro" \
         "${pretrained_mount[@]}" \
         -e IN_DOCKER=1 \
