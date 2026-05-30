@@ -29,3 +29,6 @@
 	path = tpl/YOLO-v9
 	url = https://github.com/Erotemic/YOLO.git
 	branch = shitspotter
+[submodule "tpl/scatspotter_app"]
+	path = tpl/scatspotter_app
+	url = https://github.com/Erotemic/scatspotter_app.git
