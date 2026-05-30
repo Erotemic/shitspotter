@@ -6,6 +6,17 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Version 0.0.1] - 
 
+### Changed:
+
+* (2026-05-30): phone app: migrated the in-repo KMP+Compose app from
+  `tpl/shitspotter-phone-app/` into the dedicated `tpl/scatspotter_app`
+  submodule (github.com/Erotemic/scatspotter_app) so the app source is
+  tracked independently of the research repo. All 131 tracked files moved
+  verbatim (symlinks + exec bits preserved); the submodule pointer now
+  references the imported commit. Older CHANGELOG/journal/experiment-doc
+  references to `tpl/shitspotter-phone-app/` are historical and left as-is;
+  the live app now lives under `tpl/scatspotter_app/`.
+
 ### Added:
 
 * (2026-05-14): phone app: landed `PostprocessType.DEIMV2` backend support in
