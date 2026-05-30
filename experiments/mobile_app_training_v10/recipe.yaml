@@ -1,0 +1,91 @@
+# v10 -- best-of-everything ship candidates
+#
+# Composition:
+#   - Source bundle:    v6.1's corrected (10671-image) train + 1258-image vali,
+#                       tiled at quadrant g2 / 416 / 640. Same as v7.1.
+#   - Tile store:       webdataset shards built by 00_build_wds_shards.sh
+#                       from v6.1's train bundle. Vali stays MSCOCO
+#                       (random-access kwcoco) per ADR-0001.
+#   - Train policy:     v7.1's multiscale (the v7 multiscale gain stacked
+#                       cleanly on v6.1's corrected-bundle gain in the
+#                       bisect; +0.012 AP at pico).
+#   - Init:             v4 COCO-pretrained DEIMv2 .pth files. Same as v7.1.
+#   - Epoch count:      120 (1.5x v7.1's 80). README says "1.5-2x the
+#                       best round". Bump to 160 if v8/v9 finalize and
+#                       suggest the loss curve was still descending.
+#   - EMA:              implicit (DEIMv2 default; predictor reads from
+#                       state['ema']['module'] in find_checkpoint).
+#
+# Pending integrations (not blocking v10's first cut):
+#   - v8 mining round count: if v8/EVAL.md shows mining was a net win
+#     for the corrected bundle, add a `resume:` field pointing at a
+#     mined checkpoint and crank epochs further on top.
+#   - v9 distillation:       once v9 evaluates, the v9-distilled student
+#     checkpoint becomes the better init than _coco.pth. Repoint
+#     init_checkpoint at the v9 student package.
+---
+schema: recipe.v1
+name: shitspotter_v10_ship_candidates
+description: >
+  v10 best-of-everything: v6.1 corrected bundle + v7.1 multiscale +
+  120-epoch budget + webdataset training input. First defensible
+  +5-AP-over-v4 ship candidate for both mobile cells.
+
+data:
+  # v6.1's corrected (v4-equivalent, train_imgs10671-derived) tile bundles.
+  # ~53K train tiles, ~22.6K annotations, ~11.6K vali tiles.
+  train_kwcoco: /data/joncrall/kcd/v6_1/data/train_tile_g2.kwcoco.zip
+  vali_kwcoco:  /data/joncrall/kcd/v6_1/data/vali_tile_g2.kwcoco.zip
+  test_kwcoco:  /data/joncrall/dvc-repos/shitspotter_expt_dvc/foundation_detseg_v3/v9/detector_prepared/test.simplified.kwcoco.zip
+
+  # HDD-friendly streaming reader. Built by:
+  #   bash experiments/mobile_app_training_v10/00_build_wds_shards.sh
+  # ~20 shards total across the poop / <empty> buckets at the default
+  # maxcount=5000. See README's "When does WDS actually win?" — at
+  # 19T/91% on a ZFS pool this is almost certainly an HDD-backed pool
+  # where WDS shows ~1.7x baseline (per kwcoco_dataloader's
+  # 2026-05-29_ssd_cross_storage journal). Flip back to kwcoco_jpeg
+  # if the storage tier turns out to be warm SSD.
+  tile_store: webdataset
+  train_wds_shards: /data/joncrall/kcd/v6_1/data/shards
+  # Identity mapping over the single poop class auto-derives from
+  # category_names; explicit here so the recipe is self-documenting.
+  train_wds_source_to_target:
+    poop: poop
+
+workspace:
+  kcd_root: /data/joncrall/kcd/v10
+
+sweep:
+  trainer: deimv2
+  category_names: poop
+  matrix:
+    - variant: deimv2_pico
+      input_hw: [416, 416]
+      train_policy: multiscale_320_512
+      init_checkpoint: /data/joncrall/shitspotter_v4/pretrained/deimv2/deimv2_pico_coco.pth
+    - variant: deimv2_n
+      input_hw: [640, 640]
+      train_policy: multiscale_512_768
+      init_checkpoint: /data/joncrall/shitspotter_v4/pretrained/deimv2/deimv2_n_coco.pth
+  num_epochs: 120
+  batch_size: 32
+  val_batch_size: 48
+  lr: 5.0e-4
+  backbone_lr: 2.5e-5
+  use_amp: true
+  scale_tier: M
+  num_gpus: 1
+  distributed: false
+  do_export: true
+  do_eval: true
+  do_bench: true
+
+eligibility:
+  max_desktop_ms: 80.0
+  min_device_fps: 1.0
+  include_smoke_models: false
+
+reproducibility:
+  seed: 0
+  deterministic: false
