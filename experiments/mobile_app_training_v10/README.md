@@ -26,21 +26,26 @@ honest: it's a synthesis, not a prediction.
 
 ## Quick start
 
-v10 reads tiles via the default kwcoco_jpeg path. **Prerequisite:**
-v6.1's train + vali bundles live on an SSD (mounted at
-`/data/joncrall/kcd/v6_1/` or symlinked to wherever they land).
-On warm SSD/NVMe, the kwcoco_jpeg path beats WebDataset by ~2x
-per the cross-storage bench — see "Storage tier" below. There's
-no shard pre-build step on this path.
+v10 reads tiles via the default kwcoco_jpeg path on SSD-backed
+storage. The SSD lives at `/media/joncrall/flash1/kcd-ssd/`. On
+warm SSD/NVMe, kwcoco_jpeg beats WebDataset by ~2x per the
+cross-storage bench (see "Storage tier" below). There's no shard
+pre-build step on this path.
 
 ```bash
-# Run the full sweep. Script self-wraps shitspotter:latest with
-# all required mounts (GPU, shm, DVC, V4 pretrained, kcd workspace,
-# live shitspotter source for recipe edits).
-bash experiments/mobile_app_training_v10/run.sh
+# 0. Copy v6.1's tile bundles from the HDD-backed staging to the SSD.
+#    One-time step; the bundles are ~few GB combined. Run as the user
+#    that owns the SSD mount (no docker needed for the rsync itself).
+mkdir -p /media/joncrall/flash1/kcd-ssd/v6_1
+rsync -aP /data/joncrall/kcd/v6_1/data /media/joncrall/flash1/kcd-ssd/v6_1/
 
-# Dry-run (validates recipe + prints resolved sweep_data; no GPU):
+# 1. Dry-run (validates recipe + prints resolved sweep_data; no GPU):
 bash experiments/mobile_app_training_v10/run.sh --dry_run
+
+# 2. Real run. Script self-wraps shitspotter:latest with all required
+#    mounts (GPU, shm, DVC, V4 pretrained, SSD workspace, live
+#    shitspotter source for recipe edits).
+bash experiments/mobile_app_training_v10/run.sh
 
 # Force re-train of completed cells:
 bash experiments/mobile_app_training_v10/run.sh --force_train
@@ -51,6 +56,11 @@ If the image isn't built yet:
 ```bash
 bash reproduce/mobile_quality_push.sh build
 ```
+
+Override knobs (see `run.sh` header for the full list): `KCD_SSD_DPATH`
+points elsewhere if your SSD isn't at `/media/joncrall/flash1/kcd-ssd/`;
+`SHITSPOTTER_IMAGE` for a custom image tag; `SKIP_DOCKER=1` to skip the
+docker wrap entirely.
 
 ### Storage tier (why kwcoco_jpeg on SSD)
 

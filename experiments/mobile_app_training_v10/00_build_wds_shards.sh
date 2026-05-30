@@ -67,7 +67,10 @@ if [ ! -f "/.dockerenv" ] && [ -z "${IN_DOCKER:-}" ] && [ -z "${SKIP_DOCKER:-}" 
 
     DOCKER_BIN="${DOCKER_BIN:-docker}"
     SHITSPOTTER_IMAGE="${SHITSPOTTER_IMAGE:-shitspotter:latest}"
-    KCD_HOST_DPATH="${KCD_HOST_DPATH:-/data/joncrall/kcd}"
+    # Default to the SSD root used by v10's recipe; override
+    # KCD_HOST_DPATH to point somewhere else if you're building
+    # shards from a different bundle.
+    KCD_HOST_DPATH="${KCD_HOST_DPATH:-/media/joncrall/flash1/kcd-ssd}"
 
     if ! command -v "$DOCKER_BIN" >/dev/null 2>&1; then
         echo "[00_build_wds_shards] $DOCKER_BIN not found." >&2
@@ -99,7 +102,7 @@ if [ ! -f "/.dockerenv" ] && [ -z "${IN_DOCKER:-}" ] && [ -z "${SKIP_DOCKER:-}" 
 fi
 
 # ---- From here down: in-docker (or SKIP_DOCKER) build path.
-TRAIN_KWCOCO="${TRAIN_KWCOCO:-/data/joncrall/kcd/v6_1/data/train_tile_g2.kwcoco.zip}"
+TRAIN_KWCOCO="${TRAIN_KWCOCO:-/media/joncrall/flash1/kcd-ssd/v6_1/data/train_tile_g2.kwcoco.zip}"
 SHARDS_DPATH="${SHARDS_DPATH:-$(dirname "$TRAIN_KWCOCO")/shards}"
 MAXCOUNT="${MAXCOUNT:-5000}"
 MAXSIZE_MB="${MAXSIZE_MB:-1024}"

@@ -31,10 +31,18 @@
 #     init_checkpoint at the v9 student package.
 #
 # Storage prerequisite:
-#   v6.1's bundle must be on the SSD before launching v10. If the SSD
-#   is mounted at /data/joncrall/kcd/v6_1/ (replacing the HDD-backed
-#   location), the recipe paths below stay the same. If you put it
-#   elsewhere, update the train_kwcoco / vali_kwcoco paths to match.
+#   v6.1's train + vali tile bundles must be copied to the writable SSD
+#   at /media/joncrall/flash1/kcd-ssd/v6_1/data/ before launching v10.
+#   The kcd_root workspace also lives on the SSD so checkpoint writes
+#   are fast.
+#
+#   Copy from the HDD-backed staging:
+#     mkdir -p /media/joncrall/flash1/kcd-ssd/v6_1
+#     rsync -aP /data/joncrall/kcd/v6_1/data /media/joncrall/flash1/kcd-ssd/v6_1/
+#
+#   test_kwcoco stays on shitspotter_expt_dvc (read-only DVC mount;
+#   eval happens once at end-of-run, throughput doesn't matter).
+#   Init checkpoints stay on /data/joncrall/shitspotter_v4/ (read-only).
 ---
 schema: recipe.v1
 name: shitspotter_v10_ship_candidates
@@ -44,18 +52,20 @@ description: >
   +5-AP-over-v4 ship candidate for both mobile cells.
 
 data:
-  # v6.1's corrected (v4-equivalent, train_imgs10671-derived) tile bundles.
-  # ~53K train tiles, ~22.6K annotations, ~11.6K vali tiles.
-  # Storage tier: SSD (see header — kwcoco_jpeg is the right path here).
-  train_kwcoco: /data/joncrall/kcd/v6_1/data/train_tile_g2.kwcoco.zip
-  vali_kwcoco:  /data/joncrall/kcd/v6_1/data/vali_tile_g2.kwcoco.zip
+  # v6.1's corrected (v4-equivalent, train_imgs10671-derived) tile bundles
+  # copied to SSD. ~53K train tiles / ~22.6K annotations / ~11.6K vali tiles.
+  train_kwcoco: /media/joncrall/flash1/kcd-ssd/v6_1/data/train_tile_g2.kwcoco.zip
+  vali_kwcoco:  /media/joncrall/flash1/kcd-ssd/v6_1/data/vali_tile_g2.kwcoco.zip
   test_kwcoco:  /data/joncrall/dvc-repos/shitspotter_expt_dvc/foundation_detseg_v3/v9/detector_prepared/test.simplified.kwcoco.zip
   # tile_store defaults to kwcoco_jpeg — no need to set explicitly,
   # but documenting it here so future readers see the deliberate choice.
   tile_store: kwcoco_jpeg
 
 workspace:
-  kcd_root: /data/joncrall/kcd/v10
+  # Workspace on SSD too — DEIMv2 writes checkpoints + tfevents every
+  # few minutes; doing that to a warm SSD vs the HDD pool keeps the
+  # training loop from blocking on flush.
+  kcd_root: /media/joncrall/flash1/kcd-ssd/v10
 
 sweep:
   trainer: deimv2
