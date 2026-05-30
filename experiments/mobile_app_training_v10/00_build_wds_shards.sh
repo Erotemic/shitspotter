@@ -157,7 +157,10 @@ EOF
 # shitspotter that produces poop/ and <empty>/ buckets. Empty-tile
 # weighting at train time happens via the reader's bucket weight_fn,
 # NOT here.
-"$PYTHON_BIN" -m kwcoco_dataloader build_detection_webdataset \
+# kwcoco_dataloader doesn't ship a top-level __main__.py; invoke the
+# CLI module path directly. Same fix as the kit applied to sealions
+# in kwcoco_detector_kit commit 79e28dd.
+"$PYTHON_BIN" -m kwcoco_dataloader.cli.build_detection_webdataset \
     --in_fpath "$TRAIN_KWCOCO" \
     --out_dpath "$SHARDS_DPATH" \
     --bucket_attr dominant_raw_class \
