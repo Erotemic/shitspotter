@@ -57,7 +57,8 @@ This following is the high level status of the project.
 - ☑ Scientific paper about dataset `peer-reviewed <https://openreview.net/forum?id=aO24vWoPmK&referrer=%5Bthe%20profile%20of%20Jon%20Crall%5D(%2Fprofile%3Fid%3D~Jon_Crall1)>_` (2025-07-30ish)
 - ☑ Efficient models for phones are trained (2025-07-30ish)
 - ☑ Scientific paper about dataset peer-reviewed &  `published <https://openaccess.thecvf.com/content/WACV2026W/WasteVision/html/Crall_ScatSpotter_A_Dog_Poop_Detection_Dataset_WACVW_2026_paper.html>`_ (longer arxiv version `published <https://arxiv.org/abs/2412.16473>`_) (2026-03-06)
-- ☐ Phone application is developed (external prototype: https://github.com/mkorzunowicz/poopdetector/releases/tag/v1.1.0)
+- ☑  Phone application prototype is developed (external prototype: https://github.com/mkorzunowicz/poopdetector/releases/tag/v1.1.0)
+- ☑ Phone application development matures: https://github.com/Erotemic/shitspotter_app
 - ☐ Phone application is available for download and usage
 - ☐ Phone application is release on app stores for free
 - ☐ Phone application demonstrates value.
@@ -168,6 +169,7 @@ Recent Updates
 Check back for updates, but because this is a personal project, it might take
 some time for it to fully drop.
 
+* 2026-05-30 - I have a proper phone application working and running on my phone now with actual instances where it spotted a shit before I did.
 * 2026-04-12 - Annotated a big cohort of images. Some of these were not taken with the BAN protocol, but they are explicitly annotated as such. As the dataset grows I may start reconsidering adding a 3rd negative for every positive. In many cases they likely aren't going to be a hard negative.
 * 2026-03-30 - Posted a `youtube video <https://www.youtube.com/watch?v=Dyh0A4aIZbE>`_ that goes over the slides. Working on preparing a new bootstrap model before I annotate the next cohort.
 * 2026-03-01 - Getting ready for presentation at WasteVision 2026 - International Workshop on Smart Waste Monitoring at WACV. `Slides are online <https://docs.google.com/presentation/d/14Yb6qc_5wQK0PzYqiqiIFVECuq1JTsr5N3EIBKKcGL8/edit?slide=id.g39399de817a_1_34#slide=id.g39399de817a_1_34>`_.
@@ -426,9 +428,6 @@ registration via the SIFT+RANSAC algorithm.
 | 2026-04-12  | 12055    | ~4149               | 2985                  | 4178                  | bafybeihellhg4upl3e7pcd4kb37spqhcuiwxcde5anqhwcy5ul7gh3w75e  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 
-
-
-
 For further details, see the `Datasheet <DATASHEET.md>`_.
 
 
@@ -438,6 +437,8 @@ Annotation Process
 To make annotation easier, I've taken before a picture before and after I clean up the poop.
 The idea is that I can align these images and use image-differencing to more quickly find the objects of interest in the image.
 As you can see, it's not so easy to spot the shit, especially when there are leaves in the image.
+
+TODO: Move these images to historical SIFT docs and update with better examples for the annotation process and difficult of the problem.
 
 .. image:: https://i.imgur.com/lZ8J0vD.png
 
@@ -472,66 +473,10 @@ are converted and stored in the top-level kwcoco dataset.
 The Algorithm
 =============
 
-Currently there is no algorithm checked into the repo. I need to start annotating the dataset first.
-Eventually there will be a ``shitspotter.fit`` and ``shitspotter.predict`` script for training and performing
-inference on unseen images. My current plan for a baseline algorithm is a mobilenet backbone pretrained
-on imagenet and some single-stage detection / segmentation head on top of that.
+The first algorithm that gave some results was a VIT-based pixel segmentation
+trained from scratch.
+Details in `docs/source/manual/history_geowatch_approach <docs/source/manual/history_geowatch_approach.rst>`_.
 
-Given kwcoco a formatted detection dataset, we can also use off-the-shelf detection baselines
-via netharn, mmdet, or some other library that accepts coco/kwcoco input manifests.
-
-Update: 2023-10-15
-
-The `geowatch <https://gitlab.kitware.com/computer-vision/geowatch>`_ framework
-is being used to train initial models on the small set of annotations.
-
-
-Initial train and validation batches look like this:
-
-.. image:: https://i.imgur.com/Nfk8XbE.jpg
-
-
-.. image:: https://i.imgur.com/YHfl0Wd.jpg
-
-
-An example prediction from an initial model on a full validation image is:
-
-.. image:: https://i.imgur.com/ya4jnAO.jpg
-
-
-Clearly there is still more work to do, but training a deep network is an art,
-and I have full confidence that a high quality model is possible. The training
-batches are starting to fit the data, but the validation batches shows that
-there is still a clear generalization gap, but this is only the very start of
-training and the hyper-parameters are untuned.
-
-
-The current train validation split is defined in the ``make_splits.py`` file.
-Only "before" images with annotations are currently considered. The "after"
-images and "negative" will be taken into account when they are properly
-associated with the "before" images in the kwcoco metadata. The early images
-before 2021 are used for validation, whereas everything else is used for
-training. Contributor data is also currently held out and can serve as a test
-set once annotations are placed.
-
-
-Update 2024-03-31: Recent results from model ``shitspotter_from_v027_halfres_v028-epoch=0179-step=000720-val_loss=0.005.ckpt.pt`` have been quite good. These have quantitatively been measured against the ``vali_imgs228_20928c8c.kwcoco.zip`` variant of the validation dataset. The precision recall and ROC curves for pixelwise binary poop/no-poop classification are:
-
-
-.. image:: https://i.imgur.com/rgGjAda.png
-
-And the corresponding threshold versus F1, G1, and MCC is:
-
-.. image:: https://i.imgur.com/vay6TEP.png
-
-Qualitatively some cherry-picked success cases in challenging images look like:
-
-
-.. image:: https://i.imgur.com/oWPg4CE.jpeg
-
-There still are false positives and false negatives in some of the more
-challenging images, but the algorithm is now accurate enough where it can be
-used, and it will continue to improve.
 
 
 Data Management
