@@ -34,6 +34,12 @@ from v6.1's train bundle. Then the recipe + sweep run as usual.
 ```bash
 # 0. Build the WDS shards from v6.1's train bundle (one-time;
 #    idempotent; FORCE_RESHARD=1 to rebuild).
+#
+#    Runs on the host. The script self-wraps in shitspotter:latest
+#    because /data/joncrall/kcd/v6_1/ is root-owned (created by an
+#    earlier in-container run), so the host user can't write to it
+#    directly. Override the image with SHITSPOTTER_IMAGE=... ;
+#    skip the wrap with SKIP_DOCKER=1 if you have host write access.
 bash experiments/mobile_app_training_v10/00_build_wds_shards.sh
 
 # 1. Run the recipe (after recipe.yaml is filled in).
@@ -46,9 +52,12 @@ docker run --gpus=all -it --rm \
 ```
 
 Step 0 needs `kwcoco_dataloader` on dev/0.1.3 or later (the merge
-that brought in `build_detection_webdataset`). The shards land
-under `$(dirname $TRAIN_KWCOCO)/shards/` by default — the recipe
-just needs to point `data.train_wds_shards` at that directory.
+that brought in `build_detection_webdataset`) installed in the
+`shitspotter:latest` image. The script fails fast with a clear
+message if the import is missing — rebuild the image against the
+updated dataloader if that fires. The shards land under
+`$(dirname $TRAIN_KWCOCO)/shards/` by default; the recipe just
+points `data.train_wds_shards` at that directory.
 
 ## Success criterion
 

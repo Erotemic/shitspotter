@@ -7,6 +7,11 @@
 # `data.tile_store: webdataset` opt-in. Train-only — vali stays on the
 # random-access kwcoco/JPEG path per ADR-0001.
 #
+# The build runs inside the shitspotter docker image (which owns the
+# /data/joncrall/kcd/ tree as root). If invoked from the host the
+# script self-wraps; if invoked from inside a docker container it
+# runs the build directly.
+#
 # Bucketing: kwcoco_dataloader writes shards under
 # `dominant_raw_class=<name>/` subdirs. shitspotter is single-class
 # (poop) so this collapses to two buckets:
@@ -19,7 +24,8 @@
 # Idempotency: writes a `.build_done` marker on completion. Subsequent
 # runs reuse the existing shards. Set FORCE_RESHARD=1 to rebuild.
 #
-# Env knobs:
+# Env knobs (read by both the outer host-side and the inner in-docker
+# invocations; the wrapper forwards them through):
 #   TRAIN_KWCOCO    input kwcoco bundle path
 #                   default: /data/joncrall/kcd/v6_1/data/train_tile_g2.kwcoco.zip
 #   SHARDS_DPATH    output directory for the shard tree
@@ -28,6 +34,14 @@
 #   MAXSIZE_MB      max bytes per shard, MB (default 1024)
 #   JPEG_QUALITY    re-encode quality for non-JPEG sources (default 95)
 #   FORCE_RESHARD   non-empty: rebuild even if .build_done exists
+#
+# Docker-only knobs (ignored once inside the container):
+#   SHITSPOTTER_IMAGE  image tag (default: shitspotter:latest)
+#   KCD_HOST_DPATH     host-side path that holds /data/joncrall/kcd
+#                      (default: /data/joncrall/kcd; mounted rw)
+#   DOCKER_BIN         docker binary (default: docker)
+#   SKIP_DOCKER        non-empty: assume we already have write access
+#                      and run the build directly on the host
 #
 # Output also written: SHARDS_DPATH/_build_args.txt for provenance.
 #
@@ -42,12 +56,65 @@
 # ~53K tiles / ~22K annotations.
 set -euo pipefail
 
+# ---- Host-side wrapper: re-exec inside docker if we're outside one.
+# Detection prefers /.dockerenv (kernel-level marker) and falls back to
+# an explicit IN_DOCKER=1 override for cases where the marker is
+# missing (rootless docker, non-standard images).
+if [ ! -f "/.dockerenv" ] && [ -z "${IN_DOCKER:-}" ] && [ -z "${SKIP_DOCKER:-}" ]; then
+    SCRIPT_DPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    SHITSPOTTER_REPO="$(cd "$SCRIPT_DPATH/../.." && pwd)"
+    SCRIPT_REL="experiments/mobile_app_training_v10/$(basename "${BASH_SOURCE[0]}")"
+
+    DOCKER_BIN="${DOCKER_BIN:-docker}"
+    SHITSPOTTER_IMAGE="${SHITSPOTTER_IMAGE:-shitspotter:latest}"
+    KCD_HOST_DPATH="${KCD_HOST_DPATH:-/data/joncrall/kcd}"
+
+    if ! command -v "$DOCKER_BIN" >/dev/null 2>&1; then
+        echo "[00_build_wds_shards] $DOCKER_BIN not found." >&2
+        echo "                       Re-run from inside the shitspotter image, or set" >&2
+        echo "                       SKIP_DOCKER=1 if /data/joncrall/kcd is writable on host." >&2
+        exit 1
+    fi
+    if [ ! -d "$KCD_HOST_DPATH" ]; then
+        echo "[00_build_wds_shards] KCD_HOST_DPATH does not exist: $KCD_HOST_DPATH" >&2
+        exit 1
+    fi
+
+    echo "[00_build_wds_shards] outside docker — re-exec inside $SHITSPOTTER_IMAGE"
+    echo "[00_build_wds_shards] mount: $KCD_HOST_DPATH -> /data/joncrall/kcd (rw)"
+    echo "[00_build_wds_shards] mount: $SHITSPOTTER_REPO -> /work/shitspotter (ro)"
+
+    exec "$DOCKER_BIN" run --rm \
+        -v "$KCD_HOST_DPATH":/data/joncrall/kcd \
+        -v "$SHITSPOTTER_REPO":/work/shitspotter:ro \
+        -e IN_DOCKER=1 \
+        -e TRAIN_KWCOCO="${TRAIN_KWCOCO:-}" \
+        -e SHARDS_DPATH="${SHARDS_DPATH:-}" \
+        -e MAXCOUNT="${MAXCOUNT:-}" \
+        -e MAXSIZE_MB="${MAXSIZE_MB:-}" \
+        -e JPEG_QUALITY="${JPEG_QUALITY:-}" \
+        -e FORCE_RESHARD="${FORCE_RESHARD:-}" \
+        "$SHITSPOTTER_IMAGE" \
+        bash "/work/shitspotter/$SCRIPT_REL"
+fi
+
+# ---- From here down: in-docker (or SKIP_DOCKER) build path.
 TRAIN_KWCOCO="${TRAIN_KWCOCO:-/data/joncrall/kcd/v6_1/data/train_tile_g2.kwcoco.zip}"
 SHARDS_DPATH="${SHARDS_DPATH:-$(dirname "$TRAIN_KWCOCO")/shards}"
 MAXCOUNT="${MAXCOUNT:-5000}"
 MAXSIZE_MB="${MAXSIZE_MB:-1024}"
 JPEG_QUALITY="${JPEG_QUALITY:-95}"
 PYTHON_BIN="${PYTHON_BIN:-python}"
+
+# Sanity-check: the image must have a kwcoco_dataloader recent enough
+# to expose build_detection_webdataset (dev/0.1.3 or later). Catches
+# the "stale image" failure mode with a clear message instead of a
+# confusing ModuleNotFoundError half a second later.
+if ! "$PYTHON_BIN" -c "from kwcoco_dataloader.cli.build_detection_webdataset import BuildDetectionWebdatasetCLI" 2>/dev/null; then
+    echo "[00_build_wds_shards] image does not expose kwcoco_dataloader.cli.build_detection_webdataset." >&2
+    echo "                       Rebuild ${SHITSPOTTER_IMAGE:-shitspotter:latest} against kwcoco_dataloader dev/0.1.3+ ." >&2
+    exit 3
+fi
 
 if [ ! -f "$TRAIN_KWCOCO" ]; then
     echo "[00_build_wds_shards] TRAIN_KWCOCO does not exist: $TRAIN_KWCOCO" >&2
