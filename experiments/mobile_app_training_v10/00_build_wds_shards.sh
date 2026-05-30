@@ -112,7 +112,8 @@ PYTHON_BIN="${PYTHON_BIN:-python}"
 # confusing ModuleNotFoundError half a second later.
 if ! "$PYTHON_BIN" -c "from kwcoco_dataloader.cli.build_detection_webdataset import BuildDetectionWebdatasetCLI" 2>/dev/null; then
     echo "[00_build_wds_shards] image does not expose kwcoco_dataloader.cli.build_detection_webdataset." >&2
-    echo "                       Rebuild ${SHITSPOTTER_IMAGE:-shitspotter:latest} against kwcoco_dataloader dev/0.1.3+ ." >&2
+    echo "                       Image likely pre-dates the dev/0.1.3 dataloader merge." >&2
+    echo "                       Rebuild via:  bash reproduce/mobile_quality_push.sh build" >&2
     exit 3
 fi
 

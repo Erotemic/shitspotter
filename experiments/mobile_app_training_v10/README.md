@@ -51,13 +51,43 @@ docker run --gpus=all -it --rm \
     bash experiments/mobile_app_training_v10/run.sh
 ```
 
-Step 0 needs `kwcoco_dataloader` on dev/0.1.3 or later (the merge
-that brought in `build_detection_webdataset`) installed in the
-`shitspotter:latest` image. The script fails fast with a clear
-message if the import is missing — rebuild the image against the
-updated dataloader if that fires. The shards land under
-`$(dirname $TRAIN_KWCOCO)/shards/` by default; the recipe just
-points `data.train_wds_shards` at that directory.
+Step 0 needs `kwcoco_dataloader` on dev/0.1.3 or later installed
+in the `shitspotter:latest` image. The shitspotter Dockerfile
+(`dockerfiles/shitspotter.dockerfile`) installs it from the kit's
+submodule `tpl/kwcoco_dataloader` (which `setup_staging.py` pulls
+via `recurse_submodules: true`). If you haven't rebuilt your image
+since the dev/0.1.3 merge landed, do so first:
+
+```bash
+bash reproduce/mobile_quality_push.sh build
+```
+
+The script fails fast with a clear "rebuild the image" message if
+the import is missing.
+
+The shards land under `$(dirname $TRAIN_KWCOCO)/shards/` by
+default; the recipe just points `data.train_wds_shards` at that
+directory.
+
+### When does WDS actually win?
+
+Per the kwcoco_dataloader cross-storage bench (journal entry
+2026-05-29_ssd_cross_storage.md): WebDataset is a **storage
+strategy, not a raw-throughput strategy**.
+
+- Cold rotational HDD with adequate shards: ~1.7× baseline (wins).
+- Warm SSD / NVMe: ~0.5× baseline (loses — the WDS path has a
+  ~1.5× per-sample CPU overhead that doesn't pay back without the
+  sequential-read win).
+- Small datasets (<~5K samples): WDS parallelism caps at shard
+  count via `split_by_worker`. Shitspotter's ~53K-tile train
+  bundle yields ~20 shards across the two buckets (poop +
+  &lt;empty&gt;), which is adequate.
+
+Before opting v10 into webdataset, check whether
+`/data/joncrall/kcd/v6_1/data/train_tile_g2.kwcoco.zip` lives on
+spinning storage. If it's already on a warm SSD, leave
+`tile_store: kwcoco_jpeg` (the default) — webdataset won't help.
 
 ## Success criterion
 
