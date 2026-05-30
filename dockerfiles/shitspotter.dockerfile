@@ -269,12 +269,27 @@ RUN --mount=type=cache,target=/root/.cache <<EOF
 #!/bin/bash
 set -e
 cd /root/code/kwcoco_detector_kit
-# The [kwcoco-dataloader] extra pins kwcoco-dataloader>=0.1.3 which is
-# only available as a local unreleased package, not on PyPI. v6-v10
-# don't use the sampler functionality -- they read tiled kwcoco bundles
-# directly -- so the extra is intentionally omitted here. Add it back
-# in a follow-up image when a >=0.1.3 release lands on PyPI or when
-# kwcoco_dataloader is staged as another repo via repos.yaml.
+# kwcoco_dataloader is staged as a submodule under
+# tpl/kwcoco_dataloader (pinned to dev/0.1.3; setup_staging.py recurses
+# submodules for kwcoco_detector_kit per repos.yaml). Install it from
+# the local checkout because the [kwcoco-dataloader] extra pins
+# kwcoco-dataloader>=0.1.3 from PyPI, which doesn't exist yet.
+#
+# v10 needs this for the WebDataset training-input path
+# (data.tile_store: webdataset in recipe.v1). v6-v9 don't touch
+# kwcoco_dataloader at runtime, so the install is additive — adding it
+# doesn't perturb their behavior.
+test -f tpl/kwcoco_dataloader/kwcoco_dataloader/__init__.py || \
+    { echo "kwcoco_dataloader submodule missing from staged kit." >&2;
+      echo "Re-run setup_staging.py (it should recurse_submodules)." >&2;
+      exit 1; }
+uv pip install -e ./tpl/kwcoco_dataloader
+# WebDataset + wids deps (the [webdataset] kit extra brings webdataset
+# and braceexpand; we also need wids for the random-access read path
+# and line_profiler for the bench harness). Mirrors the kit's own
+# Dockerfile pattern at docker/opengroundingdino/Dockerfile.
+uv pip install "webdataset>=0.2" "wids>=0.1" braceexpand "line_profiler>=4.0"
+
 uv pip install -e ".[dev,deimv2]"
 
 # Bake provenance into the image so every artifact produced inside is
