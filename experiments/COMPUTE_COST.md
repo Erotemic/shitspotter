@@ -33,7 +33,7 @@ Hardware (single training rig):
 |                           | round 0 n@640 (pre-budget) | — | —       |  **~16 h** est | similar pool |
 |                           | rounds 1 (post-budget)| —      | —         |  **~30 m each** | 50 K stratified, kit commit `9028a52` |
 
-### Subtotals
+### Subtotals (v6-v8 + the v6.1/v7.1/bisect retries on the corrected bundle)
 
 | Phase                           | Cumulative training time |
 |---------------------------------|--------------------------|
@@ -41,9 +41,31 @@ Hardware (single training rig):
 | v7                              |  **~8 h**                |
 | v8 training                     |  **~110 h**              |
 | v8 mining                       |  **~33 h**               |
-| **TOTAL training (v6-v8)**      |  **~163 GPU-hours**      |
+| v6.1 pico@416                   |  **~12 h**               |
+| v7.1 pico + n@640               |  **~25 h** (pico ~11 h + n ~14 h, estimated) |
+| v7.1 DEIMv2 bisect (pico-only)  |  **~11 h** (measured, see below) |
+| **TOTAL training (v6 → bisect)** |  **~211 GPU-hours**     |
 | + failed/restarted runs / debug |  +20 h conservative      |
-| **GRAND TOTAL on toothbrush**   |  **~180-200 GPU-hours**  |
+| **GRAND TOTAL on toothbrush**   |  **~230 GPU-hours**      |
+
+### Per-epoch sensitivity (the surprise from the bisect)
+
+| Recipe                        | Tile pool size | Train policy   | Per-epoch | 80-epoch run |
+|-------------------------------|----------------|----------------|-----------|--------------|
+| v6.0 pico (wrong bundle)      | 12,820         | fixed          | ~2.4 min  | ~3 h         |
+| v6.1 pico (corrected bundle)  | 53,355         | fixed          | ~6 min    | ~8 h (est.)  |
+| v7.1 / bisect pico (multi)    | 53,355         | multiscale_320_512 | ~8 min | **~10.7 h (measured)** |
+
+**The lesson** (added as journal lesson #10): when an experiment
+changes data size AND training policy simultaneously, re-estimate
+wall-clock from per-epoch first principles, not by carrying forward
+the prior cell's total.
+
+Wall-clock measurement source for the bisect run: file mtimes inside
+the workdir. `best_stg1.pth` (written first time val AP improves —
+typically epoch 0 or 1) at 02:59:52 UTC; `log.txt` last write (end of
+epoch 79) at 13:39:51 UTC. Span: **10h 40m** training + ~20 min for
+export + eval + bench = **~11 h** total.
 
 ### Energy + carbon (order-of-magnitude)
 

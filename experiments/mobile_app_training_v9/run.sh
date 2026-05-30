@@ -6,8 +6,21 @@ set -euo pipefail
 SCRIPT_DPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RECIPE="$SCRIPT_DPATH/recipe.yaml"
 
-V6_TILE_TRAIN=${V6_TILE_TRAIN:-/data/joncrall/kcd/v6/data/train_tile_g2.kwcoco.zip}
-TEACHER_PACKAGE=${TEACHER_PACKAGE:-/data/joncrall/dvc-repos/shitspotter_expt_dvc/foundation_detseg_v3/v9/packages/v9_opengroundingdino_sam2_1_hiera_base_plus_tuned.yaml}
+# Use v6.1's corrected tile bundle (built from train_imgs10671 = v4's
+# source). v6.0 used the wrong simplified_train_imgs7350 bundle which
+# capped training at 25% of v4's image count; see
+# experiments/V4_VS_KIT_APPLES_TO_APPLES.md for the discovery.
+V6_TILE_TRAIN=${V6_TILE_TRAIN:-/data/joncrall/kcd/v6_1/data/train_tile_g2.kwcoco.zip}
+
+# The v9 OGDino+SAM2 deployment package YAML referenced in
+# foundation_detseg_v3/v9/selected_detector_checkpoint.yaml isn't on
+# disk (only the *_default template is). We generate it on the fly in
+# the workspace below, filling in the three v9-specific paths
+# (detector cfg + ckpt + segmenter ckpt) from the selected_detector
+# YAML the v3 pipeline already produced. Override TEACHER_PACKAGE to
+# point at a hand-authored YAML if you'd rather control it directly.
+TEACHER_PACKAGE_TEMPLATE=${TEACHER_PACKAGE_TEMPLATE:-/root/code/shitspotter/experiments/foundation_detseg_v3/packages/opengroundingdino_sam2_default.yaml}
+V9_SELECTED_YAML=${V9_SELECTED_YAML:-/data/joncrall/dvc-repos/shitspotter_expt_dvc/foundation_detseg_v3/v9/selected_detector_checkpoint.yaml}
 
 V9_ROOT=${V9_ROOT:-/data/joncrall/kcd/v9}
 V9_DATA=$V9_ROOT/data
@@ -15,15 +28,42 @@ mkdir -p "$V9_DATA"
 
 PSEUDO_KWCOCO="$V9_DATA/train_tile_g2_teacher_pseudo.kwcoco.zip"
 MERGED_KWCOCO="$V9_DATA/train_tile_g2_merged.kwcoco.zip"
+TEACHER_PACKAGE=${TEACHER_PACKAGE:-$V9_DATA/v9_teacher_package.yaml}
 
 if [ ! -f "$V6_TILE_TRAIN" ]; then
-    echo "[v9] ERROR: v6 tiled train bundle missing: $V6_TILE_TRAIN" >&2
-    echo "[v9]        run v6 first (or override V6_TILE_TRAIN to point elsewhere)" >&2
+    echo "[v9] ERROR: v6.1 tiled train bundle missing: $V6_TILE_TRAIN" >&2
+    echo "[v9]        run v6.1 first (or override V6_TILE_TRAIN to point elsewhere)" >&2
     exit 1
 fi
+
+# Generate the v9 teacher package YAML from the v3-pipeline-produced
+# selected_detector_checkpoint.yaml (idempotent; skip if already there).
 if [ ! -f "$TEACHER_PACKAGE" ]; then
-    echo "[v9] ERROR: v9 OGDino teacher package missing: $TEACHER_PACKAGE" >&2
-    exit 1
+    if [ ! -f "$TEACHER_PACKAGE_TEMPLATE" ]; then
+        echo "[v9] ERROR: teacher template missing: $TEACHER_PACKAGE_TEMPLATE" >&2
+        exit 1
+    fi
+    if [ ! -f "$V9_SELECTED_YAML" ]; then
+        echo "[v9] ERROR: v9 selected_detector_checkpoint.yaml missing: $V9_SELECTED_YAML" >&2
+        echo "[v9]        ensure the v3 foundation_detseg_v3 pipeline ran for v9" >&2
+        exit 1
+    fi
+    echo "[v9] generating teacher package -> $TEACHER_PACKAGE"
+    python3 - <<PY
+import yaml
+sel = yaml.safe_load(open("$V9_SELECTED_YAML"))
+pkg = yaml.safe_load(open("$TEACHER_PACKAGE_TEMPLATE"))
+pkg["detector"]["config_fpath"]    = sel["detector_config_fpath"]
+pkg["detector"]["checkpoint_fpath"] = sel["selected_detector_checkpoint_fpath"]
+pkg["segmenter"]["checkpoint_fpath"] = sel["tuned_segmenter_checkpoint_fpath"]
+pkg["metadata"]["name"] = "v9_opengroundingdino_sam2_1_hiera_base_plus_tuned"
+pkg["metadata"]["source_selected_yaml"] = "$V9_SELECTED_YAML"
+pkg["metadata"]["selected_candidate_id"] = sel.get("selected_candidate_id", "")
+pkg["metadata"]["detector_test_simplified_ap"] = sel.get("detector_test_simplified_ap", "")
+with open("$TEACHER_PACKAGE","w") as f:
+    yaml.safe_dump(pkg, f, sort_keys=False)
+print("[v9] wrote teacher package with detector_test_simplified_ap=" + str(sel.get("detector_test_simplified_ap","")))
+PY
 fi
 
 # Step 1: teacher predicts boxes over the v6 tiled training pool.

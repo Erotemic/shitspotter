@@ -26,9 +26,17 @@ honest: it's a synthesis, not a prediction.
 
 ## Quick start (inside the docker image)
 
-Same shape as v6/v7/v9:
+v10 is the first shitspotter recipe to opt into the kit's
+WebDataset training-input path (see kwcoco-detector-kit ADR-0001).
+That requires a one-time data-prep step to produce the shard tree
+from v6.1's train bundle. Then the recipe + sweep run as usual.
 
 ```bash
+# 0. Build the WDS shards from v6.1's train bundle (one-time;
+#    idempotent; FORCE_RESHARD=1 to rebuild).
+bash experiments/mobile_app_training_v10/00_build_wds_shards.sh
+
+# 1. Run the recipe (after recipe.yaml is filled in).
 docker run --gpus=all -it --rm \
     -v /data/joncrall/dvc-repos/shitspotter_dvc:/data/joncrall/dvc-repos/shitspotter_dvc:ro \
     -v /data/joncrall/dvc-repos/shitspotter_expt_dvc:/data/joncrall/dvc-repos/shitspotter_expt_dvc:ro \
@@ -36,6 +44,11 @@ docker run --gpus=all -it --rm \
     shitspotter:latest \
     bash experiments/mobile_app_training_v10/run.sh
 ```
+
+Step 0 needs `kwcoco_dataloader` on dev/0.1.3 or later (the merge
+that brought in `build_detection_webdataset`). The shards land
+under `$(dirname $TRAIN_KWCOCO)/shards/` by default — the recipe
+just needs to point `data.train_wds_shards` at that directory.
 
 ## Success criterion
 

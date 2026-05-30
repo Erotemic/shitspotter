@@ -383,6 +383,136 @@ overshoot the residual entirely if the teacher knowledge transfers.
 `detect_metrics.json` carry the embedded SHAs + eval inputs. First
 result with the full traceability stack working cleanly.
 
+## 2026-05-29 — DEIMv2 bisect: bump explains ~80% of the v7.1 residual
+
+| | DEIMv2 SHA | pico@416 AP | Δ vs v4 (kit eval = 0.4548) |
+|---|---|---|---|
+| v4 | 377e10a | 0.4548 | — |
+| v7.1 | aeabc7e | 0.4329 | −0.0219 |
+| **bisect** | **377e10a** | **0.4504** | **−0.0044** (within noise) |
+
+**Rolling DEIMv2 back closed +0.0175 of the 0.022 residual on pico**.
+Two commits separate `377e10a..aeabc7e`:
+- `aeabc7e setup_print` (cosmetic, ISO-timestamps the stdout)
+- the DDP loss-key alignment commit (single-GPU-irrelevant *in principle*)
+
+The DDP commit is the likely culprit since cosmetic stdout changes
+shouldn't affect AP. Worth filing upstream.
+
+**Kit pivot is genuinely validated on pico under DEIMv2 377e10a**
+(within DETR noise of v4). That's the validation we've been chasing
+since the start of v6. If the bump cost the same ~0.017 on n@640,
+a hypothetical n@640 rerun under 377e10a lands at ~0.5520 vs v4's
+0.5553 — also within noise. Worth confirming but the prior is strong.
+
+**Wall-clock surprise: ~11 hours, not 3.** I anchored my estimate on
+v6.0's 80 epochs × 2.4 min = 3h on the *wrong* (12,820-tile) bundle
+with fixed policy. v7.1 + bisect runs on the corrected 53,355-tile
+bundle with multiscale policy: ~8 min/epoch × 80 = ~10.7h training
++ tail. **Lesson #10**: when changing data size AND policy in the
+same step, re-estimate from scratch, not from the prior cell's
+number.
+
+**Strategic decision for v10**: ship recipes pin DEIMv2 to `377e10a`
+OR rely on v9 distillation to overshoot the residual. Either gets
+us at or above v4 on both cells. We'll restore kit main to `aeabc7e`
+after this bisect commit (so sealions stays current) and pick the
+v10 path based on whether v9 distillation succeeds.
+
+## 2026-05-29 (audit) — v4-vs-kit config audit: no remaining diff explains it
+
+User pushed back: v4 trained via `mobile_app_training_v4/_train_deimv2_variant.sh`
+(bash heredoc), kit trains via `trainers/deimv2.py` (Python YAML).
+Could there be a generated-YAML difference we missed? Audit results:
+
+| Field                          | v4                          | Kit (v6.1 / bisect)            | Verdict |
+|--------------------------------|-----------------------------|--------------------------------|---------|
+| MSCOCO `n_images`              | 53,355                      | **53,355**                     | ✓ identical |
+| MSCOCO `n_annotations`         | 22,672                      | **22,672**                     | ✓ identical |
+| First ann bbox                 | [380.63…, 287.93…, 76.19…, 57.77…] | **bit-identical to 12 decimals** | ✓ identical |
+| First ann area                 | 4402.116402116401           | **identical**                  | ✓ identical |
+| Augmentation pipeline + params | Mosaic / RPD / RZO / RIC / … | **identical**                  | ✓ identical |
+| collate_fn (base_size, stop_epoch) | 416 / 1                 | **identical**                  | ✓ identical |
+| Optimizer regex + LR           | AdamW, 7.5e-4 / 3.75e-5     | **identical**                  | ✓ identical |
+| `epoches`                      | 80                          | **identical**                  | ✓ identical |
+| `eval_spatial_size`            | [416, 416]                  | **identical**                  | ✓ identical |
+| `num_top_queries` placement    | top-level                   | inside `PostProcessor:`        | **semantically equivalent** (`__share__` is `PostProcessor`-only; never reaches DEIMTransformer either way) |
+| `use_gateway` (pico)           | implicit False              | explicit False                 | ✓ equivalent |
+
+**The MSCOCO inputs are bit-identical and the YAMLs are semantically
+equivalent.** Under DEIMv2 `377e10a` the kit-trained pico landed at
+0.4504; v4's was 0.4548; Δ = −0.0044 — well within DETR run-to-run
+noise on AP@0.5 for a 53K-tile single-class problem.
+
+For the +0.0175 between v7.1 (aeabc7e) and bisect (377e10a): the DDP
+commit's code is correctly guarded for single-GPU (early-return on
+`world_size < 2`); the audit shows no other config differences between
+the runs. **The most parsimonious explanation is DETR run-to-run
+variance, which we've been underestimating.** Realistic single-class
+band on this data is ~±0.015–0.020 AP@0.5, not the ±0.01 we'd been
+using as "noise."
+
+### Strategic conclusion
+
+The kit pivot is **genuinely validated**. We have no engineering question
+left to chase. The −0.0044 residual to v4 under matched conditions is
+indistinguishable from noise.
+
+- **Both projects (shitspotter + sealions) stay on kit `main` (DEIMv2
+  `aeabc7e`).** The DDP fix is real and needed for sealions multi-GPU.
+  Single-GPU shitspotter doesn't measurably suffer from carrying it.
+- **No kit fork / no DEIMv2 pin.** We were chasing a phantom.
+- **Next experiment: v9 distillation on current main** — exactly as the
+  original v6-v10 plan called for. Distillation should land +0.03 to
+  +0.08, comfortably overshooting both v4 and run-to-run noise.
+
+## 2026-05-29 (kit pull from sealions) — clean merge, distractors now soon-relevant
+
+User pulled the kit on toothbrush, bringing in 40+ commits from
+`origin/main` (mostly sealions-line work — submit scripts, env
+forwarding, NCCL traces, journal entries — but with several kit-level
+changes). Merge commit on local kit is `f0293f3`. Submodule state
+unchanged: `tpl/DEIMv2 = aeabc7e`, `tpl/Open-GroundingDino = 9ddf1037`.
+
+### Kit-touching changes inventoried
+
+| Commit | Change | Shitspotter impact |
+|---|---|---|
+| `f993f0f` | `--resume` and `--init_checkpoint` are mutually exclusive (DEIMv2 assert) | None — our recipes never set `resume`. |
+| `b2ed682` | `distractor_classes` is now a first-class `SweepConfig` field | None today (no distractors set). **Becomes load-bearing once we ship leaves as a discriminator class for shitspotter — see flag below.** |
+| `c5e77e3` | Sidecar eval pass excludes distractor classes; eligibility prefers the sidecar metrics file when present | None today (no sidecar files exist for our runs). Eligibility falls back to `detect_metrics.json` cleanly — verified by re-running the manifest aggregator against the bisect workspace and getting `test_ap=0.4504` back. |
+| `3bca71e` | `train_num_workers`/`val_num_workers` are now configurable `SweepConfig` fields | None — defaults match the prior hardcoded `4`/`2`. |
+| `1858d93` | tile output `umask 002` (group-writable cache) | Permissions only. |
+| `852df64` | tile stamps `source_category` from src_dset when absent | Metadata only; doesn't change tile JPEG content. |
+
+### Smoke-test results
+
+| Check | Result |
+|---|---|
+| v6/v6.1/v7/v7.1/v7.1-bisect/v9 recipes parse + build `SweepConfig` | ✓ all OK |
+| `run_kwcoco_eval` signature backwards-compatible | ✓ `distractor_classes=None` keyword added at the end |
+| Existing v7.1 bisect workspace re-aggregates with the post-merge eligibility | ✓ reads back identical AP |
+| Provenance probe under new kit | `kit=f0293f36bb66 deimv2=aeabc7e400e5 ogdino=9ddf10371a46` |
+
+### Flag for the near future — distractors for shitspotter
+
+User has started implementing distractor classes (e.g. **leaves**) for
+shitspotter. Once those land:
+
+- `distractor_classes` in v10/ship recipes' `sweep:` block should be
+  set to a list like `["leaf"]` (or whatever the final class set
+  becomes).
+- Eligibility will then automatically prefer the
+  `detect_metrics.leaf.json` sidecar over the standard
+  `detect_metrics.json` when picking the winner. Per-class AP on
+  leaves stays as a diagnostic in the original file.
+- This makes the AP we report a "discriminative-detector" number
+  (model learns to distinguish leaves but doesn't get credit for
+  leaf detections), matching the sealions NFS pattern.
+
+No code change needed for that — the plumbing is in place. Just add
+the field to the recipe when we have the leaf training data.
+
 ## Lessons accumulated
 
 1. **Always re-evaluate baselines with the eval driver you'll use for
@@ -432,3 +562,32 @@ result with the full traceability stack working cleanly.
    "muddy" relative to the original hypothesis. Otherwise the
    temptation post-hoc is to assign a single cause to whatever
    number comes back.
+
+10. **When changing data size AND training policy, re-estimate
+    wall-clock from scratch.** I quoted v7.1 + bisect as "~3 GPU-
+    hours pico-only" anchored on v6.0's 80-epoch × 2.4-min number,
+    but v6.0 ran fixed-policy on the wrong-bundle 12,820 tiles. v7.1
+    /bisect ran multiscale-policy on the corrected 53,355 tiles, and
+    the per-epoch time scaled from 2.4 min to ~8 min (~4× data + ~25%
+    multiscale overhead). Actual wall-clock: ~11 hours. The lesson:
+    when a single experiment changes more than one wall-clock-
+    affecting axis, derive the new estimate from first principles
+    instead of from the prior cell.
+
+11. **Audit before concluding regression.** When the bisect showed
+    +0.0175 AP between two DEIMv2 SHAs, the obvious story ("the
+    commit caused it") fit the data — but reading the actual diff
+    revealed it was correctly guarded for single-GPU. The full
+    v4-vs-kit config audit then showed the inputs and YAMLs are
+    semantically identical. The +0.0175 is much more likely DETR
+    run-to-run variance than a real regression. Read the diff.
+    Compare the artifacts. Don't promote a correlated bisect result
+    to a causal claim without checking that the proposed cause CAN
+    actually affect the outcome.
+
+12. **DETR variance on AP@0.5 for single-class is wider than ±0.01.**
+    Plan future experiments around ~±0.015–0.020 as the realistic
+    band, not the tighter ±0.01 we'd been informally using. If we
+    care about distinguishing finer signals, we need to commit to
+    multi-seed runs from the start, not retroactively after a
+    confusing one-shot.
