@@ -104,15 +104,46 @@ def open_shit_coco():
 
 def find_secret_dpath():
     """
+    Resolve the directory containing privacy / secret files.
+
+    Secrets are intentionally kept *outside* the repository working tree so the
+    repo can be shared (e.g. virtiofs-mounted into a VM where other LLMs run)
+    without leaking decrypted plaintext. Resolution order:
+
+        1. ``$SHITSPOTTER_SECRET_DPATH`` if set.
+        2. The default out-of-tree location ``~/.config/shitspotter/secrets``.
+        3. Legacy in-repo ``<repo>/secrets`` (deprecated; kept only for
+           back-compat during the migration off transcrypt). Never share a tree
+           that still contains decrypted secrets at this path.
+
+    Returns:
+        ubelt.Path: the first candidate directory that exists.
+
+    Raises:
+        EnvironmentError: if none of the candidate locations exist.
     """
     import ubelt as ub
+    import os
+    candidates = []
+    env_dpath = os.environ.get('SHITSPOTTER_SECRET_DPATH', None)
+    if env_dpath is not None:
+        candidates.append(ub.Path(env_dpath).expand())
+    candidates.append(ub.Path('~/.config/shitspotter/secrets').expand())
+    # Legacy in-repo location (back-compat only).
     import shitspotter
-    mod_dpath = ub.Path(shitspotter.__file__).parent
-    repo_dpath = mod_dpath.parent
-    secret_dpath = repo_dpath / 'secrets'
-    if not secret_dpath.exists():
-        raise EnvironmentError
-    return secret_dpath
+    repo_dpath = ub.Path(shitspotter.__file__).parent.parent
+    candidates.append(repo_dpath / 'secrets')
+    for secret_dpath in candidates:
+        if secret_dpath.exists():
+            return secret_dpath
+    raise EnvironmentError(ub.paragraph(
+        f'''
+        Could not find a secrets directory (looked in
+        {[str(p) for p in candidates]}). Set $SHITSPOTTER_SECRET_DPATH or
+        populate ~/.config/shitspotter/secrets. Secrets are intentionally kept
+        outside the repo tree so it can be virtiofs-shared without leaking
+        plaintext.
+        '''))
 
 
 def find_dvc_dpath():

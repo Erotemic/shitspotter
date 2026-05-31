@@ -103,9 +103,13 @@ links and filenames are fully qualified to simplify navigation.
 * Several dockerfiles exist under `dockerfiles/` to approximate known-good
   environments. They help document setup steps but have not been validated end
   to end recently—expect to troubleshoot GPU drivers and private data mounts.
-* Encrypted and rotatable secrets and credentials for publishing assets live
-  under `secrets/`; never commit modifications there. Scripts read environment
-  variables documented in their module docstrings.
+* Secrets and credentials for publishing assets are kept **outside the repo
+  working tree** so the repo can be virtiofs-shared without leaking plaintext.
+  Resolve their location with `shitspotter.util.util_data.find_secret_dpath()`,
+  which honors `$SHITSPOTTER_SECRET_DPATH` and defaults to
+  `~/.config/shitspotter/secrets` (legacy in-repo `secrets/` is a deprecated
+  fallback). Never reintroduce decrypted secrets under the repo tree. Scripts
+  also read environment variables documented in their module docstrings.
 
 ## Operational tips
 
