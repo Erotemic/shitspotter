@@ -19,6 +19,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added:
 
+* (2026-06-01): added `experiments/EVALUATION_ROADMAP.md` — a living test
+  registry tracking evaluations done vs planned (Pixel 5 on-device bench,
+  size-stratified AP, text-label-stratified AP, pico resolution sweep, tiled
+  inference vs higher native resolution, holistic PR/calibration metrics,
+  re-eval on updated test sets) plus an artifact-retention policy so frozen
+  models can be re-scored post hoc when the test set is refreshed.
+
 * (2026-05-14): phone app: landed `PostprocessType.DEIMV2` backend support in
   `OnnxRuntimeAndroidBackend` and `OnnxRuntimeJvmBackend`. Two-input
   session.run (images float32 NCHW + orig_target_sizes int64 [1,2]=[W,H]);
