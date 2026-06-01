@@ -3,10 +3,17 @@
 v10 combines whatever worked in v7-v9 into a single recipe per cell,
 trained for longer with EMA, and freezes the ship candidates.
 
-| Cell        | v4 baseline | v10 final | Δ      | Status   |
-|-------------|-------------|-----------|--------|----------|
-| pico@416    | 0.406       | TBD       | TBD    | TBD      |
-| n@640       | 0.520       | TBD       | TBD    | TBD      |
+| Cell        | v4 baseline | v10 final | Δ      | Status                   |
+|-------------|-------------|-----------|--------|--------------------------|
+| pico@416    | 0.406       | 0.478     | +0.072 | SHIP (clears +5 AP bar)  |
+| n@640       | 0.520       | 0.511     | -0.009 | below v4 (not a winner)  |
+
+v10 final = `test_ap` (AP@0.5, kwcoco detect_metrics) from
+`/media/joncrall/flash1/kcd-ssd/v10/manifest.json` (run completed 2026-06-01
+10:38 UTC). Both cells are desktop-eligible (pico p50 14.1 ms, n@640 p50
+39.7 ms; budget 80 ms) and classed `HOST_PROMISING` — the Pixel 5 on-device
+bench has not run yet (`device_eligible: TODO`), which is the remaining gate
+before pico@416 is ship-ready.
 
 ## What goes into the v10 recipe
 
