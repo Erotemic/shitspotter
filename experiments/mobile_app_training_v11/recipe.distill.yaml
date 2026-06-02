@@ -1,0 +1,60 @@
+# v11 DISTILL arm — pico at 640x640, human GT + OGDino teacher pseudo-GT.
+#
+# Identical to recipe.baseline.yaml EXCEPT train_kwcoco points at the merged
+# bundle (human GT + v9 OGDino bbox-teacher pseudo-GT, AP=0.766 teacher).
+# run.sh produces the merged bundle via the v9 offline pseudo-label pipeline
+# (teacher predicts boxes on the same tiles, boxes tagged from_teacher=True,
+# weight 1.0). Everything else — input 640, policy, epochs, lr, init — is held
+# fixed so the AP delta vs the baseline arm is attributable to distillation.
+#
+# Distillation here is offline pseudo-GT only (no teacher-forward at train
+# time, no soft labels). Its value is recall: the teacher contributes boxes
+# the human GT missed — expected to help most on small poops, which is the
+# same failure mode the 640 resolution targets. Capacity gap caveat: pico is
+# tiny; do NOT expect it to approach the teacher's 0.766 (v9's own success
+# criterion was only +2 AP on pico).
+---
+schema: recipe.v1
+name: shitspotter_v11_pico640_distill
+description: >
+  v11 distill: pico@640 on the human+OGDino-teacher merged bundle. Marginal
+  value of distillation over the v11 baseline arm, at fixed everything-else.
+
+data:
+  train_kwcoco: /media/joncrall/flash1/kcd-ssd/v11/data/train_tile_g2_merged.kwcoco.zip
+  vali_kwcoco:  /media/joncrall/flash1/kcd-ssd/v6_1/data/vali_tile_g2.kwcoco.zip
+  test_kwcoco:  /data/joncrall/dvc-repos/shitspotter_expt_dvc/foundation_detseg_v3/v9/detector_prepared/test.simplified.kwcoco.zip
+  tile_store: kwcoco_jpeg
+
+workspace:
+  kcd_root: /media/joncrall/flash1/kcd-ssd/v11/distill
+
+sweep:
+  trainer: deimv2
+  category_names: poop
+  matrix:
+    - variant: deimv2_pico
+      input_hw: [640, 640]
+      train_policy: multiscale_512_768
+      init_checkpoint: /data/joncrall/shitspotter_v4/pretrained/deimv2/deimv2_pico_coco.pth
+  num_epochs: 120
+  batch_size: 32
+  val_batch_size: 48
+  lr: 5.0e-4
+  backbone_lr: 2.5e-5
+  use_amp: true
+  scale_tier: M
+  num_gpus: 1
+  distributed: false
+  do_export: true
+  do_eval: true
+  do_bench: true
+
+eligibility:
+  max_desktop_ms: 80.0
+  min_device_fps: 1.0
+  include_smoke_models: false
+
+reproducibility:
+  seed: 0
+  deterministic: false

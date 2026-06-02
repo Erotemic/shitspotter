@@ -75,7 +75,12 @@ Each item: what · why · prerequisite · re-run cost.
 - **Cost:** post-hoc re-scoring of saved predictions *if* labels are on the
   same test images; otherwise needs a join step (no re-inference).
 
-### 4. ⬜ pico input-resolution sweep (416 vs 512 vs 640)
+### 4. 🔄 pico input-resolution sweep (416 vs 512 vs 640) — v11 scaffolded
+- **Status:** [mobile_app_training_v11](mobile_app_training_v11/README.md) sets
+  up pico@640 as two isolated arms — `baseline` (640, human GT) to measure the
+  resolution gain over v10 pico@416, and `distill` (640 + OGDino teacher
+  pseudo-GT) to measure distillation's marginal value. Size-stratified eval
+  (this is test #2) is the primary readout. Not yet run.
 - **Why:** pico's *native* DEIMv2 res is 640; v10 ran it downscaled to 416.
   Test whether higher resolution recovers small-poop AP. Big latency headroom
   (pico@416 = 14 ms vs 80 ms budget; est. ~21 ms @512, ~34 ms @640).
