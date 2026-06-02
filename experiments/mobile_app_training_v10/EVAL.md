@@ -16,15 +16,19 @@ recipe.yaml "Pending integrations").
 
 ## On-device numbers (Pixel 5)
 
-| Cell        | Desktop ms (p50) | Pixel 5 ms | Pixel 5 FPS | Eligibility       |
-|-------------|------------------|------------|-------------|-------------------|
-| pico@416    | 14.1             | PENDING    | PENDING     | HOST_PROMISING    |
-| n@640       | 39.7             | PENDING    | PENDING     | HOST_PROMISING    |
+| Cell        | Desktop ms (p50) | Pixel 5 ms        | Pixel 5 FPS | Eligibility    |
+|-------------|------------------|-------------------|-------------|----------------|
+| pico@416    | 14.1             | ~141 (110 inf)    | 7 (NNAPI)   | ELIGIBLE ✓     |
+| n@640       | 39.7             | PENDING           | PENDING     | HOST_PROMISING |
 
 Pixel 5 numbers come from a separate device-benchmark pass after the
 training run; the kit's `manifest --device_index <tsv>` consumes them.
-**Not yet run** — `device_eligible: TODO` in the manifest. This is the
-remaining gate before pico@416 is ship-ready.
+
+**pico@416 measured 2026-06-02 (Pixel 5, NNAPI): 7 FPS, ~141 ms/frame =
+110 ms inference + 30 ms preprocess + 0.7 ms postprocess.** That is 7× the
+1 FPS device floor → **device gate passed**. With desktop also passing,
+pico@416 is **ship-ready**. Preprocess (~21% of the frame) is the main
+remaining latency lever. n@640 device bench still pending.
 
 ## Ship artifacts (pico@416 — the ship candidate)
 
@@ -32,7 +36,8 @@ remaining gate before pico@416 is ship-ready.
 - [x] Modelspec sidecar: `.../export/deimv2_h416_w416.modelspec.json`
 - [x] Phone app `ModelRegistry` updated: `scatspotter_app` commit `37ca5b9`
       (`DEIMV2_PICO_416_V10`, sideload as `deimv2_pico_h416_w416_v10.onnx`)
-- [ ] Pixel 5 on-device bench run (fills `fpsHint` + manifest device cols)
+- [x] Pixel 5 on-device bench run: 7 FPS NNAPI, ~141 ms/frame (2026-06-02);
+      `fpsHint` updated to measured value
 - [ ] Repo tagged `mobile-v10-pico-<date>`: `<tag>`
 
 ## Notes

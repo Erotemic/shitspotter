@@ -35,6 +35,7 @@ Status legend: ✅ done · 🔄 in progress · ⬜ planned · ❄️ blocked (se
 
 | Date | Eval | Model(s) | Result | Artifacts |
 |------|------|----------|--------|-----------|
+| 2026-06-02 | v10 pico Pixel 5 on-device bench (NNAPI) | pico@416 (v10) | 7 FPS, ~141 ms/frame (110 inf + 30 pre + 0.7 post) → device-eligible, **ship-ready** | app `fpsHint`; v10 EVAL.md device table |
 | 2026-06-01 | v10 training + desktop AP + desktop latency | pico@416, n@640 | pico 0.478 (+0.072 vs v4), n 0.511 (−0.009 vs v4); both desktop-eligible | `/media/joncrall/flash1/kcd-ssd/v10/manifest.{tsv,json}`, per-cell `runs/<cell>/` + `eval/<cell>/` |
 | 2026-05-14 | v4 Pixel 5 on-device bench (NNAPI + CPU EP) | v4 pico/n cells | n@640 2.5 FPS, pico@416 7.1 FPS (see CHANGELOG) | v4 manifest `/data/joncrall/shitspotter_v4/manifest.tsv` |
 
@@ -48,13 +49,14 @@ Status legend: ✅ done · 🔄 in progress · ⬜ planned · ❄️ blocked (se
 
 Each item: what · why · prerequisite · re-run cost.
 
-### 1. ⬜ Pixel 5 on-device bench of the v10 best **pico** (and n)
-- **Why:** closes the `device_eligible: TODO` gate in the v10 manifest; the
-  only thing between v10 pico and ship-ready. Also fills the device table in
-  [mobile_app_training_v10/EVAL.md](mobile_app_training_v10/EVAL.md).
-- **Prereq:** v10 pico ONNX (already exported) pushed to device; reuse the v4
-  flow in `mobile_app_training_v4/05_bench_on_pixel5.sh`.
-- **Cost:** device-only, no retrain. **This is the immediate next test.**
+### 1. ✅ Pixel 5 on-device bench of the v10 best **pico** — DONE 2026-06-02
+- **Result:** 7 FPS NNAPI, ~141 ms/frame (110 ms inference + 30 ms preprocess
+  + 0.7 ms postprocess) — 7× the 1 FPS floor, **device gate passed → pico@416
+  ship-ready**. Preprocess (~21%) is the main remaining latency lever.
+- Closed the `device_eligible: TODO` gate; device table in
+  [mobile_app_training_v10/EVAL.md](mobile_app_training_v10/EVAL.md) and the
+  app `fpsHint` updated to the measured value.
+- **Still open:** n@640 device bench (not a ship candidate, lower priority).
 
 ### 2. ⬜ Size-stratified accuracy (small / medium / large)
 - **Why:** quantify the small-poop hypothesis; "good overall AP" can hide a

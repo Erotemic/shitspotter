@@ -19,6 +19,13 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added:
 
+* (2026-06-02): v10 pico@416 passed the Pixel 5 on-device gate — 7 FPS NNAPI,
+  ~141 ms/frame (110 ms inference + 30 ms preprocess + 0.7 ms postprocess), 7×
+  the 1 FPS floor. With desktop also passing, pico@416 is ship-ready. Recorded
+  the measured numbers in the app `ModelSpec.fpsHint`, the v10 `EVAL.md` device
+  table, and `EVALUATION_ROADMAP.md` (test #1 done). Preprocess (~21% of the
+  frame) flagged as the main remaining latency lever.
+
 * (2026-06-01): added `experiments/EVALUATION_ROADMAP.md` — a living test
   registry tracking evaluations done vs planned (Pixel 5 on-device bench,
   size-stratified AP, text-label-stratified AP, pico resolution sweep, tiled
