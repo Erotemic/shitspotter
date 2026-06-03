@@ -65,6 +65,33 @@ label-noise artifact rather than real recall.
 | Teacher boxes merged into GT  | TBD   |
 | Median teacher box area / human| TBD  |
 
+## Distill arm — BLOCKED (2026-06-03): kit package-format mismatch
+
+The teacher pseudo-label step fails with `KeyError('trainer')`, then would fail
+deeper. Root cause: `kwcoco-detector-kit pseudo-label` → `predict_kwcoco` only
+consumes **kit-native trainer packages** — it does `get_trainer(manifest["trainer"])`,
+`materialize_workdir(...)`, then `OGDinoTrainer.build_predictor(workdir)` which
+expects a kit workdir layout (`generated_configs/ogdino_cfg.py`,
+`find_checkpoint(workdir)`, `policy.json`). But the teacher we point it at is a
+**foundation_detseg_v3** package (`backend: opengroundingdino_sam2`,
+`detector.config_fpath`/`checkpoint_fpath`, `segmenter`, `postprocess.nms_thresh`)
+that references externally-produced files. The two schemas were never reconciled
+because v9 (which designed this path) was never actually run.
+
+Adding `trainer: opengroundingdino` to the package only clears the KeyError; it
+then fails in `build_predictor` (no `generated_configs/ogdino_cfg.py` in the
+foundation package). Fix options (each needs host-GPU to verify):
+- **(A) Repackage**: a shim that lays the foundation detector
+  `config_fpath`/`checkpoint_fpath` into the kit workdir layout
+  `build_predictor` expects + a manifest with `trainer: opengroundingdino`.
+- **(B) Adapter**: teach `OGDinoTrainer.build_predictor` to accept a
+  foundation-style `config_fpath`/`checkpoint_fpath` directly.
+- **(C) Bypass**: generate the pseudo-GT via the foundation_detseg_v3 pipeline's
+  own OGDino predict path (the one that produced the 0.766 eval), then merge.
+
+Not blocking the v11 baseline win — the distill arm is a separate kit-integration
+task. The teacher itself loads fine (package built, AP=0.7656 confirmed).
+
 ## Decision
 
 - [ ] Resolution helps (baseline > v10 pico@416, esp. AP small) → 640 becomes
