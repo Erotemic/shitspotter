@@ -27,9 +27,10 @@ PSEUDO_KWCOCO="$V11_DATA/train_tile_g2_teacher_pseudo.kwcoco.zip"
 MERGED_KWCOCO="$V11_DATA/train_tile_g2_merged.kwcoco.zip"
 
 # v9 OGDino+SAM2 teacher package, generated on the fly from the v3-pipeline
-# selected_detector_checkpoint.yaml (same approach as v9/run.sh). Paths are
-# the in-docker paths; override if running elsewhere.
-TEACHER_PACKAGE_TEMPLATE=${TEACHER_PACKAGE_TEMPLATE:-/root/code/shitspotter/experiments/foundation_detseg_v3/packages/opengroundingdino_sam2_default.yaml}
+# selected_detector_checkpoint.yaml (same approach as v9/run.sh). The template
+# is resolved relative to this script so it works whether the repo lives at
+# /home/joncrall/code/shitspotter (host) or /root/code/shitspotter (docker).
+TEACHER_PACKAGE_TEMPLATE=${TEACHER_PACKAGE_TEMPLATE:-$SCRIPT_DPATH/../foundation_detseg_v3/packages/opengroundingdino_sam2_default.yaml}
 V9_SELECTED_YAML=${V9_SELECTED_YAML:-/data/joncrall/dvc-repos/shitspotter_expt_dvc/foundation_detseg_v3/v9/selected_detector_checkpoint.yaml}
 TEACHER_PACKAGE=${TEACHER_PACKAGE:-$V11_DATA/v11_teacher_package.yaml}
 
