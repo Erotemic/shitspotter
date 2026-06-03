@@ -103,11 +103,15 @@ task. The teacher itself loads fine (package built, AP=0.7656 confirmed).
 - [ ] Neither beats v10 → resolution is not the lever; pivot to tiled
       inference (roadmap #5).
 
-## Ship artifacts (fill if a v11 cell ships)
+## Ship artifacts (baseline pico@640)
 
-- [ ] ONNX + modelspec paths
-- [ ] Phone app `ModelSpec` (640 entry) + `push_models.sh` mapping
-- [ ] Pixel 5 bench
+- [x] ONNX: `…/v11/baseline/runs/deimv2_pico_640x640_multiscale_512_768/export/deimv2_h640_w640.onnx`
+      (+ `.modelspec.json`)
+- [x] Phone app `ModelSpec`: `DEIMV2_PICO_640_V11` (sideload as
+      `deimv2_pico_h640_w640_v11.onnx`); `push_models.sh` mapping added; listed
+      first in `ModelRegistry.all`.
+- [ ] Pixel 5 bench (fills `fpsHint` + device cols; ~3 FPS est.)
+- [ ] Size-stratified AP confirmed (run `experiments/size_stratified_eval.py`)
 - [ ] Repo tag
 
 ## Notes
