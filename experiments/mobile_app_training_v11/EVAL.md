@@ -92,6 +92,16 @@ foundation package). Fix options (each needs host-GPU to verify):
 Not blocking the v11 baseline win — the distill arm is a separate kit-integration
 task. The teacher itself loads fine (package built, AP=0.7656 confirmed).
 
+**FIX IN PLACE (option A, 2026-06-03):** `make_teacher_kit_package.py` repackages
+the foundation OGDino detector into the kit-native layout
+(`trainer: opengroundingdino` + `artifacts: {checkpoint→checkpoint0000.pth,
+train_config→generated_configs/ogdino_cfg.py, policy→policy.json}`,
+`pipeline: detector_only`). `run.sh` now builds this and points `pseudo-label`
+at it. **UNVERIFIED — needs host-GPU run** (no GPU/OGDino on the VM). When
+running the distill arm, ensure `$KCD_OPENGROUNDINGDINO_REPO_DPATH` is set so
+the predictor can import `groundingdino`. If it errors, the likely culprits are
+OGDino config loadability or the repo env var — not the package layout.
+
 ## Decision
 
 - [ ] Resolution helps (baseline > v10 pico@416, esp. AP small) → 640 becomes

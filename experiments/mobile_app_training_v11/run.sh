@@ -26,13 +26,14 @@ V11_DATA=${V11_DATA:-/media/joncrall/flash1/kcd-ssd/v11/data}
 PSEUDO_KWCOCO="$V11_DATA/train_tile_g2_teacher_pseudo.kwcoco.zip"
 MERGED_KWCOCO="$V11_DATA/train_tile_g2_merged.kwcoco.zip"
 
-# v9 OGDino+SAM2 teacher package, generated on the fly from the v3-pipeline
-# selected_detector_checkpoint.yaml (same approach as v9/run.sh). The template
-# is resolved relative to this script so it works whether the repo lives at
-# /home/joncrall/code/shitspotter (host) or /root/code/shitspotter (docker).
-TEACHER_PACKAGE_TEMPLATE=${TEACHER_PACKAGE_TEMPLATE:-$SCRIPT_DPATH/../foundation_detseg_v3/packages/opengroundingdino_sam2_default.yaml}
+# The OGDino teacher is repackaged from the v3-pipeline
+# selected_detector_checkpoint.yaml into a KIT-NATIVE package (trainer +
+# artifacts layout) that `pseudo-label`/`predict_kwcoco` can consume — the
+# foundation-format package (backend/detector.config_fpath) is NOT understood
+# by predict_kwcoco (that mismatch is why v9 KeyError'd). See
+# make_teacher_kit_package.py.
 V9_SELECTED_YAML=${V9_SELECTED_YAML:-/data/joncrall/dvc-repos/shitspotter_expt_dvc/foundation_detseg_v3/v9/selected_detector_checkpoint.yaml}
-TEACHER_PACKAGE=${TEACHER_PACKAGE:-$V11_DATA/v11_teacher_package.yaml}
+TEACHER_KIT_PKG=${TEACHER_KIT_PKG:-$V11_DATA/teacher_kit_package}
 
 ensure_merged() {
     mkdir -p "$V11_DATA"
@@ -46,30 +47,22 @@ ensure_merged() {
         return
     fi
 
-    # Generate teacher package YAML (idempotent).
-    if [ ! -f "$TEACHER_PACKAGE" ]; then
-        [ -f "$TEACHER_PACKAGE_TEMPLATE" ] || { echo "[v11] ERROR: teacher template missing: $TEACHER_PACKAGE_TEMPLATE" >&2; exit 1; }
+    # Build the kit-native OGDino teacher package (idempotent).
+    if [ ! -f "$TEACHER_KIT_PKG/package.yaml" ]; then
         [ -f "$V9_SELECTED_YAML" ] || { echo "[v11] ERROR: v9 selected_detector_checkpoint.yaml missing: $V9_SELECTED_YAML" >&2; exit 1; }
-        echo "[v11] generating teacher package -> $TEACHER_PACKAGE"
-        python3 - <<PY
-import yaml
-sel = yaml.safe_load(open("$V9_SELECTED_YAML"))
-pkg = yaml.safe_load(open("$TEACHER_PACKAGE_TEMPLATE"))
-pkg["detector"]["config_fpath"]      = sel["detector_config_fpath"]
-pkg["detector"]["checkpoint_fpath"]  = sel["selected_detector_checkpoint_fpath"]
-pkg["segmenter"]["checkpoint_fpath"] = sel["tuned_segmenter_checkpoint_fpath"]
-pkg["metadata"]["name"] = "v9_opengroundingdino_sam2_1_hiera_base_plus_tuned"
-pkg["metadata"]["source_selected_yaml"] = "$V9_SELECTED_YAML"
-with open("$TEACHER_PACKAGE", "w") as f:
-    yaml.safe_dump(pkg, f, sort_keys=False)
-print("[v11] wrote teacher package; detector_test_simplified_ap=" + str(sel.get("detector_test_simplified_ap", "")))
-PY
+        echo "[v11] repackaging OGDino teacher -> kit-native package $TEACHER_KIT_PKG"
+        python3 "$SCRIPT_DPATH/make_teacher_kit_package.py" \
+            --selected_yaml "$V9_SELECTED_YAML" \
+            --out_pkg "$TEACHER_KIT_PKG" \
+            --label poop
     fi
 
     # Step 1: teacher predicts boxes over the train tiles.
+    # NOTE: needs $KCD_OPENGROUNDINGDINO_REPO_DPATH set + the OGDino repo
+    # importable (the predictor imports groundingdino lazily).
     if [ ! -f "$PSEUDO_KWCOCO" ]; then
         echo "[v11] pseudo-label train tiles with OGDino teacher"
-        kwcoco-detector-kit pseudo-label "$TEACHER_PACKAGE" \
+        kwcoco-detector-kit pseudo-label "$TEACHER_KIT_PKG" \
             --src "$TRAIN_TILES" \
             --dst "$PSEUDO_KWCOCO" \
             --device "cuda:0" \
