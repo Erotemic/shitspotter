@@ -1,0 +1,61 @@
+# v12 — pico @ 768, pure resolution push (no teacher, no OGDino, no docker).
+#
+# Resolution was by far the biggest lever so far: pico@416 (v10) = 0.478 ->
+# pico@640 (v11 baseline) = 0.588 (+0.110), almost entirely from giving the
+# detector more pixels on small poops. v12 pushes the SAME lever one step
+# further to 768. Everything else is identical to the v11 baseline arm so the
+# AP delta is attributable to the resolution change alone.
+#
+# This is plain DEIMv2 — it trains with exactly the setup that produced the
+# v11 baseline on the host (uvpy3.13.13), NO docker / OGDino / supervision /
+# teacher involved. `bash run.sh` just works.
+#
+# Latency budget check: 768 is ~1.44x the 640 compute, so est. desktop
+# ~47ms (v11 640 was 32.4ms) — still under the 80ms gate; Pixel 5 ~2 FPS
+# (est. from v11), to be confirmed by the device bench.
+---
+schema: recipe.v1
+name: shitspotter_v12_pico768
+description: >
+  v12: pico@768 (resolution push past v11's 0.588@640) on v6.1's human-GT
+  tiles. Pure DEIMv2, no teacher. Measures whether more resolution keeps
+  paying off on small poops.
+
+data:
+  train_kwcoco: /media/joncrall/flash1/kcd-ssd/v6_1/data/train_tile_g2.kwcoco.zip
+  vali_kwcoco:  /media/joncrall/flash1/kcd-ssd/v6_1/data/vali_tile_g2.kwcoco.zip
+  test_kwcoco:  /data/joncrall/dvc-repos/shitspotter_expt_dvc/foundation_detseg_v3/v9/detector_prepared/test.simplified.kwcoco.zip
+  tile_store: kwcoco_jpeg
+
+workspace:
+  kcd_root: /media/joncrall/flash1/kcd-ssd/v12
+
+sweep:
+  trainer: deimv2
+  category_names: poop
+  matrix:
+    - variant: deimv2_pico
+      input_hw: [768, 768]
+      train_policy: multiscale_640_896
+      init_checkpoint: /data/joncrall/shitspotter_v4/pretrained/deimv2/deimv2_pico_coco.pth
+  num_epochs: 120
+  batch_size: 32
+  val_batch_size: 48
+  lr: 5.0e-4
+  backbone_lr: 2.5e-5
+  use_amp: true
+  scale_tier: M
+  num_gpus: 1
+  distributed: false
+  do_export: true
+  do_eval: true
+  do_bench: true
+
+eligibility:
+  max_desktop_ms: 80.0
+  min_device_fps: 1.0
+  include_smoke_models: false
+
+reproducibility:
+  seed: 0
+  deterministic: false
