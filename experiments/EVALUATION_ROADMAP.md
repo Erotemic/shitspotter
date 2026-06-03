@@ -58,13 +58,14 @@ Each item: what · why · prerequisite · re-run cost.
   app `fpsHint` updated to the measured value.
 - **Still open:** n@640 device bench (not a ship candidate, lower priority).
 
-### 2. ⬜ Size-stratified accuracy (small / medium / large)
+### 2. 🔄 Size-stratified accuracy (small / medium / large) — tool ready
 - **Why:** quantify the small-poop hypothesis; "good overall AP" can hide a
   collapse on small objects.
-- **Prereq:** mostly already in `eval/<cell>/detect_metrics.json`
-  (`area_range=small|medium|large`); may want a small report script to tabulate
-  across models/runs.
-- **Cost:** post-hoc on existing artifacts (cheap) for completed runs.
+- **Status:** the kit eval only emits `area_range=all`, so `detect_metrics.json`
+  has no per-size breakdown. `experiments/size_stratified_eval.py` re-scores the
+  saved `*_bbox_only.kwcoco.zip` predictions with COCO small/med/large (no
+  re-inference) — runs in the host kwcoco env. **Not yet run** on v10 vs v11.
+- **Cost:** post-hoc on existing artifacts (cheap).
 
 ### 3. ⬜ Text-label-stratified accuracy
 - **Why:** find *which scene types* fail (surface/lighting/occlusion/type),
