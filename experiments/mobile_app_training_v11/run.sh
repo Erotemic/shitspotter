@@ -78,7 +78,6 @@ import kwcoco
 human = kwcoco.CocoDataset('$TRAIN_TILES')
 teacher = kwcoco.CocoDataset('$PSEUDO_KWCOCO')
 merged = human.copy()
-merged.fpath = '$MERGED_KWCOCO'
 human_imgs_by_name = {g['file_name']: g for g in merged.imgs.values()}
 imported = skipped = 0
 for ann in teacher.anns.values():
@@ -93,6 +92,12 @@ for ann in teacher.anns.values():
     new['category_id'] = merged.ensure_category(name=teacher.cats[ann['category_id']]['name'])
     merged.add_annotation(**new)
     imported += 1
+# Absolutize image paths (against the v6.1 bundle dir) BEFORE moving the
+# bundle: the merged kwcoco is written to v11/data but the tile JPEGs live
+# in v6_1/data/train_tile_g2_assets/. kwcoco stores file_names relative to
+# the bundle dir, so without this the trainer looks for them under v11/data.
+merged.reroot(absolute=True)
+merged.fpath = '$MERGED_KWCOCO'
 merged.dump()
 print(f'[v11] merged: imported {imported} teacher anns; skipped {skipped} no-match')
 "
