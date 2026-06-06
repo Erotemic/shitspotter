@@ -130,11 +130,14 @@ OGDino config loadability or the repo env var — not the package layout.
 
 - [x] **Resolution helps** (+0.110 over v10 pico@416; gains on every size band)
       → 640 is the default pico input; `DEIMV2_PICO_640_V11` registered in the app.
-- [ ] ~~Distillation helps~~ — NO. distill 0.552 < baseline 0.588.
-- [x] **Distillation is a regression** (−0.036 AP@0.5; −0.05…−0.10 on every
-      DEIM band, incl. small) → pseudo-GT recall does **not** transfer into
-      pico's capacity; the teacher's tile over-prediction injects label noise.
-      **Stop pursuing offline OGDino pseudo-GT distillation for this cell.**
+- [x] **Distillation did not win** — distill 0.552 < baseline 0.588 (−0.036;
+      −0.05…−0.10 on every DEIM band incl. small). This is "not a win," **not a
+      proven dead end**: the prime suspect is the full-weight pseudo-GT merge
+      (teacher over-predicts on tiles → label noise), i.e. a likely misconfig,
+      not evidence that distillation can't help. **Parked, not refuted** —
+      revisit only with filtered (higher score_thresh) + downweighted
+      (`from_teacher` weight < 1.0) teacher boxes. Lower priority than
+      resolution/tiling.
 - next lever for small poops is NOT distillation: either more resolution
       (v12 pico@768, scaffolded) or tiled inference (EVALUATION_ROADMAP #5).
 
