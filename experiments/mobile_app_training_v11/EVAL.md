@@ -9,7 +9,7 @@ Two arms, both pico@640. Reference: v10 pico@416 = AP@0.5 **0.478**, Pixel 5
 |----------------------|--------|-------------------|-------------------|
 | v10 pico@416         | 0.478  | —                 | —                 |
 | v11 baseline (640)   | **0.588** | **+0.110**     | —                 |
-| v11 distill (640)    | TBD    | TBD               | TBD (= distillation) |
+| v11 distill (640)    | 0.552  | +0.074            | **−0.036 (REGRESSION)** |
 
 `Δ vs v10` on the baseline row = the **resolution** effect.
 `Δ vs baseline` on the distill row = the **distillation** effect.
@@ -41,6 +41,21 @@ Expectation: most of the resolution gain should land in **AP small**. If 640
 does not move AP small, the small-poop hypothesis is wrong and tiling
 (roadmap #5) is the next thing to try.
 
+**Distillation size-stratified result (DEIM internal eval, epoch 119, both
+@640):** distillation regressed on *every* size band, not just overall:
+
+| AP (DEIM, .5:.95 unless noted) | baseline@640 | distill@640 | Δ |
+|--------------------------------|--------------|-------------|---|
+| AP@.5:.95                      | 0.358        | 0.289       | −0.069 |
+| AP50                           | 0.563        | 0.467       | −0.096 |
+| AP_small                       | 0.279        | 0.212       | −0.067 |
+| AP_medium                      | 0.442        | 0.369       | −0.073 |
+| AP_large                       | 0.388        | 0.337       | −0.051 |
+
+So the teacher's boxes did **not** help small poops — they hurt them too. (For
+the kwcoco-harness per-size numbers, run `experiments/size_stratified_eval.py`;
+the DEIM-internal eval above is already conclusive on direction.)
+
 ## On-device (Pixel 5)
 
 | Model              | Desktop ms (p50) | Pixel 5 ms | Pixel 5 FPS | Eligibility |
@@ -65,7 +80,16 @@ label-noise artifact rather than real recall.
 | Teacher boxes merged into GT  | TBD   |
 | Median teacher box area / human| TBD  |
 
-## Distill arm — BLOCKED (2026-06-03): kit package-format mismatch
+## Distill arm — RAN 2026-06-06 (negative result); integration notes below
+
+The distill arm now runs end-to-end. Getting there took 6 kit fixes to the
+never-functional OGDino teacher predictor (wrong module layout for the training
+fork, split `util`, `weights_only`, build_model tuple) + the merged-bundle
+reroot + `--shm-size`. Result: **distillation regressed** (see tables above) —
+so the payoff was a clean negative, but the OGDino-teacher path is now working
+for any future use. Original blocker write-up retained for history:
+
+### (historical) BLOCKED: kit package-format mismatch
 
 The teacher pseudo-label step fails with `KeyError('trainer')`, then would fail
 deeper. Root cause: `kwcoco-detector-kit pseudo-label` → `predict_kwcoco` only
@@ -102,16 +126,21 @@ running the distill arm, ensure `$KCD_OPENGROUNDINGDINO_REPO_DPATH` is set so
 the predictor can import `groundingdino`. If it errors, the likely culprits are
 OGDino config loadability or the repo env var — not the package layout.
 
-## Decision
+## Decision (2026-06-06)
 
-- [ ] Resolution helps (baseline > v10 pico@416, esp. AP small) → 640 becomes
-      the default pico input; update the app `ModelSpec` to a 640 entry.
-- [ ] Distillation helps (distill > baseline by a meaningful margin) → fold
-      teacher pseudo-GT into future recipes.
-- [ ] Distillation is a wash/regression → log it; pseudo-GT recall does not
-      transfer into pico's capacity. Stop pursuing it for this cell.
-- [ ] Neither beats v10 → resolution is not the lever; pivot to tiled
-      inference (roadmap #5).
+- [x] **Resolution helps** (+0.110 over v10 pico@416; gains on every size band)
+      → 640 is the default pico input; `DEIMV2_PICO_640_V11` registered in the app.
+- [ ] ~~Distillation helps~~ — NO. distill 0.552 < baseline 0.588.
+- [x] **Distillation is a regression** (−0.036 AP@0.5; −0.05…−0.10 on every
+      DEIM band, incl. small) → pseudo-GT recall does **not** transfer into
+      pico's capacity; the teacher's tile over-prediction injects label noise.
+      **Stop pursuing offline OGDino pseudo-GT distillation for this cell.**
+- next lever for small poops is NOT distillation: either more resolution
+      (v12 pico@768, scaffolded) or tiled inference (EVALUATION_ROADMAP #5).
+
+> If distillation is ever revisited, the levers to try are: filter teacher boxes
+> harder (raise `--score_thresh` well above 0.30) and/or downweight them
+> (`from_teacher` weight < 1.0) so noise doesn't dominate — not full-weight merge.
 
 ## Ship artifacts (baseline pico@640)
 

@@ -6,6 +6,18 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Version 0.0.1] - 
 
+### Added:
+
+* (2026-06-06): v11 distillation arm ran end-to-end and the result is a clean
+  **negative**: pico@640 + OGDino pseudo-GT = AP@0.5 0.552 vs the 0.588
+  human-GT baseline (−0.036), and it regressed on every DEIM size band incl.
+  small (AP_small 0.279→0.212). Offline OGDino pseudo-GT distillation does not
+  transfer into pico's capacity (teacher tile over-prediction injects noise);
+  dropped for this cell. Resolution remains the lever (416→640 = +0.110); the
+  0.588 baseline stays the ship candidate. Getting the distill arm to run took
+  6 kit fixes that made the previously-never-functional OGDino teacher
+  predictor work (see experiments/mobile_app_training_v11/EVAL.md).
+
 ### Changed:
 
 * (2026-05-30): phone app: migrated the in-repo KMP+Compose app from
