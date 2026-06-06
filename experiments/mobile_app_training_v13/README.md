@@ -63,8 +63,10 @@ unioning tile sets from the raw 4032×3024 annotated images
    in-distribution without going to a 64-tile build at train time.
 
 These passes are declared in [corpus_spec.yaml](corpus_spec.yaml) and composed
-into one bundle by the generic `tile-corpus` builder; [run.sh](run.sh) builds
-train + vali corpora then trains. No bespoke tiling script.
+into one bundle by the generic `tile-corpus` builder. The corpus build
+([build_corpus.sh](build_corpus.sh)) and training ([run.sh](run.sh)) are
+**separate steps**, each runnable in or out of the container — no bespoke
+tiling script.
 
 Because every emitted tile is resized to the fixed model input, the model only
 ever sees its native input size — the *scale variety is in the pixels*, which
@@ -112,12 +114,36 @@ results fused across passes:
 - Sanity: a "move closer/farther" check — the same poop should stay detected as
   the crop scale changes.
 
+## Build & run — everything in the container, as separate steps
+
+All host work runs inside the image; the default is **rebuild the image** (code
+baked in), not bind-mount code. `reproduce/in_docker.sh` is a transparent docker
+prefix — drop it to run the same command on the host.
+
+```bash
+# 0. rebuild the image so the current kit (tile-corpus + fixes) is baked in
+reproduce/mobile_quality_push.sh build
+
+# 1. build the multi-scale corpus  (SEPARATE step; CPU; the new tile-corpus op)
+reproduce/in_docker.sh bash experiments/mobile_app_training_v13/build_corpus.sh
+
+# 2. train pico@768 on the corpus  (SEPARATE step; GPU; detached)
+DETACH=1 NAME=v13 reproduce/in_docker.sh \
+    bash experiments/mobile_app_training_v13/run.sh
+docker logs -f v13
+```
+
+Run any piece on the host instead by dropping the `reproduce/in_docker.sh`
+prefix. Set-and-forget (one container, both steps) is just:
+`reproduce/in_docker.sh bash -lc 'experiments/mobile_app_training_v13/build_corpus.sh && experiments/mobile_app_training_v13/run.sh'`.
+
 ## Status / next steps
 
 - [x] Generic `tile-corpus` builder added to the kit (reusable by any project).
-- [x] `corpus_spec.yaml` + `run.sh` wired (shitspotter invokes the generic builder).
-- [ ] Run `bash run.sh` (host or docker `--shm-size=16g`) to build the corpus +
-      train pico@768. (Try pico@640 too by swapping the three sizes + input_hw.)
+- [x] `corpus_spec.yaml` + separate `build_corpus.sh` / `run.sh` steps.
+- [x] `reproduce/in_docker.sh` generic docker-prefix wrapper.
+- [ ] Rebuild image → step 1 (corpus) → step 2 (train pico@768). (Try pico@640
+      by swapping the three sizes in corpus_spec.yaml + recipe input_hw.)
 - [ ] App: implement L1/L2/L3 tiling + box fusion behind a settings lever
       (see `tpl/scatspotter_app/docs/007_tiled_pyramid_inference.md`).
 - [ ] Eval per-level + size-stratified; pick the ship configuration. A tiled-

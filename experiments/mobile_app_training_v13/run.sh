@@ -1,30 +1,23 @@
 #!/bin/bash
-# v13 driver: build the multi-scale tile corpus with the GENERIC kit
-# tile-corpus builder, then train pico@768 on it. DEIMv2 only — no OGDino,
-# no teacher. Runs on the host like the v11 baseline, or in docker
-# (--shm-size=16g) for the GPU.
+# v13 STEP 2 (separate): train pico@768 on the multi-scale corpus. Corpus build
+# is a SEPARATE prior step (build_corpus.sh) — run that first. Pure CLI, no
+# docker logic; run on the host or via the wrapper:
 #
-#   bash run.sh                # build corpus (if missing) + train/export/eval/bench
-#   bash run.sh --dry_run      # validate recipe, no GPU
+#     reproduce/in_docker.sh bash experiments/mobile_app_training_v13/build_corpus.sh   # step 1
+#     DETACH=1 NAME=v13 reproduce/in_docker.sh \
+#         bash experiments/mobile_app_training_v13/run.sh                                # step 2
+#     bash experiments/mobile_app_training_v13/run.sh        # (host, no docker)
+#
+# Extra flags pass through to recipe-run (e.g. --dry_run, --force_train).
 set -euo pipefail
 
 SCRIPT_DPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SPEC="$SCRIPT_DPATH/corpus_spec.yaml"
-
-RAW_DPATH=${RAW_DPATH:-/data/joncrall/dvc-repos/shitspotter_dvc}
-RAW_TRAIN=${RAW_TRAIN:-$RAW_DPATH/train_imgs10671_b277c63d.kwcoco.zip}
-RAW_VALI=${RAW_VALI:-$RAW_DPATH/vali_imgs1258_577e331c.kwcoco.zip}
 DATA=${V13_DATA:-/media/joncrall/flash1/kcd-ssd/v13/data}
-mkdir -p "$DATA"
 
-# Build corpora via the generic kit builder (shared with sealions / any project).
 if [ ! -f "$DATA/train_corpus.kwcoco.zip" ]; then
-    echo "[v13] building train corpus via tile-corpus"
-    kwcoco-detector-kit tile-corpus "$RAW_TRAIN" "$DATA/train_corpus.kwcoco.zip" --spec "$SPEC"
-fi
-if [ ! -f "$DATA/vali_corpus.kwcoco.zip" ]; then
-    echo "[v13] building vali corpus via tile-corpus"
-    kwcoco-detector-kit tile-corpus "$RAW_VALI" "$DATA/vali_corpus.kwcoco.zip" --spec "$SPEC"
+    echo "[v13] ERROR: $DATA/train_corpus.kwcoco.zip missing." >&2
+    echo "[v13]        run build_corpus.sh first (separate step)." >&2
+    exit 1
 fi
 
 exec kwcoco-detector-kit recipe-run "$SCRIPT_DPATH/recipe.yaml" "$@"
