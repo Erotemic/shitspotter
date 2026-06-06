@@ -1,0 +1,40 @@
+# v13 multi-scale tile corpus for poop detection.
+#
+# Consumed by the GENERIC kit builder (NOT a shitspotter-specific tiler):
+#   kwcoco-detector-kit tile-corpus <raw_imgs.kwcoco> <out_corpus.kwcoco> --spec corpus_spec.yaml
+#
+# The three passes give the model the same scale distribution the phone's
+# tiled-pyramid inference will feed at runtime (whole-frame coarse + 2x2
+# full-res crops + multiscale far->near tiles), so train-time and
+# inference-time apparent-scale distributions match. Tile output sizes are the
+# model input (768); change all three + the recipe input_hw together to retune.
+shared:
+  category_names: poop
+
+passes:
+  # Whole 4032x3024 frame -> 768 long side. Matches the phone's coarse
+  # (L0/L1) whole-frame pass.
+  - name: full
+    mode: full_only
+    full_dim: 768
+
+  # 2x2 overlapping full-resolution crops, each -> 768. Matches the phone's
+  # L2 grid pass. keep_full=false: the whole frame is already the `full` pass.
+  - name: quad2
+    mode: quadrant
+    tile_grid: 2
+    tile_overlap: 0.20
+    tile_output_dim: 768
+    keep_full: false
+
+  # Fixed-size tiles cut from several downscaled source copies: the same poop
+  # appears near (scale 1.0 = full-res crop) and far (0.25 = wide view). This
+  # is the core "never lose the detection as you move closer/farther"
+  # objective, and the data-time mirror of multi-resolution inference.
+  - name: multiscale
+    mode: multiscale
+    tile_size: 768
+    source_scales: "1.0,0.66,0.40,0.25"
+    stride_frac: 0.5
+    keep_negative: true
+    min_gt_area_frac: 0.05
