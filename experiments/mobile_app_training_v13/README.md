@@ -127,14 +127,14 @@ reproduce/mobile_quality_push.sh build
 # 1. build the multi-scale corpus  (SEPARATE step; CPU; the new tile-corpus op)
 reproduce/in_docker.sh bash experiments/mobile_app_training_v13/build_corpus.sh
 
-# 2. train pico@768 on the corpus  (SEPARATE step; GPU; detached)
-DETACH=1 NAME=v13 reproduce/in_docker.sh \
-    bash experiments/mobile_app_training_v13/run.sh
-docker logs -f v13
+# 2. train pico@768 on the corpus  (SEPARATE step; GPU). Run inside tmux.
+reproduce/in_docker.sh bash experiments/mobile_app_training_v13/run.sh
 ```
 
-Run any piece on the host instead by dropping the `reproduce/in_docker.sh`
-prefix. Set-and-forget (one container, both steps) is just:
+Runs foreground (`-it`) — persist it with tmux. (`DETACH=1 NAME=v13` is
+available for non-tmux/CI use, then `docker logs -f v13`.) Run any piece on the
+host instead by dropping the `reproduce/in_docker.sh` prefix. Set-and-forget
+(one container, both steps) is just:
 `reproduce/in_docker.sh bash -lc 'experiments/mobile_app_training_v13/build_corpus.sh && experiments/mobile_app_training_v13/run.sh'`.
 
 ## Status / next steps
