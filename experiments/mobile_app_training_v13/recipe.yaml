@@ -24,9 +24,15 @@ data:
   tile_store: kwcoco_jpeg
 
 workspace:
-  # new workspace so the warm-start checkpoint (read from the killed v13 run)
-  # isn't clobbered by the relaunch's own outputs.
-  kcd_root: /media/joncrall/flash1/kcd-ssd/v13b
+  # Fresh workspace for the completing run. v13b is abandoned: it died at the
+  # epoch-4 in-loop eval (a TRANSIENT loadRes/loadAnns blip -- a full eval-only
+  # pass on the same checkpoints could not reproduce it) and its on-disk
+  # checkpoints are an inconsistent mix (last.pth=epoch0, best_stg2=epoch1) while
+  # the log shows 4 epochs. Rather than resume that muddy state, warm-start fresh
+  # from the v13 epoch-3 checkpoint (init_checkpoint below) and run the full
+  # 10-epoch anneal. The in-loop eval is now robust (kit fork coco_eval.py
+  # dump+skip), so a recurrence of the transient won't kill the run.
+  kcd_root: /media/joncrall/flash1/kcd-ssd/v13c
 
 sweep:
   trainer: deimv2
