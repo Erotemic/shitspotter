@@ -10,8 +10,9 @@
 # on the host instead. It bakes in the standard data mounts, GPU, and
 # /dev/shm so every step (tile-corpus, recipe-run, predict, eval, ...) runs
 # with one consistent environment. Code comes from the IMAGE by default
-# (rebuild with `reproduce/mobile_quality_push.sh build`); set CODE_MOUNT=1 to
-# bind-mount the live repos for quick iteration (the occasional exception).
+# (rebuild with `reproduce/mobile_quality_push.sh build`); set a per-repo
+# MOUNT_<REPO>=1 flag to bind-mount that live checkout for quick iteration
+# without a rebuild (the occasional exception — e.g. testing a kit fix).
 #
 # Env knobs:
 #   IMAGE_TAG   image to run            (default shitspotter:latest)
@@ -19,8 +20,15 @@
 #   SHM_SIZE    /dev/shm                (default 32g)
 #   DETACH=1    run -d (background) instead of -it; pair with NAME
 #   NAME        container name          (default none)
-#   CODE_MOUNT=1  bind-mount live kwcoco_detector_kit + shitspotter (dev only)
 #   DVC_RO / DVC_EXPT_RO / KCD_HOST / SSD / V4_PRETRAINED_RO  override host paths
+#
+# Per-repo dev mounts (default "0"; set to "1" to bind-mount over the image's
+# baked copy, avoiding a rebuild). Each works because the image installs the
+# repo editable (-e) from /root/code/<repo>. Override the host path with the
+# matching <REPO>_REPO_ROOT.
+#   MOUNT_KCD=1          kwcoco_detector_kit  (host: KCD_REPO_ROOT)
+#   MOUNT_SHITSPOTTER=1  shitspotter          (host: SHITSPOTTER_REPO_ROOT)
+#   CODE_MOUNT=1         back-compat shortcut for MOUNT_KCD + MOUNT_SHITSPOTTER
 set -euo pipefail
 
 if [ "$#" -eq 0 ]; then
@@ -55,12 +63,32 @@ args+=(--shm-size="$SHM_SIZE")
 [ -d "$SSD" ]              && args+=(-v "$SSD:$SSD")
 [ -d "$V4_PRETRAINED_RO" ] && args+=(-v "$V4_PRETRAINED_RO:$V4_PRETRAINED_RO:ro")
 
-# Code: from the image by default (rebuild to update). CODE_MOUNT=1 binds live.
+# Code: from the image by default (rebuild to update). Per-repo MOUNT_<REPO>=1
+# bind-mounts the live host checkout over the baked copy for rebuild-free
+# iteration. Host paths default to $HOME/code/<repo>; override via <REPO>_REPO_ROOT.
+KCD_REPO_ROOT=${KCD_REPO_ROOT:-$HOME/code/kwcoco_detector_kit}
+SHITSPOTTER_REPO_ROOT=${SHITSPOTTER_REPO_ROOT:-$HOME/code/shitspotter}
+
+# CODE_MOUNT=1 stays as a back-compat shortcut for "mount both code repos".
 if [ "${CODE_MOUNT:-0}" = "1" ]; then
-    [ -d "$HOME/code/kwcoco_detector_kit" ] && args+=(-v "$HOME/code/kwcoco_detector_kit:/root/code/kwcoco_detector_kit")
-    [ -d "$HOME/code/shitspotter" ]         && args+=(-v "$HOME/code/shitspotter:/root/code/shitspotter")
-    echo "[in_docker] CODE_MOUNT=1: bind-mounting live repos (image code shadowed)" >&2
+    MOUNT_KCD=${MOUNT_KCD:-1}
+    MOUNT_SHITSPOTTER=${MOUNT_SHITSPOTTER:-1}
 fi
+
+# maybe_mount_repo <enabled 0|1> <host_path> <container_path> <label>
+maybe_mount_repo() {
+    [ "$1" = "1" ] || return 0
+    if [ -d "$2" ]; then
+        args+=(-v "$2:$3")
+        echo "[in_docker] MOUNT $4: $2 -> $3 (image copy shadowed)" >&2
+    else
+        echo "[in_docker] WARNING: MOUNT $4 requested but host path missing: $2" >&2
+    fi
+}
+
+# Add another mountable repo by copying one line (+ its <REPO>_REPO_ROOT default).
+maybe_mount_repo "${MOUNT_KCD:-0}"         "$KCD_REPO_ROOT"         /root/code/kwcoco_detector_kit KCD
+maybe_mount_repo "${MOUNT_SHITSPOTTER:-0}" "$SHITSPOTTER_REPO_ROOT" /root/code/shitspotter         SHITSPOTTER
 
 args+=(-w /root/code/shitspotter "$IMAGE_TAG" "$@")
 
