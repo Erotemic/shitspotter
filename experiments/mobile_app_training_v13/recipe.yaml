@@ -24,7 +24,9 @@ data:
   tile_store: kwcoco_jpeg
 
 workspace:
-  kcd_root: /media/joncrall/flash1/kcd-ssd/v13
+  # new workspace so the warm-start checkpoint (read from the killed v13 run)
+  # isn't clobbered by the relaunch's own outputs.
+  kcd_root: /media/joncrall/flash1/kcd-ssd/v13b
 
 sweep:
   trainer: deimv2
@@ -33,11 +35,17 @@ sweep:
     - variant: deimv2_pico
       input_hw: [768, 768]
       train_policy: fixed          # multiscale is in the DATA now; input fixed
-      init_checkpoint: /data/joncrall/shitspotter_v4/pretrained/deimv2/deimv2_pico_coco.pth
-  num_epochs: 120
-  batch_size: 32                   # reduce if 768 + larger corpus OOMs
+      # WARM-START from the killed run's epoch-3 weights (banks ~half of v11's
+      # entire step count). DEIM loads this with -t (tuning: weights only,
+      # fresh optimizer/schedule), so the new short annealing schedule applies.
+      init_checkpoint: /media/joncrall/flash1/kcd-ssd/v13/runs/deimv2_pico_768x768_fixed/best_stg2.pth
+  # Short schedule on the balanced corpus -> the kit now emits flat_epoch=5
+  # (num_epochs//2) so the LR actually cosine-anneals in the 2nd half + a small
+  # no-aug tail. ~1h/epoch on the ~254k balanced corpus -> ~10h total.
+  num_epochs: 10
+  batch_size: 48                   # ~16 GB at 768; leaves display headroom
   val_batch_size: 48
-  lr: 5.0e-4
+  lr: 5.0e-4                       # kept (warm-start fine-tune; bigger batch is just steadier)
   backbone_lr: 2.5e-5
   use_amp: true
   scale_tier: M
@@ -46,6 +54,11 @@ sweep:
   do_export: true
   do_eval: true
   do_bench: true
+  # Tiled (windowed) test eval — the inference-correct protocol for a
+  # tile-trained model (whole-image eval understates it badly; sealions saw
+  # 0.135 -> 0.840 from this alone). Window defaults to the 768 input.
+  tiled_eval: true
+  tiled_eval_overlap: 0.2
 
 eligibility:
   max_desktop_ms: 80.0
