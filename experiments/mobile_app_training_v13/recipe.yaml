@@ -12,7 +12,13 @@ description: >
   the move-around-the-yard / robot-pickup use case.
 
 data:
-  train_kwcoco: /media/joncrall/flash1/kcd-ssd/v13/data/train_corpus.kwcoco.zip
+  # SCALE-BALANCED train set (balance_corpus.sh -> kwcoco-detector-kit
+  # balance-scale): the raw corpus is 1.27M tiles, 70x scale-imbalanced and
+  # ~93% empty, so uniform sampling drowns the coarse/far scales. The balanced
+  # set is ~254k tiles, uniform across scale + ~40% positive per scale, which
+  # also makes epochs ~5x faster. Vali stays the full multi-scale corpus (eval
+  # should be representative, not balanced).
+  train_kwcoco: /media/joncrall/flash1/kcd-ssd/v13/data/train_corpus_balanced.kwcoco.zip
   vali_kwcoco:  /media/joncrall/flash1/kcd-ssd/v13/data/vali_corpus.kwcoco.zip
   test_kwcoco:  /data/joncrall/dvc-repos/shitspotter_expt_dvc/foundation_detseg_v3/v9/detector_prepared/test.simplified.kwcoco.zip
   tile_store: kwcoco_jpeg
