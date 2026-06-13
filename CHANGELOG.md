@@ -8,6 +8,38 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added:
 
+* (2026-06-13): v13 multi-scale tiled-corpus arm — completing run `v13c`
+  finished all 10 epochs. **Verdict deferred (NOT a clean negative):** the
+  central caveat is that `tiled_eval: true` **did not engage** — the eval ran
+  whole-image (118 native test frames downscaled to the 768 input), the exact
+  protocol tiling was meant to beat, so the tile-trained model was never
+  measured under tiling. At that (wrong) whole-image yardstick: AP **0.5999**
+  (`best_stg2`=epoch 2) vs v10's 0.588 and v13b's partial 0.609 — i.e. no win,
+  but inconclusive. Also notable: **extra epochs hurt** — training degraded at
+  epoch 4 (loss 10.9→16.1, AP 0.469→0.428; best ckpt epoch 2), consistent with
+  DEIM's aug schedule ramping strong aug mid-run during a short warm-started
+  fine-tune; the cosine anneal (ep 5–9) gave nothing. Next: fix the tiled-eval
+  plumbing, re-eval v13c under tiling, then judge. See
+  experiments/mobile_app_training_v13/EVAL.md.
+
+* (2026-06-13): v13 epoch-4 in-loop eval crash resolved as **transient, not a
+  faster-coco-eval version bug.** Both v13/v13b died at the epoch-4
+  `loadAnns` ("'int' object does not support the context manager protocol"); an
+  initial `faster_coco_eval<1.7` pin was **reverted** after an in-container
+  probe showed clean 1.7.2 evaluates synthetic input fine (`cocoDt.anns` is a
+  plain dict), and `--test-only` over the full vali corpus could not reproduce
+  it on either checkpoint. Hardened the kit DEIMv2 fork's `CocoEvaluator.update`
+  to **dump the offending batch + warn + skip** instead of killing a multi-hour
+  run; v13c completed with no recurrence. Repro/diagnostic tooling added under
+  experiments/mobile_app_training_v13/ (diagnose_coco_eval.py,
+  repro_eval_crash.sh, analyze_eval_crash.py).
+
+* (2026-06-13): `reproduce/in_docker.sh` — granular per-repo dev mounts
+  `MOUNT_KCD` / `MOUNT_SHITSPOTTER` (default `0`, each with a `<REPO>_REPO_ROOT`
+  host override) to bind-mount a single live checkout over the image's baked
+  copy and skip a rebuild; `CODE_MOUNT=1` kept as a back-compat shortcut for
+  both. Used to run the live kit-fork coco_eval.py patch without rebuilding.
+
 * (2026-06-06): v11 distillation arm ran end-to-end and the result is a clean
   **negative**: pico@640 + OGDino pseudo-GT = AP@0.5 0.552 vs the 0.588
   human-GT baseline (−0.036), and it regressed on every DEIM size band incl.
