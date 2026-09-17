@@ -232,7 +232,6 @@ class AndroidConventions:
         return info
 
 
-
 class AndroidPhonePath:
     """
     Small path-like protocol for files on the phone.
@@ -372,7 +371,6 @@ class SFTPAndroidConnection_old:
                 # info['datetime_created'] = datetime_created
                 phone_image_infos.append(info)
         return phone_image_infos
-
 
 
 class SFTPAndroidPath(AndroidPhonePath):
@@ -772,7 +770,7 @@ def finalize_transfer(new_dpath):
             * Have the transcrypt repo decrypted
 
             * From there you can call the script:
-                source ~/code/shitspotter/secrets/secret_setup.sh
+                source ~/code/shitspotter-secrets/secrets/secret_setup.sh
                 mount_shit_secrets
 
               which will mount the encrypted file in rw mode, to write any of
@@ -782,6 +780,7 @@ def finalize_transfer(new_dpath):
 
                 e.g.
 
+                export SHITSPOTTER_SECRET_DPATH=$HOME/code/shitspotter-secrets/secrets
                 python -m shitspotter.gather_from_staging \
                     --staging_dpath '{staging_dpath}' \
                     --shitspotter_dvc_dpath '{shitspotter_dvc_dpath}' \
@@ -792,7 +791,7 @@ def finalize_transfer(new_dpath):
 
               Can now re-encrypt the secret metadata.
 
-            source ~/code/shitspotter/secrets/secret_setup.sh
+            source ~/code/shitspotter-secrets/secrets/secret_setup.sh
             dismount_shit_secrets
 
         We should seed predictions on the new data with
@@ -1102,4 +1101,3 @@ if __name__ == '__main__':
         python -m shitspotter.phone_manager
     """
     RemoteFromPhoneConfig.main()
-

@@ -652,7 +652,7 @@ def show_data_around_name(coco_dset, name):
     kwplot.autompl()
     import numpy as np
     for coco_img in coco_dset.images(chosen_gids).coco_images:
-        imdata = coco_img.delay().finalize()
+        imdata = coco_img.imdelay().finalize()
         rchip, sf_info = kwimage.imresize(imdata, max_dim=800, return_info=True)
         rchip = np.rot90(rchip, k=3)
         images.append(rchip)
@@ -717,7 +717,7 @@ def show_data_diversity(coco_dset):
         if rchip1.shape[0] > rchip1.shape[1]:
             rchip1 = np.rot90(rchip1)
         # coco_img = coco_dset.coco_image(img['id'])
-        # imdata1 = coco_img.delay().finalize()
+        # imdata1 = coco_img.imdelay().finalize()
         images.append(rchip1)
 
     canvas = kwimage.stack_images_grid(images, pad=10)
@@ -753,7 +753,7 @@ def show_3_images(coco_dset, dump_dpath):
     import numpy as np
     coco_images = coco_dset.images(chosen_gids).coco_images
     for coco_img in coco_images:
-        imdata = coco_img.delay().finalize()
+        imdata = coco_img.imdelay().finalize()
         if 1:
             truth = coco_img.annots().detections
             if len(truth):
@@ -898,8 +898,8 @@ def demo_warp(coco_dset, gid1, gid2, overview=2, max_sidelen=512,
 
     # img1 = coco_dset.coco_image(gid1)
     # img2 = coco_dset.coco_image(gid2)
-    # imdata1 = img1.delay().finalize()
-    # imdata2 = img2.delay().finalize()
+    # imdata1 = img1.imdelay().finalize()
+    # imdata2 = img2.imdelay().finalize()
 
     # imdata1 = np.rot90(imdata1)
     # imdata2 = np.rot90(imdata2)

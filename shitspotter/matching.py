@@ -1,3 +1,4 @@
+from osgeo import gdal  # NOQA (Hack for cannot allocate memory in static TLS block)
 import dateutil
 import dateutil.parser
 import functools
@@ -101,6 +102,7 @@ def autofind_pair_hueristic(coco_dset=None):
 
     import shelve
     cache_dpath = ub.Path(coco_dset.cache_dpath).ensuredir()
+    print(f'{cache_dpath=}')
     cache_fpath = cache_dpath / 'pairwise_score_cache.shelf'
     shelf = shelve.open(str(cache_fpath))
 

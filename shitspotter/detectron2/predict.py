@@ -65,6 +65,7 @@ def detectron_predict(config):
         rich.print('config = ' + escape(ub.urepr(config, nl=1)))
     """
     # import shitspotter
+    from osgeo import gdal  # hack  # NOQA
     import geowatch_tpl
     detectron2 = geowatch_tpl.import_submodule('detectron2')
     detectron2

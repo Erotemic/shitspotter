@@ -3,18 +3,18 @@ Main prediction API
 """
 
 #!/usr/bin/env python3
-import scriptconfig as scfg
+import kwconf
 import ubelt as ub
 
 
-class PredictCLI(scfg.DataConfig):
-    src = scfg.Value(None, help='Path to input kwcoco or path to directory of images', position=1)
-    dst = scfg.Value(None, help='Path to output kwcoco file or directory to write results to')
-    package_fpath = scfg.Value(None, help='Path to the packaged model.', alias=['model'])
-    create_labelme = scfg.Value(False, help='if True, update original paths with labelme sidecars if they dont already exist')
+class PredictCLI(kwconf.Config):
+    src = kwconf.Value(None, help='Path to input kwcoco or path to directory of images', position=1)
+    dst = kwconf.Value(None, help='Path to output kwcoco file or directory to write results to')
+    package_fpath = kwconf.Value(None, help='Path to the packaged model.', alias=['model'])
+    create_labelme = kwconf.Value(False, help='if True, update original paths with labelme sidecars if they dont already exist')
 
     @classmethod
-    def main(cls, argv=1, **kwargs):
+    def main(cls, argv=True, **kwargs):
         """
         Example:
             >>> # xdoctest: +SKIP
@@ -86,6 +86,7 @@ class PredictCLI(scfg.DataConfig):
             src_fpath = config.src
 
         rich.print('config = ' + escape(ub.urepr(config, nl=1)))
+        from osgeo import gdal
         from geowatch.mlops import schedule_evaluation
         import shitspotter
         import shitspotter.pipelines

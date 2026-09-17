@@ -128,7 +128,7 @@ def find_secret_dpath():
     env_dpath = os.environ.get('SHITSPOTTER_SECRET_DPATH', None)
     if env_dpath is not None:
         candidates.append(ub.Path(env_dpath).expand())
-    candidates.append(ub.Path('~/.config/shitspotter/secrets').expand())
+    candidates.append(ub.Path('~/.config/shitspotter-secrets/secrets').expand())
     # Legacy in-repo location (back-compat only).
     import shitspotter
     repo_dpath = ub.Path(shitspotter.__file__).parent.parent
