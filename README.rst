@@ -427,7 +427,7 @@ registration via the SIFT+RANSAC algorithm.
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 | 2026-04-12  | 12055    | ~4149               | 2985                  | 4178                  | bafybeihellhg4upl3e7pcd4kb37spqhcuiwxcde5anqhwcy5ul7gh3w75e  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
-| 2026-09-17  | 12633    | ~4342               | 3115                  | 4379                  | ---  |
+| 2026-09-17  | 12633    | ~4342               | 3115                  | 4379                  | bafybeiejxirqpcmhq2k24ob3s2vqcoep44tnd7u7onb22grm3iapu7r4n4  |
 +-------------+----------+---------------------+-----------------------+-----------------------+--------------------------------------------------------------+
 
 
@@ -568,6 +568,7 @@ Current IPFS addresses for each top-level asset group are:
     bafybeiapgrjibq7ldtuyukiskn7fi6fedjy5cntjq5rouqnlqkb5dq6224 - shitspotter_dvc/assets/poop-2025-10-14-T222355
     bafybeicxmmh4jm5iteozjnirhexbi6w6oizxwz73lwbrkj463mqwyl6osy - shitspotter_dvc/assets/poop-2025-11-25-T191532
     bafybeiglm2tmnysrnzl4plb622grgkq4lmkabhr5avdughk6jkxwm2bd5y - shitspotter_dvc/assets/poop-2026-01-05-T214314
+    bafybeifeft4k7ehbwyotjblcnbkia3jh7g3dznvwqbivhhgmtf55bqhala - shitspotter_dvc/assets/poop-2026-09-09-T221131
 
 
 Acknowledgements
