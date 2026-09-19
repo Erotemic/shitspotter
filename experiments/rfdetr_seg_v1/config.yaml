@@ -2,14 +2,16 @@ schema_version: 1
 category_names: [poop]
 
 splits:
-  train: /data/joncrall/dvc-repos/shitspotter_dvc/train_imgs11247_7f54a82d.kwcoco.zip
-  validation: /data/joncrall/dvc-repos/shitspotter_dvc/vali_imgs1258_9cdcc10a.kwcoco.zip
-  test: /data/joncrall/dvc-repos/shitspotter_dvc/test_imgs121_80c4a26b.kwcoco.zip
+  train: train_imgs11247_7f54a82d.kwcoco.zip
+  validation: vali_imgs1258_9cdcc10a.kwcoco.zip
+  test: test_imgs121_80c4a26b.kwcoco.zip
 
 paths:
+  data_root: /data/joncrall/dvc-repos/shitspotter_dvc
   output_root: /data/joncrall/dvc-repos/shitspotter_expt_dvc/training/rfdetr_seg_v1
-  cache: /data/joncrall/dvc-repos/shitspotter_expt_dvc/training/rfdetr_seg_v1/tile_cache
-  kdk_repo: /home/joncrall/code/kwcoco_detector_kit
+  cache: tile_cache
+  # Relative to this config file, so sibling editable checkouts remain usable.
+  kdk_repo: ../../../kwcoco_detector_kit
 
 # Provisional policy: the census and aiq throughput smoke may revise these
 # before round 0. Changing rendering settings creates new materialization IDs.
@@ -20,7 +22,13 @@ tiles:
   stride_frac: 0.5
   min_keep_fraction: 0.30
   min_gt_area_frac: 0.001
+  min_source_scale_long_side: 64
   negative_safety_margin: 32
+  # Applied before JPEG encoding. These retain enough deterministic negatives
+  # for a 3:1 round while avoiding a roughly 400 GB exhaustive negative cache.
+  negative_keep_fraction:
+    train: 0.17
+    validation: 0.18
   jpeg_quality: 92
 
 round0:
@@ -46,3 +54,10 @@ canonical_evaluation:
   overlap: 0.25
   nms_iou: 0.5
   score_thresholds: [0.01, 0.05, 0.10, 0.20, 0.50]
+
+smoke:
+  train_positive_images: 4
+  train_negative_images: 4
+  validation_positive_images: 2
+  validation_negative_images: 2
+  seed: 20260918

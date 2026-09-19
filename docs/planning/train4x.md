@@ -1,9 +1,11 @@
 # RF-DETR Seg 2XL four-GPU training campaign
 
-Last updated: 2026-09-18
+Last updated: 2026-09-19
 
-Status: implementation in progress. Core KDK geometry/cache/adapter work and the
-ShitSpotter experiment surface exist; no production training has started.
+Status: local preflight is implemented and validated on real data. Core KDK
+geometry/cache/adapter work and the ShitSpotter experiment surface exist; no
+production training has started. The next hard boundary is the aiq-gpu image,
+loader-throughput, and four-rank smoke gate.
 
 This document is the durable handoff and progress tracker for preparing the
 next ShitSpotter training campaign. The target is a strong native instance
@@ -79,11 +81,10 @@ ShitSpotter-specific assumptions in KDK.
 - Upstream's supported multi-GPU route is `torchrun` plus an explicit Lightning
   `devices` setting. Launching four processes without that setting can silently
   fail to use the intended four-device configuration.
-- Current KDK multiscale tiling transforms boxes but not segmentations.
-- Current KDK can mark a tile `negative` based on retained area while still
-  emitting retained annotations. This can create false background supervision.
-- Current KDK mining calls scalar `predict_image`, runs on one device, and
-  later rounds use only the newest hard-negative set.
+- KDK multiscale tiling now transforms both polygon and RLE segmentations and
+  enforces positive/negative/ignore safety invariants.
+- KDK now supports deterministic pre-encode negative sampling, batched/sharded
+  mining, and cumulative hard-negative replay.
 - KDK's current TileStore backends are materialized JPEG/kwcoco and
   WebDataset. There is no source-window/virtual-crop TileStore today.
 - The installed `kwcoco` is version 0.8.9. Its Python API supplies the dataset
@@ -113,12 +114,13 @@ These are preliminary metadata counts, not the completed census. The test
 revision is recorded only to freeze split identity. It must not be scored while
 choosing scales, negative ratios, epochs, thresholds, or mining rounds.
 
-Maintainer confirmation needed:
+Maintainer/remote confirmation still needed:
 
 - [ ] Confirm these are the intended canonical split revisions.
-- [ ] Repair the canonical symlinks or explicitly configure the `/data/...`
-  paths in the new experiment without changing split membership.
-- [ ] Confirm `rfdetr_plus` licensing and pretrained-weight access.
+- [x] Resolve the split manifests from an explicit configurable `/data/...`
+  root without changing split membership.
+- [x] Confirm Seg 2XL is built into the pinned Apache-2.0 RF-DETR package and
+  does not require `rfdetr_plus`.
 - [ ] Identify the shell/host from which `aiq-gpu` and Docker are available.
 
 ## Dataset implementation rules
@@ -376,7 +378,9 @@ Decision gate:
 ### Stage 0 — freeze inputs and establish provenance
 
 - [ ] Confirm and record exact ShitSpotter, KDK, and RF-DETR commits.
-- [ ] Record resolved dataset paths, file hashes, and kwcoco hash IDs.
+- [x] Record resolved dataset paths and manifest hashes in
+  `input_verification.json`; full source-asset hashing remains optional because
+  tile cache admission hashes every used source asset.
 - [ ] Record host/storage mount expectations for `aiq-gpu`.
 - [ ] Record the resolved `rf-detr-seg-xxlarge.pt` weight digest and download
   provenance after the first controlled model instantiation.
@@ -407,10 +411,15 @@ alternatives. Do not adopt the old scales, a 3:1 negative ratio, or three rounds
 without evidence.
 
 - [x] Census implementation uses kwcoco Python APIs.
-- [x] Metadata census JSON is generated; the full asset-hash/storage simulation
-  report remains pending on writable production storage.
-- [ ] Proposed 768 scale policy and initial negative ratio are justified by
-  measured counts.
+- [x] Metadata census JSON and a full geometry-only policy simulation are
+  generated locally from the canonical manifests.
+- [x] Proposed 768 scale policy and deterministic negative retention are
+  quantified: train has 62,426 positive, 197,039 retained-negative, 964,764
+  skipped-negative, and 35,219 ignored windows; validation has 7,450 positive,
+  22,988 retained-negative, 106,686 skipped-negative, and 4,324 ignored
+  windows. The predicted round-0 manifest references 280,142 materialized
+  tiles (91.5 GB using the measured smoke JPEG mean). Runtime/quality acceptance
+  still requires aiq profiling.
 
 Gate evidence: `census.json`, `census.md`, and policy comparison tables.
 
@@ -441,7 +450,7 @@ candidates and ignored windows remain index records only.
 - [x] Polygon/multipolygon tests pass.
 - [x] Negative-safety invariants pass.
 - [x] Merge/composition rejects a mislabeled negative input.
-- [ ] Tile versus materialization identity and concurrent cache-publication
+- [x] Tile versus materialization identity and concurrent cache-publication
   tests pass.
 
 Gate evidence: named pytest results and a small visual geometry report.
@@ -609,6 +618,10 @@ The driver calls KDK APIs and kwcoco Python APIs. It must not reimplement
 tiling, COCO conversion, mining, replay policy, or the trainer.
 
 - [x] Config and staged driver exist with artifact-derived status.
+- [x] Real-data input verification, deterministic smoke construction, and the
+  full metadata-only tile-policy simulator run locally. The simulator exactly
+  reproduced smoke materialization role counts (train 57/803/36 and validation
+  32/391/25 positive/negative/ignore).
 - [ ] Every aiq build/mount/launch command is visible in the README.
 - [ ] Expensive stages write atomic state and config fingerprints.
 - [ ] `status` identifies stale or mismatched outputs instead of reusing them.
@@ -617,7 +630,7 @@ Gate evidence: experiment directory and driver tests.
 
 ### Stage 9 — genuine four-GPU smoke ladder
 
-Construct a tiny real ShitSpotter-derived dataset with positive RLE masks,
+Construct a tiny real ShitSpotter-derived dataset with positive masks,
 trusted zero-annotation images, and validation positives/negatives.
 
 Run, in order:
