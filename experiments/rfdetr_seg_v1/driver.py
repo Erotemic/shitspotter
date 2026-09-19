@@ -10,6 +10,7 @@ import argparse
 import hashlib
 import json
 import os
+import shlex
 import tempfile
 from collections import Counter
 from pathlib import Path
@@ -514,7 +515,7 @@ def build_candidates(config, splits=("train", "validation")):
     root.mkdir(parents=True, exist_ok=True)
     policy = config["tiles"]
     for split in splits:
-        dst = root / f"{split}_negative_candidates.json"
+        dst = root / f"{split}_negative_candidates"
         candidate_config = CandidateConfig.cli(argv=False, data={
             "src": config["splits"][split], "dst": str(dst),
             "category_names": ",".join(config["category_names"]),
@@ -781,6 +782,72 @@ def prepare(config):
     print(command)
 
 
+def prepare_mining(config, round_index=0):
+    """Write the four-rank score and rank-0 global-finalization recipe."""
+    root = Path(config["paths"]["output_root"])
+    candidate_index = root / "candidates" / "train_negative_candidates"
+    if not (candidate_index / "manifest.json").is_file():
+        raise FileNotFoundError(f"build-candidates must produce {candidate_index}")
+    workdir = root / "rounds" / f"round{round_index}" / "workdir"
+    mining_dir = root / "rounds" / f"round{round_index}" / "mining"
+    mining_dir.mkdir(parents=True, exist_ok=True)
+    policy = config["mining"]
+
+    def quote(value):
+        return shlex.quote(str(value))
+
+    common = [
+        "python", "-m", "kwcoco_detector_kit", "mine",
+        "--candidate_index", str(candidate_index),
+        "--cache_dpath", config["paths"]["cache"],
+        "--workdir", str(workdir), "--trainer", "rfdetr",
+        "--device", "cuda:0", "--num_shards", str(policy["num_shards"]),
+        "--locality_chunk_size", str(policy["locality_chunk_size"]),
+        "--batch_size", str(policy["batch_size_per_gpu"]),
+        "--max_candidates", str(policy["max_candidates"]),
+        "--candidate_seed", str(policy["candidate_seed"]),
+        "--score_thresh", str(policy["score_thresh"]),
+        "--max_hard_per_round", str(policy["max_hard_per_round"]),
+        "--progress=1", "--allow_failures=0",
+    ]
+    lines = ["#!/usr/bin/env bash", "set -euo pipefail", "pids=()"]
+    ledgers = []
+    for rank in range(int(policy["num_shards"])):
+        ledger = mining_dir / f"rank{rank}.mine_ledger.json"
+        ledgers.append(ledger)
+        rank_args = common + [
+            "--shard_index", str(rank), "--ledger", str(ledger),
+            "--dst", str(mining_dir / f"rank{rank}.unused.kwcoco.zip"),
+        ]
+        lines.append(
+            f"CUDA_VISIBLE_DEVICES={rank} "
+            + " ".join(map(quote, rank_args)) + " &"
+        )
+        lines.append("pids+=(\"$!\")")
+    lines.extend([
+        'for pid in "${pids[@]}"; do wait "$pid"; done',
+        f"export KCD_ROUND={round_index + 1}",
+    ])
+    hard_negatives = mining_dir / "hard_negatives.kwcoco.zip"
+    finalize_args = [
+        "python", "-m", "kwcoco_detector_kit", "mine-finalize",
+        "--candidate_index", str(candidate_index),
+        "--ledgers", *map(str, ledgers),
+        "--dst", str(hard_negatives),
+        "--cache_dpath", config["paths"]["cache"],
+        "--jpeg_quality", str(config["tiles"]["jpeg_quality"]),
+        "--score_thresh", str(policy["score_thresh"]),
+        "--max_hard_per_round", str(policy["max_hard_per_round"]),
+        "--allow_failures=0",
+    ]
+    lines.append(" ".join(map(quote, finalize_args)))
+    script = mining_dir / "RUN_MINING.sh"
+    script.write_text("\n".join(lines) + "\n")
+    script.chmod(0o755)
+    print(script)
+    return script
+
+
 def status(config):
     import kwcoco
     root = Path(config["paths"]["output_root"])
@@ -788,8 +855,8 @@ def status(config):
         "input_verification": root / "input_verification.json",
         "census": root / "census.json",
         "tile_policy_simulation": root / "tile_policy_simulation.json",
-        "train_candidate_index": root / "candidates" / "train_negative_candidates.json",
-        "validation_candidate_index": root / "candidates" / "validation_negative_candidates.json",
+        "train_candidate_index": root / "candidates" / "train_negative_candidates" / "manifest.json",
+        "validation_candidate_index": root / "candidates" / "validation_negative_candidates" / "manifest.json",
         "train_tiles": root / "pools" / "train_all_tiles.kwcoco.zip",
         "train_validation_tiles": root / "pools" / "train_validation_tiles.kwcoco.zip",
         "round0_manifest": root / "rounds" / "round0" / "train.kwcoco.zip",
@@ -834,11 +901,13 @@ def main():
         choices=[
             "status", "verify-inputs", "census", "prepare-smoke",
             "simulate-policy", "build-candidates", "build-pools", "prepare",
+            "prepare-mining",
         ],
     )
     parser.add_argument("--config", default=str(HERE / "config.yaml"))
     parser.add_argument("--hash-assets", action="store_true")
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--round-index", type=int, default=0)
     args = parser.parse_args()
     config = load_config(args.config)
     if args.command == "status":
@@ -857,6 +926,8 @@ def main():
         build_pools(config, force=args.force)
     elif args.command == "prepare":
         prepare(config)
+    elif args.command == "prepare-mining":
+        prepare_mining(config, round_index=args.round_index)
 
 
 if __name__ == "__main__":

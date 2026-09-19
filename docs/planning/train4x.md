@@ -534,7 +534,7 @@ smoke log. This gate precedes acceptance of the real mining/storage design.
 Mining requirements:
 
 - use `predict_batch` when available;
-- stable deterministic rank assignment from `tile_identity`;
+- stable deterministic assignment of bounded source/scale/spatial chunks;
 - no overlap or omission across four rank shards;
 - atomic shard score ledgers and deterministic merge;
 - record a result for every attempted candidate, including failures;
@@ -555,6 +555,12 @@ Replay-bank policy runs before kwcoco composition:
 - assert role/provenance metadata survives final materialization.
 
 - [x] Deterministic SHA-256 sharding and exact disjoint-coverage tests pass.
+- [x] Candidate and score ledgers stream bounded JSONL shards; progress is bound
+  to the exact candidate/model/checkpoint/inference fingerprint.
+- [x] The rank-0 finalizer rejects missing, duplicate, incomplete, mismatched,
+  or failed shards and applies threshold/global top-K before materialization.
+- [x] Source/scale realization is reused across bounded predictor microbatches,
+  and selected-candidate materialization has bounded crop-array memory.
 - [x] Interrupted-shard recovery test passes via an actually killed miner
   subprocess followed by deterministic resume and repeated execution.
 - [x] Cumulative replay deduplication, quota, cap, and fresh-random selection
@@ -720,16 +726,16 @@ candidate score shifts, and training cost. Test results cannot inform it.
 
 | # | Criterion | Status | Evidence |
 |---:|---|---|---|
-| 1 | Segmentation-preserving tile geometry and safe negatives | Not started | — |
-| 2 | Thin RF-DETR Seg trainer/predictor with native masks | Not started | — |
+| 1 | Segmentation-preserving tile geometry and safe negatives | Local complete | Focused KDK geometry/candidate tests |
+| 2 | Thin RF-DETR Seg trainer/predictor with native masks | Local complete; GPU gate open | Registered adapter and CPU tests |
 | 3 | Dedicated provenance-stamped RF-DETR image builds on aiq | Not started | — |
 | 4 | Genuine four-GPU BF16 smoke completes | Not started | — |
 | 5 | Smoke checkpoint reloads to segmented KWCoco prediction | Not started | — |
-| 6 | Repository boundary and compact ShitSpotter driver respected | Not started | — |
-| 7 | Full census and exact tile-role counts recorded | Not started | — |
-| 8 | Round 0 includes substantial stratified negative coverage | Not started | — |
-| 9 | Batched/sharded mining and cumulative replay are reproducible | Not started | — |
-| 10 | Exact round-0 command exists but has not been launched | Not started | — |
+| 6 | Repository boundary and compact ShitSpotter driver respected | Complete | Generic KDK infrastructure + `experiments/rfdetr_seg_v1` policy |
+| 7 | Full census and exact tile-role counts recorded | Complete | Journaled full geometry simulation |
+| 8 | Round 0 includes substantial stratified negative coverage | Prepared; training open | Deterministic retained pool and round manifest recipe |
+| 9 | Batched/sharded mining and cumulative replay are reproducible | Local control plane complete; aiq run open | 39 focused tests + generated four-rank/finalizer recipe |
+| 10 | Exact round-0 command exists but has not been launched | Complete | `prepare` emits `ROUND0_COMMAND.txt` |
 
 ## Decisions and open questions
 

@@ -39,6 +39,16 @@ python experiments/rfdetr_seg_v1/driver.py prepare
 python experiments/rfdetr_seg_v1/driver.py status
 ```
 
+After round 0 has produced its checkpoint, generate the four-GPU mining
+script. The script scores deterministic source/scale-local shards concurrently,
+waits for every rank, then runs the single global top-K finalizer and
+materializes only the admitted hard negatives:
+
+```bash
+python experiments/rfdetr_seg_v1/driver.py prepare-mining --round-index=0
+bash /data/joncrall/dvc-repos/shitspotter_expt_dvc/training/rfdetr_seg_v1/rounds/round0/mining/RUN_MINING.sh
+```
+
 `census --hash-assets` additionally records every source-image SHA-256. Tile
 generation always hashes each used source asset before accepting a cache hit.
 Stage status is derived from validated artifacts; there is no separate durable

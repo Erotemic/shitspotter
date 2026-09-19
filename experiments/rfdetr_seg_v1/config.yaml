@@ -35,6 +35,15 @@ round0:
   negative_over_positive: 3.0
   seed: 783718
 
+mining:
+  num_shards: 4
+  locality_chunk_size: 256
+  batch_size_per_gpu: 8
+  max_candidates: 0
+  candidate_seed: 783718
+  score_thresh: 0.30
+  max_hard_per_round: 5000
+
 rfdetr:
   variant: seg_2xlarge
   input_hw: [768, 768]
