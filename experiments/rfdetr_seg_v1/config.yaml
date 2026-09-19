@@ -1,0 +1,48 @@
+schema_version: 1
+category_names: [poop]
+
+splits:
+  train: /data/joncrall/dvc-repos/shitspotter_dvc/train_imgs11247_7f54a82d.kwcoco.zip
+  validation: /data/joncrall/dvc-repos/shitspotter_dvc/vali_imgs1258_9cdcc10a.kwcoco.zip
+  test: /data/joncrall/dvc-repos/shitspotter_dvc/test_imgs121_80c4a26b.kwcoco.zip
+
+paths:
+  output_root: /data/joncrall/dvc-repos/shitspotter_expt_dvc/training/rfdetr_seg_v1
+  cache: /data/joncrall/dvc-repos/shitspotter_expt_dvc/training/rfdetr_seg_v1/tile_cache
+  kdk_repo: /home/joncrall/code/kwcoco_detector_kit
+
+# Provisional policy: the census and aiq throughput smoke may revise these
+# before round 0. Changing rendering settings creates new materialization IDs.
+tiles:
+  size: 768
+  oversize_factor: 1.0
+  source_scales: [1.0, 0.66, 0.40]
+  stride_frac: 0.5
+  min_keep_fraction: 0.30
+  min_gt_area_frac: 0.001
+  negative_safety_margin: 32
+  jpeg_quality: 92
+
+round0:
+  negative_over_positive: 3.0
+  seed: 783718
+
+rfdetr:
+  variant: seg_2xlarge
+  input_hw: [768, 768]
+  num_gpus: 4
+  batch_size_per_gpu: 4
+  validation_batch_size_per_gpu: 4
+  grad_accum_steps: 1
+  epochs: 60
+  lr: 0.0001
+  backbone_lr: 0.00015
+  num_workers: 8
+  use_amp: true
+  image: kwcoco-detector-kit:rfdetr-cu132-aiq
+
+canonical_evaluation:
+  window: [768, 768]
+  overlap: 0.25
+  nms_iou: 0.5
+  score_thresholds: [0.01, 0.05, 0.10, 0.20, 0.50]
