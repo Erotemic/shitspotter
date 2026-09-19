@@ -26,6 +26,7 @@ python experiments/rfdetr_seg_v1/driver.py verify-inputs
 python experiments/rfdetr_seg_v1/driver.py census
 python experiments/rfdetr_seg_v1/driver.py prepare-smoke
 python experiments/rfdetr_seg_v1/driver.py simulate-policy
+python experiments/rfdetr_seg_v1/driver.py build-candidates
 python experiments/rfdetr_seg_v1/driver.py status
 ```
 
@@ -58,6 +59,7 @@ python experiments/rfdetr_seg_v1/driver.py verify-inputs
 python experiments/rfdetr_seg_v1/driver.py census
 python experiments/rfdetr_seg_v1/driver.py prepare-smoke
 python experiments/rfdetr_seg_v1/driver.py simulate-policy
+python experiments/rfdetr_seg_v1/driver.py build-candidates
 ```
 
 Override the dataset checkout when it is mounted elsewhere with

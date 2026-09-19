@@ -291,7 +291,9 @@ def simulate_policy(config):
                 scaled_h = max(1, int(round(height * requested_scale)))
                 if max(scaled_w, scaled_h) < min_long_side:
                     continue
-                actual_scale = scaled_w / float(width)
+                actual_scale = (
+                    scaled_w / float(width), scaled_h / float(height),
+                )
                 scaled_ann_boxes = []
                 for ann in anns:
                     bbox = ann.get("bbox")
@@ -303,8 +305,8 @@ def simulate_policy(config):
                         )
                     bx, by, bw, bh = map(float, bbox)
                     scaled_ann_boxes.append((
-                        bx * actual_scale, by * actual_scale,
-                        (bx + bw) * actual_scale, (by + bh) * actual_scale,
+                        bx * actual_scale[0], by * actual_scale[1],
+                        (bx + bw) * actual_scale[0], (by + bh) * actual_scale[1],
                     ))
                 xs = _grid_positions(scaled_w, disk_tile, stride)
                 ys = _grid_positions(scaled_h, disk_tile, stride)
@@ -497,7 +499,37 @@ def _tile_artifact_matches(config, split, path, *, src=None, negative_keep_fract
     if info.get("source_manifest_sha256") != expected["source_manifest_sha256"]:
         return False
     actual_config = info.get("config", {})
-    return all(actual_config.get(key) == value for key, value in expected["config"].items())
+    return (
+        all(actual_config.get(key) == value for key, value in expected["config"].items())
+        and all("tile_actual_scale_xy" in image for image in dset.images().objs)
+    )
+
+
+def build_candidates(config, splits=("train", "validation")):
+    """Build the complete virtual safe-negative control plane."""
+    require_kdk(config)
+    from kwcoco_detector_kit.data.candidates import CandidateConfig, enumerate_candidates
+
+    root = Path(config["paths"]["output_root"]) / "candidates"
+    root.mkdir(parents=True, exist_ok=True)
+    policy = config["tiles"]
+    for split in splits:
+        dst = root / f"{split}_negative_candidates.json"
+        candidate_config = CandidateConfig.cli(argv=False, data={
+            "src": config["splits"][split], "dst": str(dst),
+            "category_names": ",".join(config["category_names"]),
+            "tile_size": policy["size"],
+            "oversize_factor": policy["oversize_factor"],
+            "source_scales": ",".join(map(str, policy["source_scales"])),
+            "stride_frac": policy["stride_frac"],
+            "min_keep_fraction": policy["min_keep_fraction"],
+            "min_gt_area_frac": policy["min_gt_area_frac"],
+            "negative_safety_margin": policy["negative_safety_margin"],
+            "min_source_scale_long_side": policy["min_source_scale_long_side"],
+            "source_dataset_fingerprint": sha256_file(config["splits"][split]),
+        })
+        enumerate_candidates(candidate_config)
+        print(dst)
 
 
 def _run_tile(config, split, dst, *, src=None, negative_keep_fraction=None):
@@ -756,6 +788,8 @@ def status(config):
         "input_verification": root / "input_verification.json",
         "census": root / "census.json",
         "tile_policy_simulation": root / "tile_policy_simulation.json",
+        "train_candidate_index": root / "candidates" / "train_negative_candidates.json",
+        "validation_candidate_index": root / "candidates" / "validation_negative_candidates.json",
         "train_tiles": root / "pools" / "train_all_tiles.kwcoco.zip",
         "train_validation_tiles": root / "pools" / "train_validation_tiles.kwcoco.zip",
         "round0_manifest": root / "rounds" / "round0" / "train.kwcoco.zip",
@@ -799,7 +833,7 @@ def main():
         "command",
         choices=[
             "status", "verify-inputs", "census", "prepare-smoke",
-            "simulate-policy", "build-pools", "prepare",
+            "simulate-policy", "build-candidates", "build-pools", "prepare",
         ],
     )
     parser.add_argument("--config", default=str(HERE / "config.yaml"))
@@ -817,6 +851,8 @@ def main():
         simulate_policy(config)
     elif args.command == "prepare-smoke":
         prepare_smoke(config, force=args.force)
+    elif args.command == "build-candidates":
+        build_candidates(config)
     elif args.command == "build-pools":
         build_pools(config, force=args.force)
     elif args.command == "prepare":

@@ -366,9 +366,12 @@ reuse across rounds, and implementation complexity.
 
 Decision gate:
 
-- [ ] `virtual_negative_design.json` and a short narrative exist.
+- [x] The virtual negative candidate representation is implemented in KDK and
+  exercised on the real smoke corpus. It uses `kwarray.SlidingWindow`, exact
+  KDK/kwimage mask-safety classification, explicit source/scale/affine
+  metadata, and `CocoImage.imdelay()` for later realization.
 - [ ] A representative benchmark supports the selected representation.
-- [ ] The selected representation can reproduce the same pixels and identity
+- [x] The selected representation can reproduce the same pixels and identity
   as deterministic materialization of a sampled candidate.
 - [ ] The materialized training cache feeds the measured four-GPU step rate
   with documented headroom.
@@ -414,10 +417,11 @@ without evidence.
 - [x] Metadata census JSON and a full geometry-only policy simulation are
   generated locally from the canonical manifests.
 - [x] Proposed 768 scale policy and deterministic negative retention are
-  quantified: train has 62,426 positive, 197,039 retained-negative, 964,764
-  skipped-negative, and 35,219 ignored windows; validation has 7,450 positive,
-  22,988 retained-negative, 106,686 skipped-negative, and 4,324 ignored
-  windows. The predicted round-0 manifest references 280,142 materialized
+  quantified after the two-axis scale correction: train has 62,417 positive,
+  197,042 retained-negative, 964,777 skipped-negative, and 35,212 ignored
+  windows; validation has 7,455 positive, 22,988 retained-negative, 106,684
+  skipped-negative, and 4,321 ignored windows. The predicted round-0 manifest
+  references 280,111 materialized
   tiles (91.5 GB using the measured smoke JPEG mean). Runtime/quality acceptance
   still requires aiq profiling.
 
@@ -452,6 +456,10 @@ candidates and ignored windows remain index records only.
 - [x] Merge/composition rejects a mislabeled negative input.
 - [x] Tile versus materialization identity and concurrent cache-publication
   tests pass.
+- [x] Two-axis realized resize geometry is represented explicitly and tested
+  with dimensions where integer rounding makes `sx != sy`.
+- [x] Killed lock holders, image-only/sidecar-only partial publications,
+  corrupt entries, and concurrent subprocess publishers recover as designed.
 
 Gate evidence: named pytest results and a small visual geometry report.
 
@@ -547,10 +555,11 @@ Replay-bank policy runs before kwcoco composition:
 - assert role/provenance metadata survives final materialization.
 
 - [x] Deterministic SHA-256 sharding and exact disjoint-coverage tests pass.
-- [ ] Interrupted-shard recovery test passes.
+- [x] Interrupted-shard recovery test passes via an actually killed miner
+  subprocess followed by deterministic resume and repeated execution.
 - [x] Cumulative replay deduplication, quota, cap, and fresh-random selection
   implementation has focused tests.
-- [ ] Cache idempotence and atomic-write recovery tests pass.
+- [x] Cache idempotence and atomic-write recovery tests pass.
 - [ ] Round 1 contains cumulative hard examples and fresh broad coverage.
 
 Gate evidence: mining ledger schema, replay manifest, tests, and a visualization
@@ -618,6 +627,8 @@ The driver calls KDK APIs and kwcoco Python APIs. It must not reimplement
 tiling, COCO conversion, mining, replay policy, or the trainer.
 
 - [x] Config and staged driver exist with artifact-derived status.
+- [x] `build-candidates` exposes the virtual train/validation negative indexes
+  without changing the materialized RF-DETR training path.
 - [x] Real-data input verification, deterministic smoke construction, and the
   full metadata-only tile-policy simulator run locally. The simulator exactly
   reproduced smoke materialization role counts (train 57/803/36 and validation
