@@ -312,13 +312,40 @@ python experiments/rfdetr_seg_v1/local_review.py all \
    `~/data/shitspotter_review/<snapshot-name>/review`.
 
 The current defaults are batch 16, overlap 0.25, prediction score floor 0.01,
-and review score floor 0.50. Override them explicitly when profiling:
+and review score floor 0.50. Prediction is also pipelined by default: two source
+workers decode future images, two future window batches are realized ahead, the
+main thread exclusively owns CUDA inference, and one CPU worker merges/NMSes and
+polygonizes the previous source with at most two source results in flight. The
+queues are bounded and review output remains deterministic.
+
+The default pipeline knobs are:
+
+```text
+pipeline=true
+source_workers=2
+source_prefetch=2
+window_prefetch=2
+postprocess_workers=1
+postprocess_inflight=2
+```
+
+Override them explicitly when profiling rather than editing campaign code:
 
 ```bash
 python experiments/rfdetr_seg_v1/local_review.py predict \
     --snapshot-name="$SNAPSHOT" \
-    --batch-size=24
+    --batch-size=24 \
+    --source-workers=4 \
+    --source-prefetch=3 \
+    --window-prefetch=3 \
+    --postprocess-workers=2 \
+    --postprocess-inflight=3
 ```
+
+Use `--pipeline=false` for a serial comparison run. The generated prediction
+profile reports source/window work and wait time separately from GPU inference
+and CPU postprocessing, so tuning should target the stage that is actually
+starving or backpressuring the GPU.
 
 Individual stages remain available for diagnosis or resumability:
 

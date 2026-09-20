@@ -541,3 +541,49 @@ builds the truth-aware review. PyTorch is the default backend for this pass.
 ONNX remains an explicit experiment until a pinned GPU ONNX Runtime container
 profile has measured native-mask parity and complete-loop throughput on the
 3090.
+
+### 2026-09-20 — local source-space prediction pipeline
+
+The first full local RF-DETR source-space pass showed a strongly sawtoothed GPU
+utilization pattern. Inspection found that the new ordinary KDK `predict` path
+was batching windows, but it still serialized most of the surrounding work per
+source image: realize the next windows, run the GPU, merge/NMS, polygonize masks,
+commit annotations, then move to the next image. KDK's older evaluator already
+contained source-image prefetch and GPU/CPU-NMS overlap, and GeoWATCH fusion
+prediction provided a useful prior example of a dataloader feeding one GPU
+thread while a separate writer/finalization queue drained completed work.
+
+The generic KDK predictor now uses a cleaner bounded three-stage design instead
+of copying the old harness wholesale:
+
+1. source-image preparation runs on a small ordered thread pool; JPEG-like
+   sources decode once ahead of the GPU while TIFF/COG sources remain lazy;
+2. one window producer thread realizes a bounded number of future window batches
+   for the current source while the main thread exclusively owns CUDA inference;
+3. completed-source merge/NMS and native-mask polygonization run on a bounded CPU
+   worker pool while the GPU starts the next source. Annotation mutation remains
+   on the main thread and commits in source order.
+
+Threads are intentional here. Image codecs, GDAL, NumPy, and accelerated NMS do
+substantial work outside the Python GIL, and sharing decoded arrays avoids the
+large IPC copies a multiprocessing queue would impose for 768x768 RGB batches.
+The design also avoids an unbounded writer queue: source/window prefetch and
+completed-source postprocessing all have explicit memory/backpressure limits.
+CUDA models are never constructed or invoked in worker threads.
+
+ShitSpotter's `local_review.py` exposes the generic KDK knobs without requiring
+hand-written Docker commands. Current defaults are `source_workers=2`,
+`source_prefetch=2`, `window_prefetch=2`, `postprocess_workers=1`, and
+`postprocess_inflight=2`; `--pipeline=false` provides a serial baseline. The
+prediction profile now records both stage work and main-thread wait time. Since
+stages overlap, work-time totals need not add to wall time. The next local run
+should use those counters to determine whether remaining GPU bubbles come from
+source decode, regional window realization, RF-DETR preprocessing/forward, or
+CPU mask/NMS finalization before increasing worker counts further.
+
+Native-mask finalization was tightened at the same time. Crop-sized RF-DETR masks
+are no longer expanded into full-source canvases before cross-window NMS. Boxes
+and scores are translated/merged first, and only surviving detections allocate
+source-sized masks. This keeps the 0.01-score annotation-QA pass from paying
+full-image memory and polygonization costs for detections that suppression would
+immediately discard.

@@ -23,6 +23,17 @@ CONFIG_FPATH = HERE / "config.yaml"
 EXPECTED_TRAIN_SHA256 = "b3b6246531e525493e653917609cf0194d5c5eca2881314aa2c53c88160650a4"
 
 
+def parse_bool(text):
+    if isinstance(text, bool):
+        return text
+    value = str(text).strip().lower()
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    if value in {"0", "false", "no", "off"}:
+        return False
+    raise argparse.ArgumentTypeError(f"expected true/false, got {text!r}")
+
+
 def sha256_file(path: Path) -> str:
     hasher = hashlib.sha256()
     with open(path, "rb") as file:
@@ -222,6 +233,12 @@ def predict(paths, args, *, smoke=False) -> None:
         f"--overlap={args.overlap}",
         f"--batch-size={args.batch_size}",
         f"--score-thresh={args.score_thresh}",
+        f"--pipeline={str(args.pipeline).lower()}",
+        f"--source-workers={args.source_workers}",
+        f"--source-prefetch={args.source_prefetch}",
+        f"--window-prefetch={args.window_prefetch}",
+        f"--postprocess-workers={args.postprocess_workers}",
+        f"--postprocess-inflight={args.postprocess_inflight}",
         dry_run=args.dry_run,
     )
 
@@ -273,6 +290,15 @@ def build_parser():
     parser.add_argument("--window", type=int, default=768)
     parser.add_argument("--overlap", type=float, default=0.25)
     parser.add_argument("--score-thresh", type=float, default=0.01)
+    parser.add_argument(
+        "--pipeline", type=parse_bool, default=True, metavar="BOOL",
+        help="overlap source/window I/O and CPU postprocess with GPU inference",
+    )
+    parser.add_argument("--source-workers", type=int, default=2)
+    parser.add_argument("--source-prefetch", type=int, default=2)
+    parser.add_argument("--window-prefetch", type=int, default=2)
+    parser.add_argument("--postprocess-workers", type=int, default=1)
+    parser.add_argument("--postprocess-inflight", type=int, default=2)
     parser.add_argument("--review-min-score", type=float, default=0.50)
     parser.add_argument("--review-top-n", type=int, default=20000)
     parser.add_argument("--skip-smoke", action="store_true")
