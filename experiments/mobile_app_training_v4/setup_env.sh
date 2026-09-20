@@ -29,6 +29,10 @@ export V4_DEV_DPATH="$_v4_setup_dpath"
 export SHITSPOTTER_DPATH="${SHITSPOTTER_DPATH:-$(cd "$_v4_setup_dpath/../.." && pwd)}"
 unset _v4_setup_dpath
 
+# Generic backend repositories are canonically owned by KDK.
+# shellcheck source=experiments/backend_repos.sh
+source "$SHITSPOTTER_DPATH/experiments/backend_repos.sh"
+
 # ---------------------------------------------------------------------------
 # Data + experiment roots (DVC roots are read-only)
 # ---------------------------------------------------------------------------
@@ -44,12 +48,6 @@ export V4_ROOT="${V4_ROOT:-${HOME}/data/shitspotter_v4}"
 export V4_TRAIN_FPATH="${V4_TRAIN_FPATH:-$DVC_DATA_DPATH/train_imgs10671_b277c63d.kwcoco.zip}"
 export V4_VALI_FPATH="${V4_VALI_FPATH:-$DVC_DATA_DPATH/vali_imgs1258_577e331c.kwcoco.zip}"
 export V4_TEST_FPATH="${V4_TEST_FPATH:-$DVC_DATA_DPATH/test_imgs121_d39956b1.kwcoco.zip}"
-
-# ---------------------------------------------------------------------------
-# Upstream submodule paths
-# ---------------------------------------------------------------------------
-export SHITSPOTTER_DEIMV2_REPO_DPATH="${SHITSPOTTER_DEIMV2_REPO_DPATH:-$SHITSPOTTER_DPATH/tpl/DEIMv2}"
-export SHITSPOTTER_OPENGROUNDINGDINO_REPO_DPATH="${SHITSPOTTER_OPENGROUNDINGDINO_REPO_DPATH:-$SHITSPOTTER_DPATH/tpl/Open-GroundingDino}"
 
 # ---------------------------------------------------------------------------
 # Teacher (v9 OpenGroundingDINO + tuned SAM2)
@@ -75,10 +73,7 @@ export V4_DEFAULT_VARIANTS="${V4_DEFAULT_VARIANTS:-deimv2_n deimv2_pico deimv2_s
 export PYTHON_BIN="${PYTHON_BIN:-python}"
 
 # Idempotent PYTHONPATH prepend — safe to source this file repeatedly
-# without growing PYTHONPATH unboundedly. Without this, sourcing the
-# file twice doubled SHITSPOTTER_DPATH + DEIMV2_REPO entries; over a
-# long-running interactive session the PYTHONPATH could grow into the
-# hundreds of duplicate entries.
+# without growing PYTHONPATH unboundedly.
 _v4_prepend_pythonpath() {
     case ":${PYTHONPATH:-}:" in
         *":$1:"*) ;;
@@ -103,9 +98,10 @@ mkdir -p "$V4_ROOT"
 
 # Print a concise summary so the user can confirm what got set.
 echo "mobile_app_training_v4 environment ready"
-echo "  V4_ROOT             = $V4_ROOT"
-echo "  V4_DEV_DPATH        = $V4_DEV_DPATH"
-echo "  SHITSPOTTER_DPATH   = $SHITSPOTTER_DPATH"
-echo "  DVC_DATA_DPATH      = $DVC_DATA_DPATH (read-only)"
-echo "  V4_TRAIN_FPATH      = $V4_TRAIN_FPATH"
-echo "  PYTHON_BIN          = $PYTHON_BIN"
+echo "  V4_ROOT                    = $V4_ROOT"
+echo "  V4_DEV_DPATH               = $V4_DEV_DPATH"
+echo "  SHITSPOTTER_DPATH          = $SHITSPOTTER_DPATH"
+echo "  KWCOCO_DETECTOR_KIT_DPATH = $KWCOCO_DETECTOR_KIT_DPATH"
+echo "  DVC_DATA_DPATH             = $DVC_DATA_DPATH (read-only)"
+echo "  V4_TRAIN_FPATH             = $V4_TRAIN_FPATH"
+echo "  PYTHON_BIN                 = $PYTHON_BIN"

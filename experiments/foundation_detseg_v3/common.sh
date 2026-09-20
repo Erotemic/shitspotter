@@ -18,10 +18,10 @@ export FOUNDATION_V3_PACKAGE_DPATH
 
 export PYTHONPATH="$FOUNDATION_V3_ROOT_DIR${PYTHONPATH:+:$PYTHONPATH}"
 
-export SHITSPOTTER_DEIMV2_REPO_DPATH="${SHITSPOTTER_DEIMV2_REPO_DPATH:-$FOUNDATION_V3_ROOT_DIR/tpl/DEIMv2}"
-export SHITSPOTTER_SAM2_REPO_DPATH="${SHITSPOTTER_SAM2_REPO_DPATH:-$FOUNDATION_V3_ROOT_DIR/tpl/segment-anything-2}"
-export SHITSPOTTER_MASKDINO_REPO_DPATH="${SHITSPOTTER_MASKDINO_REPO_DPATH:-$FOUNDATION_V3_ROOT_DIR/tpl/MaskDINO}"
-export SHITSPOTTER_OPENGROUNDINGDINO_REPO_DPATH="${SHITSPOTTER_OPENGROUNDINGDINO_REPO_DPATH:-$FOUNDATION_V3_ROOT_DIR/tpl/Open-GroundingDino}"
+# Generic detector / segmenter repositories are owned by KDK. Preserve the
+# historical variable names while changing their canonical default location.
+# shellcheck source=experiments/backend_repos.sh
+source "$FOUNDATION_V3_ROOT_DIR/experiments/backend_repos.sh"
 
 if command -v geowatch_dvc >/dev/null 2>&1; then
     if [ -z "${DVC_DATA_DPATH:-}" ] && _dvc_data="$(geowatch_dvc --tags="shitspotter_data" 2>/dev/null)"; then
