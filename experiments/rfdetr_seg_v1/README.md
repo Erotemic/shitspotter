@@ -372,3 +372,47 @@ After manual truth corrections: regenerate canonical KWCoco, rerun
 hard-negative scoring and round 1. The held-out test split remains out of
 checkpoint selection, threshold tuning, mining policy, and annotation-QA
 selection.
+
+## Coarse prediction space for annotation QA
+
+Full native-resolution review is too expensive as the default discovery pass.
+KDK now treats detector prediction resolution as a first-class coordinate space:
+I/O and tiling may run against a scaled delayed-image view, while every emitted
+box/polygon is transformed back into the source KWCoco's native image space.
+This means review tooling and LabelMe sidecars continue to use canonical source
+coordinates regardless of detector resolution.
+
+The campaign's coarse discovery command is:
+
+```bash
+python experiments/rfdetr_seg_v1/local_review.py coarse \
+    --snapshot-name=v3_best_ema_20260920
+```
+
+Its current defaults are:
+
+```text
+prediction_scale = 0.40
+overlap          = 0.10
+window           = 768
+batch_size       = 16
+```
+
+The coarse outputs are kept separate from native-resolution products:
+
+```text
+train_predictions.scale0p4.kwcoco.zip
+review.scale0p4/
+smoke4.scale0p4.pred.kwcoco.zip
+```
+
+For TIFF/COG-like sources the scale is part of the delayed-image graph before
+window crops are finalized, so GDAL-backed delayed-image optimization can use
+source overviews where available. JPEG-like images still follow the decode-once
+path and are resized once before their windows are sliced in memory.
+
+The coarse pass is a discovery stage, not a change to canonical truth. Future
+native-resolution refinement should consume interesting coarse proposals and
+re-run only those regions at `prediction_scale=1.0`. A sampled native-resolution
+audit of coarse-negative images should be used to estimate what the coarse pass
+misses before it becomes a trusted hard-negative admission screen.

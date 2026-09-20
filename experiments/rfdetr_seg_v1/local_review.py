@@ -56,6 +56,14 @@ def resolve_kdk_repo(config: dict) -> Path:
     return (HERE / path).resolve()
 
 
+def _prediction_scale_tag(scale: float) -> str:
+    scale = float(scale)
+    if abs(scale - 1.0) < 1e-12:
+        return ""
+    text = f"{scale:.6g}".replace("-", "m").replace(".", "p")
+    return f".scale{text}"
+
+
 def resolve_paths(snapshot_name: str, args) -> dict[str, Path]:
     kdk_repo = resolve_kdk_repo(load_campaign_config())
     snapshot = Path(
@@ -76,17 +84,18 @@ def resolve_paths(snapshot_name: str, args) -> dict[str, Path]:
     review_root = Path(
         os.environ.get("SHITSPOTTER_LOCAL_REVIEW_ROOT", "~/data/shitspotter_review")
     ).expanduser().resolve() / snapshot_name
+    scale_tag = _prediction_scale_tag(args.prediction_scale)
     model = Path(args.model).expanduser().resolve() if args.model else (
         model_root / f"shitspotter-rfdetr-{snapshot_name}.zip"
     )
     pred = Path(args.pred).expanduser().resolve() if args.pred else (
-        review_root / "train_predictions.kwcoco.zip"
+        review_root / f"train_predictions{scale_tag}.kwcoco.zip"
     )
     review = Path(args.review).expanduser().resolve() if args.review else (
-        review_root / "review"
+        review_root / f"review{scale_tag}"
     )
     smoke_src = pred.parent / "smoke4.kwcoco.zip"
-    smoke_pred = pred.parent / "smoke4.pred.kwcoco.zip"
+    smoke_pred = pred.parent / f"smoke4{scale_tag}.pred.kwcoco.zip"
     return {
         "kdk_repo": kdk_repo,
         "kdk_runner": kdk_repo / "docker" / "rfdetr" / "kcd-rfdetr",
@@ -233,6 +242,7 @@ def predict(paths, args, *, smoke=False) -> None:
         f"--overlap={args.overlap}",
         f"--batch-size={args.batch_size}",
         f"--score-thresh={args.score_thresh}",
+        f"--prediction-scale={args.prediction_scale}",
         f"--pipeline={str(args.pipeline).lower()}",
         f"--source-workers={args.source_workers}",
         f"--source-prefetch={args.source_prefetch}",
@@ -277,7 +287,7 @@ def build_parser():
     )
     parser.add_argument(
         "command",
-        choices=["status", "build-image", "package", "smoke", "predict", "review", "all"],
+        choices=["status", "build-image", "package", "smoke", "predict", "review", "coarse", "all"],
     )
     parser.add_argument("--snapshot-name", default=os.environ.get("SHITSPOTTER_RFDETR_SNAPSHOT"))
     parser.add_argument("--snapshot")
@@ -288,7 +298,14 @@ def build_parser():
     parser.add_argument("--backend", default="torch", choices=["torch", "onnx", "auto"])
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--window", type=int, default=768)
-    parser.add_argument("--overlap", type=float, default=0.25)
+    parser.add_argument("--overlap", type=float, default=None)
+    parser.add_argument(
+        "--prediction-scale", type=float, default=None,
+        help=(
+            "detector prediction-space scale; 1.0 is native, 0.4 uses a "
+            "40% delayed-image view while emitting native-coordinate truth"
+        ),
+    )
     parser.add_argument("--score-thresh", type=float, default=0.01)
     parser.add_argument(
         "--pipeline", type=parse_bool, default=True, metavar="BOOL",
@@ -310,6 +327,10 @@ def build_parser():
 def main():
     parser = build_parser()
     args = parser.parse_args()
+    if args.prediction_scale is None:
+        args.prediction_scale = 0.4 if args.command == "coarse" else 1.0
+    if args.overlap is None:
+        args.overlap = 0.10 if args.command == "coarse" else 0.25
     if args.command == "build-image":
         kdk_repo = resolve_kdk_repo(load_campaign_config())
         paths = {
@@ -342,6 +363,14 @@ def main():
     elif args.command == "review":
         if not paths["pred"].is_file() and not args.dry_run:
             raise FileNotFoundError(f"prediction corpus is missing: {paths['pred']}")
+        review(paths, args)
+    elif args.command == "coarse":
+        if not paths["model"].is_file():
+            package(paths, args)
+        if not args.skip_smoke:
+            make_smoke_source(paths, args)
+            predict(paths, args, smoke=True)
+        predict(paths, args)
         review(paths, args)
     elif args.command == "all":
         package(paths, args)

@@ -587,3 +587,45 @@ and scores are translated/merged first, and only surviving detections allocate
 source-sized masks. This keeps the 0.01-score annotation-QA pass from paying
 full-image memory and polygonization costs for detections that suppression would
 immediately discard.
+
+### 2026-09-20 — prediction resolution becomes first-class
+
+The first native-resolution source-space annotation-QA pass sustained only
+about 0.26 source images/s and 9.3 768-pixel windows/s. With 11,247 source
+images this implies roughly a twelve-hour full pass, even after adding bounded
+source/window prefetch and CPU postprocessing overlap. The dominant cost is the
+number of detector windows, not source-image bookkeeping.
+
+The review workflow is therefore moving to coarse-to-fine prediction instead of
+trying to make an exhaustive native-resolution scan the normal discovery path.
+This follows a useful GeoWATCH design principle: the resolution at which a model
+runs is an explicit coordinate space, but stored predictions are transformed
+back into canonical image coordinates before they enter KWCoco.
+
+KDK now has a first-class `PredictionSpace` owned by `SourceWindowReader`.
+`--prediction-scale=0.4` builds the detector window grid on a 40% delayed-image
+view while preserving native image width/height and writing all prediction
+boxes/polygons in native source coordinates. Exact inverse transforms use the
+realized per-image dimensions after integer rounding rather than assuming the
+requested scalar is mathematically exact.
+
+The delayed scale is expressed before delayed crop finalization. For
+region-readable assets this allows delayed-image/GDAL to optimize the query and
+select an overview where one exists; for JPEG-like assets the existing
+`decode_once` strategy still decodes/resizes once and slices all windows from
+that in-memory view. Native RF-DETR masks are polygonized in prediction space
+and the surviving polygons are warped back to native image space, avoiding a
+full native-resolution boolean-mask upsample solely for serialization.
+
+ShitSpotter's ergonomic coarse pass is now:
+
+```bash
+python experiments/rfdetr_seg_v1/local_review.py coarse \
+    --snapshot-name=v3_best_ema_20260920
+```
+
+It defaults to `prediction_scale=0.40`, `overlap=0.10`, a 768 window, and the
+same bounded prediction pipeline. Coarse products use `.scale0p4` path suffixes
+so they cannot overwrite the native-resolution control products. The next
+workflow step should be proposal-driven native refinement plus a random audit of
+coarse-negative images, not another exhaustive 1.0x pass.
