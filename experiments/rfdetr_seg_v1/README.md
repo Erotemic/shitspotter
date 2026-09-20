@@ -53,6 +53,22 @@ python experiments/rfdetr_seg_v1/driver.py prepare
 python experiments/rfdetr_seg_v1/driver.py status
 ```
 
+`build-pools` is the expensive validation boundary. It fully validates the
+generated KWCoco artifacts before recording a durable pool receipt. Normal
+`status` and `prepare` calls trust that immutable receipt instead of repeatedly
+deserializing large manifests and checking every referenced tile. Use
+`--details` when an explicit full audit is desired:
+
+```bash
+python experiments/rfdetr_seg_v1/driver.py status --details
+python experiments/rfdetr_seg_v1/driver.py prepare --details
+```
+
+Schema-2 pool manifests produced before the receipt optimization are accepted
+as already-validated stage-boundary artifacts. New pool builds write schema 3
+with cheap file size/mtime signatures so accidental mutation can be detected
+without reopening the KWCoco payload.
+
 After round 0 has produced its checkpoint, generate the four-GPU mining script.
 The script scores deterministic source/scale-local shards concurrently, waits
 for every rank, then runs the single global top-K finalizer and materializes
@@ -105,3 +121,6 @@ cat "$SHITSPOTTER_RFDETR_ROOT/rounds/round0/runs/v2/ROUND0_COMMAND.txt"
 Do not resume v2 from the regressing v1 checkpoint. The purpose of this run is
 to test the optimization policy independently of the already-frozen 2:1 pool
 composition.
+
+See `JOURNAL.md` for the campaign handoff log and rationale behind the current
+data architecture and v2 optimization policy.

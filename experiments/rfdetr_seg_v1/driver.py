@@ -19,6 +19,7 @@ import yaml
 
 
 HERE = Path(__file__).resolve().parent
+_SHA256_CACHE = {}
 
 
 def load_config(fpath=HERE / "config.yaml"):
@@ -69,11 +70,19 @@ def atomic_json_dump(data, fpath):
 
 
 def sha256_file(fpath, chunk_size=1024 * 1024):
+    fpath = Path(fpath).resolve()
+    stat = fpath.stat()
+    cache_key = (str(fpath), int(stat.st_size), int(stat.st_mtime_ns))
+    cached = _SHA256_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
     hasher = hashlib.sha256()
     with open(fpath, "rb") as file:
         while chunk := file.read(chunk_size):
             hasher.update(chunk)
-    return hasher.hexdigest()
+    digest = hasher.hexdigest()
+    _SHA256_CACHE[cache_key] = digest
+    return digest
 
 
 def config_fingerprint(config):
@@ -98,6 +107,195 @@ def simulation_policy_fingerprint(config):
     }
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _artifact_stat_signature(path):
+    """Cheap identity check for immutable generated artifacts."""
+    path = Path(path)
+    stat = path.stat()
+    return {
+        "path": str(path.resolve()),
+        "num_bytes": int(stat.st_size),
+        "mtime_ns": int(stat.st_mtime_ns),
+    }
+
+
+def _artifact_receipt(path, dset):
+    """Record the result of an expensive validation at the build boundary."""
+    receipt = _artifact_stat_signature(path)
+    receipt.update({
+        "num_images": int(dset.n_images),
+        "num_annotations": int(dset.n_annots),
+        "validated": True,
+    })
+    return receipt
+
+
+def _artifact_stat_matches(path, receipt):
+    """Check an immutable artifact without reopening its KWCoco payload."""
+    path = Path(path)
+    if not path.is_file() or not isinstance(receipt, dict):
+        return False
+    try:
+        current = _artifact_stat_signature(path)
+    except OSError:
+        return False
+    return all(current.get(key) == receipt.get(key) for key in [
+        "path", "num_bytes", "mtime_ns",
+    ])
+
+
+def _pool_paths(config):
+    root = Path(config["paths"]["output_root"])
+    pools = root / "pools"
+    return {
+        "train_positive_tiles": pools / "train_positive_tiles.kwcoco.zip",
+        "train_negative_tiles": pools / "train_negative_tiles.kwcoco.zip",
+        "validation_positive_tiles": pools / "validation_positive_tiles.kwcoco.zip",
+        "validation_negative_tiles": pools / "validation_negative_tiles.kwcoco.zip",
+        "train_validation_tiles": pools / "train_validation_tiles.kwcoco.zip",
+        "round0_manifest": root / "rounds" / "round0" / "train.kwcoco.zip",
+        "pool_manifest": pools / "pool_manifest.json",
+    }
+
+
+def _pool_manifest_matches(config, *, details=False):
+    """Check the durable pool receipt, optionally revalidating KWCoco files.
+
+    ``build-pools`` is the expensive validation boundary. Normal ``status``
+    and ``prepare`` calls trust that immutable result and avoid reopening the
+    large KWCoco manifests. Schema-3 receipts add cheap size/mtime checks;
+    schema-2 receipts are accepted for already-built pools. ``details=True``
+    is the explicit audit path that re-runs full KWCoco validation.
+    """
+    paths = _pool_paths(config)
+    manifest_path = paths["pool_manifest"]
+    if not manifest_path.is_file():
+        return False
+    try:
+        manifest = json.loads(manifest_path.read_text())
+    except Exception:
+        return False
+    if manifest.get("schema_version") not in {2, 3}:
+        return False
+
+    expected_source_hashes = {
+        split: sha256_file(config["splits"][split])
+        for split in ["train", "validation"]
+    }
+    if manifest.get("source_manifest_sha256") != expected_source_hashes:
+        return False
+
+    train = manifest.get("train") or {}
+    validation = manifest.get("validation") or {}
+    for recorded, policy in [
+        (train, config["round0"]),
+        (validation, config["validation"]),
+    ]:
+        if recorded.get("negative_strategy") != policy["negative_strategy"]:
+            return False
+        if recorded.get("negative_seed") != policy["seed"]:
+            return False
+        positive = recorded.get("positive_tiles")
+        negative = recorded.get("negative_tiles")
+        if not isinstance(positive, int) or positive <= 0:
+            return False
+        expected_negative = round(float(policy["negative_over_positive"]) * positive)
+        if negative != expected_negative:
+            return False
+
+    if Path(train.get("round_manifest", "")).resolve() != paths["round0_manifest"].resolve():
+        return False
+    if Path(validation.get("manifest", "")).resolve() != paths["train_validation_tiles"].resolve():
+        return False
+
+    artifact_keys = [
+        "train_positive_tiles",
+        "train_negative_tiles",
+        "validation_positive_tiles",
+        "validation_negative_tiles",
+        "train_validation_tiles",
+        "round0_manifest",
+    ]
+    if not all(paths[key].is_file() for key in artifact_keys):
+        return False
+
+    if manifest.get("schema_version") >= 3:
+        receipts = manifest.get("artifacts") or {}
+        if not all(
+            _artifact_stat_matches(paths[key], receipts.get(key))
+            for key in artifact_keys
+        ):
+            return False
+
+    if details:
+        import kwcoco
+        try:
+            dsets = {}
+            for key in artifact_keys:
+                dset = kwcoco.CocoDataset.coerce(str(paths[key]))
+                dset.validate()
+                dsets[key] = dset
+
+            # Inspect producer metadata on the already-loaded datasets rather
+            # than calling helpers that would deserialize/validate them again.
+            positive_src = (
+                Path(config["paths"]["output_root"])
+                / "pools" / "train_positive_sources.kwcoco.zip"
+            )
+            positive_info = next(
+                item for item in dsets["train_positive_tiles"].dataset.get("info", [])
+                if item.get("name") == "kwcoco_detector_kit.data.tile"
+            )
+            positive_expected = _tile_expected(
+                config, "train", positive_src, 0.0,
+                sha256_file(config["splits"]["train"]), keep_negative=False,
+            )
+            if positive_info.get("src") != positive_expected["src"]:
+                return False
+            if positive_info.get("source_manifest_sha256") != positive_expected["source_manifest_sha256"]:
+                return False
+            actual_positive_config = positive_info.get("config", {})
+            if not all(
+                actual_positive_config.get(key) == value
+                for key, value in positive_expected["config"].items()
+            ):
+                return False
+            if not all(
+                "tile_actual_scale_xy" in image
+                for image in dsets["train_positive_tiles"].images().objs
+            ):
+                return False
+
+            _, train_index = _load_valid_candidate_index(config, "train")
+            negative_info = next(
+                item for item in dsets["train_negative_tiles"].dataset.get("info", [])
+                if item.get("name") == "rfdetr_seg_v1 selected virtual negatives"
+            )
+            negative_expected = {
+                "candidate_content_digest": train_index["candidate_content_digest"],
+                "candidate_policy_fingerprint": train_index["policy_fingerprint"],
+                "selection_strategy": str(train["negative_strategy"]),
+                "selection_seed": int(train["negative_seed"]),
+                "selection_budget": int(train["negative_tiles"]),
+                "jpeg_quality": int(config["tiles"]["jpeg_quality"]),
+            }
+            if not all(
+                negative_info.get(key) == value
+                for key, value in negative_expected.items()
+            ):
+                return False
+            train_neg_dset = dsets["train_negative_tiles"]
+            if train_neg_dset.n_images != int(train["negative_tiles"]):
+                return False
+            if not all(
+                image.get("tile_role") == "negative"
+                for image in train_neg_dset.images().objs
+            ):
+                return False
+        except Exception:
+            return False
+    return True
 
 
 def verify_inputs(config, decode_samples=8):
@@ -939,6 +1137,8 @@ def build_pools(config, force=False):
     This stage decodes positive source images only for the positive pass, then
     materializes exactly the configured train/validation negative budgets from
     the existing candidate indexes into the shared content-addressed cache.
+    Full KWCoco validation happens here, once, and the resulting pool receipt
+    lets later ``status`` / ``prepare`` calls use cheap immutable checks.
     """
     import kwcoco
     require_kdk(config)
@@ -1004,6 +1204,8 @@ def build_pools(config, force=False):
         strategy=vali_policy["negative_strategy"],
         force=force,
     )
+    train_neg = kwcoco.CocoDataset.coerce(str(train_negative_tiles))
+    vali_neg = kwcoco.CocoDataset.coerce(str(vali_negative_tiles))
 
     round0.parent.mkdir(parents=True, exist_ok=True)
     train_merge = MergeConfig.cli(argv=False, data={
@@ -1015,7 +1217,8 @@ def build_pools(config, force=False):
         "seed": train_policy["seed"], "round_index": 0,
     })
     merge_run(train_merge)
-    kwcoco.CocoDataset.coerce(str(round0)).validate()
+    round0_dset = kwcoco.CocoDataset.coerce(str(round0))
+    round0_dset.validate()
 
     vali_merge = MergeConfig.cli(argv=False, data={
         "pos_kwcoco": str(vali_positive_tiles),
@@ -1026,43 +1229,52 @@ def build_pools(config, force=False):
         "seed": vali_policy["seed"], "round_index": 0,
     })
     merge_run(vali_merge)
-    kwcoco.CocoDataset.coerce(str(vali_tiles)).validate()
+    vali_dset = kwcoco.CocoDataset.coerce(str(vali_tiles))
+    vali_dset.validate()
 
     manifest = {
-        "schema_version": 2,
+        "schema_version": 3,
         "source_manifest_sha256": {
             split: sha256_file(config["splits"][split])
             for split in ["train", "validation"]
         },
         "train": {
             "positive_tiles": n_train_pos,
-            "negative_tiles": min(train_budget, kwcoco.CocoDataset.coerce(str(train_negative_tiles)).n_images),
+            "negative_tiles": int(train_neg.n_images),
             "negative_strategy": train_policy["negative_strategy"],
             "negative_seed": train_policy["seed"],
             "round_manifest": str(round0),
         },
         "validation": {
             "positive_tiles": n_vali_pos,
-            "negative_tiles": min(vali_budget, kwcoco.CocoDataset.coerce(str(vali_negative_tiles)).n_images),
+            "negative_tiles": int(vali_neg.n_images),
             "negative_strategy": vali_policy["negative_strategy"],
             "negative_seed": vali_policy["seed"],
             "manifest": str(vali_tiles),
+        },
+        "artifacts": {
+            "train_positive_tiles": _artifact_receipt(train_positive_tiles, train_pos),
+            "train_negative_tiles": _artifact_receipt(train_negative_tiles, train_neg),
+            "validation_positive_tiles": _artifact_receipt(vali_positive_tiles, vali_pos),
+            "validation_negative_tiles": _artifact_receipt(vali_negative_tiles, vali_neg),
+            "train_validation_tiles": _artifact_receipt(vali_tiles, vali_dset),
+            "round0_manifest": _artifact_receipt(round0, round0_dset),
         },
     }
     atomic_json_dump(manifest, pools / "pool_manifest.json")
     print(pools / "pool_manifest.json")
 
 
-def prepare(config):
-    import kwcoco
-
-    root = Path(config["paths"]["output_root"])
-    train = root / "rounds" / "round0" / "train.kwcoco.zip"
-    vali = root / "pools" / "train_validation_tiles.kwcoco.zip"
-    for path in [train, vali]:
-        if not path.exists():
-            raise FileNotFoundError(f"build-pools must produce {path}")
-        kwcoco.CocoDataset.coerce(str(path)).validate()
+def prepare(config, *, details=False):
+    paths = _pool_paths(config)
+    train = paths["round0_manifest"]
+    vali = paths["train_validation_tiles"]
+    if not _pool_manifest_matches(config, details=details):
+        mode = "detailed validation" if details else "pool receipt"
+        raise RuntimeError(
+            f"build-pools artifacts failed {mode}; rerun build-pools or use "
+            "status --details to diagnose"
+        )
     workdir = _rfdetr_workdir(config, round_index=0)
     cfg_path = _generate_rfdetr_config(config, train, vali, workdir)
     policy = config["rfdetr"]
@@ -1146,23 +1358,28 @@ def prepare_mining(config, round_index=0):
     return script
 
 
-def status(config):
-    import kwcoco
+def status(config, *, details=False):
     root = Path(config["paths"]["output_root"])
+    pool_paths = _pool_paths(config)
+    pool_valid = _pool_manifest_matches(config, details=details)
     required = {
         "input_verification": root / "input_verification.json",
         "census": root / "census.json",
         "tile_policy_simulation": root / "tile_policy_simulation.json",
         "train_candidate_index": root / "candidates" / "train_negative_candidates" / "manifest.json",
         "validation_candidate_index": root / "candidates" / "validation_negative_candidates" / "manifest.json",
-        "train_positive_tiles": root / "pools" / "train_positive_tiles.kwcoco.zip",
-        "train_negative_tiles": root / "pools" / "train_negative_tiles.kwcoco.zip",
-        "train_validation_tiles": root / "pools" / "train_validation_tiles.kwcoco.zip",
-        "pool_manifest": root / "pools" / "pool_manifest.json",
-        "round0_manifest": root / "rounds" / "round0" / "train.kwcoco.zip",
+        "train_positive_tiles": pool_paths["train_positive_tiles"],
+        "train_negative_tiles": pool_paths["train_negative_tiles"],
+        "train_validation_tiles": pool_paths["train_validation_tiles"],
+        "pool_manifest": pool_paths["pool_manifest"],
+        "round0_manifest": pool_paths["round0_manifest"],
         "rfdetr_config": _rfdetr_workdir(config, 0) / "generated_configs" / "rfdetr_train.json",
         "round0_command": _rfdetr_workdir(config, 0) / "ROUND0_COMMAND.txt",
         "smoke_manifest": root / "smoke" / "smoke_manifest.json",
+    }
+    pool_items = {
+        "train_positive_tiles", "train_negative_tiles", "train_validation_tiles",
+        "pool_manifest", "round0_manifest",
     }
     for name, path in required.items():
         valid = path.is_file()
@@ -1216,12 +1433,8 @@ def status(config):
                 valid = True
             except Exception:
                 valid = False
-        elif valid and name == "train_positive_tiles":
-            source_subset = root / "pools" / "train_positive_sources.kwcoco.zip"
-            valid = _tile_artifact_matches(
-                config, "train", path, src=source_subset,
-                negative_keep_fraction=0.0, keep_negative=False,
-            )
+        elif name in pool_items:
+            valid = pool_valid and path.is_file()
         elif valid and name == "smoke_manifest":
             try:
                 smoke = json.loads(path.read_text())
@@ -1233,12 +1446,9 @@ def status(config):
                 )
             except Exception:
                 valid = False
-        if valid and ".kwcoco." in path.name:
-            try:
-                kwcoco.CocoDataset.coerce(str(path)).validate()
-            except Exception:
-                valid = False
         print(f"{'complete' if valid else 'not-ready':10s} {name:24s} {path}")
+    if not details:
+        print("note: immutable KWCoco pools use their build receipt; pass --details for full validation")
 
 
 def main():
@@ -1255,10 +1465,14 @@ def main():
     parser.add_argument("--hash-assets", action="store_true")
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--round-index", type=int, default=0)
+    parser.add_argument(
+        "--details", action="store_true",
+        help="perform expensive full KWCoco validation for status/prepare",
+    )
     args = parser.parse_args()
     config = load_config(args.config)
     if args.command == "status":
-        status(config)
+        status(config, details=args.details)
     elif args.command == "verify-inputs":
         verify_inputs(config)
     elif args.command == "census":
@@ -1272,7 +1486,7 @@ def main():
     elif args.command == "build-pools":
         build_pools(config, force=args.force)
     elif args.command == "prepare":
-        prepare(config)
+        prepare(config, details=args.details)
     elif args.command == "prepare-mining":
         prepare_mining(config, round_index=args.round_index)
 
