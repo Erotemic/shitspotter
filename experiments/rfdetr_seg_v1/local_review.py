@@ -146,6 +146,18 @@ def run(command: list[str], *, dry_run: bool = False, env=None) -> None:
 def kdk(paths: dict[str, Path], *argv: str, dry_run: bool = False) -> None:
     env = os.environ.copy()
     env.setdefault("KCD_RFDETR_GPU", "0")
+    extra_mounts = []
+    for key in ["snapshot", "src", "model", "review_root"]:
+        path = paths.get(key)
+        if path is None:
+            continue
+        path = Path(path)
+        mount = path if path.is_dir() else path.parent
+        extra_mounts.append(str(mount))
+    existing = env.get("KCD_RFDETR_EXTRA_MOUNTS")
+    if existing:
+        extra_mounts.extend(line for line in existing.splitlines() if line)
+    env["KCD_RFDETR_EXTRA_MOUNTS"] = "\n".join(dict.fromkeys(extra_mounts))
     command = [str(paths["kdk_runner"]), *map(str, argv)]
     run(command, dry_run=dry_run, env=env)
 
