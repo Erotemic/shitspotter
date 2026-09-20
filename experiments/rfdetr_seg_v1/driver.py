@@ -82,6 +82,24 @@ def config_fingerprint(config):
     return hashlib.sha256(payload).hexdigest()
 
 
+def simulation_policy_fingerprint(config):
+    """Fingerprint only inputs that can change the tile-policy simulation."""
+    payload = {
+        "category_names": config["category_names"],
+        "splits": {
+            key: config["splits"][key]
+            for key in ["train", "validation"]
+        },
+        "tiles": config["tiles"],
+        "negative_over_positive": {
+            "train": config["round0"]["negative_over_positive"],
+            "validation": config["validation"]["negative_over_positive"],
+        },
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
 def verify_inputs(config, decode_samples=8):
     """Validate manifests, all referenced paths, and sampled image decoding."""
     import kwcoco
@@ -256,6 +274,11 @@ def simulate_policy(config):
     report = {
         "schema_version": 2,
         "config_fingerprint": config_fingerprint(config),
+        "simulation_policy_fingerprint": simulation_policy_fingerprint(config),
+        "source_manifest_sha256": {
+            split: sha256_file(config["splits"][split])
+            for split in ["train", "validation"]
+        },
         "tile_policy": policy,
         "splits": {},
     }
@@ -771,6 +794,19 @@ def _materialize_selected_negatives(config, split, dst, *, budget, seed, strateg
     return dst
 
 
+def _rfdetr_workdir(config, round_index=0):
+    """Return the active trainer workdir without clobbering prior run variants."""
+    root = Path(config["paths"]["output_root"])
+    base = root / "rounds" / f"round{int(round_index)}"
+    run_name = config["rfdetr"].get("run_name")
+    if not run_name:
+        return base / "workdir"
+    run_name = str(run_name)
+    if Path(run_name).name != run_name or run_name in {".", ".."}:
+        raise ValueError(f"rfdetr.run_name must be a single path component, got {run_name!r}")
+    return base / "runs" / run_name
+
+
 def _generate_rfdetr_config(config, train, vali, workdir, *, smoke=False):
     require_kdk(config)
     from kwcoco_detector_kit.trainers._registry import get_trainer
@@ -791,6 +827,14 @@ def _generate_rfdetr_config(config, train, vali, workdir, *, smoke=False):
             "grad_accum_steps": 1 if smoke else policy["grad_accum_steps"],
             "num_workers": 2 if smoke else policy["num_workers"],
             "checkpoint_interval": 1,
+            "lr_scheduler": policy.get("lr_scheduler", "step"),
+            "lr_scheduler_kwargs": policy.get("lr_scheduler_kwargs", {}),
+            "warmup_epochs": 0.0 if smoke else policy.get("warmup_epochs", 0.0),
+            "best_model_metric": policy.get("best_model_metric", "map"),
+            "early_stopping": False if smoke else policy.get("early_stopping", False),
+            "early_stopping_patience": policy.get("early_stopping_patience", 10),
+            "early_stopping_min_delta": policy.get("early_stopping_min_delta", 0.001),
+            "early_stopping_use_ema": policy.get("early_stopping_use_ema", False),
         },
     )
 
@@ -1019,7 +1063,7 @@ def prepare(config):
         if not path.exists():
             raise FileNotFoundError(f"build-pools must produce {path}")
         kwcoco.CocoDataset.coerce(str(path)).validate()
-    workdir = root / "rounds" / "round0" / "workdir"
+    workdir = _rfdetr_workdir(config, round_index=0)
     cfg_path = _generate_rfdetr_config(config, train, vali, workdir)
     policy = config["rfdetr"]
     kdk = Path(config["paths"]["kdk_repo"]).resolve()
@@ -1042,7 +1086,7 @@ def prepare_mining(config, round_index=0):
     candidate_index = root / "candidates" / "train_negative_candidates"
     if not (candidate_index / "manifest.json").is_file():
         raise FileNotFoundError(f"build-candidates must produce {candidate_index}")
-    workdir = root / "rounds" / f"round{round_index}" / "workdir"
+    workdir = _rfdetr_workdir(config, round_index=round_index)
     mining_dir = root / "rounds" / f"round{round_index}" / "mining"
     mining_dir.mkdir(parents=True, exist_ok=True)
     policy = config["mining"]
@@ -1116,8 +1160,8 @@ def status(config):
         "train_validation_tiles": root / "pools" / "train_validation_tiles.kwcoco.zip",
         "pool_manifest": root / "pools" / "pool_manifest.json",
         "round0_manifest": root / "rounds" / "round0" / "train.kwcoco.zip",
-        "rfdetr_config": root / "rounds" / "round0" / "workdir" / "generated_configs" / "rfdetr_train.json",
-        "round0_command": root / "rounds" / "round0" / "workdir" / "ROUND0_COMMAND.txt",
+        "rfdetr_config": _rfdetr_workdir(config, 0) / "generated_configs" / "rfdetr_train.json",
+        "round0_command": _rfdetr_workdir(config, 0) / "ROUND0_COMMAND.txt",
         "smoke_manifest": root / "smoke" / "smoke_manifest.json",
     }
     for name, path in required.items():
@@ -1134,10 +1178,30 @@ def status(config):
         elif valid and name == "tile_policy_simulation":
             try:
                 doc = json.loads(path.read_text())
-                valid = (
-                    doc.get("schema_version") == 2
-                    and doc.get("config_fingerprint") == config_fingerprint(config)
-                )
+                valid = doc.get("schema_version") == 2
+                if valid and doc.get("simulation_policy_fingerprint") is not None:
+                    valid = (
+                        doc["simulation_policy_fingerprint"]
+                        == simulation_policy_fingerprint(config)
+                    )
+                    source_hashes = doc.get("source_manifest_sha256") or {}
+                    valid = valid and all(
+                        source_hashes.get(split) == sha256_file(config["splits"][split])
+                        for split in ["train", "validation"]
+                    )
+                elif valid:
+                    # Schema-v2 artifacts written before run-specific training
+                    # config was decoupled can still be reused when their
+                    # actual simulated policy is unchanged.
+                    train_plan = doc.get("materialization_plan", {}).get("train", {})
+                    vali_plan = doc.get("materialization_plan", {}).get("validation", {})
+                    valid = (
+                        doc.get("tile_policy") == config["tiles"]
+                        and train_plan.get("negative_over_positive")
+                        == float(config["round0"]["negative_over_positive"])
+                        and vali_plan.get("negative_over_positive")
+                        == float(config["validation"]["negative_over_positive"])
+                    )
             except Exception:
                 valid = False
         elif valid and name == "train_candidate_index":

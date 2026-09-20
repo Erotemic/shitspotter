@@ -82,3 +82,26 @@ python experiments/rfdetr_seg_v1/driver.py build-candidates
 Override the dataset checkout when it is mounted elsewhere with
 `SHITSPOTTER_DATA_DPATH`. Override the shared cache independently with
 `SHITSPOTTER_RFDETR_CACHE`.
+
+## Round-0 v2 fine-tuning policy
+
+The active RF-DETR run is `rfdetr.run_name: v2`. It reuses the exact same
+materialized round-0 train/validation manifests as v1, but starts again from
+the upstream pretrained RF-DETR Seg 2XLarge weights with a deliberately more
+conservative optimization policy. V1 peaked early and then regressed while
+using a constant 1e-4 model LR and 1.5e-4 encoder LR over a 60-epoch horizon.
+V2 therefore uses 15 epochs, 5e-5 model LR, 1e-5 encoder LR, one epoch of
+linear warmup, cosine decay to 5% of the base LR, and EMA mAP early stopping
+with patience 4. The v1 workdir is not overwritten; v2 writes beneath
+`rounds/round0/runs/v2/`.
+
+After applying the matching KDK trainer overlay, regenerate the active run:
+
+```bash
+python experiments/rfdetr_seg_v1/driver.py prepare
+cat "$SHITSPOTTER_RFDETR_ROOT/rounds/round0/runs/v2/ROUND0_COMMAND.txt"
+```
+
+Do not resume v2 from the regressing v1 checkpoint. The purpose of this run is
+to test the optimization policy independently of the already-frozen 2:1 pool
+composition.

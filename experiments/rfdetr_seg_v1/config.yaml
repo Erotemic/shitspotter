@@ -50,15 +50,27 @@ mining:
   max_hard_per_round: 5000
 
 rfdetr:
+  # V2 is a conservative fine-tuning run after v1 peaked early and then
+  # regressed. Keep it isolated so the v1 checkpoints remain available.
+  run_name: v2
   variant: seg_2xlarge
   input_hw: [768, 768]
   num_gpus: 4
   batch_size_per_gpu: 4
   validation_batch_size_per_gpu: 4
   grad_accum_steps: 1
-  epochs: 60
-  lr: 0.0001
-  backbone_lr: 0.00015
+  epochs: 15
+  lr: 0.00005
+  backbone_lr: 0.00001
+  lr_scheduler: cosine
+  lr_scheduler_kwargs:
+    min_factor: 0.05
+  warmup_epochs: 1.0
+  best_model_metric: map
+  early_stopping: true
+  early_stopping_patience: 4
+  early_stopping_min_delta: 0.001
+  early_stopping_use_ema: true
   num_workers: 8
   use_amp: true
   image: kwcoco-detector-kit:rfdetr-cu132-aiq
