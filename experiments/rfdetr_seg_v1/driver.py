@@ -99,10 +99,6 @@ def verify_inputs(config, decode_samples=8):
             raise FileNotFoundError(src)
         dset = kwcoco.CocoDataset.coerce(str(src))
         validation = dset.validate()
-        # These source bundles intentionally contain a small number of
-        # non-detection metadata annotations (category_id=None / no bbox).
-        # RF-DETR export filters to the requested target categories, so record
-        # the broader schema diagnostics but gate only the target rows here.
         target_cids = {
             cat["id"] for cat in dset.dataset.get("categories", [])
             if cat["name"] in config["category_names"]
@@ -245,7 +241,6 @@ def simulate_policy(config):
     from kwcoco_detector_kit.data.tile import (
         _clip_annotation_geometry,
         _grid_positions,
-        _keep_negative_window,
         _parse_scales,
     )
 
@@ -259,7 +254,7 @@ def simulate_policy(config):
     min_long_side = int(policy["min_source_scale_long_side"])
     scales = _parse_scales(policy["source_scales"])
     report = {
-        "schema_version": 1,
+        "schema_version": 2,
         "config_fingerprint": config_fingerprint(config),
         "tile_policy": policy,
         "splits": {},
@@ -273,9 +268,8 @@ def simulate_policy(config):
         }
         counts = {
             name: Counter()
-            for name in ["positive", "negative", "ignore", "dropped_negative"]
+            for name in ["positive", "negative", "ignore"]
         }
-        negative_keep_fraction = float(policy["negative_keep_fraction"][split])
         anns_by_gid = {
             gid: [
                 ann for ann in dset.annots(gid=gid).objs
@@ -382,15 +376,6 @@ def simulate_policy(config):
                             )
                         else:
                             role = "ignore" if unsafe else "negative"
-                        if role == "negative" and not _keep_negative_window(
-                            fraction=negative_keep_fraction,
-                            seed=config["round0"]["seed"],
-                            source_gid=image["id"],
-                            scale_name=scale_name,
-                            x0=x0,
-                            y0=y0,
-                        ):
-                            role = "dropped_negative"
                         counts[role][scale_name] += 1
         by_role = {
             role: {"total": sum(per_scale.values()), "by_scale": dict(per_scale)}
@@ -415,25 +400,36 @@ def simulate_policy(config):
         avg_bytes = total_bytes / len(encoded)
         train_counts = report["splits"]["train"]
         vali_counts = report["splits"]["validation"]
-        round0_neg = min(
+        train_neg = min(
             train_counts["negative"]["total"],
             round(float(config["round0"]["negative_over_positive"]) * train_counts["positive"]["total"]),
         )
+        vali_ratio = float(config["validation"]["negative_over_positive"])
+        vali_neg = min(
+            vali_counts["negative"]["total"],
+            round(vali_ratio * vali_counts["positive"]["total"]),
+        )
         materialized = (
-            train_counts["positive"]["total"] + round0_neg
-            + vali_counts["positive"]["total"] + vali_counts["negative"]["total"]
+            train_counts["positive"]["total"] + train_neg
+            + vali_counts["positive"]["total"] + vali_neg
         )
-        persistent_pool = (
-            train_counts["positive"]["total"] + train_counts["negative"]["total"]
-            + vali_counts["positive"]["total"] + vali_counts["negative"]["total"]
-        )
+        report["materialization_plan"] = {
+            "train": {
+                "positive": train_counts["positive"]["total"],
+                "negative": train_neg,
+                "negative_over_positive": float(config["round0"]["negative_over_positive"]),
+            },
+            "validation": {
+                "positive": vali_counts["positive"]["total"],
+                "negative": vali_neg,
+                "negative_over_positive": vali_ratio,
+            },
+        }
         report["storage_estimate"] = {
             "basis_num_smoke_jpegs": len(encoded),
             "basis_average_jpeg_bytes": avg_bytes,
-            "persistent_pool_materialized_tiles": persistent_pool,
-            "persistent_pool_estimated_bytes": persistent_pool * avg_bytes,
-            "round0_materialized_tiles": materialized,
-            "round0_estimated_bytes": materialized * avg_bytes,
+            "materialized_tiles": materialized,
+            "estimated_bytes": materialized * avg_bytes,
             "note": "linear estimate from the real-data smoke cache; measure the full pool before training",
         }
     dst = Path(config["paths"]["output_root"]) / "tile_policy_simulation.json"
@@ -442,7 +438,8 @@ def simulate_policy(config):
     return dst
 
 
-def _tile_expected(config, split, src, negative_keep_fraction, source_dataset_fingerprint):
+def _tile_expected(config, split, src, negative_keep_fraction, source_dataset_fingerprint,
+                   *, keep_negative=True):
     policy = config["tiles"]
     return {
         "src": str(Path(src).resolve()),
@@ -461,20 +458,21 @@ def _tile_expected(config, split, src, negative_keep_fraction, source_dataset_fi
             "min_gt_area_frac": policy["min_gt_area_frac"],
             "min_source_scale_long_side": policy["min_source_scale_long_side"],
             "negative_safety_margin": policy["negative_safety_margin"],
-            "keep_negative": True,
+            "keep_negative": bool(keep_negative),
             "negative_keep_fraction": negative_keep_fraction,
             "seed": config["round0"]["seed"],
         },
     }
 
 
-def _tile_artifact_matches(config, split, path, *, src=None, negative_keep_fraction=None):
+def _tile_artifact_matches(config, split, path, *, src=None, negative_keep_fraction=None,
+                           keep_negative=True):
     """Return whether a tile manifest is valid and belongs to this recipe."""
     import kwcoco
 
     src = str(src or config["splits"][split])
     if negative_keep_fraction is None:
-        negative_keep_fraction = config["tiles"]["negative_keep_fraction"][split]
+        negative_keep_fraction = 1.0 if keep_negative else 0.0
     source_dataset_fingerprint = (
         sha256_file(config["splits"][split])
         if Path(src).resolve() != Path(config["splits"][split]).resolve()
@@ -494,6 +492,7 @@ def _tile_artifact_matches(config, split, path, *, src=None, negative_keep_fract
         return False
     expected = _tile_expected(
         config, split, src, negative_keep_fraction, source_dataset_fingerprint,
+        keep_negative=keep_negative,
     )
     if info.get("src") != expected["src"]:
         return False
@@ -533,12 +532,13 @@ def build_candidates(config, splits=("train", "validation")):
         print(dst)
 
 
-def _run_tile(config, split, dst, *, src=None, negative_keep_fraction=None):
+def _run_tile(config, split, dst, *, src=None, keep_negative=True,
+              negative_keep_fraction=None):
     require_kdk(config)
     from kwcoco_detector_kit.data.tile import TileConfig, run
     policy = config["tiles"]
     if negative_keep_fraction is None:
-        negative_keep_fraction = policy["negative_keep_fraction"][split]
+        negative_keep_fraction = 1.0 if keep_negative else 0.0
     source_dataset_fingerprint = (
         sha256_file(config["splits"][split])
         if src is not None and Path(src).resolve() != Path(config["splits"][split]).resolve()
@@ -557,10 +557,67 @@ def _run_tile(config, split, dst, *, src=None, negative_keep_fraction=None):
         "negative_keep_fraction": negative_keep_fraction,
         "seed": config["round0"]["seed"],
         "jpeg_quality": policy["jpeg_quality"],
-        "cache_dpath": config["paths"]["cache"], "keep_negative": True,
+        "cache_dpath": config["paths"]["cache"],
+        "keep_negative": bool(keep_negative),
         "source_dataset_fingerprint": source_dataset_fingerprint,
     })
     run(tile_config)
+
+
+def _target_positive_gids(config, split, dset=None):
+    import kwcoco
+    dset = dset or kwcoco.CocoDataset.coerce(config["splits"][split])
+    target_cids = {
+        cat["id"] for cat in dset.dataset.get("categories", [])
+        if cat["name"] in config["category_names"]
+    }
+    return sorted({
+        ann["image_id"] for ann in dset.annots().objs
+        if ann.get("category_id") in target_cids
+        and (ann.get("bbox") is not None or ann.get("segmentation") is not None)
+    })
+
+
+def _write_positive_source_subset(config, split, dst):
+    """Freeze all target-positive sources so the positive pass skips empty images."""
+    import kwcoco
+
+    dset = kwcoco.CocoDataset.coerce(config["splits"][split])
+    gids = _target_positive_gids(config, split, dset=dset)
+    dst = Path(dst)
+    expected = {
+        "source_manifest": str(Path(config["splits"][split]).resolve()),
+        "source_manifest_sha256": sha256_file(config["splits"][split]),
+        "category_names": list(config["category_names"]),
+        "num_source_images": len(gids),
+    }
+    if dst.is_file():
+        try:
+            prior = kwcoco.CocoDataset.coerce(str(dst))
+            info = next(
+                item for item in prior.dataset.get("info", [])
+                if item.get("name") == "rfdetr_seg_v1 target-positive source subset"
+            )
+            if (
+                all(info.get(key) == value for key, value in expected.items())
+                and prior.n_images == len(gids)
+                and sorted(prior.images()) == gids
+            ):
+                return dst
+        except Exception:
+            pass
+
+    subset = dset.subset(gids)
+    subset.reroot(absolute=True)
+    subset.dataset.setdefault("info", []).append({
+        "name": "rfdetr_seg_v1 target-positive source subset",
+        **expected,
+    })
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    subset.fpath = str(dst)
+    subset.dump()
+    subset.validate()
+    return dst
 
 
 def _source_subset(config, split, dst, *, n_positive, n_negative, seed):
@@ -569,14 +626,7 @@ def _source_subset(config, split, dst, *, n_positive, n_negative, seed):
     import numpy as np
 
     dset = kwcoco.CocoDataset.coerce(config["splits"][split])
-    target_cids = {
-        cat["id"] for cat in dset.dataset.get("categories", [])
-        if cat["name"] in config["category_names"]
-    }
-    positive_gids = {
-        ann["image_id"] for ann in dset.annots().objs
-        if ann.get("category_id") in target_cids
-    }
+    positive_gids = set(_target_positive_gids(config, split, dset=dset))
     all_gids = set(dset.images())
     negative_gids = all_gids - positive_gids
     rng = np.random.RandomState(int(seed))
@@ -602,6 +652,122 @@ def _source_subset(config, split, dst, *, n_positive, n_negative, seed):
     subset.fpath = str(dst)
     subset.dump()
     subset.validate()
+    return dst
+
+
+def _candidate_index_expected(config, split):
+    policy = config["tiles"]
+    return {
+        "source_kwcoco": str(Path(config["splits"][split]).resolve()),
+        "source_dataset_fingerprint": sha256_file(config["splits"][split]),
+        "policy": {
+            "category_names": sorted(config["category_names"]),
+            "tile_size": int(policy["size"]),
+            "oversize_factor": float(policy["oversize_factor"]),
+            "source_scales": [
+                [f"s{int(round(float(scale) * 10)):02d}", float(scale)]
+                for scale in policy["source_scales"]
+            ],
+            "stride_frac": float(policy["stride_frac"]),
+            "min_keep_fraction": float(policy["min_keep_fraction"]),
+            "min_gt_area_frac": float(policy["min_gt_area_frac"]),
+            "negative_safety_margin": int(policy["negative_safety_margin"]),
+            "min_source_scale_long_side": int(policy["min_source_scale_long_side"]),
+        },
+    }
+
+
+def _load_valid_candidate_index(config, split):
+    require_kdk(config)
+    from kwcoco_detector_kit.data.candidates import load_candidate_index
+
+    path = Path(config["paths"]["output_root"]) / "candidates" / f"{split}_negative_candidates"
+    if not (path / "manifest.json").is_file():
+        raise FileNotFoundError(f"build-candidates must produce {path}")
+    index = load_candidate_index(path)
+    expected = _candidate_index_expected(config, split)
+    if index.get("source_kwcoco") != expected["source_kwcoco"]:
+        raise RuntimeError(f"{split} candidate index source manifest mismatch")
+    if index.get("source_dataset_fingerprint") != expected["source_dataset_fingerprint"]:
+        raise RuntimeError(f"{split} candidate index dataset fingerprint mismatch")
+    if index.get("policy") != expected["policy"]:
+        raise RuntimeError(f"{split} candidate index tile-policy mismatch; rebuild candidates")
+    return path, index
+
+
+def _selected_negative_pool_matches(config, split, dst, *, index, budget, seed,
+                                    strategy):
+    import kwcoco
+
+    dst = Path(dst)
+    if not dst.is_file():
+        return False
+    try:
+        dset = kwcoco.CocoDataset.coerce(str(dst))
+        dset.validate()
+        info = next(
+            item for item in dset.dataset.get("info", [])
+            if item.get("name") == "rfdetr_seg_v1 selected virtual negatives"
+        )
+    except Exception:
+        return False
+    expected = {
+        "candidate_content_digest": index["candidate_content_digest"],
+        "candidate_policy_fingerprint": index["policy_fingerprint"],
+        "selection_strategy": str(strategy),
+        "selection_seed": int(seed),
+        "selection_budget": int(budget),
+        "jpeg_quality": int(config["tiles"]["jpeg_quality"]),
+    }
+    return (
+        all(info.get(key) == value for key, value in expected.items())
+        and dset.n_images == int(budget)
+        and all(img.get("tile_role") == "negative" for img in dset.images().objs)
+    )
+
+
+def _materialize_selected_negatives(config, split, dst, *, budget, seed, strategy,
+                                    force=False):
+    import kwcoco
+    require_kdk(config)
+    from kwcoco_detector_kit.data.candidates import (
+        materialize_candidates,
+        selected_candidate_record_factory,
+    )
+
+    index_path, index = _load_valid_candidate_index(config, split)
+    budget = min(int(budget), int(index["num_candidates"]))
+    if not force and _selected_negative_pool_matches(
+        config, split, dst, index=index, budget=budget, seed=seed,
+        strategy=strategy,
+    ):
+        print(f"reuse valid selected negative pool: {dst}")
+        return Path(dst)
+
+    factory = selected_candidate_record_factory(
+        index, budget, seed=seed, strategy=strategy,
+    )
+    out = materialize_candidates(
+        index, factory(), cache_dpath=config["paths"]["cache"],
+        jpeg_quality=config["tiles"]["jpeg_quality"], batch_size=32,
+    )
+    out.dataset.setdefault("info", []).append({
+        "name": "rfdetr_seg_v1 selected virtual negatives",
+        "source_split": split,
+        "candidate_index": str(index_path.resolve()),
+        "candidate_content_digest": index["candidate_content_digest"],
+        "candidate_policy_fingerprint": index["policy_fingerprint"],
+        "selection_strategy": str(strategy),
+        "selection_seed": int(seed),
+        "selection_budget": int(budget),
+        "jpeg_quality": int(config["tiles"]["jpeg_quality"]),
+    })
+    dst = Path(dst)
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    out.fpath = str(dst)
+    out.dump()
+    kwcoco.CocoDataset.coerce(str(dst)).validate()
+    print(f"materialized {budget} selected {split} negatives -> {dst}")
     return dst
 
 
@@ -655,11 +821,11 @@ def prepare_smoke(config, force=False):
         and all(path.is_file() for path in outputs)
         and _tile_artifact_matches(
             config, "train", train_tiles, src=train_src,
-            negative_keep_fraction=1.0,
+            negative_keep_fraction=1.0, keep_negative=True,
         )
         and _tile_artifact_matches(
             config, "validation", vali_tiles, src=vali_src,
-            negative_keep_fraction=1.0,
+            negative_keep_fraction=1.0, keep_negative=True,
         )
     )
     if reusable:
@@ -677,15 +843,13 @@ def prepare_smoke(config, force=False):
             n_positive=policy["validation_positive_images"],
             n_negative=policy["validation_negative_images"], seed=policy["seed"] + 1,
         )
-        # The smoke corpus is intentionally exhaustive so the simulator can
-        # be checked against every legal window on this real-data subset.
         _run_tile(
             config, "train", train_tiles, src=train_src,
-            negative_keep_fraction=1.0,
+            keep_negative=True, negative_keep_fraction=1.0,
         )
         _run_tile(
             config, "validation", vali_tiles, src=vali_src,
-            negative_keep_fraction=1.0,
+            keep_negative=True, negative_keep_fraction=1.0,
         )
         merge_cfg = MergeConfig.cli(argv=False, data={
             "pos_kwcoco": str(train_tiles), "neg_kwcoco": str(train_tiles),
@@ -725,6 +889,13 @@ def prepare_smoke(config, force=False):
 
 
 def build_pools(config, force=False):
+    """Materialize positives plus exact stratified negative quotas.
+
+    The complete safe-negative universe remains virtual in ``candidates/``.
+    This stage decodes positive source images only for the positive pass, then
+    materializes exactly the configured train/validation negative budgets from
+    the existing candidate indexes into the shared content-addressed cache.
+    """
     import kwcoco
     require_kdk(config)
     from kwcoco_detector_kit.data.merge import MergeConfig, run as merge_run
@@ -732,27 +903,110 @@ def build_pools(config, force=False):
     root = Path(config["paths"]["output_root"])
     pools = root / "pools"
     pools.mkdir(parents=True, exist_ok=True)
-    train_tiles = pools / "train_all_tiles.kwcoco.zip"
+
+    train_positive_src = pools / "train_positive_sources.kwcoco.zip"
+    vali_positive_src = pools / "validation_positive_sources.kwcoco.zip"
+    train_positive_tiles = pools / "train_positive_tiles.kwcoco.zip"
+    vali_positive_tiles = pools / "validation_positive_tiles.kwcoco.zip"
+    train_negative_tiles = pools / "train_negative_tiles.kwcoco.zip"
+    vali_negative_tiles = pools / "validation_negative_tiles.kwcoco.zip"
     vali_tiles = pools / "train_validation_tiles.kwcoco.zip"
     round0 = root / "rounds" / "round0" / "train.kwcoco.zip"
-    for split, dst in [("train", train_tiles), ("validation", vali_tiles)]:
-        if not force and _tile_artifact_matches(config, split, dst):
-            print(f"reuse valid pool: {dst}")
+
+    for split, source_subset, positive_tiles in [
+        ("train", train_positive_src, train_positive_tiles),
+        ("validation", vali_positive_src, vali_positive_tiles),
+    ]:
+        _write_positive_source_subset(config, split, source_subset)
+        if not force and _tile_artifact_matches(
+            config, split, positive_tiles, src=source_subset,
+            negative_keep_fraction=0.0, keep_negative=False,
+        ):
+            print(f"reuse valid positive pool: {positive_tiles}")
         else:
-            _run_tile(config, split, dst)
-            kwcoco.CocoDataset.coerce(str(dst)).validate()
-    # Composition is cheap and recreating it prevents an older selection
-    # policy from surviving after a valid tile pool is rebuilt.
+            _run_tile(
+                config, split, positive_tiles, src=source_subset,
+                keep_negative=False, negative_keep_fraction=0.0,
+            )
+            kwcoco.CocoDataset.coerce(str(positive_tiles)).validate()
+
+    train_pos = kwcoco.CocoDataset.coerce(str(train_positive_tiles))
+    vali_pos = kwcoco.CocoDataset.coerce(str(vali_positive_tiles))
+    n_train_pos = sum(
+        img.get("tile_role") == "positive" for img in train_pos.images().objs
+    )
+    n_vali_pos = sum(
+        img.get("tile_role") == "positive" for img in vali_pos.images().objs
+    )
+    if n_train_pos <= 0 or n_vali_pos <= 0:
+        raise RuntimeError("positive tiling produced an empty training/validation pool")
+
+    train_policy = config["round0"]
+    vali_policy = config["validation"]
+    train_budget = round(float(train_policy["negative_over_positive"]) * n_train_pos)
+    vali_budget = round(float(vali_policy["negative_over_positive"]) * n_vali_pos)
+
+    _materialize_selected_negatives(
+        config, "train", train_negative_tiles,
+        budget=train_budget,
+        seed=train_policy["seed"],
+        strategy=train_policy["negative_strategy"],
+        force=force,
+    )
+    _materialize_selected_negatives(
+        config, "validation", vali_negative_tiles,
+        budget=vali_budget,
+        seed=vali_policy["seed"],
+        strategy=vali_policy["negative_strategy"],
+        force=force,
+    )
+
     round0.parent.mkdir(parents=True, exist_ok=True)
-    merge_cfg = MergeConfig.cli(argv=False, data={
-        "pos_kwcoco": str(train_tiles), "neg_kwcoco": str(train_tiles),
+    train_merge = MergeConfig.cli(argv=False, data={
+        "pos_kwcoco": str(train_positive_tiles),
+        "neg_kwcoco": str(train_negative_tiles),
         "dst": str(round0),
         "category_names": ",".join(config["category_names"]),
-        "neg_over_pos": config["round0"]["negative_over_positive"],
-        "seed": config["round0"]["seed"], "round_index": 0,
+        "neg_over_pos": 0,
+        "seed": train_policy["seed"], "round_index": 0,
     })
-    merge_run(merge_cfg)
+    merge_run(train_merge)
     kwcoco.CocoDataset.coerce(str(round0)).validate()
+
+    vali_merge = MergeConfig.cli(argv=False, data={
+        "pos_kwcoco": str(vali_positive_tiles),
+        "neg_kwcoco": str(vali_negative_tiles),
+        "dst": str(vali_tiles),
+        "category_names": ",".join(config["category_names"]),
+        "neg_over_pos": 0,
+        "seed": vali_policy["seed"], "round_index": 0,
+    })
+    merge_run(vali_merge)
+    kwcoco.CocoDataset.coerce(str(vali_tiles)).validate()
+
+    manifest = {
+        "schema_version": 2,
+        "source_manifest_sha256": {
+            split: sha256_file(config["splits"][split])
+            for split in ["train", "validation"]
+        },
+        "train": {
+            "positive_tiles": n_train_pos,
+            "negative_tiles": min(train_budget, kwcoco.CocoDataset.coerce(str(train_negative_tiles)).n_images),
+            "negative_strategy": train_policy["negative_strategy"],
+            "negative_seed": train_policy["seed"],
+            "round_manifest": str(round0),
+        },
+        "validation": {
+            "positive_tiles": n_vali_pos,
+            "negative_tiles": min(vali_budget, kwcoco.CocoDataset.coerce(str(vali_negative_tiles)).n_images),
+            "negative_strategy": vali_policy["negative_strategy"],
+            "negative_seed": vali_policy["seed"],
+            "manifest": str(vali_tiles),
+        },
+    }
+    atomic_json_dump(manifest, pools / "pool_manifest.json")
+    print(pools / "pool_manifest.json")
 
 
 def prepare(config):
@@ -857,8 +1111,10 @@ def status(config):
         "tile_policy_simulation": root / "tile_policy_simulation.json",
         "train_candidate_index": root / "candidates" / "train_negative_candidates" / "manifest.json",
         "validation_candidate_index": root / "candidates" / "validation_negative_candidates" / "manifest.json",
-        "train_tiles": root / "pools" / "train_all_tiles.kwcoco.zip",
+        "train_positive_tiles": root / "pools" / "train_positive_tiles.kwcoco.zip",
+        "train_negative_tiles": root / "pools" / "train_negative_tiles.kwcoco.zip",
         "train_validation_tiles": root / "pools" / "train_validation_tiles.kwcoco.zip",
+        "pool_manifest": root / "pools" / "pool_manifest.json",
         "round0_manifest": root / "rounds" / "round0" / "train.kwcoco.zip",
         "rfdetr_config": root / "rounds" / "round0" / "workdir" / "generated_configs" / "rfdetr_train.json",
         "round0_command": root / "rounds" / "round0" / "workdir" / "ROUND0_COMMAND.txt",
@@ -866,15 +1122,42 @@ def status(config):
     }
     for name, path in required.items():
         valid = path.is_file()
-        if valid and name in {"input_verification", "census", "tile_policy_simulation"}:
+        if valid and name in {"input_verification", "census"}:
             try:
-                valid = json.loads(path.read_text()).get("config_fingerprint") == config_fingerprint(config)
+                doc = json.loads(path.read_text())
+                valid = all(
+                    doc["splits"][split].get("manifest_sha256") == sha256_file(src)
+                    for split, src in config["splits"].items()
+                )
             except Exception:
                 valid = False
-        elif valid and name == "train_tiles":
-            valid = _tile_artifact_matches(config, "train", path)
-        elif valid and name == "train_validation_tiles":
-            valid = _tile_artifact_matches(config, "validation", path)
+        elif valid and name == "tile_policy_simulation":
+            try:
+                doc = json.loads(path.read_text())
+                valid = (
+                    doc.get("schema_version") == 2
+                    and doc.get("config_fingerprint") == config_fingerprint(config)
+                )
+            except Exception:
+                valid = False
+        elif valid and name == "train_candidate_index":
+            try:
+                _load_valid_candidate_index(config, "train")
+                valid = True
+            except Exception:
+                valid = False
+        elif valid and name == "validation_candidate_index":
+            try:
+                _load_valid_candidate_index(config, "validation")
+                valid = True
+            except Exception:
+                valid = False
+        elif valid and name == "train_positive_tiles":
+            source_subset = root / "pools" / "train_positive_sources.kwcoco.zip"
+            valid = _tile_artifact_matches(
+                config, "train", path, src=source_subset,
+                negative_keep_fraction=0.0, keep_negative=False,
+            )
         elif valid and name == "smoke_manifest":
             try:
                 smoke = json.loads(path.read_text())

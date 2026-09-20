@@ -1,4 +1,4 @@
-schema_version: 1
+schema_version: 2
 category_names: [poop]
 
 splits:
@@ -13,8 +13,8 @@ paths:
   # Relative to this config file, so sibling editable checkouts remain usable.
   kdk_repo: ../../../kwcoco_detector_kit
 
-# Provisional policy: the census and aiq throughput smoke may revise these
-# before round 0. Changing rendering settings creates new materialization IDs.
+# Geometry policy. Safe negatives are all represented virtually by the
+# candidate index; this section does not subsample them.
 tiles:
   size: 768
   oversize_factor: 1.0
@@ -24,16 +24,21 @@ tiles:
   min_gt_area_frac: 0.001
   min_source_scale_long_side: 64
   negative_safety_margin: 32
-  # Applied before JPEG encoding. These retain enough deterministic negatives
-  # for a 3:1 round while avoiding a roughly 400 GB exhaustive negative cache.
-  negative_keep_fraction:
-    train: 0.17
-    validation: 0.18
   jpeg_quality: 92
 
+# Round 0 materializes only this deterministic source/scale-stratified slice
+# of the complete virtual negative universe.
 round0:
-  negative_over_positive: 3.0
+  negative_over_positive: 2.0
+  negative_strategy: stratified_by_image
   seed: 783718
+
+# Fixed tiled validation is also bounded. Canonical campaign validation is
+# still performed on reconstructed original source images.
+validation:
+  negative_over_positive: 2.0
+  negative_strategy: stratified_by_image
+  seed: 783719
 
 mining:
   num_shards: 4
