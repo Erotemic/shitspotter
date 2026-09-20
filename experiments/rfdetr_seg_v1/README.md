@@ -181,3 +181,167 @@ Seg 2XLarge weights so this remains an interpretable batch-size experiment.
 
 See `JOURNAL.md` for the campaign handoff log and rationale behind the current
 data architecture and current training policy.
+
+## Binary truth semantics and round-1 invalidation
+
+The RF-DETR campaign is a **binary poop detector** even though the source
+KWCoco currently contains 68 declared categories. `config.yaml` now makes the
+supervision contract explicit:
+
+- `poop` is the only positive detector target;
+- confidently named non-target annotations such as leaf, rock, pinecone, stick,
+  and bark remain background/distractor evidence rather than becoming detector
+  classes;
+- `unknown`, `ignore`, and the observed typo-like `unkown` are treated as
+  uncertain regions and block training-negative windows;
+- annotations with no usable category identity fail closed as uncertain until
+  they are audited.
+
+This is not the same as KDK's historical `tile_role="ignore"`, which means a
+window intersected target geometry but could not safely retain it. Source
+uncertainty is now represented by `truth_semantics` and such windows are omitted
+entirely when the trainer has no region-ignore mechanism.
+
+The already-materialized v3 validation pool predates this policy. In that
+frozen pool, uncertainty annotations were dropped from detector truth, so a
+prediction landing only on an `unknown`/`ignore` region can be counted as a
+false positive. The magnitude of that effect is not yet measured; do not
+mutate the running v3 validation set to correct it mid-experiment.
+
+The candidate universe is truth-policy-dependent. Candidate indexes created
+before this change are intentionally rejected by `driver.py` because their
+manifest policy does not contain the current truth semantics. **Do not rebuild
+or disturb the active v3 run.** Rebuild train/validation candidate indexes and
+derived pools only after the local truth-review pass and any manual annotation
+corrections, before constructing round 1.
+
+The reference census captured at this handoff is
+`dataset_category_census.json`: 11,247 train images, 8,960 annotations, 8,176
+`poop` annotations, 784 non-poop annotations, and 68 declared categories. Run
+this against the current canonical source after annotation edits to regenerate
+an exact census and enumerate semantic edge cases:
+
+```bash
+python experiments/rfdetr_seg_v1/audit_truth.py \
+    --src "$SHITSPOTTER_DATA_DPATH/train.kwcoco.zip" \
+    --dst /tmp/shitspotter_truth_census.json
+```
+
+The source documentation explicitly defines `unknown` / `ignore` as uncertain
+poop-vs-background regions and describes named clutter labels as sparse false-
+positive annotations. `residue`, `residual`, uncategorized annotations, and the
+single observed `unkown` annotation still require source/LabelMe inspection;
+the campaign does not silently infer their meaning. `unkown` is conservatively
+blocked for now.
+
+## Stable model snapshot -> local package -> source-space review
+
+Keep packaging and annotation-QA work off the active four-GPU training job. In
+the pinned RF-DETR source, `checkpoint_best_ema.pth` is refreshed whenever EMA
+validation improves, while `checkpoint_best_total.pth` is promoted by
+`BestModelCallback.on_fit_end`. Therefore a still-running v3 run should snapshot
+`checkpoint_best_ema.pth` immutably before transfer.
+
+The validation table is one-based while the RF-DETR callback log reports the
+zero-based internal epoch index. For example, the current best printed under
+`Val (ema) (Epoch 3/15)` and was logged as `Best EMA metric improved ... (epoch
+2)`. Snapshot names should avoid ambiguous bare `epoch2` terminology. The
+current recommended name is:
+
+```text
+v3_best_ema_val3_map6705_20260920
+```
+
+On `aiq-gpu`, create the immutable snapshot:
+
+```bash
+cd ~/code/shitspotter
+export SHITSPOTTER_RFDETR_ROOT=/data/users/jon.crall/shitspotter_rfdetr_v1
+python experiments/rfdetr_seg_v1/run_status.py
+python experiments/rfdetr_seg_v1/snapshot_model.py \
+    --name=v3_best_ema_val3_map6705_20260920 \
+    --checkpoint=checkpoint_best_ema.pth
+```
+
+The helper hashes the live checkpoint before and after copying, verifies the
+copy, snapshots the small training metadata, and atomically publishes only a
+stable result.
+
+On `toothbrush`, one snapshot name is enough to derive both transfer paths:
+
+```bash
+cd ~/code/shitspotter
+python experiments/rfdetr_seg_v1/sync_model.py \
+    --snapshot-name=v3_best_ema_val3_map6705_20260920
+```
+
+Local RF-DETR package/prediction work runs in KDK's RF-DETR Docker image rather
+than requiring `rfdetr` in the host Python environment. KDK's generic builder
+selects stable PyTorch `cu130` for the RTX 3090 (compute capability 8.6) even
+when the host driver advertises CUDA 13.2; the historical `cu132` profile remains
+available for Blackwell production hosts. Physical host GPU 0 is the default for
+local review.
+
+Inspect the resolved paths and GPU runtime:
+
+```bash
+SNAPSHOT=v3_best_ema_val3_map6705_20260920
+python experiments/rfdetr_seg_v1/local_review.py status \
+    --snapshot-name="$SNAPSHOT"
+python experiments/rfdetr_seg_v1/local_review.py build-image
+~/code/kwcoco_detector_kit/docker/rfdetr/kcd-rfdetr image-info
+```
+
+Then the normal local annotation-QA workflow is a single command:
+
+```bash
+python experiments/rfdetr_seg_v1/local_review.py all \
+    --snapshot-name="$SNAPSHOT"
+```
+
+`all` performs, in order:
+
+1. verify the immutable snapshot checksum manifest and the frozen train KWCoco
+   SHA-256;
+2. build a self-describing RF-DETR model package in
+   `~/data/shitspotter_models/`;
+3. create and predict a two-positive/two-negative smoke subset first;
+4. run no-cache 768-window source-space prediction over the original train
+   KWCoco on physical GPU 0, using `--windowed=true` and the PyTorch backend;
+5. build the truth-aware review under
+   `~/data/shitspotter_review/<snapshot-name>/review`.
+
+The current defaults are batch 16, overlap 0.25, prediction score floor 0.01,
+and review score floor 0.50. Override them explicitly when profiling:
+
+```bash
+python experiments/rfdetr_seg_v1/local_review.py predict \
+    --snapshot-name="$SNAPSHOT" \
+    --batch-size=24
+```
+
+Individual stages remain available for diagnosis or resumability:
+
+```bash
+python experiments/rfdetr_seg_v1/local_review.py package --snapshot-name="$SNAPSHOT"
+python experiments/rfdetr_seg_v1/local_review.py smoke   --snapshot-name="$SNAPSHOT"
+python experiments/rfdetr_seg_v1/local_review.py predict --snapshot-name="$SNAPSHOT"
+python experiments/rfdetr_seg_v1/local_review.py review  --snapshot-name="$SNAPSHOT"
+```
+
+The review queue classifies each source-coordinate prediction as
+`matched_target`, `known_distractor`, `uncertain_region`, or
+`unexplained_prediction`. The last category is the primary missing-truth review
+queue; `known_distractor` exposes systematic confusion with named clutter, and
+`uncertain_region` must not be treated as an ordinary false positive.
+
+The local workflow defaults to the proven PyTorch RF-DETR runtime. ONNX remains
+a separate KDK package/export experiment until a pinned GPU ONNX Runtime
+container profile is available; it should not replace the PyTorch prediction
+backend until complete-loop parity and throughput are measured.
+
+After manual truth corrections: regenerate canonical KWCoco, rerun
+`audit_truth.py`, then rebuild the truth-dependent candidate indexes/pools before
+hard-negative scoring and round 1. The held-out test split remains out of
+checkpoint selection, threshold tuning, mining policy, and annotation-QA
+selection.

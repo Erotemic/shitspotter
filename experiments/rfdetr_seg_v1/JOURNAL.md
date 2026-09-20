@@ -348,3 +348,196 @@ materialize positives/fixed validation/admitted negatives into the shared cache;
 mining ledgers are durable/resumable score evidence; finalization is a cheap
 re-tunable global selection step; manual truth review is now a gate between mining
 and treating the selected examples as trusted negative supervision.
+
+### 2026-09-20 — source-space annotation-QA and truth-semantics handoff
+
+A correctness audit found that the round-0 tiler and virtual candidate builder
+were filtering source annotations to `category_names: [poop]` before deciding
+whether a window was legal background. That was correct for deciding which
+categories become positive detector classes, but incorrect for uncertainty:
+source annotations named `unknown` or `ignore` became invisible and their pixels
+could be learned as ordinary background. A positive poop tile could likewise
+contain an uncertain region that was implicitly background.
+
+The repository history supports a three-way semantic split. The WACV FAQ says
+`unknown` / `ignore` are used when the annotator cannot confidently decide
+whether a region is poop and explicitly says those regions are not forced into
+positive or background. The older annotation journal says false-positive
+structures were deliberately retained under names such as leaf, stick, grass,
+and shadow so they can serve as explicit hard-negative evidence. Therefore the
+campaign remains binary: `poop` is the only positive model class; named nuisance
+classes are background/distractor evidence; uncertainty blocks supervision.
+
+KDK now owns the generic `TruthSemantics` abstraction, and both eager tiling and
+the virtual negative universe apply it. ShitSpotter configures:
+
+```yaml
+truth_semantics:
+  target_categories: [poop]
+  ignore_categories: [ignore, unknown, unkown]
+  uncategorized_annotation_policy: ignore
+  default_non_target_policy: background
+  unclassified_category_policy: ignore
+```
+
+`unkown` is blocked conservatively because the current train census contains one
+such annotation, but the code snapshot does not contain the corresponding
+canonical source asset/LabelMe record needed to prove it is a typo. Likewise,
+`residue`, `residual`, and the 32 uncategorized annotations are not assigned new
+semantics from their spelling. `audit_truth.py` now writes exact source/LabelMe
+paths for those cases when run against the DVC data so they can be inspected.
+
+The existing candidate manifests are now intentionally stale for round 1. Their
+policy fingerprints predate truth semantics. This does **not** require touching
+the currently running v3 job: its already-materialized round-0 pools remain its
+frozen experimental input. The corrected candidate indexes and pools should be
+regenerated only after the source-space review and any truth changes, before
+round-1 admission.
+
+A second correctness problem was found in model packaging. Generic package code
+renamed the selected checkpoint to `weights/checkpoint.pth`; when unpacked it
+became `checkpoint.pth`, but `RFDETRTrainer.find_checkpoint()` recognizes
+`checkpoint_best_total.pth`, `checkpoint_best_ema.pth`, or `last.ckpt`. Thus an
+apparently self-contained RF-DETR package could fail to reconstruct a usable
+workdir. Package building now delegates selection to the trainer and preserves
+the canonical checkpoint basename and SHA-256. It also includes RF-DETR's JSON
+generated config, exact label order, inference/capability metadata, runtime
+framework versions, training-manifest identities when supplied, and ONNX parity
+metadata.
+
+The generic tiled inference implementation that already reconstructed boxes and
+native masks into source coordinates has been promoted into KDK's predictor
+layer and reused by ordinary `kwcoco-detector-kit predict`. A no-cache source
+window reader chooses decode-once for JPEG-like assets and delayed regional reads
+for TIFF-like assets, with a correctness fallback to decode-once if crop
+realization is unsupported. No persistent tile corpus is prepared for this
+annotation-QA pass.
+
+The vendored RF-DETR 1.10.1 source includes a segmentation ONNX export contract
+with raw `dets`, `labels`, and `masks`. KDK now has a matching ONNX predictor and
+postprocessed parity check. This establishes that native-mask export is supported
+by the bundled upstream code; it does **not** establish performance on the RTX
+3090. ONNX preference is gated on successful real-window parity, and the local
+acceptance run must still benchmark complete source-space throughput and choose a
+24-GB-safe batch size. Start with batch 16, then compare 8/16/24/32 as memory
+allows rather than copying the 96-GB Blackwell training batch assumptions.
+
+The active v3 fixed tiled validation was materialized before this uncertainty
+policy existed, so `unknown` / `ignore` pixels in those frozen tiles were not
+represented as ignore regions. Because the exported detector truth contains only
+`poop`, a prediction landing only on one of those uncertain regions can be
+counted as a false positive by the current validation metrics. The size of
+that effect has not been measured. Do not mutate that running experiment to repair
+its validation data mid-run. Corrected validation pools for future rounds will
+omit windows intersecting uncertainty under the new semantics. Canonical
+source-space annotation review also explicitly classifies such detections as
+`uncertain_region` rather than `false_positive`.
+
+The intended next sequence is now:
+
+1. leave v3 running and snapshot the current `checkpoint_best_ema.pth` immutably (the pinned RF-DETR only promotes `checkpoint_best_total.pth` on fit end);
+2. rsync the snapshot to `toothbrush` and verify hashes;
+3. build a self-describing package locally, exporting ONNX and measuring real-window parity (failed parity leaves PyTorch preferred);
+4. predict the original training KWCoco in source coordinates with no tile cache;
+5. inspect high-confidence unexplained/distractor/uncertain predictions and edit only canonical LabelMe truth by hand;
+6. regenerate canonical KWCoco and audit its hashes/census;
+7. rebuild candidate indexes/pools under the corrected truth semantics;
+8. only then score/review/materialize legal hard negatives for round 1.
+
+The test split remains excluded from every decision in that loop.
+
+### 2026-09-20 — v3 new best at displayed validation 3/15; local Docker review workflow
+
+V3 continued to improve without changing the running recipe. The previous best
+validation was displayed as `Val (ema) (Epoch 2/15)`:
+
+| metric | value |
+| --- | ---: |
+| box mAP50:95 | 0.6908 |
+| box mAP50 | 0.8780 |
+| box mAP75 | 0.7880 |
+| mAR@500 | 0.8865 |
+| F1 | 0.8217 |
+| precision | 0.8584 |
+| recall | 0.7880 |
+| segm mAP50:95 | 0.6627 |
+| segm mAP50 | 0.8813 |
+
+RF-DETR then printed `Best EMA metric improved to 0.6627 (epoch 1)`. The next
+validation, displayed as `Val (ema) (Epoch 3/15)`, improved again:
+
+| metric | value |
+| --- | ---: |
+| box mAP50:95 | 0.6975 |
+| box mAP50 | 0.8853 |
+| box mAP75 | 0.7983 |
+| mAR@500 | 0.8952 |
+| F1 | 0.8309 |
+| precision | 0.8602 |
+| recall | 0.8035 |
+| segm mAP50:95 | **0.6705** |
+| segm mAP50 | 0.8897 |
+
+The effective early-stopping metric improved by about 0.008 and RF-DETR logged
+`Best EMA metric improved to 0.6705 (epoch 2)`. The table heading is one-based
+(`Epoch 3/15`) while the callback message reports the zero-based internal epoch
+index (`epoch 2`). Future snapshot names should therefore encode the displayed
+validation number and/or metric instead of using ambiguous names such as
+`epoch2_best`. The recommended immutable name for this checkpoint is
+`v3_best_ema_val3_map6705_20260920`.
+
+This new best is above the recorded v1 peak: v1's best known
+segmentation mAP50:95 was 0.6448, versus 0.6705 here, and box mAP50:95 improved
+from 0.6665 to 0.6975. No optimizer, batch, data, or validation-policy change was
+made between these v3 validations. Leave the active v3 run unchanged and allow
+early stopping / the 15-epoch ceiling to decide when it finishes.
+
+The existing local snapshot named `v3_best_ema_20260920` should not be assumed
+to be either the 0.6627 or 0.6705 checkpoint from its name alone; the RF-DETR
+log timestamps and local shell timestamps may use different time zones. Inspect
+its snapshotted `metrics.csv` / checksum provenance before deciding what it
+contains. Do not overwrite it. When taking another snapshot, first confirm the
+current live best and use a new immutable name that identifies the displayed
+validation / metric.
+
+The local annotation-QA execution path was also hardened. RF-DETR should no
+longer be installed ad hoc into the host Python environment merely to package or
+predict a checkpoint. KDK now provides:
+
+```text
+docker/rfdetr/build_auto.sh
+docker/rfdetr/build_stable_cuda130.sh
+docker/rfdetr/kcd-rfdetr
+```
+
+`build_auto.sh` selects by GPU architecture as well as driver capability. On the
+RTX 3090 (compute capability 8.6) it intentionally chooses stable PyTorch cu130
+even though the installed driver reports CUDA 13.2. On a Blackwell-class host
+(compute capability >= 12.0) with a CUDA-13.2-capable driver it selects the
+existing cu132 nightly profile. RF-DETR itself has no custom CUDA extension in
+this image, so the old `blackwell` builder name represented a deployment profile,
+not a Blackwell-only model implementation.
+
+`kcd-rfdetr` is now the normal container execution surface. It defaults to
+physical GPU 0, mounts `$HOME` at the same path in the container, bind-mounts the
+current KDK checkout over the baked editable-install path, runs with the host
+uid/gid, and safely converts command argv into the historical RF-DETR image's
+`bash -lc` entrypoint. This preserves the existing aiq multi-GPU launch behavior
+while eliminating hand-written local `docker run` functions.
+
+ShitSpotter now wraps that generic runtime with
+`experiments/rfdetr_seg_v1/local_review.py`. For an immutable snapshot, the
+normal local sequence is:
+
+```bash
+SNAPSHOT=v3_best_ema_val3_map6705_20260920
+python experiments/rfdetr_seg_v1/local_review.py all --snapshot-name="$SNAPSHOT"
+```
+
+The command verifies the snapshot checksum manifest and frozen train SHA,
+packages the model, runs a four-image smoke prediction first, predicts the full
+original train KWCoco in source coordinates with no persistent tile cache, and
+builds the truth-aware review. PyTorch is the default backend for this pass.
+ONNX remains an explicit experiment until a pinned GPU ONNX Runtime container
+profile has measured native-mask parity and complete-loop throughput on the
+3090.

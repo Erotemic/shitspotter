@@ -1011,3 +1011,27 @@ The canonical-data smoke used the current ShitSpotter subset helper against eigh
 The full KDK suite now has one remaining concrete environmental failure, not a virtual-mining regression: `tests/integration/test_jpeg_path_behavior.py::test_jpeg_cocodetection_has_no_runtime_balance_knobs` cannot import DEIMv2 because this selected uv environment lacks the `tensorboard` package required by `torch.utils.tensorboard`. Torch itself is installed and all Torch-marked mining tests ran. No test was weakened or skipped. The key uncertainty is operational only: this host has not exercised the real RF-DETR GPU/container path; aiq-gpu remains the next gate. Reusable takeaways: exercise selection policy changes against durable ledgers rather than assuming fingerprint semantics, and validate small smoke ONNX artifacts structurally instead of treating file size as proof of validity.
 
 Risks and next boundary: source kwcoco validation reports a few intentional non-target metadata annotations with null categories/no boxes, so the preflight gates target rows and records rather than hides the broader diagnostics. The local Python environment lacks pycocotools, but kwimage decoded every exported smoke mask; the dedicated container must still exercise the upstream RF-DETR loader. The next meaningful work is the container build, single-device mask forward/reload, four-rank training smoke, and real loader throughput measurement on aiq-gpu. Reusable takeaways: simulate the entire window universe before encoding it; make sampling deterministic at the last point before expensive materialization; and verify metadata simulators against a real materialized subset before using their storage forecasts.
+
+## 2026-09-20 RF-DETR v3 local-review reproducibility follow-up
+
+The v3 RF-DETR Seg 2XLarge run reached a new best on the validation table shown
+as Epoch 3/15: box mAP50:95 0.6975 and segmentation mAP50:95 0.6705. RF-DETR's
+callback logged this as internal epoch 2, so the campaign docs now explicitly
+record the one-based table / zero-based callback distinction and recommend
+snapshot names that include the displayed validation number or metric. The live
+best checkpoint remains `checkpoint_best_ema.pth` while training is active. The
+existing local snapshot name alone does not prove whether it captured the 0.6627
+or 0.6705 best because training logs and shell timestamps may use different time
+zones; inspect its snapshotted metrics/provenance rather than inferring from wall
+clock labels, and never overwrite the immutable snapshot in place.
+
+The local packaging/prediction path was converted from conversational shell
+instructions into checked-in tooling. KDK now has a generic RF-DETR Docker
+builder that chooses stable cu130 on Ampere-class GPUs such as the RTX 3090 even
+when the host driver advertises CUDA 13.2, while retaining cu132 as the explicit
+Blackwell profile. `docker/rfdetr/kcd-rfdetr` is the normal container runner and
+defaults to physical GPU 0. ShitSpotter's new `local_review.py` derives standard
+snapshot/model/review paths from a single immutable snapshot name, verifies
+hashes, packages in the KDK container, runs a small source-space smoke first,
+then the full no-cache source prediction and truth-aware review. This replaces
+ad hoc reusable shell functions with a reproducible repo-owned interface.
