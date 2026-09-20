@@ -95,6 +95,7 @@ def simulation_policy_fingerprint(config):
     """Fingerprint only inputs that can change the tile-policy simulation."""
     payload = {
         "category_names": config["category_names"],
+        "truth_semantics": config["truth_semantics"],
         "splits": {
             key: config["splits"][key]
             for key in ["train", "validation"]
@@ -107,6 +108,30 @@ def simulation_policy_fingerprint(config):
     }
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _truth_semantics_kwargs(config):
+    """Translate campaign truth policy into KDK Tile/CandidateConfig fields."""
+    policy = dict(config["truth_semantics"])
+    targets = list(policy.pop("target_categories"))
+    if targets != list(config["category_names"]):
+        raise ValueError(
+            "truth_semantics.target_categories must exactly match category_names; "
+            f"got {targets!r} vs {config['category_names']!r}"
+        )
+    return {
+        "ignore_categories": ",".join(policy.pop("ignore_categories", [])),
+        "uncategorized_annotation_policy": policy.pop(
+            "uncategorized_annotation_policy", "ignore"
+        ),
+        "default_non_target_policy": policy.pop(
+            "default_non_target_policy", "background"
+        ),
+        "unclassified_category_policy": policy.pop(
+            "unclassified_category_policy", "ignore"
+        ),
+        **policy,
+    }
 
 
 def _artifact_stat_signature(path):
@@ -459,6 +484,10 @@ def simulate_policy(config):
         _grid_positions,
         _parse_scales,
     )
+    from kwcoco_detector_kit.data.truth_semantics import (
+        TruthSemantics,
+        annotation_has_geometry,
+    )
 
     policy = config["tiles"]
     base_tile = int(policy["size"])
@@ -469,6 +498,9 @@ def simulate_policy(config):
     margin = int(policy["negative_safety_margin"])
     min_long_side = int(policy["min_source_scale_long_side"])
     scales = _parse_scales(policy["source_scales"])
+    semantics = TruthSemantics.from_mapping(
+        config["truth_semantics"], fallback_targets=config["category_names"]
+    )
     report = {
         "schema_version": 2,
         "config_fingerprint": config_fingerprint(config),
@@ -483,25 +515,21 @@ def simulate_policy(config):
 
     for split in ["train", "validation"]:
         dset = kwcoco.CocoDataset.coerce(config["splits"][split])
-        target_cids = {
-            cat["id"] for cat in dset.dataset.get("categories", [])
-            if cat["name"] in config["category_names"]
-        }
         counts = {
             name: Counter()
             for name in ["positive", "negative", "ignore"]
         }
-        anns_by_gid = {
-            gid: [
-                ann for ann in dset.annots(gid=gid).objs
-                if ann.get("category_id") in target_cids
-                and (ann.get("bbox") is not None or ann.get("segmentation") is not None)
-            ]
-            for gid in dset.images()
-        }
         for image in dset.images().objs:
             width, height = int(image["width"]), int(image["height"])
-            anns = anns_by_gid[image["id"]]
+            source_anns = list(dset.annots(gid=image["id"]).objs)
+            parts = semantics.partition_annotations(dset, source_anns)
+            anns = [ann for ann in parts["target"] if annotation_has_geometry(ann)]
+            ignore_anns = [
+                ann for ann in parts["ignore"] if annotation_has_geometry(ann)
+            ]
+            has_global_ignore = any(
+                not annotation_has_geometry(ann) for ann in parts["ignore"]
+            )
             for scale_name, requested_scale in scales:
                 scaled_w = max(1, int(round(width * requested_scale)))
                 scaled_h = max(1, int(round(height * requested_scale)))
@@ -524,6 +552,20 @@ def simulate_policy(config):
                         bx * actual_scale[0], by * actual_scale[1],
                         (bx + bw) * actual_scale[0], (by + bh) * actual_scale[1],
                     ))
+                scaled_ignore_boxes = []
+                for ann in ignore_anns:
+                    bbox = ann.get("bbox")
+                    if bbox is None:
+                        import kwimage
+                        bbox = list(
+                            kwimage.Segmentation.coerce(ann["segmentation"])
+                            .to_multi_polygon().box().to_coco()
+                        )
+                    bx, by, bw, bh = map(float, bbox)
+                    scaled_ignore_boxes.append((
+                        bx * actual_scale[0], by * actual_scale[1],
+                        (bx + bw) * actual_scale[0], (by + bh) * actual_scale[1],
+                    ))
                 xs = _grid_positions(scaled_w, disk_tile, stride)
                 ys = _grid_positions(scaled_h, disk_tile, stride)
                 for x0 in xs:
@@ -531,8 +573,24 @@ def simulate_policy(config):
                         num_intersecting = 0
                         num_kept = 0
                         kept_area = 0.0
-                        unsafe = False
+                        unsafe = bool(has_global_ignore)
                         crop = (x0, y0, x0 + disk_tile, y0 + disk_tile)
+                        for ann, ann_box in zip(ignore_anns, scaled_ignore_boxes):
+                            ax0, ay0, ax1, ay1 = ann_box
+                            bbox_hit = (
+                                min(x0 + disk_tile, ax1) > max(x0, ax0)
+                                and min(y0 + disk_tile, ay1) > max(y0, ay0)
+                            )
+                            if not bbox_hit:
+                                continue
+                            geom = _clip_annotation_geometry(
+                                ann, source_dims=(height, width),
+                                scale=actual_scale, crop_xyxy=crop,
+                                output_dims=(disk_tile, disk_tile),
+                            )
+                            if geom is not None:
+                                unsafe = True
+                                break
                         for ann, ann_box in zip(anns, scaled_ann_boxes):
                             ax0, ay0, ax1, ay1 = ann_box
                             exact_bbox_hit = (
@@ -662,12 +720,14 @@ def simulate_policy(config):
 def _tile_expected(config, split, src, negative_keep_fraction, source_dataset_fingerprint,
                    *, keep_negative=True):
     policy = config["tiles"]
+    semantics = _truth_semantics_kwargs(config)
     return {
         "src": str(Path(src).resolve()),
         "source_manifest_sha256": sha256_file(src),
         "config": {
             "mode": "multiscale",
             "category_names": ",".join(config["category_names"]),
+            **semantics,
             "jpeg_quality": policy["jpeg_quality"],
             "cache_dpath": str(Path(config["paths"]["cache"]).resolve()),
             "source_dataset_fingerprint": source_dataset_fingerprint,
@@ -734,11 +794,13 @@ def build_candidates(config, splits=("train", "validation")):
     root = Path(config["paths"]["output_root"]) / "candidates"
     root.mkdir(parents=True, exist_ok=True)
     policy = config["tiles"]
+    semantics = _truth_semantics_kwargs(config)
     for split in splits:
         dst = root / f"{split}_negative_candidates"
         candidate_config = CandidateConfig.cli(argv=False, data={
             "src": config["splits"][split], "dst": str(dst),
             "category_names": ",".join(config["category_names"]),
+            **semantics,
             "tile_size": policy["size"],
             "oversize_factor": policy["oversize_factor"],
             "source_scales": ",".join(map(str, policy["source_scales"])),
@@ -758,6 +820,7 @@ def _run_tile(config, split, dst, *, src=None, keep_negative=True,
     require_kdk(config)
     from kwcoco_detector_kit.data.tile import TileConfig, run
     policy = config["tiles"]
+    semantics = _truth_semantics_kwargs(config)
     if negative_keep_fraction is None:
         negative_keep_fraction = 1.0 if keep_negative else 0.0
     source_dataset_fingerprint = (
@@ -768,6 +831,7 @@ def _run_tile(config, split, dst, *, src=None, keep_negative=True,
     tile_config = TileConfig.cli(argv=False, data={
         "src": str(src or config["splits"][split]), "dst": str(dst),
         "mode": "multiscale", "category_names": ",".join(config["category_names"]),
+        **semantics,
         "tile_size": policy["size"], "oversize_factor": policy["oversize_factor"],
         "source_scales": ",".join(map(str, policy["source_scales"])),
         "stride_frac": policy["stride_frac"],
@@ -878,11 +942,17 @@ def _source_subset(config, split, dst, *, n_positive, n_negative, seed):
 
 def _candidate_index_expected(config, split):
     policy = config["tiles"]
+    require_kdk(config)
+    from kwcoco_detector_kit.data.truth_semantics import TruthSemantics
+    semantics = TruthSemantics.from_mapping(
+        config["truth_semantics"], fallback_targets=config["category_names"]
+    )
     return {
         "source_kwcoco": str(Path(config["splits"][split]).resolve()),
         "source_dataset_fingerprint": sha256_file(config["splits"][split]),
         "policy": {
             "category_names": sorted(config["category_names"]),
+            "truth_semantics": semantics.to_dict(),
             "tile_size": int(policy["size"]),
             "oversize_factor": float(policy["oversize_factor"]),
             "source_scales": [

@@ -1,6 +1,18 @@
 schema_version: 2
 category_names: [poop]
 
+# Detector-truth semantics are deliberately separate from the 68 source
+# annotation categories. Poop is the only positive detector class. Known
+# named non-poop annotations remain background/distractor evidence, while
+# uncertain annotations block negative supervision instead of being silently
+# learned as background. Missing/undeclared category identity fails closed.
+truth_semantics:
+  target_categories: [poop]
+  ignore_categories: [ignore, unknown, unkown]
+  uncategorized_annotation_policy: ignore
+  default_non_target_policy: background
+  unclassified_category_policy: ignore
+
 splits:
   train: train_imgs11247_7f54a82d.kwcoco.zip
   validation: vali_imgs1258_9cdcc10a.kwcoco.zip
