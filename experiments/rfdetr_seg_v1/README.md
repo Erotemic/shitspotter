@@ -79,6 +79,45 @@ python experiments/rfdetr_seg_v1/driver.py prepare-mining --round-index=0
 bash /data/joncrall/dvc-repos/shitspotter_expt_dvc/training/rfdetr_seg_v1/rounds/round0/mining/RUN_MINING.sh
 ```
 
+Hard-negative mining is followed by a **truth-review gate** before mined tiles are
+trusted as negatives for the next round. The detector can be correct while the
+truth is wrong: a very hard "negative" may actually be an unannotated poop. Build
+the ranked review queue after `RUN_MINING.sh` completes:
+
+```bash
+python experiments/rfdetr_seg_v1/review_hard_negatives.py --round-index=0
+```
+
+This writes `rounds/round0/mining/review/` with:
+
+- `index.html`: hardest-first static previews; red is the mined prediction, blue
+  is the mined tile, green is existing poop truth;
+- `review_queue.tsv`: editable review status / notes plus source image, source gid,
+  score, tile identity, and prediction box in source coordinates;
+- `annotation_targets.tsv`: the canonical source image and adjacent LabelMe JSON
+  sidecar path to edit/create when the mined "negative" is actually positive;
+- `review.kwcoco.zip`: diagnostic source-image subset containing existing truth
+  plus a dedicated `__hard_negative_review__` proposal category. **Do not edit
+  this review KWCoco as truth.**
+
+If manual review changes source annotations, regenerate the source KWCoco and
+rebuild every artifact whose truth fingerprint is now stale, especially the
+train candidate index and derived positive/negative pools. A candidate that was
+legal under old truth must not silently survive as a training negative.
+
+While a run is active, use the cheap phase/status helper rather than inferring
+training state from GPU utilization alone:
+
+```bash
+python experiments/rfdetr_seg_v1/run_status.py
+python experiments/rfdetr_seg_v1/run_status.py --watch --interval=10
+```
+
+It reads only the small pool receipt, `metrics.csv`, and (when available) the
+matching Docker log. It reports approximate train steps/epoch, validation batch
+count, the last completed validation metrics, and a phase guess such as
+`training` or `validation_or_metric_finalize`.
+
 `census --hash-assets` additionally records every source-image SHA-256. Tile
 generation always hashes each used source asset before accepting a cache hit.
 Stage status is derived from validated artifacts; there is no separate durable

@@ -181,3 +181,170 @@ pool artifacts. Before this cleanup, `status` could validate the same positive
 pool twice and `prepare` would validate the large train/validation manifests yet
 again. Normal status/prepare now use the pool receipt; `--details` opts into the
 expensive checks.
+
+### V3 live run observations and validation-phase diagnosis
+
+A fresh rebuilt RF-DETR image restored healthy utilization with the unchanged v2
+recipe, so the earlier low-utilization episode is treated as transient/environmental.
+The active experiment was then moved to v3 with only the batch change documented
+above.
+
+Observed v3 training behavior on `aiq-gpu` (4 x ~95 GiB GPUs):
+
+- batch 4/GPU had previously used roughly 15 GiB/GPU and sustained about 70% GPU
+  utilization when training was healthy;
+- v3 batch 8/GPU uses roughly 26 GiB/GPU and sustained about 80% utilization in
+  the training loop;
+- this leaves substantial memory headroom. A future controlled run can reasonably
+  test batch 16/GPU (global batch 64), but **do not mutate the currently running v3
+  recipe merely for throughput**. Preserve its result first.
+
+The apparent recurring "mid-run slowdown" was identified rather than guessed. On
+v3, `metrics.csv` stopped with sparse train logging at epoch 0 / step 5849, while
+the pool contains 187,251 train tiles. At global batch 32 the expected epoch size
+is approximately `187251 / 32 = 5851.6` optimizer steps, so the slowdown occurred
+exactly at the epoch boundary. The Docker log then emitted at 2026-09-20
+16:44:36 UTC:
+
+```
+Skipping validation-loss computation: compute_val_loss='auto' found no scheduler
+or callback monitoring 'val/loss' ...
+```
+
+That message is emitted at RF-DETR validation-epoch start. Therefore the observed
+GPU-utilization collapse is validation / metric-finalization work, **not test
+loss, not hidden training loss, and not evidence that the training dataloader
+suddenly degraded**. `val/loss` is explicitly skipped. The fixed validation pool
+contains 22,365 tiles; at 8/GPU x 4 GPUs this is about 699 distributed validation
+batches, followed by distributed prediction/target merging, bbox COCO metrics,
+segmentation COCO metrics, F1/precision/recall work, early-stopping/best-model
+callbacks, and checkpoint writes. Those CPU/synchronization-heavy phases can make
+`nvtop` look nearly idle before the next training epoch resumes.
+
+Use the new cheap status helper during future runs:
+
+```bash
+python experiments/rfdetr_seg_v1/run_status.py
+python experiments/rfdetr_seg_v1/run_status.py --watch --interval=10
+```
+
+It estimates train steps and validation batches from the pool receipt and active
+batch geometry, reads the small `metrics.csv`, and, when exactly one matching
+container is running, scans recent Docker phase markers. This should be the first
+thing a fresh agent uses when utilization changes.
+
+Potential future throughput experiments, in order, after v3 quality is known:
+
+1. increase **validation** batch independently (16/GPU, then possibly 32/GPU),
+   because validation has no backward-activation storage;
+2. consider `eval_interval: 2` if per-epoch validation is a material wall-clock
+   cost, while accounting for early-stopping semantics;
+3. test train batch 16/GPU (global batch 64) with the same optimizer policy before
+   considering anything larger;
+4. profile the existing AccumulateGrad stream / gradient-stride warnings only if
+   training-phase utilization remains unexpectedly poor. They remain warnings,
+   not a proven root cause.
+
+### Hard-negative truth-QA gate
+
+Hard-negative mining is now explicitly treated as both a training-data mechanism
+and an annotation-audit mechanism. A model prediction on a supposedly safe
+negative can be a genuine model false positive **or a false negative in the truth
+annotations**. The hardest mined negatives should therefore be manually reviewed
+before they are automatically trusted as round-(N+1) background.
+
+KDK now owns the generic `mine-review` workflow. It joins completed mining ledgers
+back to the virtual candidate index and canonical source KWCoco, maps each mined
+prediction from tile coordinates into source-image coordinates, and writes:
+
+- `review_queue.json` / `review_queue.tsv` with rank, score, tile identity,
+  source gid/path, source-coordinate prediction box, current truth counts, and
+  blank human review fields;
+- `review.kwcoco.zip`, a **diagnostic** source-image subset preserving current
+  truth plus `__hard_negative_review__` proposal annotations;
+- `previews/*.jpg` and `index.html`, hardest first, with red prediction boxes,
+  blue tile extents, and green existing target-truth boxes;
+- adjacent `.json` sidecar discovery when one exists beside the source image.
+
+ShitSpotter wraps that generic primitive with:
+
+```bash
+python experiments/rfdetr_seg_v1/review_hard_negatives.py --round-index=0
+```
+
+which additionally writes `annotation_targets.tsv`. ShitSpotter's canonical manual
+truth is the LabelMe JSON sidecar next to the source image, so this table gives the
+exact image and JSON path to edit/create. The review KWCoco is never the source of
+truth.
+
+The default review policy is top 200 globally selected hard negatives, at most 3
+per source image, score >= 0.30. These are UX defaults, not mining-selection
+semantics, and can be overridden at review time without rescoring.
+
+**Truth correction invalidation rule:** if review finds an unannotated poop and
+canonical truth changes, regenerate the source KWCoco and rebuild truth-dependent
+artifacts before round 1. In particular, do not reuse the old train negative
+candidate index: a window classified as safe under old truth may now contain a
+positive. Rebuild the candidate index and derived positive/negative pools (and any
+round manifest built from them) against the corrected manifest fingerprint.
+
+### Current aiq-gpu path / provenance anchors
+
+The live campaign uses environment overrides rather than the historical defaults
+written in `config.yaml`:
+
+- `SHITSPOTTER_DATA_DPATH=/data/users/jon.crall/shitspotter_dvc`
+- `SHITSPOTTER_RFDETR_ROOT=/data/users/jon.crall/shitspotter_rfdetr_v1`
+- active v3 workdir:
+  `/data/users/jon.crall/shitspotter_rfdetr_v1/rounds/round0/runs/v3`
+- train candidate index:
+  `/data/users/jon.crall/shitspotter_rfdetr_v1/candidates/train_negative_candidates`
+- validation candidate index:
+  `/data/users/jon.crall/shitspotter_rfdetr_v1/candidates/validation_negative_candidates`
+- shared tile cache:
+  `/data/users/jon.crall/shitspotter_rfdetr_v1/tile_cache`
+- RF-DETR image: `kwcoco-detector-kit:rfdetr-cu132-aiq`
+
+Frozen source-manifest SHA-256 values recorded for this campaign are:
+
+- train: `b3b6246531e525493e653917609cf0194d5c5eca2881314aa2c53c88160650a4`
+- validation: `72de53533abf3fa9d9db19f24b4d02dbd56a19cadf0a86107dda0d28aa4d00a5`
+- test: `403cbf79cf91711c886f30b13f66a3076118fa3a9571d87a6d9f3509b7ee68ed`
+
+These hashes are the provenance anchors for the currently materialized pools. If
+manual hard-negative review changes truth, the regenerated source manifest hash is
+expected to change; that is an intentional signal to invalidate old truth-derived
+artifacts, not something to work around.
+
+### Fresh-agent handoff / next gates
+
+Current state at the time of this journal update:
+
+1. The v3 round-0 RF-DETR Seg 2XLarge run is intentionally left running.
+   Recipe: batch 8/GPU x4, global 32, 15 epochs, `5e-5` model LR, `1e-5`
+   encoder LR, cosine + one-epoch warmup, EMA-mAP early stopping, unchanged 2:1
+   negative:positive pools.
+2. Training-phase throughput is healthy (~80% average GPU utilization, ~26 GiB
+   VRAM/GPU). Periodic low utilization at epoch boundaries is currently explained
+   by validation/metric work.
+3. Do not touch the held-out test split while choosing checkpoint, pool policy,
+   thresholds, or mining rounds.
+4. When v3 produces useful validation metrics, compare its early curve to v1's
+   epoch-2 peak rather than blindly waiting for all 15 epochs; early stopping is
+   enabled.
+5. After choosing the round-0 checkpoint, run `driver.py prepare-mining`, execute
+   `RUN_MINING.sh`, then run `review_hard_negatives.py` **before** admitting mined
+   negatives to round 1.
+6. Manually inspect the hardest review items. If they expose truth omissions,
+   correct LabelMe/source truth and rebuild stale truth-dependent artifacts before
+   continuing. If they are genuine false positives, the selected hard negatives
+   are appropriate training background.
+7. Only after v3 quality is understood should throughput policy move to batch
+   16/GPU/global 64 or less-frequent/larger-batch validation. Keep those changes
+   as separate interpretable experiments.
+
+The important architecture remains: complete safe-negative universe virtual;
+materialize positives/fixed validation/admitted negatives into the shared cache;
+mining ledgers are durable/resumable score evidence; finalization is a cheap
+re-tunable global selection step; manual truth review is now a gate between mining
+and treating the selected examples as trusted negative supervision.
