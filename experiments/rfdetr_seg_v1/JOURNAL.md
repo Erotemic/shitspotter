@@ -4,7 +4,7 @@ This is the durable handoff log for `experiments/rfdetr_seg_v1`. Keep it short,
 current, and factual. It should capture decisions and observations that a new
 agent would otherwise have to reconstruct from terminal logs or chat history.
 
-## 2026-09-20 — Round-0 pool architecture and v1/v2 training
+## 2026-09-20 — Round-0 pool architecture and v1/v2/v3 training
 
 ### Frozen source manifests
 
@@ -133,7 +133,37 @@ V2 policy:
 - batch size: 4/GPU on 4 GPUs
 - pool composition: unchanged 2:1 negatives:positives
 
-If v2 still develops the same high-precision / falling-recall pattern under the
+A transient low-utilization episode was investigated after one v2 restart. The
+process was mostly idle during a sample taken at validation startup, and ranks
+1-3 also showed small CUDA contexts on GPU 0. That initially suggested a
+launcher/device-placement issue. However, after rebuilding the container image
+and restarting the **unchanged v2 configuration**, good GPU utilization returned.
+The suspected utilization regression therefore did not reproduce. Do not treat
+the GPU-0 context observation or AccumulateGrad stream warning as a proven
+throughput root cause without a fresh controlled profile.
+
+### V3 batch-size experiment
+
+V1/v2 training used batch 4/GPU on four GPUs (global batch 16) and consumed only
+about 15 GiB of each ~96 GiB GPU. Even when utilization is healthy, that leaves
+substantial memory headroom. V3 changes only the physical batch geometry:
+
+- train batch size: 8/GPU on 4 GPUs (global batch 32)
+- validation batch size: 8/GPU
+- gradient accumulation: 1
+- epochs: 15
+- model LR: `5e-5`
+- encoder/backbone LR: `1e-5`
+- scheduler/warmup/early-stopping policy: unchanged from v2
+- pool composition: unchanged 2:1 negatives:positives
+
+The batch increase is deliberately modest. It doubles the global batch rather
+than jumping directly to 64+, and no speculative KDK launcher, DDP, CUDA-device,
+or auto-batch changes are part of this experiment. Learning rates are also left
+unchanged. V3 has about half as many optimizer updates per epoch as v2, so the
+two recipes are not update-count-equivalent.
+
+If v3 still develops the same high-precision / falling-recall pattern under the
 conservative schedule, the next controlled experiment should change pool
 composition (for example 1:1 negatives) without rematerializing the negative
 cache.

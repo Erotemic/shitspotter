@@ -99,28 +99,46 @@ Override the dataset checkout when it is mounted elsewhere with
 `SHITSPOTTER_DATA_DPATH`. Override the shared cache independently with
 `SHITSPOTTER_RFDETR_CACHE`.
 
-## Round-0 v2 fine-tuning policy
+## Round-0 v3 fine-tuning policy
 
-The active RF-DETR run is `rfdetr.run_name: v2`. It reuses the exact same
-materialized round-0 train/validation manifests as v1, but starts again from
-the upstream pretrained RF-DETR Seg 2XLarge weights with a deliberately more
-conservative optimization policy. V1 peaked early and then regressed while
-using a constant 1e-4 model LR and 1.5e-4 encoder LR over a 60-epoch horizon.
-V2 therefore uses 15 epochs, 5e-5 model LR, 1e-5 encoder LR, one epoch of
-linear warmup, cosine decay to 5% of the base LR, and EMA mAP early stopping
-with patience 4. The v1 workdir is not overwritten; v2 writes beneath
-`rounds/round0/runs/v2/`.
+The active RF-DETR recipe is `rfdetr.run_name: v3`. It reuses the exact same
+materialized round-0 train/validation manifests and the conservative optimizer
+policy introduced for v2. The only intended training change is a modest
+physical-batch increase from 4 to 8 images per GPU on four GPUs:
 
-After applying the matching KDK trainer overlay, regenerate the active run:
+- train batch: 8/GPU, global batch 32
+- validation batch: 8/GPU
+- gradient accumulation: 1
+- epochs: 15
+- model LR: `5e-5`
+- encoder LR: `1e-5`
+- one epoch linear warmup
+- cosine decay to 5% of the base LR
+- EMA mAP early stopping, patience 4
+
+The learning rates are deliberately unchanged. V3 is still a conservative
+fine-tune of the pretrained RF-DETR Seg 2XLarge model, not a large-batch
+re-tuning experiment. The global batch doubles from 16 to 32, so v3 performs
+about half as many optimizer updates per epoch as v2; compare quality by epoch
+and wall time with that difference in mind.
+
+A prior low-utilization observation did **not** reproduce after rebuilding the
+container image and restarting the unchanged v2 configuration. The rebuilt v2
+run again showed good GPU utilization. Therefore this campaign does not carry
+forward any speculative launcher/DDP/device-binding changes from that
+investigation. The batch increase is intentionally the only runtime-policy
+change in v3.
+
+The v1/v2 workdirs are not overwritten; v3 writes beneath
+`rounds/round0/runs/v3/`. Regenerate the active run with:
 
 ```bash
 python experiments/rfdetr_seg_v1/driver.py prepare
-cat "$SHITSPOTTER_RFDETR_ROOT/rounds/round0/runs/v2/ROUND0_COMMAND.txt"
+cat "$SHITSPOTTER_RFDETR_ROOT/rounds/round0/runs/v3/ROUND0_COMMAND.txt"
 ```
 
-Do not resume v2 from the regressing v1 checkpoint. The purpose of this run is
-to test the optimization policy independently of the already-frozen 2:1 pool
-composition.
+Do not resume v3 from v1/v2. Start from the same upstream pretrained RF-DETR
+Seg 2XLarge weights so this remains an interpretable batch-size experiment.
 
 See `JOURNAL.md` for the campaign handoff log and rationale behind the current
-data architecture and v2 optimization policy.
+data architecture and current training policy.

@@ -50,14 +50,15 @@ mining:
   max_hard_per_round: 5000
 
 rfdetr:
-  # V2 is a conservative fine-tuning run after v1 peaked early and then
-  # regressed. Keep it isolated so the v1 checkpoints remain available.
-  run_name: v2
+  # V3 keeps the conservative v2 optimizer policy and makes one modest
+  # hardware-facing change: double the physical batch from 4 to 8/GPU.
+  # Keep it isolated so v1/v2 checkpoints and logs remain available.
+  run_name: v3
   variant: seg_2xlarge
   input_hw: [768, 768]
   num_gpus: 4
-  batch_size_per_gpu: 4
-  validation_batch_size_per_gpu: 4
+  batch_size_per_gpu: 8
+  validation_batch_size_per_gpu: 8
   grad_accum_steps: 1
   epochs: 15
   lr: 0.00005
