@@ -760,3 +760,64 @@ The 10-epoch ceiling is sufficient because v3 peaked at displayed epoch 3 and
 early stopped after epoch 7; patience 4 remains enabled in case the lower LR
 shifts the optimum later.
 
+
+### 2026-09-21 — v4 complete: larger batch flattened the trajectory but did not beat v3
+
+V4 completed cleanly under the same patience-4 EMA segmentation-mAP early-stop
+policy used for v3. The experiment isolated a larger physical/global batch with
+lower learning rates while holding the round-0 data, truth, source scales,
+augmentations, scheduler, validation batch, EMA policy, and selection metric
+fixed relative to v3.
+
+The reported EMA validation trajectory was:
+
+| displayed epoch | box mAP50:95 | segm mAP50:95 | F1 |
+| ---: | ---: | ---: | ---: |
+| 2 | 0.6693 | 0.6421 | 0.8027 |
+| 3 | 0.6860 | 0.6578 | 0.8197 |
+| 4 | 0.6929 | 0.6651 | 0.8229 |
+| **5** | **0.6958** | **0.6674** | 0.8275 |
+| 6 | 0.6956 | 0.6670 | 0.8295 |
+| 7 | 0.6955 | 0.6666 | 0.8305 |
+| 8 | 0.6950 | 0.6663 | **0.8314** |
+| 9 | 0.6941 | 0.6655 | 0.8302 |
+
+The best monitored segmentation metric therefore occurred at displayed epoch 5
+(RF-DETR internal epoch 4). Displayed epochs 6-9 did not improve it, exhausting
+patience 4. RF-DETR then reported:
+
+```text
+Monitored metric __rfdetr_effective_map__ did not improve in the last 4 records.
+Best score: 0.667. Signaling Trainer to stop.
+Best total checkpoint saved from EMA (regular=0.0000, ema=0.6674)
+```
+
+The final clean comparison is:
+
+| run | global batch | model/backbone LR | best displayed epoch | box mAP50:95 | segm mAP50:95 |
+| --- | ---: | --- | ---: | ---: | ---: |
+| **v3** | 32 | 5e-5 / 1e-5 | 3 | **0.6975** | **0.6705** |
+| v4 | 64 | 2.5e-5 / 5e-6 | 5 | 0.6958 | 0.6674 |
+
+Relative to v3, the v4 optimum is lower by 0.0017 box AP and 0.0031 mask AP.
+The larger-batch/lower-LR recipe did, however, materially change the shape of the
+optimization trajectory: the optimum moved later (displayed epoch 3 -> 5) and
+the post-peak decline became a very shallow plateau instead of the sharper v3
+degradation. This supports the hypothesis that the quieter optimization regime
+reduces post-optimum drift, but it does **not** support the stronger hypothesis
+that this alone improves the best detector.
+
+F1 again behaved differently from AP: it continued improving after the AP peak,
+reaching 0.8314 at displayed epoch 8 while box/mask AP slowly declined. This is
+consistent with the earlier v3 observation that later training can improve a
+particular operating threshold without improving ranking/localization quality
+across the full precision-recall / IoU range. Segmentation AP remains the right
+checkpoint-selection metric for the campaign.
+
+Round-0 conclusion: keep v3's EMA-promoted `checkpoint_best_total.pth` as the
+canonical detector. V4 is a useful negative/control result, not the new model of
+record. Additional optimizer-only sweeps are lower priority than improving the
+information presented to the detector. The next campaign step is to finish the
+source-space prediction / truth review, correct uncertainty semantics as needed,
+rebuild the legal negative universe, and construct the hard-negative round-1
+training set before changing optimization again.

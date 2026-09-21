@@ -1077,3 +1077,34 @@ V3 remains the frozen baseline at box mAP50:95 0.6975 and segm mAP50:95 0.6705
 segmentation mAP50:95 > 0.6705. V4 must start from the same upstream pretrained
 RF-DETR Seg 2XLarge initialization rather than resume the v3 checkpoint.
 
+
+## 2026-09-21 RF-DETR v4 completed: batch-64 / half-LR control
+
+The clean round-0 v4 control is complete. It reused the exact v3 data and
+augmentation policy but doubled global train batch from 32 to 64 (16/GPU on four
+GPUs) while halving model/backbone learning rates from 5e-5/1e-5 to
+2.5e-5/5e-6. Validation batch, cosine schedule, one-epoch warmup, EMA selection,
+and patience-4 early stopping were unchanged.
+
+V4's best EMA validation was the table displayed as epoch 5/10 (RF-DETR internal
+epoch 4): box mAP50:95 0.6958 and segmentation mAP50:95 0.6674. Displayed epochs
+6-9 produced mask AP 0.6670, 0.6666, 0.6663, and 0.6655 respectively, so patience
+4 stopped the run after epoch 9. RF-DETR promoted the EMA best to the stable
+`checkpoint_best_total.pth` and reported `ema=0.6674`.
+
+The experiment answered its intended question. Compared with v3's best
+0.6975 box / 0.6705 mask at displayed epoch 3, v4 is lower by 0.0017 box AP and
+0.0031 mask AP. The larger batch plus lower LR nevertheless produced a much
+flatter trajectory and moved the optimum from displayed epoch 3 to epoch 5,
+showing that the quieter optimization regime reduces post-peak drift without
+raising the best detector quality. F1 continued rising after the AP optimum and
+peaked at 0.8314 on displayed epoch 8, again showing why threshold-specific F1
+should not replace segmentation AP as the checkpoint criterion.
+
+Campaign decision: v3 remains the canonical round-0 model, with its EMA-promoted
+`checkpoint_best_total.pth`. V4 is retained as a useful negative/control result.
+Do not prioritize another optimizer-only sweep before the pending annotation-QA
+and hard-negative work. The next useful model change should come after finishing
+source-space prediction, reviewing confident false positives / missing truth,
+fixing uncertainty semantics where needed, rebuilding the legal negative
+universe, and constructing hard-negative round 1.
