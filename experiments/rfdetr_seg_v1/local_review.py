@@ -249,6 +249,9 @@ def predict(paths, args, *, smoke=False) -> None:
         f"--window-prefetch={args.window_prefetch}",
         f"--postprocess-workers={args.postprocess_workers}",
         f"--postprocess-inflight={args.postprocess_inflight}",
+        f"--resume={str(args.resume).lower()}",
+        f"--checkpoint-every={args.checkpoint_every}",
+        f"--checkpoint-seconds={args.checkpoint_seconds}",
         dry_run=args.dry_run,
     )
 
@@ -316,6 +319,18 @@ def build_parser():
     parser.add_argument("--window-prefetch", type=int, default=2)
     parser.add_argument("--postprocess-workers", type=int, default=1)
     parser.add_argument("--postprocess-inflight", type=int, default=2)
+    parser.add_argument(
+        "--resume", type=parse_bool, default=True, metavar="BOOL",
+        help="resume matching periodic KDK prediction checkpoints after interruption",
+    )
+    parser.add_argument(
+        "--checkpoint-every", type=int, default=250,
+        help="checkpoint partial predictions every N finalized images (0 disables)",
+    )
+    parser.add_argument(
+        "--checkpoint-seconds", type=float, default=300.0,
+        help="checkpoint partial predictions at least this often (0 disables)",
+    )
     parser.add_argument("--review-min-score", type=float, default=0.50)
     parser.add_argument("--review-top-n", type=int, default=20000)
     parser.add_argument("--skip-smoke", action="store_true")

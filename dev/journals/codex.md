@@ -1035,3 +1035,27 @@ snapshot/model/review paths from a single immutable snapshot name, verifies
 hashes, packages in the KDK container, runs a small source-space smoke first,
 then the full no-cache source prediction and truth-aware review. This replaces
 ad hoc reusable shell functions with a reproducible repo-owned interface.
+
+
+## 2026-09-20 RF-DETR v3 completion and coarse-prediction robustness
+
+V3 completed by the configured EMA early-stopping path. The best remained the
+validation table displayed as epoch 3/15 (RF-DETR internal epoch 2): box
+mAP50:95 0.6975 and segmentation mAP50:95 0.6705. Displayed epochs 4-7 did not
+improve the monitored segmentation metric, exhausting patience 4. RF-DETR then
+reported `Best total checkpoint saved from EMA (regular=0.0000, ema=0.6705)`.
+`checkpoint_best_total.pth` is therefore now the stable canonical round-0 v3
+artifact. Relative to the old v1 best, v3 improved box mAP50:95 by 0.0310 and
+segmentation mAP50:95 by 0.0257. F1 continued improving through displayed epoch
+5 while AP declined, reinforcing the decision to select by segmentation AP
+rather than one threshold-specific F1 optimum.
+
+The 0.4x local coarse prediction pass then exposed a one-pixel scale-grid bug
+after roughly 3,200 images. A 768-pixel native width at requested scale 0.4 is
+realized by delayed-image as 308 pixels because its auto canvas fits the warped
+positive extent; KDK had independently used Python `round` and expected 307.
+Prediction space now adopts delayed-image's realized `dsize` before window
+planning and derives the native affine from those exact dimensions. Long
+prediction passes also publish atomic partial KWCoco/state checkpoints and
+resume matching runs by completed gid; output-affecting configuration changes
+invalidate the checkpoint instead of mixing products.

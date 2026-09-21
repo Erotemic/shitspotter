@@ -629,3 +629,84 @@ same bounded prediction pipeline. Coarse products use `.scale0p4` path suffixes
 so they cannot overwrite the native-resolution control products. The next
 workflow step should be proposal-driven native refinement plus a random audit of
 coarse-negative images, not another exhaustive 1.0x pass.
+
+
+### 2026-09-20 — v3 completes by early stopping; stable total checkpoint promoted
+
+Round-0 v3 finished exactly through the intended EMA early-stopping control
+path. The best validation remained the table displayed as `Epoch 3/15`
+(RF-DETR callback/internal epoch index `2`):
+
+| displayed epoch | box mAP50:95 | segm mAP50:95 | F1 |
+| ---: | ---: | ---: | ---: |
+| 1 | 0.6590 | 0.6331 | 0.7993 |
+| 2 | 0.6908 | 0.6627 | 0.8217 |
+| **3** | **0.6975** | **0.6705** | 0.8309 |
+| 4 | 0.6889 | 0.6646 | 0.8366 |
+| 5 | 0.6838 | 0.6598 | **0.8382** |
+| 6 | 0.6744 | 0.6507 | 0.8370 |
+| 7 | 0.6720 | 0.6472 | 0.8373 |
+
+The monitored segmentation AP failed to improve for displayed epochs 4, 5, 6,
+and 7. With patience 4, training stopped and RF-DETR reported that the best
+total checkpoint was saved from EMA (`regular=0.0000`, `ema=0.6705`). Therefore
+`checkpoint_best_total.pth` is now stable and is the canonical round-0 v3
+artifact for packaging/inference. The earlier while-running concern about
+racing `checkpoint_best_ema.pth` no longer applies to this completed run.
+
+The optimization conclusion is narrower than "overfitting solved." The early
+optimum still exists, but the conservative v3 schedule materially improved both
+the best point and the later decline relative to v1:
+
+```text
+v1 best:
+    box mAP50:95   0.6665
+    segm mAP50:95  0.6448
+
+v3 best:
+    box mAP50:95   0.6975   (+0.0310)
+    segm mAP50:95  0.6705   (+0.0257)
+
+v3 displayed epoch 7:
+    box mAP50:95   0.6720
+    segm mAP50:95  0.6472
+```
+
+F1 continued improving after AP peaked (best observed F1 0.8382 at displayed
+epoch 5), while box/mask AP declined. This is consistent with the later model
+improving at a particular operating threshold while losing ranking/localization
+quality across the full PR/IoU range. Selecting checkpoints by the segmentation
+AP metric remains the appropriate campaign rule.
+
+For future fresh runs, a 15-epoch ceiling is unnecessary for this current
+model/data regime; 8-10 nominal epochs with early stopping would cover the
+observed trajectory. The more important next work is not another optimizer
+sweep. Freeze the round-0 v3 best, improve source truth/uncertainty semantics,
+and construct the legal hard-negative round-1 universe from corrected truth.
+
+### 2026-09-20 — coarse prediction-space rounding failure and resumable inference
+
+The first 0.4x coarse source-space pass reached about 3,200 / 11,247 images at
+approximately 1.79 images/s and 10.8 windows/s before exposing a coordinate-grid
+edge case. For native size `(height=1024, width=768)`, KDK predicted the scaled
+canvas by Python rounding as `(410, 307)`, while delayed-image correctly realized
+its positive warped extent as `(410, 308)`. The pass failed closed rather than
+writing geometrically ambiguous output.
+
+The prediction-space contract is now stricter and simpler: `delayed_image` owns
+the realized detector pixel grid. KDK reads the scaled delayed graph's `dsize`
+before planning windows and derives the exact prediction-to-native affine from
+that realized width/height. The requested scalar remains provenance, not an
+independent source of integer canvas truth. If a backend can only resolve its
+final extent at realization time, the realized array shape is adopted before
+any regional reads have been consumed.
+
+Long source-space passes are also resumable by default. KDK writes an atomic
+partial KWCoco and an authoritative completed-GID state every 250 committed
+source images or five minutes, whichever occurs first, and forces a checkpoint
+on exceptions / Ctrl-C. Restarting with the same package/source/output-affecting
+inference identity skips completed gids. Changed model/source/scale/window/
+overlap/threshold/backend settings refuse reuse rather than mixing outputs. The
+already-failed ~3,200-image pass predates this mechanism and cannot be recovered,
+but subsequent late-image failures should lose at most the bounded interval
+since the last checkpoint rather than the whole prediction run.

@@ -52,6 +52,15 @@ def snapshot_model(
     run_dpath: Path, name: str, checkpoint: str, expect_sha256: str | None = None
 ) -> Path:
     run_dpath = run_dpath.expanduser().resolve()
+    if checkpoint == "auto":
+        candidates = [
+            "checkpoint_best_total.pth",
+            "checkpoint_best_ema.pth",
+        ]
+        checkpoint = next(
+            (candidate for candidate in candidates if (run_dpath / candidate).is_file()),
+            candidates[0],
+        )
     src = run_dpath / checkpoint
     if not src.is_file():
         raise FileNotFoundError(src)
@@ -149,11 +158,11 @@ def main():
     parser.add_argument("--name", required=True, help="immutable snapshot name, e.g. epoch2_best")
     parser.add_argument(
         "--checkpoint",
-        default="checkpoint_best_ema.pth",
+        default="auto",
         help=(
-            "checkpoint basename. During the active v3 EMA-only validation run, "
-            "checkpoint_best_ema.pth is the live best; completed runs can use "
-            "checkpoint_best_total.pth"
+            "checkpoint basename or auto. Auto prefers checkpoint_best_total.pth "
+            "after fit completion and falls back to checkpoint_best_ema.pth while "
+            "an EMA-validation run is still active"
         ),
     )
     parser.add_argument(

@@ -267,6 +267,22 @@ The helper hashes the live checkpoint before and after copying, verifies the
 copy, snapshots the small training metadata, and atomically publishes only a
 stable result.
 
+V3 has now completed by early stopping. Its displayed validation epoch 3 was
+the final best (`segm mAP50:95=0.6705`, `box mAP50:95=0.6975`), followed by four
+non-improving validations through displayed epoch 7. RF-DETR then promoted the
+best EMA state into `checkpoint_best_total.pth` and explicitly logged `Best
+total checkpoint saved from EMA`. For any new frozen v3 package,
+`checkpoint_best_total.pth` is therefore the canonical stable artifact; the
+mutable-EMA snapshot instructions above only describe the earlier while-running
+state. The snapshot helper now defaults to `--checkpoint=auto`, which selects
+`checkpoint_best_total.pth` when present and otherwise falls back to the live
+EMA best. A completed-run snapshot can therefore simply be created with:
+
+```bash
+python experiments/rfdetr_seg_v1/snapshot_model.py \
+    --name=v3_best_total_val3_map6705_20260920
+```
+
 On `toothbrush`, one snapshot name is enough to derive both transfer paths:
 
 ```bash
@@ -416,3 +432,10 @@ native-resolution refinement should consume interesting coarse proposals and
 re-run only those regions at `prediction_scale=1.0`. A sampled native-resolution
 audit of coarse-negative images should be used to estimate what the coarse pass
 misses before it becomes a trusted hard-negative admission screen.
+
+Long coarse scans are resumable. KDK checkpoints committed source-image
+predictions every 250 images or five minutes by default and forces a checkpoint
+on exceptions / Ctrl-C. Re-running the same `local_review.py predict` or
+`coarse` command resumes matching partial output automatically; changed
+prediction settings fail closed instead of mixing coordinate spaces or model
+outputs.
