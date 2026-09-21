@@ -1059,3 +1059,21 @@ planning and derives the native affine from those exact dimensions. Long
 prediction passes also publish atomic partial KWCoco/state checkpoints and
 resume matching runs by completed gid; output-affecting configuration changes
 invalidate the checkpoint instead of mixing products.
+
+## 2026-09-20 RF-DETR v4 large-batch / low-LR control
+
+The next round-0 training run is v4, deliberately launched before hard-negative
+review is complete so it remains directly comparable to v3. It reuses the same
+round-0 train/validation pools and all data/augmentation/source-scale policy.
+Training batch changes from 8/GPU to 16/GPU on four GPUs (global 32 -> 64), while
+model/backbone learning rates are halved from 5e-5/1e-5 to 2.5e-5/5e-6.
+Validation batch remains 8/GPU. Cosine schedule, one-epoch warmup, EMA
+segmentation-mAP checkpoint selection, and patience-4 early stopping are
+unchanged. The nominal ceiling is reduced from 15 to 10 epochs.
+
+V3 remains the frozen baseline at box mAP50:95 0.6975 and segm mAP50:95 0.6705
+(displayed validation epoch 3, internal epoch 2), with stable
+`checkpoint_best_total.pth` promoted from EMA. V4's primary success criterion is
+segmentation mAP50:95 > 0.6705. V4 must start from the same upstream pretrained
+RF-DETR Seg 2XLarge initialization rather than resume the v3 checkpoint.
+

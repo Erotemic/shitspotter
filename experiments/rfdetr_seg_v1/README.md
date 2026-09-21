@@ -138,49 +138,63 @@ Override the dataset checkout when it is mounted elsewhere with
 `SHITSPOTTER_DATA_DPATH`. Override the shared cache independently with
 `SHITSPOTTER_RFDETR_CACHE`.
 
-## Round-0 v3 fine-tuning policy
+## Round-0 v4 large-batch / low-LR policy
 
-The active RF-DETR recipe is `rfdetr.run_name: v3`. It reuses the exact same
-materialized round-0 train/validation manifests and the conservative optimizer
-policy introduced for v2. The only intended training change is a modest
-physical-batch increase from 4 to 8 images per GPU on four GPUs:
+The active RF-DETR recipe is now `rfdetr.run_name: v4`. It intentionally reuses
+the exact same materialized round-0 train/validation manifests as v3. No
+hard-negative mining result or source-truth update is included in this run.
 
-- train batch: 8/GPU, global batch 32
-- validation batch: 8/GPU
+V4 is a narrow optimizer experiment against the completed v3 baseline:
+
+- train batch: 16/GPU on four GPUs, global batch 64
+- validation batch: 8/GPU (unchanged from v3)
 - gradient accumulation: 1
-- epochs: 15
-- model LR: `5e-5`
-- encoder LR: `1e-5`
-- one epoch linear warmup
-- cosine decay to 5% of the base LR
-- EMA mAP early stopping, patience 4
+- epoch ceiling: 10
+- model LR: `2.5e-5` (half of v3)
+- encoder/backbone LR: `5e-6` (half of v3)
+- one epoch linear warmup (unchanged)
+- cosine decay to 5% of the base LR (unchanged)
+- EMA mAP early stopping, patience 4 (unchanged)
 
-The learning rates are deliberately unchanged. V3 is still a conservative
-fine-tune of the pretrained RF-DETR Seg 2XLarge model, not a large-batch
-re-tuning experiment. The global batch doubles from 16 to 32, so v3 performs
-about half as many optimizer updates per epoch as v2; compare quality by epoch
-and wall time with that difference in mind.
+The experiment hypothesis is that the larger physical batch reduces gradient
+noise while the lower learning rates slow parameter movement enough to improve
+the early validation optimum and/or reduce the post-optimum AP decline seen in
+v3. This is deliberately *not* linear LR scaling with batch size.
 
-A prior low-utilization observation did **not** reproduce after rebuilding the
-container image and restarting the unchanged v2 configuration. The rebuilt v2
-run again showed good GPU utilization. Therefore this campaign does not carry
-forward any speculative launcher/DDP/device-binding changes from that
-investigation. The batch increase is intentionally the only runtime-policy
-change in v3.
+The v3 acceptance baseline is fixed:
 
-The v1/v2 workdirs are not overwritten; v3 writes beneath
-`rounds/round0/runs/v3/`. Regenerate the active run with:
+```text
+v3 best displayed validation: 3/15
+box mAP50:95:                0.6975
+segm mAP50:95:               0.6705
+canonical artifact:          checkpoint_best_total.pth
+```
+
+The primary v4 success criterion is EMA segmentation mAP50:95 greater than
+`0.6705`; box mAP50:95 greater than `0.6975` is a useful secondary result. Keep
+checkpoint selection on segmentation AP even if threshold-specific F1 continues
+to improve later than AP.
+
+The ten-epoch ceiling is intentionally shorter than v3's old 15-epoch ceiling.
+V3 peaked at displayed epoch 3 and stopped after displayed epoch 7 with patience
+4, so ten epochs leaves room for a lower-LR optimum to shift later without
+spending another unnecessary 15-epoch run. Early stopping remains the real stop
+condition.
+
+V1/v2/v3 workdirs are not overwritten; v4 writes beneath
+`rounds/round0/runs/v4/`. Regenerate the active run with:
 
 ```bash
 python experiments/rfdetr_seg_v1/driver.py prepare
-cat "$SHITSPOTTER_RFDETR_ROOT/rounds/round0/runs/v3/ROUND0_COMMAND.txt"
+cat "$SHITSPOTTER_RFDETR_ROOT/rounds/round0/runs/v4/ROUND0_COMMAND.txt"
 ```
 
-Do not resume v3 from v1/v2. Start from the same upstream pretrained RF-DETR
-Seg 2XLarge weights so this remains an interpretable batch-size experiment.
+Start v4 fresh from the same upstream pretrained RF-DETR Seg 2XLarge weights as
+the prior runs. Do not resume from the v3 checkpoint; that would answer a
+different question.
 
-See `JOURNAL.md` for the campaign handoff log and rationale behind the current
-data architecture and current training policy.
+See `JOURNAL.md` for the completed v3 trajectory and the rationale for this v4
+control.
 
 ## Binary truth semantics and round-1 invalidation
 

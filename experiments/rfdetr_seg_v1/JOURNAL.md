@@ -710,3 +710,53 @@ overlap/threshold/backend settings refuse reuse rather than mixing outputs. The
 already-failed ~3,200-image pass predates this mechanism and cannot be recovered,
 but subsequent late-image failures should lose at most the bounded interval
 since the last checkpoint rather than the whole prediction run.
+
+### 2026-09-20 — v4 launch plan: global batch 64 with half learning rates
+
+Hard-negative review/mining is not being completed before the next training
+window, so v4 is intentionally another clean round-0 optimizer experiment. It
+reuses the exact same train/validation pools, truth, source scales, augmentations,
+scheduler, EMA policy, and early-stopping policy as v3. No partially reviewed
+mined negatives are admitted.
+
+The only intended optimization changes are:
+
+| setting | v3 | v4 |
+| --- | ---: | ---: |
+| GPUs | 4 | 4 |
+| train batch / GPU | 8 | 16 |
+| global train batch | 32 | 64 |
+| validation batch / GPU | 8 | 8 |
+| gradient accumulation | 1 | 1 |
+| model LR | 5e-5 | 2.5e-5 |
+| backbone LR | 1e-5 | 5e-6 |
+| epoch ceiling | 15 | 10 |
+| warmup | 1 epoch | 1 epoch |
+| scheduler | cosine, min factor 0.05 | unchanged |
+| EMA early stopping | patience 4 | unchanged |
+
+This deliberately moves in the opposite direction from linear LR scaling. The
+hypothesis is that global batch 64 lowers gradient noise while half learning
+rates make the pretrained RF-DETR Seg 2XLarge fine-tune more conservatively,
+possibly raising the early optimum or reducing the post-optimum AP decline.
+
+The frozen v3 comparison point is:
+
+```text
+best displayed validation epoch: 3
+RF-DETR internal epoch index:     2
+box mAP50:95:                     0.6975
+segm mAP50:95:                    0.6705
+canonical checkpoint:             checkpoint_best_total.pth (EMA promoted)
+```
+
+Primary v4 success criterion: EMA segmentation mAP50:95 > 0.6705. Secondary:
+box mAP50:95 > 0.6975. Continue selecting by segmentation AP even if F1 peaks
+later, as it did in v3.
+
+V4 writes to `rounds/round0/runs/v4/` and must start from the same upstream
+pretrained model as the earlier controls, not from v3's fine-tuned checkpoint.
+The 10-epoch ceiling is sufficient because v3 peaked at displayed epoch 3 and
+early stopped after epoch 7; patience 4 remains enabled in case the lower LR
+shifts the optimum later.
+

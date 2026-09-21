@@ -62,19 +62,22 @@ mining:
   max_hard_per_round: 5000
 
 rfdetr:
-  # V3 keeps the conservative v2 optimizer policy and makes one modest
-  # hardware-facing change: double the physical batch from 4 to 8/GPU.
-  # Keep it isolated so v1/v2 checkpoints and logs remain available.
-  run_name: v3
+  # V4 is a clean large-batch / low-learning-rate follow-up to the completed
+  # v3 round-0 run. Keep the exact same round-0 data, augmentations, source
+  # scales, scheduler, EMA, and early-stopping policy. The intended experiment
+  # is only: global train batch 32 -> 64 and both learning rates halved.
+  # Validation batch stays at 8/GPU so the validation execution policy itself
+  # is unchanged. V3 remains frozen under rounds/round0/runs/v3/.
+  run_name: v4
   variant: seg_2xlarge
   input_hw: [768, 768]
   num_gpus: 4
-  batch_size_per_gpu: 8
+  batch_size_per_gpu: 16
   validation_batch_size_per_gpu: 8
   grad_accum_steps: 1
-  epochs: 15
-  lr: 0.00005
-  backbone_lr: 0.00001
+  epochs: 10
+  lr: 0.000025
+  backbone_lr: 0.000005
   lr_scheduler: cosine
   lr_scheduler_kwargs:
     min_factor: 0.05
