@@ -755,3 +755,47 @@ ITS ALIVE!
 
 We needed the bigger pico model. 416x416 and yes there were false positives and
 I needed the threshold low, but it spotted one I didn't see. 
+
+
+# 2026-09-26
+
+Been working on training some bigger models with a focus on making labeling new
+images easier. Using RF-DETR I've trained models that seems to have some pretty
+good numbers versus older models. Most training recipies have been suggested by
+GPT at this point (its so nice to be able to wrap rando research code), with
+some suggestions based on my own experience and intuition. I've started moving
+the generic infastructure to a kwcoco-detection-kit repo, which will help keep
+the infastructure in this new vibe-coding reality more generic and less
+shit-focused.
+
+One big win recently, is using these new models to rerun detection on the
+dataset itself and look at false positives. I vibed out a small workflow that
+makes it much easier for me to review false positives and either label them, or
+add them as real missed annotations. In train, validation, AND the test set I
+found a significant number of missed poop annotations, and these will be
+corrected in the next release.
+
+Speaking of releases, there was some sad news about IPFS losing funding from
+Shipyard, so it the future of this dataset on IPFS is unclear - at least in
+terms of its availability via ipfs.io gateways. However, the IPFS protocol is
+distributed, so it might be able to survive. In some sense it is the true test
+of how resiliant of a system IPFS is. I'll continue to experiment with it here,
+and I have a new dataset structure that I'm moving towards to make it easier to
+publish the ML-ready versions of the dataset for specific immediate tasks on
+huggingface, but it's important to me to keep the raw data from which these
+tasks can be built maintained and the single source of truth.
+
+It's also been quite a bit since I published an updated. Losing Honey caused a
+definite decrease in the rate at which I'm collecting data. Also I'm just not
+walking and collecting as much as I used to. To be honest, the zeitgeist around
+AI is all a bit discouraging, but I feel like its important to persist in this
+work. Not because its particularly important, but because its fairly
+unambiguous in terms of its value.
+
+Something else I suppose I should write down is that I've been using the app on
+my phone to find "negative" images that trigger more false alarms (at least wrt
+to the yolo model it is running). There is still quite a bit of interesting
+research that can be done with the before/after/negative protocol, and it's
+largely untapped. Mining negatives from these negative images is probably a
+good first step.  If I label enough false positives, then turning this into a
+classification dataset is another possibility.
