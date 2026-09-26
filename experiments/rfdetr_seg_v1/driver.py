@@ -327,6 +327,7 @@ def verify_inputs(config, decode_samples=8):
     """Validate manifests, all referenced paths, and sampled image decoding."""
     import kwcoco
     import numpy as np
+    import ubelt as ub
 
     report = {
         "schema_version": 1,
@@ -355,7 +356,12 @@ def verify_inputs(config, decode_samples=8):
                 f"{split}: target annotations lack bbox and segmentation: {bad_targets[:10]}"
             )
         missing = []
-        for img in dset.images().objs:
+        for img in ub.ProgIter(
+            dset.images().objs,
+            total=dset.n_images,
+            desc=f"verify-inputs:{split} assets",
+            verbose=3,
+        ):
             fpath = Path(dset.get_image_fpath(img["id"]))
             if not fpath.is_file():
                 missing.append({"image_id": img["id"], "path": str(fpath)})
@@ -402,6 +408,7 @@ def require_kdk(config):
 
 def census(config, hash_assets=False):
     import kwcoco
+    import ubelt as ub
     require_kdk(config)
     from kwcoco_detector_kit.data.tile_geometry import segmentation_kind
 
@@ -462,7 +469,12 @@ def census(config, hash_assets=False):
         }
         if hash_assets:
             assets = []
-            for img in dset.images().objs:
+            for img in ub.ProgIter(
+                dset.images().objs,
+                total=dset.n_images,
+                desc=f"census:{split} hash-assets",
+                verbose=3,
+            ):
                 path = Path(dset.get_image_fpath(img["id"])).resolve()
                 assets.append({
                     "image_id": img["id"], "path": str(path),
@@ -478,6 +490,7 @@ def census(config, hash_assets=False):
 def simulate_policy(config):
     """Count tile roles without decoding or encoding source imagery."""
     import kwcoco
+    import ubelt as ub
     require_kdk(config)
     from kwcoco_detector_kit.data.tile import (
         _clip_annotation_geometry,
@@ -519,7 +532,12 @@ def simulate_policy(config):
             name: Counter()
             for name in ["positive", "negative", "ignore"]
         }
-        for image in dset.images().objs:
+        for image in ub.ProgIter(
+            dset.images().objs,
+            total=dset.n_images,
+            desc=f"simulate-policy:{split}",
+            verbose=3,
+        ):
             width, height = int(image["width"]), int(image["height"])
             source_anns = list(dset.annots(gid=image["id"]).objs)
             parts = semantics.partition_annotations(dset, source_anns)
@@ -797,6 +815,16 @@ def build_candidates(config, splits=("train", "validation")):
     semantics = _truth_semantics_kwargs(config)
     for split in splits:
         dst = root / f"{split}_negative_candidates"
+        try:
+            _path, prior = _load_valid_candidate_index(config, split)
+        except Exception:
+            prior = None
+        if prior is not None:
+            print(
+                f"reuse valid {split} candidate index: {dst} "
+                f"({prior['num_candidates']:,} candidates)"
+            )
+            continue
         candidate_config = CandidateConfig.cli(argv=False, data={
             "src": config["splits"][split], "dst": str(dst),
             "category_names": ",".join(config["category_names"]),
@@ -810,6 +838,9 @@ def build_candidates(config, splits=("train", "validation")):
             "negative_safety_margin": policy["negative_safety_margin"],
             "min_source_scale_long_side": policy["min_source_scale_long_side"],
             "source_dataset_fingerprint": sha256_file(config["splits"][split]),
+            "progress": True,
+            "resume": True,
+            "checkpoint_images": 10,
         })
         enumerate_candidates(candidate_config)
         print(dst)
@@ -1036,11 +1067,12 @@ def _materialize_selected_negatives(config, split, dst, *, budget, seed, strateg
         return Path(dst)
 
     factory = selected_candidate_record_factory(
-        index, budget, seed=seed, strategy=strategy,
+        index, budget, seed=seed, strategy=strategy, progress=True,
     )
     out = materialize_candidates(
         index, factory(), cache_dpath=config["paths"]["cache"],
         jpeg_quality=config["tiles"]["jpeg_quality"], batch_size=32,
+        progress=True, total_records=budget,
     )
     out.dataset.setdefault("info", []).append({
         "name": "rfdetr_seg_v1 selected virtual negatives",

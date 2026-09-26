@@ -53,6 +53,20 @@ python experiments/rfdetr_seg_v1/driver.py prepare
 python experiments/rfdetr_seg_v1/driver.py status
 ```
 
+For an unattended corrected-truth rebuild, use the idempotent orchestrator
+after truth regeneration and legacy tile-cache migration are complete:
+
+```bash
+python experiments/rfdetr_seg_v1/run_overnight.py \
+    --config=/data/users/jon.crall/shitspotter_rfdetr_v1_corrected_truth/config.corrected_truth.yaml
+```
+
+It skips valid durable stages, resumes interrupted candidate enumeration from
+image-boundary checkpoints, reuses completed pools/prepared RF-DETR exports,
+and launches training in a deterministic detached Docker container. If the
+wrapper is restarted after a failed training process and `last.ckpt` exists,
+training resumes from that checkpoint.
+
 `build-pools` is the expensive validation boundary. It fully validates the
 generated KWCoco artifacts before recording a durable pool receipt. Normal
 `status` and `prepare` calls trust that immutable receipt instead of repeatedly
