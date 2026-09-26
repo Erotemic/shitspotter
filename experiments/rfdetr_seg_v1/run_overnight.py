@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shlex
 import subprocess
 import sys
 from datetime import datetime
@@ -184,25 +185,47 @@ def _train(config):
         exit_code = int(state.get("ExitCode", -1))
         if exit_code == 0:
             checkpoint = _find_checkpoint(workdir)
-            if checkpoint is None:
-                raise RuntimeError(
-                    f"container {name} exited 0 but no checkpoint exists under {workdir}"
-                )
-            driver.atomic_json_dump({
-                "schema_version": 1,
-                "config_fingerprint": fingerprint,
-                "container_name": name,
-                "checkpoint": str(checkpoint.resolve()),
-            }, workdir / "TRAINING_COMPLETE.json")
-            _say(f"DONE training: {checkpoint}")
-            return
-        _say(f"previous training container exited {exit_code}; removing before resume")
+            if checkpoint is not None:
+                driver.atomic_json_dump({
+                    "schema_version": 1,
+                    "config_fingerprint": fingerprint,
+                    "container_name": name,
+                    "checkpoint": str(checkpoint.resolve()),
+                }, workdir / "TRAINING_COMPLETE.json")
+                _say(f"DONE training: {checkpoint}")
+                return
+            _say(
+                f"previous training container exited 0 without a checkpoint; "
+                f"treating it as incomplete and restarting: {name}"
+            )
+        else:
+            _say(f"previous training container exited {exit_code}; removing before resume")
+        _say(f"LAST LOGS from {name}")
+        subprocess.run(["docker", "logs", "--tail=100", name], check=False)
         subprocess.run(["docker", "rm", name], check=True)
         state = None
 
     if state is None:
         kdk = Path(config["paths"]["kdk_repo"]).resolve()
         resume = workdir / "last.ckpt"
+        train_argv = [
+            "python", "-m", "torch.distributed.run",
+            f"--nproc_per_node={int(policy['num_gpus'])}",
+            str(launcher),
+            "--config", str(cfg_path),
+        ]
+        if resume.is_file():
+            train_argv += ["--resume", str(resume)]
+            _say(f"RESUME training from {resume}")
+        else:
+            _say("START fresh training")
+
+        # RF-DETR images historically use ENTRYPOINT ["/bin/bash", "-lc"].
+        # Passing python / -m / ... as separate Docker argv causes bash -lc to
+        # execute only the first token ("python"), which exits 0 without ever
+        # launching training. Override the image entrypoint explicitly and pass
+        # one shell-quoted command string so the launch contract is independent
+        # of the image's baked ENTRYPOINT.
         cmd = [
             "docker", "run", "-d",
             "--name", name,
@@ -212,18 +235,11 @@ def _train(config):
             "-v", "/data:/data",
             "-v", f"{kdk}:{kdk}",
             "-w", str(kdk),
+            "--entrypoint", "/bin/bash",
             str(policy["image"]),
-            "python", "-m", "torch.distributed.run",
-            f"--nproc_per_node={int(policy['num_gpus'])}",
-            str(launcher),
-            "--config", str(cfg_path),
+            "-lc", shlex.join(train_argv),
         ]
-        if resume.is_file():
-            cmd += ["--resume", str(resume)]
-            _say(f"RESUME training from {resume}")
-        else:
-            _say("START fresh training")
-        _say("RUN " + " ".join(cmd))
+        _say("RUN " + shlex.join(cmd))
         subprocess.run(cmd, check=True)
         state = _follow_container(name)
 
