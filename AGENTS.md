@@ -19,6 +19,8 @@
 - **General practices**:
   - Keep docstrings / inline notes informative—many files double as documentation.
   - Favor clarity and reproducibility; document non-obvious steps, data paths, and experiment parameters.
+  - **Progress invariant**: every command that can plausibly run for minutes must emit visible periodic progress from the start (prefer `ubelt.ProgIter` / `progiter.ProgIter`, including totals/rate/ETA when known). Long silent loops are not acceptable.
+  - **Restart invariant**: expensive long-running stages must be idempotent and, where practical, resumable from durable atomic checkpoints/receipts so interruption does not discard hours of completed work.
   - For long-running experiment scripts, prefer atomic final artifacts: either emit the canonical "final" outputs only after the stage completes successfully, or write explicit run-state metadata alongside intermediate outputs so resumable scripts can distinguish complete artifacts from partial/failed ones.
   - Be mindful of large external datasets / models; avoid hardcoding environment-specific secrets or paths.
 
