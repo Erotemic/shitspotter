@@ -161,9 +161,15 @@ def make_splits():
     print(f'vali_stats = {ub.urepr(vali_stats, nl=1)}')
     print(f'train_stats = {ub.urepr(train_stats, nl=1)}')
 
-    ub.symlink(train_split.fpath, link_path=train_split.fpath.parent / 'train.kwcoco.zip', overwrite=True, verbose=3)
-    ub.symlink(vali_split.fpath, link_path=vali_split.fpath.parent / 'vali.kwcoco.zip', overwrite=True, verbose=3)
+    train_link = train_split.fpath.parent / 'train.kwcoco.zip'
+    if train_link.is_symlink() or train_link.exists():
+        train_link.unlink()
+    train_link.symlink_to(train_split.fpath.name)
 
+    vali_link = vali_split.fpath.parent / 'vali.kwcoco.zip'
+    if vali_link.is_symlink() or vali_link.exists():
+        vali_link.unlink()
+    vali_link.symlink_to(vali_split.fpath.name)
     # See ~/code/ndsampler/train.sh
 
 

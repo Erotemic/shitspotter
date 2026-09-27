@@ -607,7 +607,12 @@ def main():
         rich.print('dset.fpath = {}'.format(ub.urepr(dset.fpath, nl=1)))
 
     test_lpath = ub.Path(learn_coco_dset.fpath).parent / 'test.kwcoco.zip'
-    ub.symlink(test_coco_dset.fpath, link_path=test_lpath, overwrite=True, verbose=3)
+    test_fpath = ub.Path(test_coco_dset.fpath)
+
+    if test_lpath.is_symlink() or test_lpath.exists():
+        test_lpath.unlink()
+
+    test_lpath.symlink_to(test_fpath.name)
 
     # Combine learn and test into "full" for analysis.
 
