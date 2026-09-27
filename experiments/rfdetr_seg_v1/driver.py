@@ -136,8 +136,30 @@ def _truth_semantics_kwargs(config):
 
 
 
+def _annotation_has_spatial_payload(ann):
+    """Return True when an annotation carries localized object geometry."""
+    for key in ("bbox", "segmentation", "keypoints"):
+        value = ann.get(key)
+        if value is None:
+            continue
+        if isinstance(value, (list, tuple, dict, str, bytes)) and not value:
+            continue
+        return True
+    return False
+
+
+def _uncategorized_nonspatial_metadata_ids(dset):
+    """Find caption/metadata records that are not localized object truth."""
+    return [
+        ann.get("id")
+        for ann in dset.annots().objs
+        if ann.get("category_id") is None
+        and not _annotation_has_spatial_payload(ann)
+    ]
+
+
 def _check_truth_hygiene(config, split, dset):
-    """Fail closed on source-truth mistakes that should be fixed before training."""
+    """Fail closed on malformed spatial truth while allowing metadata records."""
     policy = dict(config.get("truth_hygiene") or {})
     forbidden = set(map(str, policy.get("forbidden_category_names", [])))
     require_categorized = bool(policy.get("require_categorized_annotations", False))
@@ -147,33 +169,41 @@ def _check_truth_hygiene(config, split, dset):
     require_categorized = require_categorized or split in categorized_splits
 
     bad_forbidden = []
-    bad_uncategorized = []
+    bad_uncategorized_spatial = []
+    metadata_ids = []
     for ann in dset.annots().objs:
         cid = ann.get("category_id")
         cat = None if cid is None else dset.cats.get(cid)
         name = None if cat is None else cat.get("name")
         if name is not None and str(name) in forbidden:
             bad_forbidden.append((ann.get("id"), str(name)))
-        if require_categorized and (cid is None or cat is None or name is None):
-            bad_uncategorized.append(ann.get("id"))
+
+        unresolved = cid is None or cat is None or name is None
+        if cid is None and not _annotation_has_spatial_payload(ann):
+            metadata_ids.append(ann.get("id"))
+        elif require_categorized and unresolved:
+            bad_uncategorized_spatial.append(ann.get("id"))
 
     if bad_forbidden:
         raise RuntimeError(
             f"{split}: forbidden category names are still used by annotations; "
             f"examples={bad_forbidden[:10]!r}. Fix authoritative LabelMe truth first."
         )
-    if bad_uncategorized:
+    if bad_uncategorized_spatial:
         raise RuntimeError(
-            f"{split}: {len(bad_uncategorized)} annotations have no resolved category; "
-            f"examples={bad_uncategorized[:10]!r}. Resolve them to a named nuisance, "
-            "unknown, ignore, or poop before training."
+            f"{split}: {len(bad_uncategorized_spatial)} spatial annotations have no "
+            f"resolved category; examples={bad_uncategorized_spatial[:10]!r}. "
+            "Resolve them to a named nuisance, unknown, ignore, or poop before training."
         )
     return {
         "forbidden_category_names": sorted(forbidden),
         "require_categorized_annotations": require_categorized,
         "require_categorized_annotations_splits": sorted(categorized_splits),
         "forbidden_annotations": len(bad_forbidden),
-        "uncategorized_annotations": len(bad_uncategorized),
+        "uncategorized_annotations": len(bad_uncategorized_spatial),
+        "uncategorized_spatial_annotations": len(bad_uncategorized_spatial),
+        "uncategorized_nonspatial_metadata_annotations": len(metadata_ids),
+        "uncategorized_nonspatial_metadata_examples": metadata_ids[:10],
     }
 
 
@@ -422,8 +452,24 @@ def verify_inputs(config, decode_samples=8):
         if not src.is_file():
             raise FileNotFoundError(src)
         dset = kwcoco.CocoDataset.coerce(str(src))
-        validation = dset.validate()
         truth_hygiene = _check_truth_hygiene(config, split, dset)
+
+        # Caption-only / nonspatial metadata records are intentionally stored in
+        # the KWCoco annotations table, but they are outside the object-detection
+        # schema (category_id/bbox are absent). Validate the actual detection
+        # truth without making those legitimate metadata records look malformed.
+        metadata_ids = set(_uncategorized_nonspatial_metadata_ids(dset))
+        if metadata_ids:
+            import copy
+            validation_data = copy.deepcopy(dset.dataset)
+            validation_data["annotations"] = [
+                ann for ann in validation_data.get("annotations", [])
+                if ann.get("id") not in metadata_ids
+            ]
+            validation_dset = kwcoco.CocoDataset(validation_data)
+            validation = validation_dset.validate()
+        else:
+            validation = dset.validate()
         target_cids = {
             cat["id"] for cat in dset.dataset.get("categories", [])
             if cat["name"] in config["category_names"]

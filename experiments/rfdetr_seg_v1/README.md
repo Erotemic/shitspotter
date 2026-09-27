@@ -259,8 +259,11 @@ The source documentation explicitly defines `unknown` / `ignore` as uncertain
 poop-vs-background regions and describes named clutter labels as sparse false-
 positive annotations. For v6, `residual` and `residue` are explicitly treated
 as ignore-region cleanup marks rather than trusted negatives. Uncategorized
-annotations still require source/LabelMe inspection, and the single observed
-`unkown` typo is conservatively blocked until normalized to `unknown`.
+spatial annotations without a resolved category still require source/LabelMe
+inspection, and the single observed `unkown` typo is conservatively blocked
+until normalized to `unknown`. Caption-only / nonspatial metadata records may
+legitimately have `category_id=None`; v6 preserves them, reports them during
+`verify-inputs`, and excludes them from object-detection schema validation.
 
 ## Stable model snapshot -> local package -> source-space review
 
