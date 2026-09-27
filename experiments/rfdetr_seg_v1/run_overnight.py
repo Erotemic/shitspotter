@@ -152,6 +152,30 @@ def _find_checkpoint(workdir):
     return None
 
 
+def _find_resume_checkpoint(workdir):
+    """Return the newest full-state RF-DETR checkpoint suitable for resume.
+
+    RF-DETR does not write ``last.ckpt`` when ``checkpoint_interval=1``.  It
+    instead writes files such as ``checkpoint_epoch=4.ckpt``.  Lightweight
+    ``checkpoint_best_*.pth`` files intentionally omit optimizer / scheduler
+    state and therefore are not resume checkpoints.
+    """
+    workdir = Path(workdir)
+    last = workdir / "last.ckpt"
+    if last.is_file():
+        return last
+
+    candidates = []
+    pattern = re.compile(r"^checkpoint_epoch=(\d+)\.ckpt$")
+    for path in workdir.glob("checkpoint_epoch=*.ckpt"):
+        match = pattern.match(path.name)
+        if match:
+            candidates.append((int(match.group(1)), path))
+    if candidates:
+        return max(candidates, key=lambda item: item[0])[1]
+    return None
+
+
 def _follow_container(name):
     _say(f"FOLLOW docker logs for {name}")
     subprocess.run(["docker", "logs", "--follow", "--tail=100", name], check=False)
@@ -207,14 +231,14 @@ def _train(config):
 
     if state is None:
         kdk = Path(config["paths"]["kdk_repo"]).resolve()
-        resume = workdir / "last.ckpt"
+        resume = _find_resume_checkpoint(workdir)
         train_argv = [
             "python", "-m", "torch.distributed.run",
             f"--nproc_per_node={int(policy['num_gpus'])}",
             str(launcher),
             "--config", str(cfg_path),
         ]
-        if resume.is_file():
+        if resume is not None:
             train_argv += ["--resume", str(resume)]
             _say(f"RESUME training from {resume}")
         else:
@@ -245,9 +269,13 @@ def _train(config):
 
     exit_code = int(state.get("ExitCode", -1))
     if exit_code != 0:
+        resume = _find_resume_checkpoint(workdir)
+        if resume is None:
+            resume_hint = "no full-state resume checkpoint is currently present"
+        else:
+            resume_hint = f"rerun this script to resume from {resume}"
         raise RuntimeError(
-            f"training container {name} exited with code {exit_code}; "
-            "rerun this script to resume from last.ckpt if one exists"
+            f"training container {name} exited with code {exit_code}; {resume_hint}"
         )
     checkpoint = _find_checkpoint(workdir)
     if checkpoint is None:

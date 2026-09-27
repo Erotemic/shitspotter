@@ -83,7 +83,8 @@ rfdetr:
   #   * physical batch doubled from 8/GPU to 16/GPU;
   #   * early stopping disabled so the 15-epoch cosine schedule reaches its
   #     low-LR refinement regime.
-  # Keep the v6 LR values unchanged: this run is not linear LR scaling.
+  # Main LR is increased modestly for the doubled physical batch while the
+  # pretrained encoder remains at the conservative v6 LR.
   run_name: v7_multiscale_batch16_fullcosine
   variant: seg_2xlarge
   input_hw: [768, 768]
@@ -104,7 +105,11 @@ rfdetr:
   early_stopping_patience: 4
   early_stopping_min_delta: 0.001
   early_stopping_use_ema: true
-  num_workers: 8
+  # 8 workers per rank means 32 loader workers under 4-GPU DDP.  That was
+  # OOM-killed after epoch 1 with batch 16 + multiscale.  Keep the model-side
+  # experiment unchanged and reduce only loader concurrency to RF-DETR's
+  # conservative default scale: 2 workers/rank, 8 total.
+  num_workers: 2
   use_amp: true
   image: kwcoco-detector-kit:rfdetr-cu132-aiq
 
