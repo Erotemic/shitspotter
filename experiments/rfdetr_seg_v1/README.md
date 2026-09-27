@@ -257,10 +257,10 @@ python experiments/rfdetr_seg_v1/audit_truth.py \
 
 The source documentation explicitly defines `unknown` / `ignore` as uncertain
 poop-vs-background regions and describes named clutter labels as sparse false-
-positive annotations. `residue`, `residual`, uncategorized annotations, and the
-single observed `unkown` annotation still require source/LabelMe inspection;
-the campaign does not silently infer their meaning. `unkown` is conservatively
-blocked for now.
+positive annotations. For v6, `residual` and `residue` are explicitly treated
+as ignore-region cleanup marks rather than trusted negatives. Uncategorized
+annotations still require source/LabelMe inspection, and the single observed
+`unkown` typo is conservatively blocked until normalized to `unknown`.
 
 ## Stable model snapshot -> local package -> source-space review
 
@@ -467,3 +467,75 @@ on exceptions / Ctrl-C. Re-running the same `local_review.py predict` or
 `coarse` command resumes matching partial output automatically; changed
 prediction settings fail closed instead of mixing coordinate spaces or model
 outputs.
+
+## V6 corrected truth + annotated distractor quota
+
+`config.v6_reviewed_hardneg.yaml` is the next fresh-from-upstream-pretraining run.
+It returns to the successful v3 optimization recipe and changes the data policy:
+
+- source truth must be regenerated after the LabelMe cleanup;
+- `unkown` is forbidden and must be normalized to `unknown`;
+- train/validation annotations without a resolved category fail `verify-inputs`;
+- train and fixed validation keep the same total 2:1 negative:positive budget;
+- 20% of each negative budget is explicitly reserved for legal windows that
+  contain at least 50% of a trusted named non-target annotation bbox;
+- the remaining negative quota uses the existing deterministic
+  `stratified_by_image` sampler;
+- the explicit quota is a minimum, not a cap: ordinary stratified sampling may
+  independently select additional nuisance-containing windows;
+- nuisance categories remain background evidence and never become RF-DETR
+  output classes.
+
+This is campaign policy implemented in the ShitSpotter driver.  It uses KDK's
+existing streamed candidate-index/materialization API; no KDK change is required.
+The source KWCoco/LabelMe format currently does not retain enough provenance to
+separate annotations created specifically by the recent model-guided review from
+older trusted nuisance annotations, so the quota is intentionally defined over
+all trusted named background annotations.
+
+After correcting authoritative LabelMe truth, regenerate the split manifests
+before running the campaign:
+
+```bash
+cd ~/code/shitspotter
+export SHITSPOTTER_DVC_DPATH=/data/joncrall/dvc-repos/shitspotter_dvc
+export SHITSPOTTER_DATA_DPATH="$SHITSPOTTER_DVC_DPATH"
+python -m shitspotter.gather
+python -m shitspotter.make_splits
+```
+
+On the training server, point the campaign at the synced data and a fresh
+control-plane/output root while reusing the existing immutable raster cache:
+
+```bash
+cd ~/code/shitspotter
+export DATA=/data/users/jon.crall/shitspotter_dvc
+export NEW_ROOT=/data/users/jon.crall/shitspotter_rfdetr_v6_reviewed_hardneg
+export CACHE=/data/users/jon.crall/shitspotter_rfdetr_v1/tile_cache
+export CFG=experiments/rfdetr_seg_v1/config.v6_reviewed_hardneg.yaml
+
+export SHITSPOTTER_DVC_DPATH="$DATA"
+export SHITSPOTTER_DATA_DPATH="$DATA"
+export SHITSPOTTER_RFDETR_ROOT="$NEW_ROOT"
+export SHITSPOTTER_RFDETR_CACHE="$CACHE"
+
+mkdir -p "$NEW_ROOT/logs"
+python experiments/rfdetr_seg_v1/run_overnight.py \
+    --config="$CFG" \
+    2>&1 | tee -a "$NEW_ROOT/logs/overnight.log"
+```
+
+Run that foreground command inside tmux.  It is intentionally resumable and
+observable; do not wrap it in `nohup`.
+
+After `build-pools`, inspect the producer metadata to confirm the quota was
+actually admitted.  The driver prints a summary like:
+
+```text
+materialized 125000 selected train negatives -> ...
+(25000 annotated distractors + 100000 normal)
+```
+
+If there are not enough eligible annotated-distractor windows to fill the
+requested 20%, the driver uses all available eligible distractor windows and
+fills the rest of the fixed total negative budget with normal negatives.

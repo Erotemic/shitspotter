@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import itertools
 import json
 import os
 import shlex
@@ -101,9 +102,9 @@ def simulation_policy_fingerprint(config):
             for key in ["train", "validation"]
         },
         "tiles": config["tiles"],
-        "negative_over_positive": {
-            "train": config["round0"]["negative_over_positive"],
-            "validation": config["validation"]["negative_over_positive"],
+        "negative_policy": {
+            "train": config["round0"],
+            "validation": config["validation"],
         },
     }
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
@@ -131,6 +132,71 @@ def _truth_semantics_kwargs(config):
             "unclassified_category_policy", "ignore"
         ),
         **policy,
+    }
+
+
+
+def _check_truth_hygiene(config, split, dset):
+    """Fail closed on source-truth mistakes that should be fixed before training."""
+    policy = dict(config.get("truth_hygiene") or {})
+    forbidden = set(map(str, policy.get("forbidden_category_names", [])))
+    require_categorized = bool(policy.get("require_categorized_annotations", False))
+    categorized_splits = set(map(str, policy.get(
+        "require_categorized_annotations_splits", []
+    )))
+    require_categorized = require_categorized or split in categorized_splits
+
+    bad_forbidden = []
+    bad_uncategorized = []
+    for ann in dset.annots().objs:
+        cid = ann.get("category_id")
+        cat = None if cid is None else dset.cats.get(cid)
+        name = None if cat is None else cat.get("name")
+        if name is not None and str(name) in forbidden:
+            bad_forbidden.append((ann.get("id"), str(name)))
+        if require_categorized and (cid is None or cat is None or name is None):
+            bad_uncategorized.append(ann.get("id"))
+
+    if bad_forbidden:
+        raise RuntimeError(
+            f"{split}: forbidden category names are still used by annotations; "
+            f"examples={bad_forbidden[:10]!r}. Fix authoritative LabelMe truth first."
+        )
+    if bad_uncategorized:
+        raise RuntimeError(
+            f"{split}: {len(bad_uncategorized)} annotations have no resolved category; "
+            f"examples={bad_uncategorized[:10]!r}. Resolve them to a named nuisance, "
+            "unknown, ignore, or poop before training."
+        )
+    return {
+        "forbidden_category_names": sorted(forbidden),
+        "require_categorized_annotations": require_categorized,
+        "require_categorized_annotations_splits": sorted(categorized_splits),
+        "forbidden_annotations": len(bad_forbidden),
+        "uncategorized_annotations": len(bad_uncategorized),
+    }
+
+
+def _annotated_distractor_policy(policy):
+    """Normalize the campaign-level quota for trusted annotated distractors."""
+    raw = dict(policy.get("annotated_distractors") or {})
+    fraction = float(raw.get("fraction", 0.0))
+    if not (0.0 <= fraction <= 1.0):
+        raise ValueError(f"annotated_distractors.fraction must be in [0, 1], got {fraction}")
+    coverage = float(raw.get("min_annotation_coverage", 0.5))
+    if not (0.0 <= coverage <= 1.0):
+        raise ValueError(
+            "annotated_distractors.min_annotation_coverage must be in [0, 1], "
+            f"got {coverage}"
+        )
+    max_per_source = int(raw.get("max_per_source", 64))
+    if max_per_source <= 0:
+        raise ValueError("annotated_distractors.max_per_source must be positive")
+    return {
+        "fraction": fraction,
+        "seed": int(raw.get("seed", int(policy["seed"]) + 1009)),
+        "min_annotation_coverage": coverage,
+        "max_per_source": max_per_source,
     }
 
 
@@ -201,7 +267,7 @@ def _pool_manifest_matches(config, *, details=False):
         manifest = json.loads(manifest_path.read_text())
     except Exception:
         return False
-    if manifest.get("schema_version") not in {2, 3}:
+    if manifest.get("schema_version") not in {2, 3, 4}:
         return False
 
     expected_source_hashes = {
@@ -220,6 +286,14 @@ def _pool_manifest_matches(config, *, details=False):
         if recorded.get("negative_strategy") != policy["negative_strategy"]:
             return False
         if recorded.get("negative_seed") != policy["seed"]:
+            return False
+        expected_distractors = _annotated_distractor_policy(policy)
+        recorded_distractors = recorded.get("annotated_distractors")
+        if recorded_distractors is None and expected_distractors["fraction"] == 0:
+            # Backward compatibility for schema-2/3 pools produced before the
+            # explicit annotated-distractor quota existed.
+            pass
+        elif recorded_distractors != expected_distractors:
             return False
         positive = recorded.get("positive_tiles")
         negative = recorded.get("negative_tiles")
@@ -305,6 +379,14 @@ def _pool_manifest_matches(config, *, details=False):
                 "selection_budget": int(train["negative_tiles"]),
                 "jpeg_quality": int(config["tiles"]["jpeg_quality"]),
             }
+            train_distractor = _annotated_distractor_policy(config["round0"])
+            if train_distractor["fraction"] > 0:
+                negative_expected.update({
+                    "annotated_distractor_fraction": train_distractor["fraction"],
+                    "annotated_distractor_seed": train_distractor["seed"],
+                    "annotated_distractor_min_annotation_coverage": train_distractor["min_annotation_coverage"],
+                    "annotated_distractor_max_per_source": train_distractor["max_per_source"],
+                })
             if not all(
                 negative_info.get(key) == value
                 for key, value in negative_expected.items()
@@ -341,6 +423,7 @@ def verify_inputs(config, decode_samples=8):
             raise FileNotFoundError(src)
         dset = kwcoco.CocoDataset.coerce(str(src))
         validation = dset.validate()
+        truth_hygiene = _check_truth_hygiene(config, split, dset)
         target_cids = {
             cat["id"] for cat in dset.dataset.get("categories", [])
             if cat["name"] in config["category_names"]
@@ -390,6 +473,7 @@ def verify_inputs(config, decode_samples=8):
             "num_annotations": dset.n_annots,
             "num_missing_assets": 0,
             "source_validation": validation,
+            "truth_hygiene": truth_hygiene,
             "num_invalid_target_annotations": 0,
             "decoded_samples": decoded,
         }
@@ -1018,7 +1102,7 @@ def _load_valid_candidate_index(config, split):
 
 
 def _selected_negative_pool_matches(config, split, dst, *, index, budget, seed,
-                                    strategy):
+                                    strategy, policy):
     import kwcoco
 
     dst = Path(dst)
@@ -1033,6 +1117,7 @@ def _selected_negative_pool_matches(config, split, dst, *, index, budget, seed,
         )
     except Exception:
         return False
+    distractor = _annotated_distractor_policy(policy)
     expected = {
         "candidate_content_digest": index["candidate_content_digest"],
         "candidate_policy_fingerprint": index["policy_fingerprint"],
@@ -1041,6 +1126,13 @@ def _selected_negative_pool_matches(config, split, dst, *, index, budget, seed,
         "selection_budget": int(budget),
         "jpeg_quality": int(config["tiles"]["jpeg_quality"]),
     }
+    if distractor["fraction"] > 0:
+        expected.update({
+            "annotated_distractor_fraction": distractor["fraction"],
+            "annotated_distractor_seed": distractor["seed"],
+            "annotated_distractor_min_annotation_coverage": distractor["min_annotation_coverage"],
+            "annotated_distractor_max_per_source": distractor["max_per_source"],
+        })
     return (
         all(info.get(key) == value for key, value in expected.items())
         and dset.n_images == int(budget)
@@ -1048,29 +1140,166 @@ def _selected_negative_pool_matches(config, split, dst, *, index, budget, seed,
     )
 
 
+def _background_annotation_boxes(config, split):
+    """Return trusted background annotation boxes keyed by source image id."""
+    import kwcoco
+    require_kdk(config)
+    from kwcoco_detector_kit.data.truth_semantics import TruthSemantics
+
+    dset = kwcoco.CocoDataset.coerce(config["splits"][split])
+    semantics = TruthSemantics.from_mapping(
+        config["truth_semantics"], fallback_targets=config["category_names"]
+    )
+    result = {}
+    for ann in dset.annots().objs:
+        if semantics.annotation_role(dset, ann) != "background":
+            continue
+        bbox = ann.get("bbox")
+        if bbox is None:
+            continue
+        x, y, w, h = map(float, bbox)
+        if w <= 0 or h <= 0:
+            continue
+        name = semantics.category_name(dset, ann)
+        result.setdefault(int(ann["image_id"]), []).append({
+            "xyxy": (x, y, x + w, y + h),
+            "area": w * h,
+            "category": name,
+        })
+    return result
+
+
+def _candidate_distractor_categories(row, background_boxes, min_coverage):
+    """Return named distractors substantially represented inside a candidate."""
+    extent = row.get("tile_extent_xyxy_in_source")
+    if extent is None:
+        return ()
+    x1, y1, x2, y2 = map(float, extent)
+    names = []
+    for item in background_boxes.get(int(row["tile_source_gid"]), []):
+        ax1, ay1, ax2, ay2 = item["xyxy"]
+        iw = max(0.0, min(x2, ax2) - max(x1, ax1))
+        ih = max(0.0, min(y2, ay2) - max(y1, ay1))
+        if not iw or not ih:
+            continue
+        coverage = (iw * ih) / item["area"]
+        if coverage >= float(min_coverage):
+            names.append(item["category"])
+    return tuple(sorted({name for name in names if name is not None}))
+
+
+def _select_annotated_distractor_candidates(config, split, index, budget, policy):
+    """Select a deterministic, source-diverse quota of trusted distractor windows."""
+    import heapq
+    import ubelt as ub
+    from kwcoco_detector_kit.data.candidates import (
+        candidate_sampling_identity,
+        candidate_source_scale_key,
+        iter_candidate_records,
+    )
+
+    distractor = _annotated_distractor_policy(policy)
+    budget = int(budget)
+    if budget <= 0 or distractor["fraction"] <= 0:
+        return []
+
+    background_boxes = _background_annotation_boxes(config, split)
+    per_source = {}
+    prog = ub.ProgIter(
+        iter_candidate_records(index),
+        total=int(index["num_candidates"]),
+        desc=f"{split} annotated-distractor select",
+        verbose=3,
+    )
+    for row in prog:
+        names = _candidate_distractor_categories(
+            row, background_boxes, distractor["min_annotation_coverage"]
+        )
+        if not names:
+            continue
+        sample_id = candidate_sampling_identity(row)
+        priority = int(hashlib.sha256(
+            f"{distractor['seed']}:{sample_id}".encode()
+        ).hexdigest(), 16)
+        enriched = dict(row)
+        enriched["negative_origin"] = "trusted_annotated_distractor"
+        enriched["hard_negative_categories"] = list(names)
+        item = (-priority, str(sample_id), enriched["tile_id"], enriched)
+        heap = per_source.setdefault(int(row["tile_source_gid"]), [])
+        cap = distractor["max_per_source"]
+        if len(heap) < cap:
+            heapq.heappush(heap, item)
+        elif item > heap[0]:
+            heapq.heapreplace(heap, item)
+
+    candidates = [item for heap in per_source.values() for item in heap]
+    # Heap tuple stores -priority, so larger tuples represent better (smaller)
+    # deterministic priorities. Keep the requested global quota after imposing
+    # the per-source diversity cap.
+    candidates.sort(reverse=True)
+    selected = [item[3] for item in candidates[:budget]]
+    selected.sort(key=lambda row: (
+        candidate_source_scale_key(row),
+        tuple(row.get("tile_scaled_extent_xyxy", ())),
+        row["tile_id"],
+    ))
+    return selected
+
+
 def _materialize_selected_negatives(config, split, dst, *, budget, seed, strategy,
-                                    force=False):
+                                    policy, force=False):
     import kwcoco
     require_kdk(config)
     from kwcoco_detector_kit.data.candidates import (
+        candidate_source_scale_key,
         materialize_candidates,
         selected_candidate_record_factory,
     )
 
     index_path, index = _load_valid_candidate_index(config, split)
     budget = min(int(budget), int(index["num_candidates"]))
+    distractor = _annotated_distractor_policy(policy)
     if not force and _selected_negative_pool_matches(
         config, split, dst, index=index, budget=budget, seed=seed,
-        strategy=strategy,
+        strategy=strategy, policy=policy,
     ):
         print(f"reuse valid selected negative pool: {dst}")
         return Path(dst)
 
-    factory = selected_candidate_record_factory(
-        index, budget, seed=seed, strategy=strategy, progress=True,
+    requested_hard = round(float(distractor["fraction"]) * budget)
+    hard_rows = _select_annotated_distractor_candidates(
+        config, split, index, requested_hard, policy
     )
+    hard_ids = {row["tile_id"] for row in hard_rows}
+    normal_budget = budget - len(hard_rows)
+
+    # Ask the normal deterministic selector for enough rows that filtering any
+    # overlap with the explicit distractor quota cannot make the pool short.
+    normal_factory = selected_candidate_record_factory(
+        index,
+        min(int(index["num_candidates"]), normal_budget + len(hard_rows)),
+        seed=seed,
+        strategy=strategy,
+        progress=True,
+    )
+    normal_rows = list(itertools.islice(
+        (row for row in normal_factory() if row["tile_id"] not in hard_ids),
+        normal_budget,
+    ))
+    if len(normal_rows) != normal_budget:
+        raise RuntimeError(
+            f"{split}: selected only {len(normal_rows)}/{normal_budget} normal negatives "
+            "after excluding annotated-distractor quota"
+        )
+
+    selected_rows = hard_rows + normal_rows
+    selected_rows.sort(key=lambda row: (
+        candidate_source_scale_key(row),
+        tuple(row.get("tile_scaled_extent_xyxy", ())),
+        row["tile_id"],
+    ))
     out = materialize_candidates(
-        index, factory(), cache_dpath=config["paths"]["cache"],
+        index, iter(selected_rows), cache_dpath=config["paths"]["cache"],
         jpeg_quality=config["tiles"]["jpeg_quality"], batch_size=32,
         progress=True, total_records=budget,
     )
@@ -1084,13 +1313,23 @@ def _materialize_selected_negatives(config, split, dst, *, budget, seed, strateg
         "selection_seed": int(seed),
         "selection_budget": int(budget),
         "jpeg_quality": int(config["tiles"]["jpeg_quality"]),
+        "annotated_distractor_fraction": distractor["fraction"],
+        "annotated_distractor_seed": distractor["seed"],
+        "annotated_distractor_min_annotation_coverage": distractor["min_annotation_coverage"],
+        "annotated_distractor_max_per_source": distractor["max_per_source"],
+        "annotated_distractor_requested": int(requested_hard),
+        "annotated_distractor_selected": int(len(hard_rows)),
+        "normal_selected": int(len(normal_rows)),
     })
     dst = Path(dst)
     dst.parent.mkdir(parents=True, exist_ok=True)
     out.fpath = str(dst)
     out.dump()
     kwcoco.CocoDataset.coerce(str(dst)).validate()
-    print(f"materialized {budget} selected {split} negatives -> {dst}")
+    print(
+        f"materialized {budget} selected {split} negatives -> {dst} "
+        f"({len(hard_rows)} annotated distractors + {len(normal_rows)} normal)"
+    )
     return dst
 
 
@@ -1297,6 +1536,7 @@ def build_pools(config, force=False):
         budget=train_budget,
         seed=train_policy["seed"],
         strategy=train_policy["negative_strategy"],
+        policy=train_policy,
         force=force,
     )
     _materialize_selected_negatives(
@@ -1304,6 +1544,7 @@ def build_pools(config, force=False):
         budget=vali_budget,
         seed=vali_policy["seed"],
         strategy=vali_policy["negative_strategy"],
+        policy=vali_policy,
         force=force,
     )
     train_neg = kwcoco.CocoDataset.coerce(str(train_negative_tiles))
@@ -1335,7 +1576,7 @@ def build_pools(config, force=False):
     vali_dset.validate()
 
     manifest = {
-        "schema_version": 3,
+        "schema_version": 4,
         "source_manifest_sha256": {
             split: sha256_file(config["splits"][split])
             for split in ["train", "validation"]
@@ -1345,6 +1586,7 @@ def build_pools(config, force=False):
             "negative_tiles": int(train_neg.n_images),
             "negative_strategy": train_policy["negative_strategy"],
             "negative_seed": train_policy["seed"],
+            "annotated_distractors": _annotated_distractor_policy(train_policy),
             "round_manifest": str(round0),
         },
         "validation": {
@@ -1352,6 +1594,7 @@ def build_pools(config, force=False):
             "negative_tiles": int(vali_neg.n_images),
             "negative_strategy": vali_policy["negative_strategy"],
             "negative_seed": vali_policy["seed"],
+            "annotated_distractors": _annotated_distractor_policy(vali_policy),
             "manifest": str(vali_tiles),
         },
         "artifacts": {
