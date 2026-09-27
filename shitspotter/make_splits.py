@@ -34,43 +34,77 @@ def make_splits():
         cohort_start = coco_imgs[0].datetime
 
         if cohort.startswith('poop-'):
-            has_annots = np.array([len(coco_img.annots()) > 0 for coco_img in coco_imgs]).astype(np.uint8)
 
-            # We want to be careful to exclude any images that could have an
-            # unannotated poop in them. To do this we will use the knowledge of
-            # the data gathering protocol.
-            keep_flags = has_annots.copy()
-            protocol_version = '2img' if cohort_start <= change_point else '3img'
-            if protocol_version == '2img':
-                # This cohort belongs to the 2 image before/after (BA)
-                # protocol, if an image is annotated, we can infer that the
-                # image after it is likely a negative and include it in the
-                # split.
-                is_after_image = np.roll(has_annots, 1)
-                old_keep_flags = has_annots + is_after_image
+            # Legacy behavior attempted to infer BA/BAN acquisition groups from
+            # annotation presence so that potentially-unannotated images could be
+            # excluded from train/validation. This was useful when annotation
+            # coverage was incomplete, but it is no longer a sound assumption:
+            #
+            # * nuisance / ignore annotations mean "has annotations" no longer
+            #   means "contains poop";
+            # * an after/negative capture can legitimately still contain poop;
+            # * BA/BAN sequences were not always exact pairs/triples;
+            # * the dataset has now undergone substantially more complete review.
+            #
+            # As of 2026-09-26, all images are therefore admitted to the
+            # train/validation universe and current truth determines whether
+            # regions are positive, negative, or ignored. Keep the old machinery
+            # temporarily for historical reference, but do not use annotation
+            # presence to decide whether an image is eligible.
+            LEGACY_SYSTEM = False
 
-                groups, ungrouped = protocol_2img_organize(coco_imgs)
-                keep_idxs = list(ub.flatten(groups))
-                keep_flags = np.array(ub.boolmask(keep_idxs, len(coco_imgs))).astype(int)
-                assert (old_keep_flags > 0).sum() == keep_flags.sum()
+            if LEGACY_SYSTEM:
+                has_annots = np.array([
+                    len(coco_img.annots()) > 0
+                    for coco_img in coco_imgs
+                ]).astype(np.uint8)
 
-            elif protocol_version == '3img':
-                # This cohort belongs to the 3 image before/after/negative
-                # (BAN) protocol, if an image is annotated, we can infer that
-                # two images after are likely a negative and include it in the
-                # split.
-                is_after_image = np.roll(has_annots, 1)
-                is_negative_image = np.roll(has_annots, 2)
-                old_keep_flags = has_annots + is_after_image + is_negative_image
+                keep_flags = has_annots.copy()
+                protocol_version = '2img' if cohort_start <= change_point else '3img'
 
-                groups, ungrouped = protocol_3img_organize(coco_imgs)
-                keep_idxs = list(ub.flatten(groups))
-                keep_flags = np.array(ub.boolmask(keep_idxs, len(coco_imgs))).astype(int)
+                if protocol_version == '2img':
+                    is_after_image = np.roll(has_annots, 1)
+                    old_keep_flags = has_annots + is_after_image
 
-                assert (old_keep_flags > 0).sum() == keep_flags.sum()
+                    groups, ungrouped = protocol_2img_organize(coco_imgs)
+                    keep_idxs = list(ub.flatten(groups))
+                    keep_flags = np.array(
+                        ub.boolmask(keep_idxs, len(coco_imgs))
+                    ).astype(int)
+
+                    assert (old_keep_flags > 0).sum() == keep_flags.sum()
+
+                elif protocol_version == '3img':
+                    is_after_image = np.roll(has_annots, 1)
+                    is_negative_image = np.roll(has_annots, 2)
+                    old_keep_flags = (
+                        has_annots + is_after_image + is_negative_image
+                    )
+
+                    groups, ungrouped = protocol_3img_organize(coco_imgs)
+                    keep_idxs = list(ub.flatten(groups))
+                    keep_flags = np.array(
+                        ub.boolmask(keep_idxs, len(coco_imgs))
+                    ).astype(int)
+
+                    assert (old_keep_flags > 0).sum() == keep_flags.sum()
+                else:
+                    raise KeyError(protocol_version)
+
+                keep_imgs = list(ub.compress(coco_imgs, keep_flags))
             else:
-                raise KeyError(protocol_version)
-            keep_imgs = list(ub.compress(coco_imgs, keep_flags))
+                # All images are now eligible. The remaining split logic uses
+                # ``groups`` for the partially-held-out years, so group by
+                # capture date instead of attempting to reconstruct BA/BAN
+                # sequences from annotations. The validation rule is itself
+                # based on ordinal capture date, making this grouping stable
+                # under future annotation edits.
+                keep_imgs = list(coco_imgs)
+                date_to_idxs = ub.group_items(
+                    range(len(coco_imgs)),
+                    key=lambda idx: coco_imgs[idx].datetime.date(),
+                )
+                groups = list(date_to_idxs.values())
 
             # Determine which images go into train or validation
             cohort_year = cohort_start.date().year

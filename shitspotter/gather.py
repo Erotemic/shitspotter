@@ -553,21 +553,11 @@ def main():
     test_coco_fpath = learn_coco_fpath.augment(stem='test', multidot=True, ext='.kwcoco.zip')
     dpath = learn_coco_fpath.parent
 
-    if 0 and learn_coco_fpath.exists():
-        learn_coco_dset = kwcoco.CocoDataset(learn_coco_fpath)
-    else:
-        learn_coco_dset = kwcoco.CocoDataset()
-        learn_coco_dset.fpath = learn_coco_fpath
+    learn_coco_dset = kwcoco.CocoDataset()
+    learn_coco_dset.fpath = learn_coco_fpath
 
-    if 1 and test_coco_fpath.exists():
-        test_coco_dset = kwcoco.CocoDataset(test_coco_fpath)
-    else:
-        test_coco_dset = kwcoco.CocoDataset()
-        test_coco_dset.fpath = test_coco_fpath
-
-    if 0:
-        coco_dset = learn_coco_dset  # NOQA
-        image_rows = learn_image_rows  # NOQA
+    test_coco_dset = kwcoco.CocoDataset()
+    test_coco_dset.fpath = test_coco_fpath
 
     learn_image_rows = gather_learn_rows(dpath)
     learn_coco_dset = process_image_rows(image_rows=learn_image_rows,
