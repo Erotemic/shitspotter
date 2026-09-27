@@ -152,6 +152,29 @@ Override the dataset checkout when it is mounted elsewhere with
 `SHITSPOTTER_DATA_DPATH`. Override the shared cache independently with
 `SHITSPOTTER_RFDETR_CACHE`.
 
+
+## V7 multiscale / batch-16 / full-cosine diagnostic
+
+`config.v7_multiscale_batch16_fullcosine.yaml` is the next controlled training
+run after v6.  It intentionally reuses the v6 corrected-truth and
+reviewed-hard-negative source/tile policy.  Only trainer-side behavior changes:
+
+- RF-DETR internal multiscale training is enabled (`rfdetr.multi_scale: true`);
+- train batch doubles from 8/GPU to 16/GPU on four GPUs (global batch 64);
+- validation batch also doubles to 16/GPU for throughput;
+- LR remains `5e-5` with encoder LR `1e-5`;
+- the 15-epoch cosine schedule and 5% floor are retained;
+- early stopping is disabled so this experiment actually traverses the low-LR
+  portion that v6 never reached.
+
+The driver maps the explicit ShitSpotter `rfdetr.multi_scale` boolean onto
+KDK's RF-DETR `train_policy` contract.  `false` preserves the historical fixed
+policy and `true` requests the adapter's internal multiscale path.
+
+The campaign root may remain the v6 reviewed-hard-negative root so the exact
+existing pools are reused; the distinct `run_name` prevents trainer artifacts
+from overwriting v6.
+
 ## Round-0 v4 large-batch / low-LR policy
 
 The active RF-DETR recipe is now `rfdetr.run_name: v4`. It intentionally reuses

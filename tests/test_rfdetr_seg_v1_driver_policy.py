@@ -148,3 +148,81 @@ def test_annotation_has_spatial_payload():
     assert driver._annotation_has_spatial_payload({'bbox': [0, 0, 1, 1]})
     assert driver._annotation_has_spatial_payload({'segmentation': [[0, 0, 1, 0, 1, 1]]})
     assert driver._annotation_has_spatial_payload({'keypoints': [1, 2, 2]})
+
+
+def test_v7_multiscale_large_batch_full_cosine_policy():
+    config = driver.load_config(
+        Path(__file__).resolve().parents[1]
+        / 'experiments' / 'rfdetr_seg_v1'
+        / 'config.v7_multiscale_batch16_fullcosine.yaml'
+    )
+    policy = config['rfdetr']
+    assert policy['run_name'] == 'v7_multiscale_batch16_fullcosine'
+    assert policy['multi_scale'] is True
+    assert policy['batch_size_per_gpu'] == 16
+    assert policy['validation_batch_size_per_gpu'] == 16
+    assert policy['grad_accum_steps'] == 1
+    assert policy['epochs'] == 15
+    assert policy['lr'] == 5e-5
+    assert policy['backbone_lr'] == 1e-5
+    assert policy['lr_scheduler'] == 'cosine'
+    assert policy['lr_scheduler_kwargs']['min_factor'] == 0.05
+    assert policy['early_stopping'] is False
+
+
+def test_rfdetr_multiscale_policy_mapping(monkeypatch, tmp_path):
+    captured = {}
+
+    class FakeTrainer:
+        def generate_config(self, *args, **kwargs):
+            captured.update(kwargs)
+            return tmp_path / 'generated.json'
+
+    monkeypatch.setattr(driver, 'require_kdk', lambda config: None)
+
+    import sys
+    import types
+
+    registry_mod = types.ModuleType('kwcoco_detector_kit.trainers._registry')
+    registry_mod.get_trainer = lambda name: FakeTrainer()
+    trainers_mod = types.ModuleType('kwcoco_detector_kit.trainers')
+    package_mod = types.ModuleType('kwcoco_detector_kit')
+    monkeypatch.setitem(sys.modules, 'kwcoco_detector_kit', package_mod)
+    monkeypatch.setitem(sys.modules, 'kwcoco_detector_kit.trainers', trainers_mod)
+    monkeypatch.setitem(
+        sys.modules, 'kwcoco_detector_kit.trainers._registry', registry_mod
+    )
+
+    config = {
+        'category_names': ['poop'],
+        'rfdetr': {
+            'variant': 'seg_2xlarge',
+            'input_hw': [768, 768],
+            'multi_scale': True,
+            'batch_size_per_gpu': 16,
+            'validation_batch_size_per_gpu': 16,
+            'epochs': 15,
+            'lr': 5e-5,
+            'backbone_lr': 1e-5,
+            'use_amp': True,
+            'num_gpus': 4,
+            'grad_accum_steps': 1,
+            'num_workers': 8,
+            'lr_scheduler': 'cosine',
+            'lr_scheduler_kwargs': {'min_factor': 0.05},
+            'warmup_epochs': 1.0,
+            'best_model_metric': 'map',
+            'early_stopping': False,
+            'early_stopping_patience': 4,
+            'early_stopping_min_delta': 0.001,
+            'early_stopping_use_ema': True,
+        },
+    }
+    driver._generate_rfdetr_config(
+        config, tmp_path / 'train.zip', tmp_path / 'vali.zip', tmp_path / 'run'
+    )
+    assert captured['train_policy'] == 'multiscale'
+    assert captured['batch_size'] == 16
+    assert captured['val_batch_size'] == 16
+    assert captured['extra']['early_stopping'] is False
+

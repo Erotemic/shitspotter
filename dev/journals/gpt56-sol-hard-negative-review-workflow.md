@@ -229,3 +229,153 @@ with trainer/run artifacts under:
 
 These are the first places to inspect when doing the planned IoU-threshold,
 object-size, and mask-error analysis for the next model decision.
+
+## 2026-09-27 10:48:00 -0400
+
+Model: GPT-5.6 Sol.
+
+Follow-up inspection of the structured v6 RF-DETR run metadata refined the
+interpretation above. The compact run artifacts are more useful than the
+campaign console log for optimization diagnosis. In particular,
+`metrics.csv`, `training_config.json`, `policy.json`, `ROUND0_COMMAND.txt`, and
+the generated RF-DETR config record the exact trajectory and effective trainer
+settings.
+
+The strongest new observation is that the training objective continued to
+improve monotonically after validation AP peaked. Epoch-end training values
+were approximately:
+
+```text
+validation epoch    train loss    cls CE    bbox L1    GIoU     mask CE    mask Dice
+1                   15.5075       0.8008    0.02788    0.18804  0.02086    0.11906
+2                   11.7721       0.6368    0.01895    0.14880  0.01703    0.09628
+3                   11.2830       0.5967    0.01834    0.14444  0.01618    0.09352
+4                   10.8987       0.5629    0.01766    0.14005  0.01575    0.09232
+5                   10.4546       0.5273    0.01717    0.13643  0.01551    0.08955
+6                   10.2120       0.5098    0.01692    0.13373  0.01505    0.08741
+7                    9.9484       0.4859    0.01652    0.13128  0.01464    0.08631
+```
+
+Thus the run is not failing to optimize the training objective. Generalization
+AP peaks while all major training-loss components keep falling. Meanwhile the
+reported F1 continues to improve through epoch 7. This makes the failure mode
+more specific: later optimization improves the operating-point precision/recall
+tradeoff and training fit while degrading COCO-style localization/ranking AP.
+
+There is also an important interaction between early stopping and the cosine LR
+schedule. The configured base LR is `5e-5`, cosine `min_factor=0.05`, over a
+15-epoch horizon, but early stopping ends the run after validation epoch 7. The
+observed maximum optimizer LR near the end of each human-numbered epoch was:
+
+```text
+epoch 1    4.966e-5
+epoch 2    4.941e-5
+epoch 3    4.766e-5   # best validation AP
+epoch 4    4.482e-5
+epoch 5    4.109e-5
+epoch 6    3.658e-5
+epoch 7    3.156e-5   # early stop
+```
+
+The intended cosine floor would be about `2.5e-6`, so early stopping terminates
+training while the LR is still roughly 63% of its initial value. Therefore the
+previous statement that another duration/LR change is unlikely to help should
+be weakened: a *minor arbitrary* tweak is not motivated, but the current setup
+has not actually tested a low-LR refinement phase. A controlled schedule
+ablation is warranted before concluding that RF-DETR itself is at its ceiling.
+A good diagnostic experiment would keep the data/model/pool fixed and ensure
+that the cosine schedule reaches its low-LR region, e.g. by disabling early
+stopping for a bounded run or by using a shorter annealing horizon. A more
+compute-efficient variant is to initialize a fresh low-LR fine-tune from the
+best EMA checkpoint if RF-DETR's checkpoint-loading semantics are verified.
+Treat this as a hypothesis test, not an assumed fix.
+
+The exact model configuration also sharpens the mask-fidelity hypothesis. The
+run used RFDETRSeg2XLarge at 768x768 with `mask_downsample_ratio=4`,
+`mask_point_sample_ratio=16`, and mask CE/Dice coefficients of 5.0 each.
+RF-DETR internal `multi_scale` was disabled, although `scale_jitter` remained
+enabled and the upstream KDK tile pool already includes multiple source scales.
+At the best validation epoch, box mAP50:95 was 0.70073 and segmentation
+mAP50:95 was 0.67465, while segmentation AP50 was 0.90019. Both box and mask AP
+peak together, so the ceiling should not be attributed solely to the mask head;
+there is nevertheless a persistent mask-localization gap worth decomposing by
+IoU and object size.
+
+The generated training config had `seed=null`. Exact stochastic replication was
+therefore not guaranteed. Convergence to essentially the same epoch-3 ceiling
+as the earlier corrected-truth run is consequently stronger evidence that the
+observed plateau is systematic rather than a single unlucky seed.
+
+Before selecting a substantially different architecture, the next evidence
+should come from two complementary diagnostics:
+
+1. evaluate the best v6 checkpoint by IoU threshold and object/mask size, and
+   inspect high-confidence matches that pass IoU 0.5 but fail stricter overlap;
+2. run one controlled LR-schedule/refinement ablation that actually enters the
+   low-LR regime while keeping the model, data, and sampling policy unchanged.
+
+If neither changes the high-IoU/localization behavior materially, then a new
+segmentation architecture or head becomes a much stronger next move.
+
+## 2026-09-27 11:00:00 -0400
+
+Model: GPT-5.6 Sol.
+
+V7 is defined as a controlled follow-up to the completed v6 run.  V6 showed a
+repeatable epoch-3 EMA segmentation peak near 0.675, but structured metrics also
+showed that early stopping terminated training while the cosine LR was still
+about 63% of its starting value.  The next run should therefore force the full
+15-epoch cosine trajectory instead of interpreting the early-stop result as a
+completed low-LR refinement test.
+
+The user also requested that RF-DETR's internal multiscale training be enabled
+and that physical batch size be doubled because the four-GPU job has substantial
+memory headroom.  The resulting campaign config is:
+
+```text
+experiments/rfdetr_seg_v1/config.v7_multiscale_batch16_fullcosine.yaml
+```
+
+Trainer-side differences from v6 are deliberately explicit:
+
+```text
+run_name                       v7_multiscale_batch16_fullcosine
+RF-DETR internal multi_scale   true
+train batch / GPU              16   (v6: 8)
+validation batch / GPU         16   (v6: 8)
+number of GPUs                 4
+global physical train batch    64
+grad accumulation              1
+epoch ceiling                  15
+model LR                       5e-5 (unchanged)
+encoder LR                     1e-5 (unchanged)
+cosine min_factor              0.05 (unchanged)
+warmup                         1 epoch
+early stopping                 disabled
+EMA / best metric              unchanged, segmentation mAP
+```
+
+This is intentionally *not* linear LR scaling with the doubled batch.  The v4
+large-batch experiment already changed batch and LR together and did not improve
+the baseline.  V7 keeps the successful v3/v6 LR values while testing three
+requested/diagnostic changes: larger physical batch, RF-DETR internal
+multiscale augmentation, and actually reaching the cosine low-LR regime.  These
+changes mean v7 is not a one-variable ablation, so any improvement must later be
+decomposed if attribution matters.
+
+The source truth, 2:1 negative budget, 20% reviewed-distractor quota, KDK source
+scales `[1.0, 0.66, 0.40]`, and validation policy remain unchanged.  The config
+uses a distinct `run_name` but intentionally shares the same campaign root as v6
+so the existing validated candidate/pool artifacts can be reused.  RF-DETR
+trainer outputs therefore land beside v6 under:
+
+```text
+rounds/round0/runs/v7_multiscale_batch16_fullcosine/
+```
+
+ShitSpotter previously hardcoded `train_policy="fixed"` when generating the KDK
+RF-DETR config.  The driver now maps an explicit `rfdetr.multi_scale` boolean to
+KDK's train-policy contract: false -> `fixed`, true -> `multiscale`.  This keeps
+the historical default unchanged while allowing campaign configs to request the
+upstream internal multiscale path without hand-editing generated trainer files.
+

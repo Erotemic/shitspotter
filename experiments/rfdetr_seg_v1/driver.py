@@ -1397,9 +1397,10 @@ def _generate_rfdetr_config(config, train, vali, workdir, *, smoke=False):
     from kwcoco_detector_kit.trainers._registry import get_trainer
 
     policy = config["rfdetr"]
+    train_policy = "multiscale" if policy.get("multi_scale", False) else "fixed"
     return get_trainer("rfdetr").generate_config(
         train, vali, workdir, variant=policy["variant"],
-        input_hw=tuple(policy["input_hw"]), train_policy="fixed",
+        input_hw=tuple(policy["input_hw"]), train_policy=train_policy,
         num_classes=len(config["category_names"]),
         batch_size=1 if smoke else policy["batch_size_per_gpu"],
         val_batch_size=1 if smoke else policy["validation_batch_size_per_gpu"],

@@ -1,0 +1,123 @@
+schema_version: 3
+category_names: [poop]
+
+# This run assumes the authoritative LabelMe cleanup is complete.  In
+# particular, the historical `unkown` typo must be normalized to `unknown`,
+# `residual` / `residue` cleanup marks are treated as ignore regions, and
+# spatial annotations with no resolved category must be repaired before training.
+truth_semantics:
+  target_categories: [poop]
+  ignore_categories: [ignore, unknown, residual, residue]
+  uncategorized_annotation_policy: ignore
+  default_non_target_policy: background
+  unclassified_category_policy: ignore
+
+truth_hygiene:
+  forbidden_category_names: [unkown]
+  require_categorized_annotations_splits: [train, validation]
+
+# Consume the current regenerated split symlinks.  driver.py fingerprints the
+# resolved manifests, so changing a symlink target invalidates stale derived
+# artifacts instead of silently reusing them.
+splits:
+  train: train.kwcoco.zip
+  validation: vali.kwcoco.zip
+  test: test.kwcoco.zip
+
+paths:
+  data_root: /data/joncrall/dvc-repos/shitspotter_dvc
+  output_root: /data/joncrall/dvc-repos/shitspotter_expt_dvc/training/rfdetr_seg_v1_reviewed_hardneg
+  cache: tile_cache
+  kdk_repo: ../../../kwcoco_detector_kit
+
+tiles:
+  size: 768
+  oversize_factor: 1.0
+  source_scales: [1.0, 0.66, 0.40]
+  stride_frac: 0.5
+  min_keep_fraction: 0.30
+  min_gt_area_frac: 0.001
+  min_source_scale_long_side: 64
+  negative_safety_margin: 32
+  jpeg_quality: 92
+
+# Keep the successful v3 total 2:1 negative:positive budget, but reserve 20%
+# of the negative budget for legal windows containing trusted named nuisance
+# annotations.  The remainder keeps the normal source/scale-stratified policy.
+round0:
+  negative_over_positive: 2.0
+  negative_strategy: stratified_by_image
+  seed: 783718
+  annotated_distractors:
+    fraction: 0.20
+    seed: 783720
+    min_annotation_coverage: 0.50
+    max_per_source: 64
+
+# The fixed tiled validation pool receives the same explicit nuisance quota so
+# early stopping observes reviewed distractors.  It remains completely separate
+# from training; no validation tile is ever admitted to the training manifest.
+validation:
+  negative_over_positive: 2.0
+  negative_strategy: stratified_by_image
+  seed: 783719
+  annotated_distractors:
+    fraction: 0.20
+    seed: 783721
+    min_annotation_coverage: 0.50
+    max_per_source: 64
+
+mining:
+  num_shards: 4
+  locality_chunk_size: 256
+  batch_size_per_gpu: 8
+  max_candidates: 0
+  candidate_seed: 783718
+  score_thresh: 0.30
+  max_hard_per_round: 5000
+
+rfdetr:
+  # V7 deliberately reuses the v6 corrected-truth / reviewed-hard-negative
+  # source manifests and tile pools.  The training-side changes are:
+  #   * RF-DETR internal multiscale training enabled;
+  #   * physical batch doubled from 8/GPU to 16/GPU;
+  #   * early stopping disabled so the 15-epoch cosine schedule reaches its
+  #     low-LR refinement regime.
+  # Keep the v6 LR values unchanged: this run is not linear LR scaling.
+  run_name: v7_multiscale_batch16_fullcosine
+  variant: seg_2xlarge
+  input_hw: [768, 768]
+  multi_scale: true
+  num_gpus: 4
+  batch_size_per_gpu: 16
+  validation_batch_size_per_gpu: 16
+  grad_accum_steps: 1
+  epochs: 15
+  lr: 0.00005
+  backbone_lr: 0.00001
+  lr_scheduler: cosine
+  lr_scheduler_kwargs:
+    min_factor: 0.05
+  warmup_epochs: 1.0
+  best_model_metric: map
+  early_stopping: false
+  early_stopping_patience: 4
+  early_stopping_min_delta: 0.001
+  early_stopping_use_ema: true
+  num_workers: 8
+  use_amp: true
+  image: kwcoco-detector-kit:rfdetr-cu132-aiq
+
+canonical_evaluation:
+  window: [768, 768]
+  overlap: 0.25
+  nms_iou: 0.5
+  mask_iomin_thresh: 0.85
+  score_thresholds: [0.01, 0.05, 0.10, 0.20, 0.50]
+
+smoke:
+  train_positive_images: 4
+  train_negative_images: 4
+  validation_positive_images: 2
+  validation_negative_images: 2
+  seed: 20260918
