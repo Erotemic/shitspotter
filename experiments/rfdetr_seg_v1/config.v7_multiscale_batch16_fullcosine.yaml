@@ -93,7 +93,7 @@ rfdetr:
   validation_batch_size_per_gpu: 16
   grad_accum_steps: 1
   epochs: 15
-  lr: 0.00005
+  lr: 0.00007
   backbone_lr: 0.00001
   lr_scheduler: cosine
   lr_scheduler_kwargs:

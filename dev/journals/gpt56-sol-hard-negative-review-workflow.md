@@ -379,3 +379,29 @@ KDK's train-policy contract: false -> `fixed`, true -> `multiscale`.  This keeps
 the historical default unchanged while allowing campaign configs to request the
 upstream internal multiscale path without hand-editing generated trainer files.
 
+## 2026-09-27 12:10:00 -0400
+
+Model: GPT-5.6 Sol.
+
+Before launching v7, the batch-size/LR interaction was revisited.  Doubling the
+per-GPU batch from 8 to 16 halves the number of optimizer updates per epoch, so
+keeping the main model LR at `5e-5` would make the optimization regime more
+conservative than intended in addition to the requested multiscale change.
+
+The v7 main-model LR is therefore increased modestly by about sqrt(2):
+
+```text
+main model LR       7e-5   (v6: 5e-5)
+encoder/backbone LR 1e-5   (unchanged)
+```
+
+The encoder LR intentionally remains at `1e-5`.  The user explicitly prefers a
+more conservative encoder update rate rather than scaling it with the larger
+batch.  This also avoids unnecessarily disturbing pretrained backbone features
+while allowing the detector/segmentation heads to take somewhat larger steps.
+
+This supersedes the immediately preceding journal note saying that v7 keeps
+both v6 learning rates unchanged.  All other v7 settings remain unchanged:
+internal RF-DETR multiscale is enabled, train and validation batch sizes are 16
+per GPU, the full 15-epoch cosine schedule is allowed to run without early
+stopping, and the v6 truth/pool/sampling policy is reused.
